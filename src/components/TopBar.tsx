@@ -1,16 +1,6 @@
 import { useDashboard } from '../context/DashboardContext'
-import { NavLink, useLocation } from 'react-router-dom'
-
-const nav = [
-  { to: '/', label: 'Overview' },
-  { to: '/players', label: 'Players' },
-  { to: '/teams', label: 'Teams' },
-  { to: '/champions', label: 'Champions' },
-  { to: '/matchups', label: 'Matchups' },
-]
 
 export default function TopBar() {
-  const location = useLocation()
   const splitOptions = ['all', '2025 Winter', '2025 Spring', '2025 Summer', '2026 Winter', '2026 Spring']
   const { league, setLeague, split, setSplit, refresh, loading, lastUpdated, leagues } =
     useDashboard()
@@ -18,23 +8,6 @@ export default function TopBar() {
   return (
     <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3 px-6 py-3 bg-slate-900/50 border-b border-slate-800">
       <div className="flex items-center gap-4">
-        <nav className="flex flex-wrap gap-1 mr-2">
-          {nav.map((item) => (
-            <NavLink
-              key={item.to}
-              to={item.to + location.search}
-              className={({ isActive }) =>
-                `px-3 py-1 rounded-md text-xs font-medium transition-colors ${
-                  isActive
-                    ? 'bg-blue-600/20 text-blue-400 border border-blue-600/30'
-                    : 'text-slate-400 hover:text-white hover:bg-slate-800'
-                }`
-              }
-            >
-              {item.label}
-            </NavLink>
-          ))}
-        </nav>
         <div className="flex items-center gap-2">
           <label className="text-xs text-slate-400 uppercase tracking-wider font-semibold">
             League

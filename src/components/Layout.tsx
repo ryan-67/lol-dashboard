@@ -1,8 +1,18 @@
 import TopBar from './TopBar'
 import { useDashboard } from '../context/DashboardContext'
+import { NavLink, useLocation } from 'react-router-dom'
+
+const nav = [
+  { to: '/', label: 'Overview' },
+  { to: '/players', label: 'Players' },
+  { to: '/teams', label: 'Teams' },
+  { to: '/champions', label: 'Champions' },
+  { to: '/matchups', label: 'Matchups' },
+]
 
 export default function Layout({ children }: { children: React.ReactNode }) {
   const { loading, error } = useDashboard()
+  const location = useLocation()
 
   return (
     <div className="min-h-screen flex flex-col bg-slate-950">
@@ -14,6 +24,23 @@ export default function Layout({ children }: { children: React.ReactNode }) {
             </div>
             <h1 className="text-xl font-bold text-white tracking-tight">LoL Pro Dashboard</h1>
           </div>
+          <nav className="flex flex-wrap gap-1">
+            {nav.map((item) => (
+              <NavLink
+                key={item.to}
+                to={item.to + location.search}
+                className={({ isActive }) =>
+                  `px-3 py-1 rounded-md text-xs font-medium transition-colors ${
+                    isActive
+                      ? 'bg-blue-600/20 text-blue-400 border border-blue-600/30'
+                      : 'text-slate-400 hover:text-white hover:bg-slate-800'
+                  }`
+                }
+              >
+                {item.label}
+              </NavLink>
+            ))}
+          </nav>
         </div>
         <TopBar />
       </header>
