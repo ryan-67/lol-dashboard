@@ -1,5 +1,4 @@
 import { useDashboard } from '../context/DashboardContext'
-import StatCard from '../components/StatCard'
 import {
   BarChart,
   Bar,
@@ -20,20 +19,11 @@ export default function Overview() {
   const { data, filteredTeams, filteredPlayers, filteredChampions, loading, league, split } = useDashboard()
 
   if (loading && !data) {
-    return (
-      <div className="space-y-6">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {[...Array(3)].map((_, i) => (
-            <div key={i} className="bg-slate-900 rounded-lg p-4 border border-slate-800 h-24 animate-pulse" />
-          ))}
-        </div>
-      </div>
-    )
+    return <div className="bg-slate-900 rounded-lg p-4 border border-slate-800 h-80 animate-pulse" />
   }
 
-  const totalGames = filteredTeams.reduce((sum, t) => sum + t.games, 0)
-  const topTeamsByGd15 = [...filteredTeams]
-    .sort((a, b) => b.avgGd15 - a.avgGd15)
+  const topTeamsByWinrate = [...filteredTeams]
+    .sort((a, b) => b.winrate - a.winrate)
     .slice(0, 8)
     .map((team) => ({
       ...team,
@@ -86,36 +76,31 @@ export default function Overview() {
 
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        <StatCard title="Teams" value={filteredTeams.length} />
-        <StatCard title="Players" value={filteredPlayers.length} />
-        <StatCard title="Total Games" value={totalGames} />
-      </div>
-
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="bg-slate-900 rounded-lg border border-slate-800 p-4">
-          <h2 className="text-sm font-semibold text-slate-200 mb-1">Top Teams by Gold Diff @ 15</h2>
-          <p className="text-xs text-slate-500 mb-4">Top 8 teams in current filter by average early gold lead.</p>
+          <h2 className="text-sm font-semibold text-slate-200 mb-1">Top Teams by Winrate</h2>
+          <p className="text-xs text-slate-500 mb-4">Top 8 teams in current filter by winrate.</p>
           <div className="h-80">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={topTeamsByGd15} layout="vertical" margin={{ top: 8, right: 16, left: 28, bottom: 8 }}>
+              <BarChart data={topTeamsByWinrate} layout="vertical" margin={{ top: 8, right: 16, left: 28, bottom: 8 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
                 <XAxis
                   type="number"
+                  domain={[0, 100]}
                   stroke="#64748b"
                   fontSize={12}
-                  tickFormatter={(value) => `${value > 0 ? '+' : ''}${value}`}
+                  tickFormatter={(value) => `${value}%`}
                 />
                 <YAxis dataKey="shortName" type="category" width={112} stroke="#94a3b8" fontSize={12} />
                 <Tooltip
                   contentStyle={{ background: '#0f172a', border: '1px solid #1e293b', borderRadius: '8px' }}
                   itemStyle={{ color: '#e2e8f0' }}
-                  formatter={(value: number) => [`${value > 0 ? '+' : ''}${value}`, 'Avg GD@15']}
+                  formatter={(value: number) => [`${value.toFixed(1)}%`, 'Winrate']}
                   labelFormatter={(_, payload) => payload?.[0]?.payload?.name ?? ''}
                 />
-                <Bar dataKey="avgGd15" radius={[0, 4, 4, 0]}>
-                  {topTeamsByGd15.map((t) => (
-                    <Cell key={t.name} fill={t.avgGd15 >= 0 ? '#3b82f6' : '#ef4444'} />
+                <Bar dataKey="winrate" radius={[0, 4, 4, 0]}>
+                  {topTeamsByWinrate.map((t) => (
+                    <Cell key={t.name} fill="#3b82f6" />
                   ))}
                 </Bar>
               </BarChart>
@@ -209,12 +194,12 @@ export default function Overview() {
           </p>
           <div className="h-80 grid grid-cols-1 gap-3">
             <div className="bg-slate-800/40 border border-slate-700/60 rounded-md p-3">
-              <div className="text-xs text-slate-400 uppercase tracking-wider">Best Early Game Team</div>
+              <div className="text-xs text-slate-400 uppercase tracking-wider">Highest Winrate Team</div>
               <div className="text-xl font-semibold text-slate-100 mt-1">
-                {topTeamsByGd15[0]?.name ?? 'N/A'}
+                {topTeamsByWinrate[0]?.name ?? 'N/A'}
               </div>
               <div className="text-sm text-blue-300 mt-1">
-                {topTeamsByGd15[0] ? `${topTeamsByGd15[0].avgGd15 > 0 ? '+' : ''}${topTeamsByGd15[0].avgGd15} GD@15` : ''}
+                {topTeamsByWinrate[0] ? `${topTeamsByWinrate[0].winrate.toFixed(1)}% winrate` : ''}
               </div>
             </div>
             <div className="bg-slate-800/40 border border-slate-700/60 rounded-md p-3">
