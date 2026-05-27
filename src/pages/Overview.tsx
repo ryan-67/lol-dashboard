@@ -52,7 +52,7 @@ export default function Overview() {
     position,
     color: positionColors[position],
     data: filteredPlayers
-      .filter((p) => p.position.toLowerCase() === position)
+      .filter((p) => (p.position?.toLowerCase() ?? '') === position)
       .map((p) => ({
         ...p,
         x: p.gd15,

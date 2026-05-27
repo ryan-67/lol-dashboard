@@ -64,10 +64,10 @@ export default function Matchups() {
     const positions = ['top', 'jungle', 'mid', 'adc', 'support']
     return positions.map((position) => {
       const teamAPlayer = filteredPlayers
-        .filter((p) => p.team === teamA && p.position.toLowerCase() === position)
+        .filter((p) => p.team === teamA && (p.position?.toLowerCase() ?? '') === position)
         .sort((a, b) => b.games - a.games)[0]
       const teamBPlayer = filteredPlayers
-        .filter((p) => p.team === teamB && p.position.toLowerCase() === position)
+        .filter((p) => p.team === teamB && (p.position?.toLowerCase() ?? '') === position)
         .sort((a, b) => b.games - a.games)[0]
       return { position, teamAPlayer, teamBPlayer }
     })
