@@ -62,8 +62,11 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
     if (!data) return []
     // TODO: Apply real split filtering once dashboard_data.json includes split-level fields.
     void split
+    if (league === 'All Tier 1') return data.champions
+    const byLeague = data.championsByLeague?.[league]
+    if (byLeague?.length) return byLeague
     return data.champions
-  }, [data, split])
+  }, [data, league, split])
 
   return (
     <DashboardContext.Provider

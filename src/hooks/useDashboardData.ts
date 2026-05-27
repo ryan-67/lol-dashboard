@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
+import { normalizeDashboardData } from '../lib/dashboardNormalize'
 
 export interface DashboardMeta {
   source: string
@@ -47,11 +48,30 @@ export interface Champion {
   avgKda: number
 }
 
+export interface Matchup {
+  teamA: string
+  teamB: string
+  games: number
+  winsA: number
+  winsB: number
+}
+
+export interface TeamChampion {
+  team: string
+  champion: string
+  picks: number
+  winrate: number
+}
+
 export interface DashboardData {
   meta: DashboardMeta
   players: Player[]
   teams: Team[]
   champions: Champion[]
+  /** Per-league champion stats when present in JSON (from process_oe_csv). */
+  championsByLeague?: Record<string, Champion[]>
+  matchups: Matchup[]
+  teamChampions: TeamChampion[]
 }
 
 interface UseDashboardDataReturn {
@@ -80,8 +100,8 @@ export function useDashboardData(): UseDashboardDataReturn {
       if (!res.ok) {
         throw new Error(`HTTP ${res.status}`)
       }
-      const json: DashboardData = await res.json()
-      setData(json)
+      const json = await res.json()
+      setData(normalizeDashboardData(json as Record<string, unknown>))
       setLastUpdated(new Date())
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load data')

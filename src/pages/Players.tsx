@@ -1,24 +1,45 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useDashboard } from '../context/DashboardContext'
 import type { Player } from '../hooks/useDashboardData'
+import { formatNum, formatPct } from '../lib/format'
+
+function isDisplayablePlayer(p: Player): boolean {
+  return (
+    Boolean(p?.name) &&
+    typeof p.kda === 'number' &&
+    typeof p.games === 'number'
+  )
+}
 
 export default function Players() {
   const { filteredPlayers } = useDashboard()
   const [sortKey, setSortKey] = useState<keyof Player>('kda')
   const [sortDesc, setSortDesc] = useState(true)
 
-  const sorted = [...filteredPlayers].sort((a, b) => {
-    const av = a[sortKey]
-    const bv = b[sortKey]
-    if (typeof av === 'number' && typeof bv === 'number') {
-      return sortDesc ? bv - av : av - bv
-    }
-    return sortDesc ? String(bv).localeCompare(String(av)) : String(av).localeCompare(String(bv))
-  })
+  const players = useMemo(
+    () => filteredPlayers.filter(isDisplayablePlayer),
+    [filteredPlayers]
+  )
+
+  const sorted = useMemo(() => {
+    return [...players].sort((a, b) => {
+      const av = a[sortKey]
+      const bv = b[sortKey]
+      if (typeof av === 'number' && typeof bv === 'number') {
+        return sortDesc ? bv - av : av - bv
+      }
+      return sortDesc
+        ? String(bv ?? '').localeCompare(String(av ?? ''))
+        : String(av ?? '').localeCompare(String(bv ?? ''))
+    })
+  }, [players, sortKey, sortDesc])
 
   const toggleSort = (key: keyof Player) => {
     if (sortKey === key) setSortDesc(!sortDesc)
-    else { setSortKey(key); setSortDesc(true) }
+    else {
+      setSortKey(key)
+      setSortDesc(true)
+    }
   }
 
   const th = (label: string, key: keyof Player) => (
@@ -46,18 +67,29 @@ export default function Players() {
           </tr>
         </thead>
         <tbody>
-          {sorted.map((p) => (
-            <tr key={p.name} className="border-b border-slate-800/50 hover:bg-slate-800/50">
-              <td className="px-3 py-2 font-medium text-white">{p.name}</td>
-              <td className="px-3 py-2 text-slate-300">{p.team}</td>
-              <td className="px-3 py-2 text-slate-400">{p.league}</td>
-              <td className="px-3 py-2 text-slate-300 uppercase">{p.position ?? 'N/A'}</td>
-              <td className="px-3 py-2 text-slate-300">{p.games}</td>
-              <td className="px-3 py-2 font-bold text-blue-400">{p.kda.toFixed(2)}</td>
-              <td className="px-3 py-2 text-slate-300">{p.kp.toFixed(1)}%</td>
-              <td className="px-3 py-2 text-slate-300">{p.dmgShare.toFixed(1)}%</td>
+          {sorted.length === 0 ? (
+            <tr>
+              <td colSpan={8} className="px-3 py-8 text-center text-slate-500">
+                No players match the current filters.
+              </td>
             </tr>
-          ))}
+          ) : (
+            sorted.map((p) => (
+              <tr
+                key={`${p.name}-${p.team}-${p.league}`}
+                className="border-b border-slate-800/50 hover:bg-slate-800/50"
+              >
+                <td className="px-3 py-2 font-medium text-white">{p.name}</td>
+                <td className="px-3 py-2 text-slate-300">{p.team ?? '—'}</td>
+                <td className="px-3 py-2 text-slate-400">{p.league ?? '—'}</td>
+                <td className="px-3 py-2 text-slate-300 uppercase">{p.position ?? '—'}</td>
+                <td className="px-3 py-2 text-slate-300">{p.games ?? '—'}</td>
+                <td className="px-3 py-2 font-bold text-blue-400">{formatNum(p.kda, 2)}</td>
+                <td className="px-3 py-2 text-slate-300">{formatPct(p.kp, 1)}</td>
+                <td className="px-3 py-2 text-slate-300">{formatPct(p.dmgShare, 1)}</td>
+              </tr>
+            ))
+          )}
         </tbody>
       </table>
     </div>

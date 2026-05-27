@@ -11,7 +11,10 @@ Output:
 This script aggregates OE match-level data into the compact dashboard format:
 - players: aggregated stats by player (kda, kp, dmgShare, gd15, etc.)
 - teams: aggregated stats by team (wins, losses, winrate, objectives)
-- champions: pick/ban rates, presence, winrate by champion
+- champions: pick/ban rates, presence, winrate by champion (all leagues)
+- championsByLeague: same stats scoped per league
+- teamChampions: pick counts and winrate per team/champion
+- matchups: head-to-head records between teams
 """
 
 import sys
@@ -35,6 +38,34 @@ def safe_int(val, default=0):
     except ValueError:
         return default
 
+def champ_bucket():
+    return {
+        "picks": 0, "bans": 0, "wins": 0,
+        "games": 0, "kills": 0, "deaths": 0, "assists": 0,
+        "positions": set()
+    }
+
+def compile_champion_list(champions_dict, league_game_rows):
+    champ_list = []
+    denom = max(league_game_rows / 12, 1)
+    for name, c in champions_dict.items():
+        picks = c['picks']
+        if picks < 3:
+            continue
+        total_games = picks + c['bans']
+        deaths = max(c['deaths'], 1)
+        champ_list.append({
+            "name": name,
+            "positions": sorted(list(c['positions'])),
+            "picks": picks,
+            "bans": c['bans'],
+            "presence": round(total_games / denom * 100, 1),
+            "winrate": round(c['wins'] / picks * 100, 1) if picks else 0,
+            "avgKda": round((c['kills'] + c['assists']) / deaths, 2),
+        })
+    champ_list.sort(key=lambda x: x['presence'], reverse=True)
+    return champ_list
+
 def process_csv(csv_path):
     players = defaultdict(lambda: {
         "games": 0, "kills": 0, "deaths": 0, "assists": 0,
@@ -47,11 +78,13 @@ def process_csv(csv_path):
         "towers": 0, "dragons": 0, "barons": 0, "heralds": 0,
         "gd15": [], "league": ""
     })
-    champions = defaultdict(lambda: {
-        "picks": 0, "bans": 0, "wins": 0,
-        "games": 0, "kills": 0, "deaths": 0, "assists": 0,
-        "positions": set()
-    })
+    champions = defaultdict(champ_bucket)
+    champions_by_league = defaultdict(lambda: defaultdict(champ_bucket))
+    team_champions = defaultdict(lambda: {"picks": 0, "wins": 0})
+    games_by_league = defaultdict(int)
+
+    # gameid -> list of {team, result, league}
+    game_teams = defaultdict(list)
 
     total_rows = 0
     with open(csv_path, 'r', encoding='utf-8') as f:
@@ -64,16 +97,15 @@ def process_csv(csv_path):
 
             position = row.get('position', '')
             team_name = row.get('teamname', '')
-            player_name = row.get('name', '')
+            player_name = row.get('playername') or row.get('name', '')
             champion = row.get('champion', '')
             result = row.get('result', '')
-            side = row.get('side', '')  # blue/red
-            gamelength = safe_float(row.get('gamelength', 0))
+            game_id = row.get('gameid', '')
 
-            # Team stats (side-level rows have position == 'team')
             if position == 'team':
                 teams[team_name]['games'] += 1
                 teams[team_name]['league'] = league
+                games_by_league[league] += 1
                 if result == '1':
                     teams[team_name]['wins'] += 1
                 else:
@@ -86,9 +118,14 @@ def process_csv(csv_path):
                 teams[team_name]['deaths'] += safe_int(row.get('deaths', 0))
                 teams[team_name]['assists'] += safe_int(row.get('assists', 0))
                 teams[team_name]['gd15'].append(safe_float(row.get('golddiffat15', 0)))
+                if game_id and team_name:
+                    game_teams[game_id].append({
+                        "team": team_name,
+                        "result": result,
+                        "league": league,
+                    })
                 continue
 
-            # Player stats
             if player_name:
                 p = players[player_name]
                 p['games'] += 1
@@ -98,28 +135,33 @@ def process_csv(csv_path):
                 p['kills'] += safe_int(row.get('kills', 0))
                 p['deaths'] += safe_int(row.get('deaths', 0))
                 p['assists'] += safe_int(row.get('assists', 0))
-                p['kp'].append(safe_float(row.get('killparticipation', 0)) * 100)
+                team_kills = safe_float(row.get('teamkills', 0))
+                if team_kills > 0:
+                    kp_val = (safe_int(row.get('kills', 0)) + safe_int(row.get('assists', 0))) / team_kills * 100
+                else:
+                    kp_val = safe_float(row.get('killparticipation', 0)) * 100
+                p['kp'].append(kp_val)
                 p['dmgShare'].append(safe_float(row.get('damageshare', 0)) * 100)
                 p['gd15'].append(safe_float(row.get('golddiffat15', 0)))
                 p['csd15'].append(safe_float(row.get('csdiffat15', 0)))
                 p['xpd15'].append(safe_float(row.get('xpdiffat15', 0)))
 
-            # Champion stats (pick)
-            if champion:
-                c = champions[champion]
-                c['picks'] += 1
-                c['games'] += 1
-                c['positions'].add(position)
-                c['kills'] += safe_int(row.get('kills', 0))
-                c['deaths'] += safe_int(row.get('deaths', 0))
-                c['assists'] += safe_int(row.get('assists', 0))
+            if champion and team_name:
+                for bucket in (champions[champion], champions_by_league[league][champion]):
+                    bucket['picks'] += 1
+                    bucket['games'] += 1
+                    bucket['positions'].add(position)
+                    bucket['kills'] += safe_int(row.get('kills', 0))
+                    bucket['deaths'] += safe_int(row.get('deaths', 0))
+                    bucket['assists'] += safe_int(row.get('assists', 0))
+                    if result == '1':
+                        bucket['wins'] += 1
+
+                tc = team_champions[(team_name, champion)]
+                tc['picks'] += 1
                 if result == '1':
-                    c['wins'] += 1
+                    tc['wins'] += 1
 
-            # Champion bans (stored in ban1-5 columns on team rows)
-            # We'll handle bans in a second pass or by checking team row ban columns
-
-    # Second pass for bans (simpler: just scan for ban columns)
     with open(csv_path, 'r', encoding='utf-8') as f:
         reader = csv.DictReader(f)
         for row in reader:
@@ -132,8 +174,8 @@ def process_csv(csv_path):
                     ban = row.get(f'ban{i}', '')
                     if ban:
                         champions[ban]['bans'] += 1
+                        champions_by_league[league][ban]['bans'] += 1
 
-    # Compile player output
     player_list = []
     for name, p in players.items():
         games = p['games']
@@ -154,7 +196,6 @@ def process_csv(csv_path):
             "xpd15": round(sum(p['xpd15']) / len(p['xpd15']), 1) if p['xpd15'] else 0,
         })
 
-    # Compile team output
     team_list = []
     for name, t in teams.items():
         games = t['games']
@@ -176,28 +217,59 @@ def process_csv(csv_path):
             "heralds": t['heralds'],
         })
 
-    # Compile champion output
-    champ_list = []
-    for name, c in champions.items():
-        picks = c['picks']
-        if picks < 3:
+    champ_list = compile_champion_list(champions, total_rows)
+    champs_by_league_out = {
+        league: compile_champion_list(champions_by_league[league], games_by_league[league])
+        for league in TARGET_LEAGUES
+        if league in champions_by_league
+    }
+
+    team_champion_list = []
+    for (team, champion), stats in team_champions.items():
+        picks = stats['picks']
+        if picks < 1:
             continue
-        total_games = picks + c['bans']
-        deaths = max(c['deaths'], 1)
-        champ_list.append({
-            "name": name,
-            "positions": sorted(list(c['positions'])),
+        team_champion_list.append({
+            "team": team,
+            "champion": champion,
             "picks": picks,
-            "bans": c['bans'],
-            "presence": round(total_games / max(total_rows / 12, 1) * 100, 1),  # rough estimate
-            "winrate": round(c['wins'] / picks * 100, 1) if picks else 0,
-            "avgKda": round((c['kills'] + c['assists']) / deaths, 2),
+            "winrate": round(stats['wins'] / picks * 100, 1) if picks else 0,
         })
 
-    # Sort by relevance
+    matchup_counts = defaultdict(lambda: {"games": 0, "winsA": 0, "winsB": 0})
+    for sides in game_teams.values():
+        if len(sides) != 2:
+            continue
+        a, b = sides[0], sides[1]
+        if a['league'] != b['league']:
+            continue
+        key = tuple(sorted([a['team'], b['team']]))
+        matchup_counts[key]['games'] += 1
+        if a['team'] == key[0]:
+            if a['result'] == '1':
+                matchup_counts[key]['winsA'] += 1
+            else:
+                matchup_counts[key]['winsB'] += 1
+        else:
+            if b['result'] == '1':
+                matchup_counts[key]['winsA'] += 1
+            else:
+                matchup_counts[key]['winsB'] += 1
+
+    matchup_list = [
+        {
+            "teamA": key[0],
+            "teamB": key[1],
+            "games": v['games'],
+            "winsA": v['winsA'],
+            "winsB": v['winsB'],
+        }
+        for key, v in matchup_counts.items()
+        if v['games'] > 0
+    ]
+
     player_list.sort(key=lambda x: x['kda'], reverse=True)
     team_list.sort(key=lambda x: x['winrate'], reverse=True)
-    champ_list.sort(key=lambda x: x['presence'], reverse=True)
 
     return {
         "meta": {
@@ -209,6 +281,9 @@ def process_csv(csv_path):
         "players": player_list,
         "teams": team_list,
         "champions": champ_list,
+        "championsByLeague": champs_by_league_out,
+        "teamChampions": team_champion_list,
+        "matchups": matchup_list,
     }
 
 
@@ -223,13 +298,15 @@ def main():
 
     out_path = "public/dashboard_data.json"
     with open(out_path, 'w', encoding='utf-8') as f:
-        json.dump(data, f, indent=2)
+        json.dump(data, f, separators=(',', ':'))
 
-    size_kb = len(json.dumps(data)) / 1024
+    size_kb = len(json.dumps(data, separators=(',', ':'))) / 1024
     print(f"Wrote {out_path} ({size_kb:.1f} KB)")
     print(f"  Players: {len(data['players'])}")
     print(f"  Teams: {len(data['teams'])}")
     print(f"  Champions: {len(data['champions'])}")
+    print(f"  Matchups: {len(data['matchups'])}")
+    print(f"  Team-champion rows: {len(data['teamChampions'])}")
 
 
 if __name__ == "__main__":

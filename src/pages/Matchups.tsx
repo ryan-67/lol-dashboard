@@ -25,13 +25,7 @@ export default function Matchups() {
 
   const headToHead = useMemo(() => {
     if (!teamA || !teamB || !data) return null
-    const matchupRows = ((data as unknown as { matchups?: Array<{
-      teamA: string
-      teamB: string
-      games: number
-      winsA: number
-      winsB: number
-    }> }).matchups ?? [])
+    const matchupRows = data.matchups ?? []
 
     const row = matchupRows.find(
       (m) =>
@@ -75,12 +69,7 @@ export default function Matchups() {
 
   const championOverlap = useMemo(() => {
     if (!data || !teamA || !teamB) return []
-    const teamChampionRows = ((data as unknown as { teamChampions?: Array<{
-      team: string
-      champion: string
-      picks: number
-      winrate: number
-    }> }).teamChampions ?? [])
+    const teamChampionRows = data.teamChampions ?? []
 
     const aChampions = teamChampionRows.filter((r) => r.team === teamA)
     const bChampions = teamChampionRows.filter((r) => r.team === teamB)
@@ -151,7 +140,9 @@ export default function Matchups() {
             <div className="text-center rounded-md border border-slate-700/70 bg-slate-800/40 p-4">
               <div className="text-xl font-bold text-white">{teamAData.name}</div>
               <div className="text-sm text-slate-400">{teamAData.league}</div>
-              <div className="mt-2 text-2xl font-bold text-emerald-400">{teamAData.winrate.toFixed(1)}%</div>
+              <div className="mt-2 text-2xl font-bold text-emerald-400">
+                {typeof teamAData.winrate === 'number' ? `${teamAData.winrate.toFixed(1)}%` : '—'}
+              </div>
               <div className="text-xs text-slate-500">Win Rate</div>
               <div className="text-xs text-slate-400 mt-2">{teamAData.wins}W - {teamAData.losses}L</div>
             </div>
@@ -169,7 +160,9 @@ export default function Matchups() {
             <div className="text-center rounded-md border border-slate-700/70 bg-slate-800/40 p-4">
               <div className="text-xl font-bold text-white">{teamBData.name}</div>
               <div className="text-sm text-slate-400">{teamBData.league}</div>
-              <div className="mt-2 text-2xl font-bold text-blue-400">{teamBData.winrate.toFixed(1)}%</div>
+              <div className="mt-2 text-2xl font-bold text-blue-400">
+                {typeof teamBData.winrate === 'number' ? `${teamBData.winrate.toFixed(1)}%` : '—'}
+              </div>
               <div className="text-xs text-slate-500">Win Rate</div>
               <div className="text-xs text-slate-400 mt-2">{teamBData.wins}W - {teamBData.losses}L</div>
             </div>
@@ -208,8 +201,11 @@ export default function Matchups() {
                       <>
                         <div className="text-slate-100 font-medium">{teamAPlayer.name}</div>
                         <div className="text-xs text-slate-400">
-                          KDA {teamAPlayer.kda.toFixed(2)} · GD@15 {teamAPlayer.gd15 > 0 ? '+' : ''}
-                          {teamAPlayer.gd15.toFixed(1)} · {teamAPlayer.games}g
+                          KDA {typeof teamAPlayer.kda === 'number' ? teamAPlayer.kda.toFixed(2) : '—'} · GD@15{' '}
+                          {typeof teamAPlayer.gd15 === 'number'
+                            ? `${teamAPlayer.gd15 > 0 ? '+' : ''}${teamAPlayer.gd15.toFixed(1)}`
+                            : '—'}{' '}
+                          · {teamAPlayer.games ?? 0}g
                         </div>
                       </>
                     ) : (
@@ -222,8 +218,11 @@ export default function Matchups() {
                       <>
                         <div className="text-slate-100 font-medium">{teamBPlayer.name}</div>
                         <div className="text-xs text-slate-400">
-                          KDA {teamBPlayer.kda.toFixed(2)} · GD@15 {teamBPlayer.gd15 > 0 ? '+' : ''}
-                          {teamBPlayer.gd15.toFixed(1)} · {teamBPlayer.games}g
+                          KDA {typeof teamBPlayer.kda === 'number' ? teamBPlayer.kda.toFixed(2) : '—'} · GD@15{' '}
+                          {typeof teamBPlayer.gd15 === 'number'
+                            ? `${teamBPlayer.gd15 > 0 ? '+' : ''}${teamBPlayer.gd15.toFixed(1)}`
+                            : '—'}{' '}
+                          · {teamBPlayer.games ?? 0}g
                         </div>
                       </>
                     ) : (
@@ -239,7 +238,7 @@ export default function Matchups() {
             <h3 className="text-sm font-semibold text-slate-200 mb-4">Champion Overlap</h3>
             {championOverlap.length === 0 ? (
               <div className="text-sm text-slate-500">
-                no data
+                no shared champion picks between these teams
               </div>
             ) : (
               <div className="overflow-auto">
@@ -256,10 +255,12 @@ export default function Matchups() {
                       <tr key={row.champion} className="border-b border-slate-800/50 hover:bg-slate-800/40">
                         <td className="px-3 py-2 text-slate-200">{row.champion}</td>
                         <td className="px-3 py-2 text-slate-300">
-                          {row.teamAPicks} picks · {row.teamAWinrate.toFixed(1)}% WR
+                          {row.teamAPicks} picks ·{' '}
+                          {typeof row.teamAWinrate === 'number' ? `${row.teamAWinrate.toFixed(1)}%` : '—'} WR
                         </td>
                         <td className="px-3 py-2 text-slate-300">
-                          {row.teamBPicks} picks · {row.teamBWinrate.toFixed(1)}% WR
+                          {row.teamBPicks} picks ·{' '}
+                          {typeof row.teamBWinrate === 'number' ? `${row.teamBWinrate.toFixed(1)}%` : '—'} WR
                         </td>
                       </tr>
                     ))}
