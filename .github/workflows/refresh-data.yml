@@ -1,0 +1,60 @@
+name: Refresh Dashboard Data
+
+on:
+  workflow_dispatch:
+    inputs:
+      csv_url:
+        description: 'Optional: URL to Oracle Elixir CSV'
+        required: false
+        default: ''
+  schedule:
+    - cron: '0 6 * * *'
+
+permissions:
+  contents: write
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Fetch latest OE data
+        id: fetch
+        run: |
+          mkdir -p tmp
+          CSV_URL="${{ github.event.inputs.csv_url }}"
+          if [ -n "$CSV_URL" ]; then
+            curl -L -o tmp/oe_data.csv "$CSV_URL"
+          else
+            curl -L -o tmp/oe_data.csv "https://huggingface.co/datasets/Finish-him/esports-data/resolve/main/lol/oracles_elixir_2025.csv" || true
+          fi
+          if [ -f tmp/oe_data.csv ] && [ -s tmp/oe_data.csv ]; then
+            echo "fetched=true" >> $GITHUB_OUTPUT
+          else
+            echo "fetched=false" >> $GITHUB_OUTPUT
+            echo "No new data available. Skipping update."
+          fi
+
+      - name: Process data
+        if: steps.fetch.outputs.fetched == 'true'
+        run: python scripts/process_oe_csv.py tmp/oe_data.csv
+
+      - name: Commit and push
+        if: steps.fetch.outputs.fetched == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add public/dashboard_data.json
+          if git diff --cached --quiet; then
+            echo "No changes"
+          else
+            git commit -m "chore: refresh dashboard data $(date -u +%Y-%m-%d)"
+            git push
+          fi
