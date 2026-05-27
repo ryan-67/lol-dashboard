@@ -1,16 +1,12 @@
-import { useSearchParams } from 'react-router-dom'
-import { teams } from '../data/mockData'
 import { useState } from 'react'
+import { useDashboard } from '../context/DashboardContext'
 
 export default function Teams() {
-  const [searchParams] = useSearchParams()
-  const league = searchParams.get('league') || 'All Tier 1'
-  const [sortKey, setSortKey] = useState<keyof typeof teams[0]>('winrate')
+  const { filteredTeams } = useDashboard()
+  const [sortKey, setSortKey] = useState<keyof (typeof filteredTeams)[number]>('winrate')
   const [sortDesc, setSortDesc] = useState(true)
 
-  let filtered = league === 'All Tier 1' ? teams : teams.filter((t) => t.league === league)
-
-  const sorted = [...filtered].sort((a, b) => {
+  const sorted = [...filteredTeams].sort((a, b) => {
     const av = a[sortKey]
     const bv = b[sortKey]
     if (typeof av === 'number' && typeof bv === 'number') {
@@ -19,12 +15,12 @@ export default function Teams() {
     return sortDesc ? String(bv).localeCompare(String(av)) : String(av).localeCompare(String(bv))
   })
 
-  const toggleSort = (key: keyof typeof teams[0]) => {
+  const toggleSort = (key: keyof (typeof filteredTeams)[number]) => {
     if (sortKey === key) setSortDesc(!sortDesc)
     else { setSortKey(key); setSortDesc(true) }
   }
 
-  const th = (label: string, key: keyof typeof teams[0]) => (
+  const th = (label: string, key: keyof (typeof filteredTeams)[number]) => (
     <th
       onClick={() => toggleSort(key)}
       className="text-left text-xs text-slate-400 uppercase tracking-wider px-3 py-2 cursor-pointer hover:text-white select-none"

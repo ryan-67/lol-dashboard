@@ -5,6 +5,7 @@ import Overview from './pages/Overview'
 import Players from './pages/Players'
 import Teams from './pages/Teams'
 import Champions from './pages/Champions'
+import Matchups from './pages/Matchups'
 
 function App() {
   return (
@@ -15,6 +16,7 @@ function App() {
           <Route path="/players" element={<Players />} />
           <Route path="/teams" element={<Teams />} />
           <Route path="/champions" element={<Champions />} />
+          <Route path="/matchups" element={<Matchups />} />
         </Routes>
       </Layout>
     </DashboardProvider>

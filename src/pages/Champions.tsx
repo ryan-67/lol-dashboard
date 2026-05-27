@@ -1,11 +1,12 @@
-import { champions } from '../data/mockData'
 import { useState } from 'react'
+import { useDashboard } from '../context/DashboardContext'
 
 export default function Champions() {
-  const [sortKey, setSortKey] = useState<keyof typeof champions[0]>('presence')
+  const { filteredChampions } = useDashboard()
+  const [sortKey, setSortKey] = useState<keyof (typeof filteredChampions)[number]>('presence')
   const [sortDesc, setSortDesc] = useState(true)
 
-  const sorted = [...champions].sort((a, b) => {
+  const sorted = [...filteredChampions].sort((a, b) => {
     const av = a[sortKey]
     const bv = b[sortKey]
     if (typeof av === 'number' && typeof bv === 'number') {
@@ -14,12 +15,12 @@ export default function Champions() {
     return sortDesc ? String(bv).localeCompare(String(av)) : String(av).localeCompare(String(bv))
   })
 
-  const toggleSort = (key: keyof typeof champions[0]) => {
+  const toggleSort = (key: keyof (typeof filteredChampions)[number]) => {
     if (sortKey === key) setSortDesc(!sortDesc)
     else { setSortKey(key); setSortDesc(true) }
   }
 
-  const th = (label: string, key: keyof typeof champions[0]) => (
+  const th = (label: string, key: keyof (typeof filteredChampions)[number]) => (
     <th
       onClick={() => toggleSort(key)}
       className="text-left text-xs text-slate-400 uppercase tracking-wider px-3 py-2 cursor-pointer hover:text-white select-none"

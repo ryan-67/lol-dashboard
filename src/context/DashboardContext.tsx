@@ -33,32 +33,37 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
   }, [data])
 
   const splits = useMemo(() => {
-    if (!data?.meta.splits?.length) return ['2025-2026']
-    return data.meta.splits
+    return ['all', '2025 Winter', '2025 Spring', '2025 Summer', '2026 Winter', '2026 Spring']
   }, [data])
 
   const [league, setLeagueState] = useState('All Tier 1')
-  const [split, setSplitState] = useState(splits[0])
+  const [split, setSplitState] = useState('all')
 
   const setLeague = useCallback((l: string) => setLeagueState(l), [])
   const setSplit = useCallback((s: string) => setSplitState(s), [])
 
   const filteredPlayers = useMemo(() => {
     if (!data) return []
+    // TODO: Apply real split filtering once dashboard_data.json includes split-level fields.
+    void split
     if (league === 'All Tier 1') return data.players
     return data.players.filter((p) => p.league === league)
-  }, [data, league])
+  }, [data, league, split])
 
   const filteredTeams = useMemo(() => {
     if (!data) return []
+    // TODO: Apply real split filtering once dashboard_data.json includes split-level fields.
+    void split
     if (league === 'All Tier 1') return data.teams
     return data.teams.filter((t) => t.league === league)
-  }, [data, league])
+  }, [data, league, split])
 
   const filteredChampions = useMemo(() => {
     if (!data) return []
+    // TODO: Apply real split filtering once dashboard_data.json includes split-level fields.
+    void split
     return data.champions
-  }, [data])
+  }, [data, split])
 
   return (
     <DashboardContext.Provider

@@ -7,6 +7,7 @@ const nav = [
   { to: '/players', label: 'Players' },
   { to: '/teams', label: 'Teams' },
   { to: '/champions', label: 'Champions' },
+  { to: '/matchups', label: 'Matchups' },
 ]
 
 export default function Layout({ children }: { children: React.ReactNode }) {
