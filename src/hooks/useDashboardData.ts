@@ -62,7 +62,7 @@ interface UseDashboardDataReturn {
   lastUpdated: Date | null
 }
 
-const DATA_URL = './dashboard_data.json'
+const DATA_URL = (import.meta.env.BASE_URL || '/') + 'dashboard_data.json'
 
 export function useDashboardData(): UseDashboardDataReturn {
   const [data, setData] = useState<DashboardData | null>(null)
@@ -77,7 +77,9 @@ export function useDashboardData(): UseDashboardDataReturn {
     try {
       const url = `${DATA_URL}?v=${cacheBust}`
       const res = await fetch(url)
-      if (!res.ok) throw new Error(`HTTP ${res.status}`)
+      if (!res.ok) {
+        throw new Error(`HTTP ${res.status}`)
+      }
       const json: DashboardData = await res.json()
       setData(json)
       setLastUpdated(new Date())

@@ -1,42 +1,63 @@
-import { useSearchParams } from 'react-router-dom'
-import { LEAGUES, SPLITS } from '../data/mockData'
+import { useDashboard } from '../context/DashboardContext'
 
 export default function TopBar() {
-  const [searchParams, setSearchParams] = useSearchParams()
-  const league = searchParams.get('league') || 'All Tier 1'
-  const split = searchParams.get('split') || '2025 Spring'
-
-  const update = (key: string, value: string) => {
-    const next = new URLSearchParams(searchParams)
-    next.set(key, value)
-    setSearchParams(next)
-  }
+  const { league, setLeague, split, setSplit, refresh, loading, lastUpdated, leagues, splits } =
+    useDashboard()
 
   return (
-    <div className="flex items-center gap-4 px-6 py-3 bg-slate-850 border-b border-slate-800">
-      <div className="flex items-center gap-2">
-        <label className="text-xs text-slate-400 uppercase tracking-wider">League</label>
-        <select
-          value={league}
-          onChange={(e) => update('league', e.target.value)}
-          className="bg-slate-900 border border-slate-700 rounded px-3 py-1.5 text-sm focus:outline-none focus:border-blue-500"
-        >
-          {LEAGUES.map((l) => (
-            <option key={l} value={l}>{l}</option>
-          ))}
-        </select>
+    <div className="flex items-center justify-between px-6 py-3 bg-slate-900/50 border-b border-slate-800">
+      <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2">
+          <label className="text-xs text-slate-400 uppercase tracking-wider font-semibold">
+            League
+          </label>
+          <select
+            value={league}
+            onChange={(e) => setLeague(e.target.value)}
+            className="bg-slate-900 border border-slate-700 rounded px-3 py-1.5 text-sm text-slate-200 focus:outline-none focus:border-blue-500 transition-colors"
+          >
+            {leagues.map((l) => (
+              <option key={l} value={l}>
+                {l}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div className="flex items-center gap-2">
+          <label className="text-xs text-slate-400 uppercase tracking-wider font-semibold">
+            Split
+          </label>
+          <select
+            value={split}
+            onChange={(e) => setSplit(e.target.value)}
+            className="bg-slate-900 border border-slate-700 rounded px-3 py-1.5 text-sm text-slate-200 focus:outline-none focus:border-blue-500 transition-colors"
+          >
+            {splits.map((s) => (
+              <option key={s} value={s}>
+                {s}
+              </option>
+            ))}
+          </select>
+        </div>
       </div>
-      <div className="flex items-center gap-2">
-        <label className="text-xs text-slate-400 uppercase tracking-wider">Split</label>
-        <select
-          value={split}
-          onChange={(e) => update('split', e.target.value)}
-          className="bg-slate-900 border border-slate-700 rounded px-3 py-1.5 text-sm focus:outline-none focus:border-blue-500"
+
+      <div className="flex items-center gap-3">
+        {lastUpdated && (
+          <span className="text-xs text-slate-500">
+            updated {lastUpdated.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+          </span>
+        )}
+        <button
+          onClick={refresh}
+          disabled={loading}
+          className={`px-3 py-1.5 rounded text-sm font-medium transition-all ${
+            loading
+              ? 'bg-slate-800 text-slate-500 cursor-not-allowed'
+              : 'bg-blue-600 hover:bg-blue-500 text-white active:scale-95'
+          }`}
         >
-          {SPLITS.map((s) => (
-            <option key={s} value={s}>{s}</option>
-          ))}
-        </select>
+          {loading ? 'Loading...' : 'Refresh'}
+        </button>
       </div>
     </div>
   )
