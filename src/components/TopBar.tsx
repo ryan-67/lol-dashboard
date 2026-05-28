@@ -1,8 +1,7 @@
 import { useDashboard } from '../context/DashboardContext'
 
 export default function TopBar() {
-  const splitOptions = ['all', '2025 Winter', '2025 Spring', '2025 Summer', '2026 Winter', '2026 Spring']
-  const { league, setLeague, split, setSplit, refresh, loading, lastUpdated, leagues } =
+  const { league, setLeague, split, setSplit, refresh, loading, lastUpdated, leagues, splits } =
     useDashboard()
 
   return (
@@ -33,7 +32,7 @@ export default function TopBar() {
             onChange={(e) => setSplit(e.target.value)}
             className="bg-slate-900 border border-slate-700 rounded px-3 py-1.5 text-sm text-slate-200 focus:outline-none focus:border-blue-500 transition-colors"
           >
-            {splitOptions.map((s) => (
+            {splits.map((s) => (
               <option key={s} value={s}>
                 {s}
               </option>

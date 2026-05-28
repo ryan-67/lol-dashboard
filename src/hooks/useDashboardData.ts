@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { normalizeDashboardData } from '../lib/dashboardNormalize'
+import type { OEStore } from '../lib/mergeSlices'
 
 export interface DashboardMeta {
   source: string
@@ -7,6 +7,7 @@ export interface DashboardMeta {
   leagues: string[]
   splits?: string[]
   schema_version: string
+  csv_files?: string[]
 }
 
 export interface Player {
@@ -21,6 +22,9 @@ export interface Player {
   gd15: number
   csd15: number
   xpd15: number
+  kills?: number
+  deaths?: number
+  assists?: number
 }
 
 export interface Team {
@@ -36,6 +40,9 @@ export interface Team {
   dragons: number
   barons: number
   heralds: number
+  kills?: number
+  deaths?: number
+  assists?: number
 }
 
 export interface Champion {
@@ -46,6 +53,10 @@ export interface Champion {
   presence: number
   winrate: number
   avgKda: number
+  wins?: number
+  kills?: number
+  deaths?: number
+  assists?: number
 }
 
 export interface Matchup {
@@ -68,24 +79,22 @@ export interface DashboardData {
   players: Player[]
   teams: Team[]
   champions: Champion[]
-  /** Per-league champion stats when present in JSON (from process_oe_csv). */
-  championsByLeague?: Record<string, Champion[]>
   matchups: Matchup[]
   teamChampions: TeamChampion[]
 }
 
 interface UseDashboardDataReturn {
-  data: DashboardData | null
+  store: OEStore | null
   loading: boolean
   error: string | null
   refresh: () => void
   lastUpdated: Date | null
 }
 
-const DATA_URL = (import.meta.env.BASE_URL || '/') + 'dashboard_data.json'
+const DATA_URL = (import.meta.env.BASE_URL || '/') + 'data/oe_slices.json'
 
 export function useDashboardData(): UseDashboardDataReturn {
-  const [data, setData] = useState<DashboardData | null>(null)
+  const [store, setStore] = useState<OEStore | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null)
@@ -98,13 +107,21 @@ export function useDashboardData(): UseDashboardDataReturn {
       const url = `${DATA_URL}?v=${cacheBust}`
       const res = await fetch(url)
       if (!res.ok) {
-        throw new Error(`HTTP ${res.status}`)
+        throw new Error(
+          res.status === 404
+            ? 'Data store not found. Run `npm run ingest` to build oe_slices.json from lol/ CSV files.'
+            : `HTTP ${res.status} loading dashboard data`
+        )
       }
-      const json = await res.json()
-      setData(normalizeDashboardData(json as Record<string, unknown>))
+      const json = (await res.json()) as OEStore
+      if (!json?.meta?.splits?.length || !json?.slices) {
+        throw new Error('Malformed data store: missing meta.splits or slices')
+      }
+      setStore(json)
       setLastUpdated(new Date())
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load data')
+      setStore(null)
+      setError(err instanceof Error ? err.message : 'Failed to load dashboard data')
     } finally {
       setLoading(false)
     }
@@ -118,5 +135,5 @@ export function useDashboardData(): UseDashboardDataReturn {
     setCacheBust(Date.now())
   }, [])
 
-  return { data, loading, error, refresh, lastUpdated }
+  return { store, loading, error, refresh, lastUpdated }
 }

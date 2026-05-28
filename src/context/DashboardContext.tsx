@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useCallback, useMemo, ReactNode } from 'react'
 import { useDashboardData, DashboardData, Player, Team, Champion } from '../hooks/useDashboardData'
+import { mergeSlices, TIER1_LEAGUES } from '../lib/mergeSlices'
 
 interface DashboardContextValue {
   data: DashboardData | null
@@ -24,17 +25,17 @@ interface DashboardContextValue {
 const DashboardContext = createContext<DashboardContextValue | null>(null)
 
 export function DashboardProvider({ children }: { children: ReactNode }) {
-  const { data, loading, error, refresh, lastUpdated } = useDashboardData()
+  const { store, loading, error, refresh, lastUpdated } = useDashboardData()
 
   const leagues = useMemo(() => {
-    if (!data) return ['All Tier 1']
-    const set = new Set(data.meta.leagues)
-    return ['All Tier 1', ...Array.from(set)]
-  }, [data])
+    if (!store) return ['All Tier 1']
+    return ['All Tier 1', ...TIER1_LEAGUES.filter((l) => store.meta.leagues.includes(l))]
+  }, [store])
 
   const splits = useMemo(() => {
-    return ['all', '2025 Winter', '2025 Spring', '2025 Summer', '2026 Winter', '2026 Spring']
-  }, [data])
+    if (!store) return ['all']
+    return ['all', ...store.meta.splits]
+  }, [store])
 
   const [league, setLeagueState] = useState('All Tier 1')
   const [split, setSplitState] = useState('all')
@@ -42,31 +43,14 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
   const setLeague = useCallback((l: string) => setLeagueState(l), [])
   const setSplit = useCallback((s: string) => setSplitState(s), [])
 
-  const filteredPlayers = useMemo(() => {
-    if (!data) return []
-    // TODO: Apply real split filtering once dashboard_data.json includes split-level fields.
-    void split
-    if (league === 'All Tier 1') return data.players
-    return data.players.filter((p) => p.league === league)
-  }, [data, league, split])
+  const data = useMemo(() => {
+    if (!store) return null
+    return mergeSlices(store, league, split)
+  }, [store, league, split])
 
-  const filteredTeams = useMemo(() => {
-    if (!data) return []
-    // TODO: Apply real split filtering once dashboard_data.json includes split-level fields.
-    void split
-    if (league === 'All Tier 1') return data.teams
-    return data.teams.filter((t) => t.league === league)
-  }, [data, league, split])
-
-  const filteredChampions = useMemo(() => {
-    if (!data) return []
-    // TODO: Apply real split filtering once dashboard_data.json includes split-level fields.
-    void split
-    if (league === 'All Tier 1') return data.champions
-    const byLeague = data.championsByLeague?.[league]
-    if (byLeague?.length) return byLeague
-    return data.champions
-  }, [data, league, split])
+  const filteredPlayers = data?.players ?? []
+  const filteredTeams = data?.teams ?? []
+  const filteredChampions = data?.champions ?? []
 
   return (
     <DashboardContext.Provider
