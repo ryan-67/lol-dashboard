@@ -10,6 +10,32 @@ export interface DashboardMeta {
   csv_files?: string[]
 }
 
+export interface PlayerGameLog {
+  date: string
+  result: number
+  champion: string
+  opponent?: string
+  kda: number
+  kp: number
+  dmgShare: number
+  gd15: number
+  csd15: number
+  xpd15: number
+  dpm: number
+  visionScore?: number
+  goldShare?: number
+  firstBloodRate?: number
+  objControl?: number
+}
+
+export interface PlayerChampionPoolEntry {
+  champion: string
+  games: number
+  wins: number
+  losses: number
+  winrate: number
+}
+
 export interface Player {
   name: string
   team: string
@@ -30,6 +56,8 @@ export interface Player {
   kills?: number
   deaths?: number
   assists?: number
+  gameLog?: PlayerGameLog[]
+  championPool?: PlayerChampionPoolEntry[]
 }
 
 export interface Team {

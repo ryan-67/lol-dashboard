@@ -3,9 +3,12 @@ import type {
   DashboardData,
   Matchup,
   Player,
+  PlayerChampionPoolEntry,
+  PlayerGameLog,
   Team,
   TeamChampion,
 } from '../hooks/useDashboardData'
+import { mergeChampionPoolEntries } from './playerAnalytics'
 
 export interface DashboardSlice {
   players: Player[]
@@ -32,13 +35,29 @@ export interface OEStore {
 
 export const TIER1_LEAGUES = ['LCK', 'LPL', 'LEC', 'LCS'] as const
 
-type PlayerRow = Player & { kills?: number; deaths?: number; assists?: number }
+type PlayerRow = Player & {
+  kills?: number
+  deaths?: number
+  assists?: number
+  gameLog?: PlayerGameLog[]
+  championPool?: PlayerChampionPoolEntry[]
+}
 type TeamRow = Team & { kills?: number; deaths?: number; assists?: number }
 type ChampionRow = Champion
 
 function round(value: number, digits: number): number {
   const factor = 10 ** digits
   return Math.round(value * factor) / factor
+}
+
+function dedupeGameLog(log: PlayerGameLog[]): PlayerGameLog[] {
+  const seen = new Set<string>()
+  return log.filter((game) => {
+    const id = `${game.date}|${game.champion}|${game.result}`
+    if (seen.has(id)) return false
+    seen.add(id)
+    return true
+  })
 }
 
 function avgWeighted(values: Array<{ value: number; weight: number }>): number {
@@ -88,6 +107,8 @@ function mergePlayers(slices: DashboardSlice[]): Player[] {
       goldShare: Array<{ value: number; weight: number }>
       firstBloodRate: Array<{ value: number; weight: number }>
       objControl: Array<{ value: number; weight: number }>
+      gameLog: PlayerGameLog[]
+      championPool: PlayerChampionPoolEntry[]
     }
   >()
 
@@ -115,7 +136,12 @@ function mergePlayers(slices: DashboardSlice[]): Player[] {
         goldShare: [],
         firstBloodRate: [],
         objControl: [],
+        gameLog: [],
+        championPool: [],
       }
+
+      if (p.gameLog?.length) existing.gameLog.push(...p.gameLog)
+      if (p.championPool?.length) existing.championPool.push(...p.championPool)
 
       existing.games += games
       existing.kills += p.kills ?? 0
@@ -170,6 +196,8 @@ function mergePlayers(slices: DashboardSlice[]): Player[] {
         goldShare: round(avgWeighted(p.goldShare), 1),
         firstBloodRate: round(avgWeighted(p.firstBloodRate), 1),
         objControl: round(avgWeighted(p.objControl), 2),
+        gameLog: dedupeGameLog(p.gameLog).sort((a, b) => a.date.localeCompare(b.date)),
+        championPool: mergeChampionPoolEntries(p.championPool),
       } satisfies Player
     })
     .filter((p) => p.games >= 5)

@@ -1,4 +1,4 @@
-import type { Player } from '../hooks/useDashboardData'
+import type { Player, PlayerGameLog } from '../hooks/useDashboardData'
 
 export type RoleKey = 'top' | 'jungle' | 'mid' | 'adc' | 'support'
 export type RoleFilter = 'all' | RoleKey
@@ -126,6 +126,32 @@ function normalizeInCohort(value: number, cohortValues: number[]): number {
   const max = Math.max(...cohortValues)
   if (max === min) return 50
   return ((value - min) / (max - min)) * 100
+}
+
+/** Map a single-game log row to a Player-shaped snapshot for scoring. */
+export function playerSnapshotFromGame(game: PlayerGameLog): Player {
+  return {
+    name: '',
+    team: '',
+    league: '',
+    position: '',
+    games: 1,
+    kda: game.kda,
+    kp: game.kp,
+    dmgShare: game.dmgShare,
+    gd15: game.gd15,
+    csd15: game.csd15,
+    xpd15: game.xpd15,
+    dpm: game.dpm,
+    visionScore: game.visionScore ?? 0,
+    goldShare: game.goldShare ?? 0,
+    firstBloodRate: game.firstBloodRate ?? 0,
+    objControl: game.objControl ?? 0,
+  }
+}
+
+export function computeGameScore(game: PlayerGameLog, role: RoleKey, cohort: Player[]): number {
+  return computeAggregateScore(playerSnapshotFromGame(game), role, cohort)
 }
 
 export function computeAggregateScore(player: Player, role: RoleKey, cohort: Player[]): number {

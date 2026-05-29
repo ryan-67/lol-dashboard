@@ -14,12 +14,18 @@ import {
 } from '../lib/playerRadar'
 import RoleFilterBar from '../components/players/RoleFilterBar'
 import PlayerRadarChart from '../components/players/PlayerRadarChart'
+import PlayerDropdown from '../components/players/PlayerDropdown'
+import PlayerFormChart from '../components/players/PlayerFormChart'
+import PlayerChampionPool from '../components/players/PlayerChampionPool'
+import PlayerConsistencyStrip from '../components/players/PlayerConsistencyStrip'
 import SortableTh from '../components/ui/SortableTh'
+import { findDefaultPlayerKey, playerKey } from '../lib/playerAnalytics'
 import { scrollEntranceStagger, refreshScrollTrigger } from '../theme/animations'
 
 export default function Players() {
   const { filteredPlayers, league, split } = useDashboard()
   const [roleFilter, setRoleFilter] = useState<RoleFilter>('all')
+  const [selectedPlayerKeys, setSelectedPlayerKeys] = useState<string[]>([])
   const [showTable, setShowTable] = useState(false)
   const [sortKey, setSortKey] = useState<keyof Player>('kda')
   const [sortDesc, setSortDesc] = useState(true)
@@ -46,6 +52,31 @@ export default function Players() {
   }, [players, roleFilter])
 
   const radarGridRef = useRef<HTMLDivElement>(null)
+  const analyticsRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    setSelectedPlayerKeys((prev) => {
+      const valid = prev.filter((key) => players.some((p) => playerKey(p) === key))
+      if (valid.length) return valid
+      const defaultKey = findDefaultPlayerKey(players)
+      return defaultKey ? [defaultKey] : []
+    })
+  }, [players])
+
+  const selectedPlayers = useMemo(
+    () =>
+      selectedPlayerKeys
+        .map((key) => players.find((p) => playerKey(p) === key))
+        .filter((p): p is Player => Boolean(p)),
+    [players, selectedPlayerKeys],
+  )
+
+  useGSAP(
+    () => {
+      scrollEntranceStagger(analyticsRef.current, '.player-chart-card')
+    },
+    { scope: analyticsRef, dependencies: [selectedPlayers.length, league, split] },
+  )
 
   useGSAP(
     () => {
@@ -56,7 +87,7 @@ export default function Players() {
 
   useEffect(() => {
     requestAnimationFrame(() => refreshScrollTrigger())
-  }, [roleFilter, league, split, showTable, radarPlayers.length])
+  }, [roleFilter, league, split, showTable, radarPlayers.length, selectedPlayers.length])
 
   const sorted = useMemo(() => {
     return [...roleFilteredPlayers].sort((a, b) => {
@@ -82,6 +113,23 @@ export default function Players() {
   return (
     <div className="page-section">
       <RoleFilterBar value={roleFilter} onChange={setRoleFilter} />
+
+      <section ref={analyticsRef} className="player-analytics-section">
+        <PlayerDropdown
+          players={players}
+          selectedKeys={selectedPlayerKeys}
+          onChange={setSelectedPlayerKeys}
+        />
+        {selectedPlayers.length > 0 && (
+          <>
+            <div className="player-analytics-grid">
+              <PlayerFormChart players={selectedPlayers} cohortPlayers={players} />
+              <PlayerChampionPool players={selectedPlayers} />
+            </div>
+            <PlayerConsistencyStrip players={selectedPlayers} cohortPlayers={players} />
+          </>
+        )}
+      </section>
 
       {radarPlayers.length === 0 ? (
         <div className="empty-state">No players match the current filters.</div>

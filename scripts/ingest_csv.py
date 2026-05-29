@@ -251,6 +251,8 @@ def player_bucket():
         "team": "",
         "league": "",
         "position": "",
+        "gameLog": [],
+        "champions": defaultdict(lambda: {"picks": 0, "wins": 0}),
     }
 
 
@@ -335,6 +337,21 @@ def compile_players(players_dict):
                 "goldShare": round(sum(p["goldShare"]) / len(p["goldShare"]), 1) if p["goldShare"] else 0,
                 "firstBloodRate": round(sum(p["firstBloodGames"]) / games * 100, 1) if games else 0,
                 "objControl": round(sum(p["objControl"]) / len(p["objControl"]), 2) if p["objControl"] else 0,
+                "gameLog": sorted(p["gameLog"], key=lambda g: g.get("date", "")),
+                "championPool": [
+                    {
+                        "champion": champ,
+                        "games": stats["picks"],
+                        "wins": stats["wins"],
+                        "losses": stats["picks"] - stats["wins"],
+                        "winrate": round(stats["wins"] / stats["picks"] * 100, 1)
+                        if stats["picks"]
+                        else 0,
+                    }
+                    for champ, stats in sorted(
+                        p["champions"].items(), key=lambda item: item[1]["picks"], reverse=True
+                    )
+                ],
             }
         )
     out.sort(key=lambda x: x["kda"], reverse=True)
@@ -647,6 +664,40 @@ def process_row(row, buckets: dict, team_to_league: dict[str, str]):
             + safe_int(row.get("void_grubs", 0))
         )
         p["objControl"].append(float(obj_total))
+        opponent = ""
+        if game_id and game_id in bucket["game_teams"]:
+            for side in bucket["game_teams"][game_id]:
+                if side.get("team") and side["team"] != team_name:
+                    opponent = side["team"]
+                    break
+        deaths_g = max(safe_int(row.get("deaths", 0)), 1)
+        kills_g = safe_int(row.get("kills", 0))
+        assists_g = safe_int(row.get("assists", 0))
+        date_only = str(row.get("date", "")).strip()[:10] if row.get("date") else ""
+        p["gameLog"].append(
+            {
+                "date": date_only,
+                "result": 1 if result == "1" else 0,
+                "champion": champion or "",
+                "opponent": opponent,
+                "kda": round((kills_g + assists_g) / deaths_g, 2),
+                "kp": round(kp_val, 1),
+                "dmgShare": round(safe_float(row.get("damageshare", 0)) * 100, 1),
+                "gd15": round(safe_float(row.get("golddiffat15", 0)), 1),
+                "csd15": round(safe_float(row.get("csdiffat15", 0)), 1),
+                "xpd15": round(safe_float(row.get("xpdiffat15", 0)), 1),
+                "dpm": round(safe_float(row.get("dpm", 0)), 1),
+                "visionScore": round(safe_float(row.get("visionscore", 0)), 1),
+                "goldShare": round(safe_float(row.get("earnedgoldshare", 0)) * 100, 1),
+                "firstBloodRate": 100.0 if fb_involved else 0.0,
+                "objControl": float(obj_total),
+            }
+        )
+        if champion:
+            cp = p["champions"][champion]
+            cp["picks"] += 1
+            if result == "1":
+                cp["wins"] += 1
 
     if champion and team_name:
         c = bucket["champions"][champion]
