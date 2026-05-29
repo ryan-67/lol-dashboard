@@ -91,6 +91,8 @@ export interface ChampionWeekStat {
   weekStart: string
   picks: number
   bans: number
+  wins?: number
+  winrate?: number
   presence: number
 }
 

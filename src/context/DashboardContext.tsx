@@ -24,6 +24,8 @@ interface DashboardContextValue {
 
 const DashboardContext = createContext<DashboardContextValue | null>(null)
 
+export const DEFAULT_SPLIT = '2026 Spring'
+
 export function DashboardProvider({ children }: { children: ReactNode }) {
   const { store, loading, error, refresh, lastUpdated } = useDashboardData()
 
@@ -38,7 +40,7 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
   }, [store])
 
   const [league, setLeagueState] = useState('All Tier 1')
-  const [split, setSplitState] = useState('all')
+  const [split, setSplitState] = useState(DEFAULT_SPLIT)
 
   const setLeague = useCallback((l: string) => setLeagueState(l), [])
   const setSplit = useCallback((s: string) => setSplitState(s), [])

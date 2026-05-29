@@ -266,6 +266,82 @@ export function computeRisingFalling(champions: Champion[]): RisingFallingResult
   return { sufficient: true, rising, falling }
 }
 
+function hasPicksInWeeks(c: Champion, weeks: string[]): boolean {
+  const stats = c.weeklyStats ?? []
+  return weeks.some((w) => (stats.find((s) => s.weekStart === w)?.picks ?? 0) > 0)
+}
+
+function avgWinrateForWeeks(c: Champion, weeks: string[]): number {
+  if (!weeks.length) return 0
+  const stats = c.weeklyStats ?? []
+  const values = weeks
+    .map((w) => stats.find((s) => s.weekStart === w))
+    .filter((s): s is NonNullable<typeof s> => !!s && (s.picks ?? 0) > 0)
+    .map((s) => s.winrate ?? (s.picks ? ((s.wins ?? 0) / s.picks) * 100 : 0))
+  if (!values.length) return 0
+  return values.reduce((a, b) => a + b, 0) / values.length
+}
+
+export interface RisingFallingWinrateEntry {
+  champion: Champion
+  role: RoleKey
+  priorWinrate: number
+  recentWinrate: number
+  delta: number
+}
+
+export interface RisingFallingWinrateResult {
+  sufficient: boolean
+  rising: RisingFallingWinrateEntry[]
+  falling: RisingFallingWinrateEntry[]
+}
+
+export function computeRisingFallingWinrate(champions: Champion[]): RisingFallingWinrateResult {
+  const weeks = collectWeeks(champions)
+
+  if (weeks.length < 2) {
+    return { sufficient: false, rising: [], falling: [] }
+  }
+
+  const recentWeeks = weeks.slice(-Math.min(2, weeks.length))
+  const priorEnd = weeks.length - recentWeeks.length
+  const priorWeeks = weeks.slice(Math.max(0, priorEnd - 2), priorEnd)
+
+  if (!priorWeeks.length || !recentWeeks.length) {
+    return { sufficient: false, rising: [], falling: [] }
+  }
+
+  const deltas: RisingFallingWinrateEntry[] = champions
+    .map((champion) => {
+      const priorWinrate = avgWinrateForWeeks(champion, priorWeeks)
+      const recentWinrate = avgWinrateForWeeks(champion, recentWeeks)
+      const delta = recentWinrate - priorWinrate
+      return {
+        champion,
+        role: roleForChampion(champion),
+        priorWinrate,
+        recentWinrate,
+        delta,
+      }
+    })
+    .filter(
+      (entry) =>
+        hasPicksInWeeks(entry.champion, priorWeeks) || hasPicksInWeeks(entry.champion, recentWeeks),
+    )
+
+  const rising = [...deltas]
+    .filter((d) => d.delta > 0)
+    .sort((a, b) => b.delta - a.delta)
+    .slice(0, 5)
+
+  const falling = [...deltas]
+    .filter((d) => d.delta < 0)
+    .sort((a, b) => a.delta - b.delta)
+    .slice(0, 5)
+
+  return { sufficient: true, rising, falling }
+}
+
 function zScoreById(items: { id: string; value: number }[]): Map<string, number> {
   if (!items.length) return new Map()
   const values = items.map((i) => i.value)

@@ -13,6 +13,7 @@ import {
   MostOpChampion,
   PresenceBarChart,
   RisingFallingChampions,
+  RisingFallingWinrates,
   RoleFilterBar,
   TopPerformerCards,
 } from '../components/champions'
@@ -83,6 +84,7 @@ export default function Champions() {
             onFocus={setFocusedName}
           />
           <RisingFallingChampions champions={roleFiltered} />
+          <RisingFallingWinrates champions={roleFiltered} />
           <TopPerformerCards champions={roleFiltered} />
         </>
       )}

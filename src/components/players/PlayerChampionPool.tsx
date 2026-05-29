@@ -28,25 +28,29 @@ interface PlayerChampionPoolProps {
 
 const poolTooltip = makeChartTooltipContent(
   (props) => {
-    const row = props.payload?.[0]?.payload as {
-      champion?: string
-      playerName?: string
-    }
-    return row?.champion ? `${row.champion} · ${row.playerName ?? ''}` : undefined
+    const item = props.payload?.[0]
+    const row = item?.payload as Record<string, string | number> | undefined
+    if (!row?.champion) return undefined
+    const match = String(item?.dataKey ?? '').match(/^games_(\d+)$/)
+    const index = match ? Number(match[1]) : 0
+    const playerName = row[`playerName_${index}`] ?? ''
+    return playerName ? `${row.champion} · ${playerName}` : String(row.champion)
   },
   (props) => {
-    const row = props.payload?.[0]?.payload as {
-      games?: number
-      wins?: number
-      losses?: number
-      winrate?: number
-    }
-    if (!row) return []
+    const item = props.payload?.[0]
+    if (!item) return []
+    const row = item.payload as Record<string, string | number>
+    const match = String(item.dataKey ?? '').match(/^games_(\d+)$/)
+    const index = match ? Number(match[1]) : 0
+    const games = Number(row[`games_${index}`] ?? 0)
+    const wins = Number(row[`wins_${index}`] ?? 0)
+    const losses = Number(row[`losses_${index}`] ?? 0)
+    const winrate = Number(row[`wr_${index}`] ?? 0)
     return [
-      { label: 'Games', value: String(row.games ?? 0) },
-      { label: 'Wins', value: String(row.wins ?? 0) },
-      { label: 'Losses', value: String(row.losses ?? 0) },
-      { label: 'Winrate', value: `${(row.winrate ?? 0).toFixed(1)}%` },
+      { label: 'Games', value: String(games) },
+      { label: 'Wins', value: String(wins) },
+      { label: 'Losses', value: String(losses) },
+      { label: 'Winrate', value: `${winrate.toFixed(1)}%` },
     ]
   },
 )
@@ -63,7 +67,10 @@ export default function PlayerChampionPool({ players }: PlayerChampionPoolProps)
         const key = playerKey(player)
         const entry = bars.find((b) => b.champion === champion && b.playerKey === key)
         row[`games_${index}`] = entry?.games ?? 0
+        row[`wins_${index}`] = entry?.wins ?? 0
+        row[`losses_${index}`] = entry?.losses ?? 0
         row[`wr_${index}`] = entry?.winrate ?? 0
+        row[`playerName_${index}`] = player.name
       })
       return row
     })

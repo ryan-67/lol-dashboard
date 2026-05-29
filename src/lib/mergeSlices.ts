@@ -327,7 +327,7 @@ type ChampionMergeAcc = {
   dpm: Array<{ value: number; weight: number }>
   goldPerMin: Array<{ value: number; weight: number }>
   sparkline: number[]
-  weekly: Map<string, { picks: number; bans: number }>
+  weekly: Map<string, { picks: number; bans: number; wins: number }>
   gameDates: string[]
 }
 
@@ -382,9 +382,10 @@ function mergeChampions(slices: DashboardSlice[]): Champion[] {
       }
       if (c.sparkline?.length) existing.sparkline.push(...c.sparkline)
       for (const stat of c.weeklyStats ?? []) {
-        const week = existing.weekly.get(stat.weekStart) ?? { picks: 0, bans: 0 }
+        const week = existing.weekly.get(stat.weekStart) ?? { picks: 0, bans: 0, wins: 0 }
         week.picks += stat.picks ?? 0
         week.bans += stat.bans ?? 0
+        week.wins += stat.wins ?? Math.round(((stat.winrate ?? 0) / 100) * (stat.picks ?? 0))
         existing.weekly.set(stat.weekStart, week)
       }
       if (c.gameDates?.length) existing.gameDates.push(...c.gameDates)
@@ -412,6 +413,8 @@ function mergeChampions(slices: DashboardSlice[]): Champion[] {
             weekStart,
             picks: stats.picks,
             bans: stats.bans,
+            wins: stats.wins,
+            winrate: stats.picks ? round((stats.wins / stats.picks) * 100, 1) : 0,
             presence: Math.min(200, round(weekPick + weekBan, 1)),
           }
         })

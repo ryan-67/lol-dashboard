@@ -290,7 +290,7 @@ def champ_bucket():
         "dpm": [],
         "goldpermin": [],
         "recentresults": [],
-        "weekly": defaultdict(lambda: {"picks": 0, "bans": 0}),
+        "weekly": defaultdict(lambda: {"picks": 0, "bans": 0, "wins": 0}),
         "gameDates": [],
     }
 
@@ -455,6 +455,12 @@ def compile_champions(champs_dict, team_games: int, weekly_team_games: dict):
                         "weekStart": wk,
                         "picks": c["weekly"][wk]["picks"],
                         "bans": c["weekly"][wk]["bans"],
+                        "wins": c["weekly"][wk]["wins"],
+                        "winrate": round(
+                            c["weekly"][wk]["wins"] / c["weekly"][wk]["picks"] * 100, 1
+                        )
+                        if c["weekly"][wk]["picks"]
+                        else 0,
                         "presence": min(
                             200.0,
                             round(
@@ -707,6 +713,8 @@ def process_row(row, buckets: dict, team_to_league: dict[str, str]):
         c["positions"].add(pos)
         if week_key:
             c["weekly"][week_key]["picks"] += 1
+            if result == "1":
+                c["weekly"][week_key]["wins"] += 1
         if date_only:
             c["gameDates"].append(date_only)
         c["kills"] += safe_int(row.get("kills", 0))
