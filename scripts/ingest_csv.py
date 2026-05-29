@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import json
 import csv
+import re
 import sys
 from collections import defaultdict
 from datetime import datetime, timezone
@@ -33,6 +34,8 @@ CSV_FILES = [
 ]
 
 TARGET_LEAGUES = {"LCK", "LPL", "LEC", "LCS"}
+INTERNATIONAL_LEAGUES = {"MSI", "WLDs", "FST"}
+ALLOWED_LEAGUES = TARGET_LEAGUES | INTERNATIONAL_LEAGUES
 ALLOWED_COMPLETENESS = {"complete", "partial"}
 MIN_PLAYER_GAMES = 5
 MIN_TEAM_GAMES = 3
@@ -48,6 +51,77 @@ POSITION_MAP = {
     "sup": "support",
     "support": "support",
 }
+
+# Chronological order within a competitive year for the split dropdown.
+SEASON_ORDER = {
+    "Winter": 0,
+    "First Stand": 1,
+    "Spring": 2,
+    "MSI": 3,
+    "Summer": 4,
+    "Worlds": 5,
+}
+
+INTERNATIONAL_FROM_LEAGUE = {
+    "MSI": "MSI",
+    "WLDs": "Worlds",
+    "FST": "First Stand",
+}
+
+INTERNATIONAL_PATTERNS = [
+    (re.compile(r"first\s*stand|\bfst\b", re.I), "First Stand"),
+    (re.compile(r"\bmsi\b", re.I), "MSI"),
+    (re.compile(r"worlds|\bwlds\b", re.I), "Worlds"),
+]
+
+PLAYOFF_MARKERS = re.compile(
+    r"playoffs?|play[\s-]?in|regional\s+final|placements|kickoff",
+    re.I,
+)
+
+WINTER_PATTERNS = [
+    re.compile(r"\bcup\b", re.I),
+    re.compile(r"lock[\s-]?in", re.I),
+    re.compile(r"versus", re.I),
+    re.compile(r"\bwinter\b", re.I),
+]
+
+SPRING_PATTERNS = [
+    re.compile(r"rounds?\s*1[\s-]*2", re.I),
+    re.compile(r"road\s+to\s+msi", re.I),
+    re.compile(r"\bspring\b", re.I),
+    re.compile(r"split\s*2\b", re.I),
+]
+
+SUMMER_PATTERNS = [
+    re.compile(r"rounds?\s*3[\s-]*5", re.I),
+    re.compile(r"rounds?\s*3[\s-]*4", re.I),
+    re.compile(r"season\s+playoffs", re.I),
+    re.compile(r"\bsummer\b", re.I),
+    re.compile(r"split\s*3\b", re.I),
+]
+
+LEAGUE_OVERRIDES = {
+    "LCK": [
+        (re.compile(r"\bcup\b", re.I), "Winter"),
+        (re.compile(r"rounds?\s*1[\s-]*2", re.I), "Spring"),
+        (re.compile(r"rounds?\s*3[\s-]*5", re.I), "Summer"),
+    ],
+    "LPL": [
+        (re.compile(r"split\s*1\b", re.I), "Spring"),
+        (re.compile(r"split\s*2\b", re.I), "Spring"),
+        (re.compile(r"split\s*3\b", re.I), "Summer"),
+    ],
+    "LCS": [
+        (re.compile(r"lock[\s-]?in", re.I), "Winter"),
+    ],
+    "LEC": [
+        (re.compile(r"versus", re.I), "Winter"),
+        (re.compile(r"finals", re.I), "Summer"),
+    ],
+}
+
+UNMAPPED_WARNINGS: set[str] = set()
 
 
 def safe_float(val, default=0.0):
@@ -68,10 +142,82 @@ def normalize_position(raw: str) -> str:
     return POSITION_MAP.get((raw or "").lower(), raw or "")
 
 
-def split_key(year: str, split: str, playoffs: str) -> str:
-    label = split.strip() if split and split.strip() else "Unknown"
-    suffix = " Playoffs" if str(playoffs) == "1" else ""
-    return f"{year} {label}{suffix}"
+def _match_patterns(text: str, patterns: list) -> bool:
+    return any(p.search(text) for p in patterns)
+
+
+def _match_named_patterns(text: str, patterns: list[tuple]) -> str | None:
+    for pattern, label in patterns:
+        if pattern.search(text):
+            return label
+    return None
+
+
+def normalize_split(
+    league: str,
+    year: str,
+    raw_split: str,
+    playoffs: str,
+) -> tuple[str, bool]:
+    """
+    Map a raw Oracle Elixir split value to a canonical season label.
+
+    Returns (canonical_label, is_international).
+    Playoffs rows are merged into their parent season label.
+    """
+    split_text = (raw_split or "").strip()
+    combined = split_text
+    if str(playoffs) == "1" and split_text:
+        combined = f"{split_text} Playoffs"
+
+    if league in INTERNATIONAL_LEAGUES:
+        return INTERNATIONAL_FROM_LEAGUE.get(league, league), True
+
+    for pattern, label in INTERNATIONAL_PATTERNS:
+        if pattern.search(combined) or pattern.search(league):
+            return label, True
+
+    for pattern, label in LEAGUE_OVERRIDES.get(league, []):
+        if pattern.search(combined) or pattern.search(split_text):
+            return label, False
+
+    is_playoff_row = str(playoffs) == "1" or bool(PLAYOFF_MARKERS.search(combined))
+    if is_playoff_row and not any(p.search(combined) for p, _ in INTERNATIONAL_PATTERNS):
+        combined = PLAYOFF_MARKERS.sub("", combined).strip(" -")
+
+    if _match_patterns(combined, WINTER_PATTERNS):
+        return "Winter", False
+    if _match_patterns(combined, SPRING_PATTERNS):
+        return "Spring", False
+    if _match_patterns(combined, SUMMER_PATTERNS):
+        return "Summer", False
+
+    label = _match_named_patterns(combined, INTERNATIONAL_PATTERNS)
+    if label:
+        return label, True
+
+    fallback = combined or split_text or "Unknown"
+    warning_key = f"{league}|{year}|{raw_split}|playoffs={playoffs}"
+    if warning_key not in UNMAPPED_WARNINGS:
+        UNMAPPED_WARNINGS.add(warning_key)
+        print(
+            f"WARNING: Unmapped split '{raw_split}' (league={league}, year={year}, playoffs={playoffs}); "
+            f"using raw value '{fallback}'",
+            file=sys.stderr,
+        )
+    return fallback, False
+
+
+def canonical_split_key(league: str, year: str, raw_split: str, playoffs: str) -> str:
+    label, _ = normalize_split(league, year, raw_split, playoffs)
+    return f"{year} {label}"
+
+
+def split_sort_key(split_label: str) -> tuple:
+    parts = split_label.split(" ", 1)
+    year = int(parts[0]) if parts and parts[0].isdigit() else 0
+    season = parts[1] if len(parts) > 1 else parts[0]
+    return (year, SEASON_ORDER.get(season, 99), season.lower())
 
 
 def player_bucket():
@@ -276,19 +422,54 @@ def compile_slice(store):
     }
 
 
-def process_row(row, buckets: dict):
+def resolve_bucket_key(
+    row,
+    team_to_league: dict[str, str],
+) -> tuple[str, str] | None:
     league = row.get("league", "")
-    if league not in TARGET_LEAGUES:
+    year = row.get("year", "")
+    raw_split = row.get("split", "")
+    playoffs = row.get("playoffs", "0")
+    team_name = row.get("teamname", "")
+
+    if league not in ALLOWED_LEAGUES:
+        return None
+
+    sk = canonical_split_key(league, year, raw_split, playoffs)
+    _, is_international = normalize_split(league, year, raw_split, playoffs)
+
+    if league in TARGET_LEAGUES:
+        return sk, league
+
+    if league in INTERNATIONAL_LEAGUES or is_international:
+        home_league = team_to_league.get(team_name)
+        if home_league not in TARGET_LEAGUES:
+            return None
+        return sk, home_league
+
+    return None
+
+
+def process_row(row, buckets: dict, team_to_league: dict[str, str]):
+    league = row.get("league", "")
+    if league not in ALLOWED_LEAGUES:
         return
+
     completeness = row.get("datacompleteness", "")
     if completeness not in ALLOWED_COMPLETENESS:
         return
 
-    sk = split_key(row.get("year", ""), row.get("split", ""), row.get("playoffs", "0"))
-    bucket = buckets[(sk, league)]
+    team_name = row.get("teamname", "")
+    if league in TARGET_LEAGUES and team_name:
+        team_to_league[team_name] = league
+
+    bucket_ref = resolve_bucket_key(row, team_to_league)
+    if not bucket_ref:
+        return
+    sk, bucket_league = bucket_ref
+    bucket = buckets[(sk, bucket_league)]
 
     position = row.get("position", "")
-    team_name = row.get("teamname", "")
     player_name = row.get("playername") or row.get("name", "")
     champion = row.get("champion", "")
     result = row.get("result", "")
@@ -299,7 +480,7 @@ def process_row(row, buckets: dict):
             return
         t = bucket["teams"][team_name]
         t["games"] += 1
-        t["league"] = league
+        t["league"] = bucket_league
         bucket["team_games"] += 1
         if result == "1":
             t["wins"] += 1
@@ -315,7 +496,7 @@ def process_row(row, buckets: dict):
         t["gd15"].append(safe_float(row.get("golddiffat15", 0)))
         if game_id:
             bucket["game_teams"][game_id].append(
-                {"team": team_name, "result": result, "league": league}
+                {"team": team_name, "result": result, "league": bucket_league}
             )
         for i in range(1, 6):
             ban = row.get(f"ban{i}", "")
@@ -331,7 +512,7 @@ def process_row(row, buckets: dict):
         p = bucket["players"][player_name]
         p["games"] += 1
         p["team"] = team_name
-        p["league"] = league
+        p["league"] = bucket_league
         p["position"] = pos
         p["kills"] += safe_int(row.get("kills", 0))
         p["deaths"] += safe_int(row.get("deaths", 0))
@@ -378,13 +559,29 @@ def ingest():
         sys.exit(1)
 
     buckets: dict[tuple[str, str], dict] = defaultdict(slice_store)
+    team_to_league: dict[str, str] = {}
 
+    # Pass 1: build team → home league map from regional tier-1 rows.
+    for csv_path in CSV_FILES:
+        with csv_path.open("r", encoding="utf-8") as f:
+            reader = csv.DictReader(f)
+            for row in reader:
+                league = row.get("league", "")
+                if league not in TARGET_LEAGUES:
+                    continue
+                if row.get("datacompleteness", "") not in ALLOWED_COMPLETENESS:
+                    continue
+                team_name = row.get("teamname", "")
+                if team_name:
+                    team_to_league[team_name] = league
+
+    # Pass 2: aggregate into canonical split/league buckets.
     for csv_path in CSV_FILES:
         print(f"Reading {csv_path.name}...")
         with csv_path.open("r", encoding="utf-8") as f:
             reader = csv.DictReader(f)
             for row in reader:
-                process_row(row, buckets)
+                process_row(row, buckets, team_to_league)
 
     slices = {}
     split_set = set()
@@ -396,8 +593,8 @@ def ingest():
         "source": "Oracle's Elixir",
         "generated_at": datetime.now(timezone.utc).isoformat(),
         "leagues": sorted(TARGET_LEAGUES),
-        "splits": sorted(split_set),
-        "schema_version": "2.0",
+        "splits": sorted(split_set, key=split_sort_key),
+        "schema_version": "2.1",
         "csv_files": [p.name for p in CSV_FILES],
     }
 
@@ -410,6 +607,8 @@ def ingest():
     print(f"Wrote {OUT_PATH} ({size_kb:.1f} KB)")
     print(f"  Splits: {len(meta['splits'])}")
     print(f"  Slice keys: {len(slices)}")
+    if UNMAPPED_WARNINGS:
+        print(f"  Unmapped split warnings: {len(UNMAPPED_WARNINGS)}", file=sys.stderr)
 
 
 if __name__ == "__main__":
