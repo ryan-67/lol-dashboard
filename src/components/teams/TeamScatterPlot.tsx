@@ -14,7 +14,7 @@ import {
 import type { Team } from '../../hooks/useDashboardData'
 import { leagueColor } from '../../lib/teamAnalytics'
 import { scrollEntrance } from '../../theme/animations'
-import { CHART } from '../../theme/chartTheme'
+import { CHART, CHART_TOOLTIP_PROPS } from '../../theme/chartTheme'
 
 interface TeamScatterPlotProps {
   teams: Team[]
@@ -59,15 +59,15 @@ export default function TeamScatterPlot({ teams }: TeamScatterPlotProps) {
               type="number"
               dataKey="y"
               name="Win Rate"
-              unit="%"
               domain={[0, 100]}
+              tickFormatter={(v) => `${v}%`}
               stroke={CHART.axis}
               tick={{ fill: CHART.tick, fontSize: CHART.fontSize, fontFamily: CHART.fontFamily }}
             />
             <ZAxis type="number" dataKey="z" range={[80, 400]} />
             <Tooltip
+              {...CHART_TOOLTIP_PROPS}
               cursor={{ strokeDasharray: '3 3', stroke: CHART.grid }}
-              contentStyle={CHART.tooltip}
               formatter={(value: number, name: string) => {
                 if (name === 'Win Rate') return [`${value.toFixed(1)}%`, name]
                 if (name === 'Gold Diff@15') return [`${value > 0 ? '+' : ''}${value}`, name]

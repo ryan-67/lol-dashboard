@@ -1,4 +1,4 @@
-import type { Champion } from '../hooks/useDashboardData'
+import type { Champion, Team } from '../hooks/useDashboardData'
 
 export type RoleKey = 'top' | 'jungle' | 'mid' | 'adc' | 'support'
 export type RoleFilter = 'all' | RoleKey
@@ -66,6 +66,34 @@ export function cohortAverages(champions: Champion[]) {
   const pickRate = champions.reduce((sum, c) => sum + getPickRate(c), 0) / champions.length
   const winrate = champions.reduce((sum, c) => sum + c.winrate, 0) / champions.length
   return { pickRate, winrate }
+}
+
+/** Unique matches in the filtered cohort (team-game rows / 2). */
+export function totalGamesInCohort(teams: Team[]): number {
+  return Math.max(teams.reduce((sum, t) => sum + (t.games ?? 0), 0) / 2, 1)
+}
+
+/** Pick rate for scatter: total picks / total games, capped at 100%. */
+export function scatterPickRate(champion: Champion, totalGames: number): number {
+  return Math.min(100, round((champion.picks / totalGames) * 100, 1))
+}
+
+/** Win rate for scatter: wins / games. */
+export function scatterWinRate(champion: Champion): number {
+  const games = champion.games ?? champion.picks
+  if (games <= 0) return 0
+  const wins = champion.wins ?? Math.round(((champion.winrate ?? 0) / 100) * games)
+  return round((wins / games) * 100, 1)
+}
+
+/** Cohort average pick/win rates using scatter-corrected values. */
+export function scatterCohortAverages(champions: Champion[], totalGames: number) {
+  if (!champions.length) return { pickRate: 0, winrate: 0 }
+  const pickRate =
+    champions.reduce((sum, c) => sum + scatterPickRate(c, totalGames), 0) / champions.length
+  const winrate =
+    champions.reduce((sum, c) => sum + scatterWinRate(c), 0) / champions.length
+  return { pickRate: round(pickRate, 1), winrate: round(winrate, 1) }
 }
 
 export interface RoleChampionEntry {

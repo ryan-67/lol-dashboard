@@ -17,7 +17,7 @@ import {
   LabelList,
 } from 'recharts'
 import { scrollEntranceStagger } from '../theme/animations'
-import { CHART, roleColor } from '../theme/chartTheme'
+import { CHART, CHART_TOOLTIP_PROPS, roleColor } from '../theme/chartTheme'
 import AnimatedCounter from '../components/ui/AnimatedCounter'
 
 export default function Overview() {
@@ -86,8 +86,6 @@ export default function Overview() {
   const hottestPlayers = [...filteredPlayers].sort((a, b) => b.kda - a.kda).slice(0, 10)
   const topChampionByPresence = [...filteredChampions].sort((a, b) => b.presence - a.presence)[0]
 
-  const tooltipStyle = CHART.tooltip
-
   return (
     <div>
       <div ref={chartsGridRef} className="overview-section overview-grid overview-grid-2">
@@ -117,8 +115,7 @@ export default function Overview() {
                   tick={{ fill: CHART.tick, fontSize: CHART.fontSize, fontFamily: CHART.fontFamily }}
                 />
                 <Tooltip
-                  contentStyle={tooltipStyle}
-                  itemStyle={{ color: CHART.tooltip.color }}
+                  {...CHART_TOOLTIP_PROPS}
                   formatter={(value: number) => [`${value.toFixed(1)}%`, 'Winrate']}
                   labelFormatter={(_, payload) => payload?.[0]?.payload?.name ?? ''}
                 />
@@ -158,8 +155,8 @@ export default function Overview() {
                 />
                 <ZAxis type="number" dataKey="z" name="Games" range={[70, 420]} />
                 <Tooltip
+                  {...CHART_TOOLTIP_PROPS}
                   cursor={{ strokeDasharray: '3 3', stroke: CHART.grid }}
-                  contentStyle={tooltipStyle}
                   formatter={(value: number, name: string) => {
                     if (name === 'GD@15') return [`${value > 0 ? '+' : ''}${value}`, name]
                     return [value, name]
@@ -200,8 +197,8 @@ export default function Overview() {
                   type="number"
                   dataKey="x"
                   name="Presence"
-                  unit="%"
                   domain={[0, 100]}
+                  tickFormatter={(v) => `${v}%`}
                   stroke={CHART.axis}
                   tick={{ fill: CHART.tick, fontSize: CHART.fontSize, fontFamily: CHART.fontFamily }}
                 />
@@ -209,14 +206,15 @@ export default function Overview() {
                   type="number"
                   dataKey="y"
                   name="Winrate"
-                  unit="%"
+                  domain={[0, 100]}
                   stroke={CHART.axis}
+                  tickFormatter={(v) => `${v}%`}
                   tick={{ fill: CHART.tick, fontSize: CHART.fontSize, fontFamily: CHART.fontFamily }}
                 />
                 <ZAxis type="number" dataKey="z" name="Picks" range={[70, 420]} />
                 <Tooltip
+                  {...CHART_TOOLTIP_PROPS}
                   cursor={{ strokeDasharray: '3 3', stroke: CHART.grid }}
-                  contentStyle={tooltipStyle}
                   formatter={(value: number, name: string) => {
                     if (name === 'Presence' || name === 'Winrate')
                       return [`${value.toFixed(1)}%`, name]

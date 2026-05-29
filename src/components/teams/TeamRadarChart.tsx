@@ -12,7 +12,7 @@ import {
 import type { Team } from '../../hooks/useDashboardData'
 import { buildTeamRadarSeries, leagueColor } from '../../lib/teamAnalytics'
 import { animateRadarDraw } from '../../theme/animations'
-import { CHART } from '../../theme/chartTheme'
+import { CHART, CHART_TOOLTIP_PROPS } from '../../theme/chartTheme'
 
 interface TeamRadarChartProps {
   team: Team
@@ -50,7 +50,7 @@ export default function TeamRadarChart({ team, cohort }: TeamRadarChartProps) {
             />
             <PolarRadiusAxis angle={90} domain={[0, 100]} tick={false} axisLine={false} />
             <Tooltip
-              contentStyle={CHART.tooltip}
+              {...CHART_TOOLTIP_PROPS}
               formatter={(_, __, item) => {
                 const payload = item?.payload as { formatted?: string; formattedAvg?: string }
                 return [`${payload?.formatted ?? ''} (avg ${payload?.formattedAvg ?? ''})`, team.name]

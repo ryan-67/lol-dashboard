@@ -13,7 +13,7 @@ import {
 import Select from '../components/ui/Select'
 import AnimatedCounter from '../components/ui/AnimatedCounter'
 import { useScrollReveal } from '../hooks/useScrollReveal'
-import { CHART, MATCHUP_COLORS } from '../theme/chartTheme'
+import { CHART, CHART_TOOLTIP_PROPS, MATCHUP_COLORS } from '../theme/chartTheme'
 
 export default function Matchups() {
   const { data, loading, filteredTeams, filteredPlayers, league, split } = useDashboard()
@@ -96,8 +96,6 @@ export default function Matchups() {
     setTeamA(teamB)
     setTeamB(teamA)
   }
-
-  const tooltipStyle = CHART.tooltip
 
   if (loading && !data) {
     return <div className="card h-32 flex items-center justify-center text-secondary">Loading matchup data...</div>
@@ -210,7 +208,7 @@ export default function Matchups() {
                     stroke={CHART.axis}
                     tick={{ fill: CHART.tick, fontSize: CHART.fontSize, fontFamily: CHART.fontFamily }}
                   />
-                  <Tooltip contentStyle={tooltipStyle} itemStyle={{ color: CHART.tooltip.color }} />
+                  <Tooltip {...CHART_TOOLTIP_PROPS} />
                   <Legend
                     wrapperStyle={{
                       fontFamily: CHART.fontFamily,

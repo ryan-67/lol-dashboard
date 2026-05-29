@@ -18,7 +18,7 @@ import {
   teamKey,
 } from '../../lib/teamAnalytics'
 import { animateRadarDraw } from '../../theme/animations'
-import { CHART } from '../../theme/chartTheme'
+import { CHART, CHART_TOOLTIP_PROPS } from '../../theme/chartTheme'
 
 interface TeamComparisonRadarProps {
   teams: Team[]
@@ -51,7 +51,7 @@ export default function TeamComparisonRadar({ teams, cohort }: TeamComparisonRad
               tick={{ fill: CHART.tick, fontSize: 10, fontFamily: CHART.fontFamily }}
             />
             <PolarRadiusAxis angle={90} domain={[0, 100]} tick={false} axisLine={false} />
-            <Tooltip contentStyle={CHART.tooltip} />
+            <Tooltip {...CHART_TOOLTIP_PROPS} />
             <Legend
               wrapperStyle={{
                 fontFamily: CHART.fontFamily,

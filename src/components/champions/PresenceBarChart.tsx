@@ -13,7 +13,7 @@ import {
 import { buildPresenceBarData } from '../../lib/championAnalytics'
 import type { Champion } from '../../hooks/useDashboardData'
 import { scrollEntrance } from '../../theme/animations'
-import { CHART } from '../../theme/chartTheme'
+import { CHART, CHART_TOOLTIP_PROPS } from '../../theme/chartTheme'
 
 interface PresenceBarChartProps {
   champions: Champion[]
@@ -53,7 +53,7 @@ export default function PresenceBarChart({ champions }: PresenceBarChartProps) {
               tick={{ fill: CHART.tick, fontSize: 11, fontFamily: CHART.fontFamily }}
             />
             <Tooltip
-              contentStyle={CHART.tooltip}
+              {...CHART_TOOLTIP_PROPS}
               formatter={(value: number, name: string) => {
                 if (name === 'Pick %') return [`${value.toFixed(1)}%`, name]
                 if (name === 'Ban %') return [`${value.toFixed(1)}%`, name]

@@ -393,6 +393,7 @@ function mergeChampions(slices: DashboardSlice[]): Champion[] {
         pickRate: round(c.picks / denom * 100, 1),
         banRate: round(c.bans / denom * 100, 1),
         winrate: round(c.wins / picks * 100, 1),
+        wins: c.wins,
         avgKda: round((c.kills + c.assists) / deaths, 2),
         games: c.picks,
         avgCsd15: round(avgWeighted(c.csd15), 1),

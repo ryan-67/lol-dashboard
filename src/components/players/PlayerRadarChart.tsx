@@ -16,7 +16,7 @@ import {
   type RoleKey,
 } from '../../lib/playerRadar'
 import { animateRadarDraw } from '../../theme/animations'
-import { CHART } from '../../theme/chartTheme'
+import { CHART, CHART_TOOLTIP_PROPS } from '../../theme/chartTheme'
 
 interface PlayerRadarChartProps {
   player: Player
@@ -63,7 +63,7 @@ export default function PlayerRadarChart({ player, role, cohort }: PlayerRadarCh
               axisLine={false}
             />
             <Tooltip
-              contentStyle={CHART.tooltip}
+              {...CHART_TOOLTIP_PROPS}
               formatter={(_, __, item) => {
                 const payload = item?.payload as {
                   formattedPlayer?: string
