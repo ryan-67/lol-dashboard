@@ -82,6 +82,11 @@ function mergePlayers(slices: DashboardSlice[]): Player[] {
       gd15: Array<{ value: number; weight: number }>
       csd15: Array<{ value: number; weight: number }>
       xpd15: Array<{ value: number; weight: number }>
+      dpm: Array<{ value: number; weight: number }>
+      visionScore: Array<{ value: number; weight: number }>
+      goldShare: Array<{ value: number; weight: number }>
+      firstBloodRate: Array<{ value: number; weight: number }>
+      objControl: Array<{ value: number; weight: number }>
     }
   >()
 
@@ -104,6 +109,11 @@ function mergePlayers(slices: DashboardSlice[]): Player[] {
         gd15: [],
         csd15: [],
         xpd15: [],
+        dpm: [],
+        visionScore: [],
+        goldShare: [],
+        firstBloodRate: [],
+        objControl: [],
       }
 
       existing.games += games
@@ -120,6 +130,19 @@ function mergePlayers(slices: DashboardSlice[]): Player[] {
       }
       if (games > 0 && typeof p.xpd15 === 'number') {
         existing.xpd15.push({ value: p.xpd15, weight: games })
+      }
+      if (games > 0 && typeof p.dpm === 'number') existing.dpm.push({ value: p.dpm, weight: games })
+      if (games > 0 && typeof p.visionScore === 'number') {
+        existing.visionScore.push({ value: p.visionScore, weight: games })
+      }
+      if (games > 0 && typeof p.goldShare === 'number') {
+        existing.goldShare.push({ value: p.goldShare, weight: games })
+      }
+      if (games > 0 && typeof p.firstBloodRate === 'number') {
+        existing.firstBloodRate.push({ value: p.firstBloodRate, weight: games })
+      }
+      if (games > 0 && typeof p.objControl === 'number') {
+        existing.objControl.push({ value: p.objControl, weight: games })
       }
       if (!existing.position && p.position) existing.position = p.position
       acc.set(key, existing)
@@ -141,6 +164,11 @@ function mergePlayers(slices: DashboardSlice[]): Player[] {
         gd15: round(avgWeighted(p.gd15), 1),
         csd15: round(avgWeighted(p.csd15), 1),
         xpd15: round(avgWeighted(p.xpd15), 1),
+        dpm: round(avgWeighted(p.dpm), 1),
+        visionScore: round(avgWeighted(p.visionScore), 1),
+        goldShare: round(avgWeighted(p.goldShare), 1),
+        firstBloodRate: round(avgWeighted(p.firstBloodRate), 1),
+        objControl: round(avgWeighted(p.objControl), 2),
       } satisfies Player
     })
     .filter((p) => p.games >= 5)

@@ -496,3 +496,94 @@ b,
 .tab-content {
   will-change: opacity, transform;
 }
+
+/* Players tab — role filter */
+.role-filter-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-bottom: var(--component-gap);
+  padding-bottom: var(--component-gap);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.role-filter-btn {
+  padding: 8px 16px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  background: transparent;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: color 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+}
+
+.role-filter-btn:hover {
+  color: var(--text-primary);
+  background: var(--bg-elevated);
+}
+
+.role-filter-btn.active {
+  color: var(--accent);
+  border-color: var(--accent);
+  background: var(--accent-bg);
+}
+
+/* Players tab — radar grid */
+.radar-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--component-gap);
+  margin-bottom: var(--section-gap);
+}
+
+@media (min-width: 640px) {
+  .radar-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 1200px) {
+  .radar-grid.radar-grid-5 {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (min-width: 1400px) {
+  .radar-grid.radar-grid-5 {
+    grid-template-columns: repeat(5, 1fr);
+  }
+}
+
+.radar-card {
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  padding: 16px;
+}
+
+.radar-card-header {
+  margin-bottom: 8px;
+}
+
+.radar-card-title {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.radar-card-subtitle {
+  font-size: 11px;
+  color: var(--text-secondary);
+  margin: 4px 0 0;
+}
+
+.radar-chart-wrap {
+  width: 100%;
+  min-height: 260px;
+}
+
+.players-table-toggle {
+  margin-bottom: var(--component-gap);
+}

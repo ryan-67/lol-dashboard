@@ -231,6 +231,11 @@ def player_bucket():
         "gd15": [],
         "csd15": [],
         "xpd15": [],
+        "dpm": [],
+        "visionScore": [],
+        "goldShare": [],
+        "firstBloodGames": [],
+        "objControl": [],
         "team": "",
         "league": "",
         "position": "",
@@ -300,6 +305,13 @@ def compile_players(players_dict):
                 "gd15": round(sum(p["gd15"]) / len(p["gd15"]), 1) if p["gd15"] else 0,
                 "csd15": round(sum(p["csd15"]) / len(p["csd15"]), 1) if p["csd15"] else 0,
                 "xpd15": round(sum(p["xpd15"]) / len(p["xpd15"]), 1) if p["xpd15"] else 0,
+                "dpm": round(sum(p["dpm"]) / len(p["dpm"]), 1) if p["dpm"] else 0,
+                "visionScore": round(sum(p["visionScore"]) / len(p["visionScore"]), 1)
+                if p["visionScore"]
+                else 0,
+                "goldShare": round(sum(p["goldShare"]) / len(p["goldShare"]), 1) if p["goldShare"] else 0,
+                "firstBloodRate": round(sum(p["firstBloodGames"]) / games * 100, 1) if games else 0,
+                "objControl": round(sum(p["objControl"]) / len(p["objControl"]), 2) if p["objControl"] else 0,
             }
         )
     out.sort(key=lambda x: x["kda"], reverse=True)
@@ -527,6 +539,20 @@ def process_row(row, buckets: dict, team_to_league: dict[str, str]):
         p["gd15"].append(safe_float(row.get("golddiffat15", 0)))
         p["csd15"].append(safe_float(row.get("csdiffat15", 0)))
         p["xpd15"].append(safe_float(row.get("xpdiffat15", 0)))
+        p["dpm"].append(safe_float(row.get("dpm", 0)))
+        p["visionScore"].append(safe_float(row.get("visionscore", 0)))
+        p["goldShare"].append(safe_float(row.get("earnedgoldshare", 0)) * 100)
+        fb_involved = 1 if (
+            safe_int(row.get("firstbloodkill", 0)) or safe_int(row.get("firstbloodassist", 0))
+        ) else 0
+        p["firstBloodGames"].append(fb_involved)
+        obj_total = (
+            safe_int(row.get("dragons", 0))
+            + safe_int(row.get("heralds", 0))
+            + safe_int(row.get("barons", 0))
+            + safe_int(row.get("void_grubs", 0))
+        )
+        p["objControl"].append(float(obj_total))
 
     if champion and team_name:
         c = bucket["champions"][champion]

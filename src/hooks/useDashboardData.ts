@@ -22,6 +22,11 @@ export interface Player {
   gd15: number
   csd15: number
   xpd15: number
+  dpm?: number
+  visionScore?: number
+  goldShare?: number
+  firstBloodRate?: number
+  objControl?: number
   kills?: number
   deaths?: number
   assists?: number
