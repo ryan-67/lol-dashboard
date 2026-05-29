@@ -297,6 +297,10 @@ function mergeChampions(slices: DashboardSlice[]): Champion[] {
       kills: number
       deaths: number
       assists: number
+      csd15: Array<{ value: number; weight: number }>
+      dpm: Array<{ value: number; weight: number }>
+      goldPerMin: Array<{ value: number; weight: number }>
+      sparkline: number[]
     }
   >()
 
@@ -314,6 +318,10 @@ function mergeChampions(slices: DashboardSlice[]): Champion[] {
         kills: 0,
         deaths: 0,
         assists: 0,
+        csd15: [],
+        dpm: [],
+        goldPerMin: [],
+        sparkline: [],
       }
       const picks = c.picks ?? 0
       existing.picks += picks
@@ -322,6 +330,16 @@ function mergeChampions(slices: DashboardSlice[]): Champion[] {
       existing.kills += c.kills ?? 0
       existing.deaths += c.deaths ?? 0
       existing.assists += c.assists ?? 0
+      if (picks > 0 && typeof c.avgCsd15 === 'number') {
+        existing.csd15.push({ value: c.avgCsd15, weight: picks })
+      }
+      if (picks > 0 && typeof c.avgDpm === 'number') {
+        existing.dpm.push({ value: c.avgDpm, weight: picks })
+      }
+      if (picks > 0 && typeof c.avgGoldPerMin === 'number') {
+        existing.goldPerMin.push({ value: c.avgGoldPerMin, weight: picks })
+      }
+      if (c.sparkline?.length) existing.sparkline.push(...c.sparkline)
       for (const pos of c.positions ?? []) existing.positions.add(pos)
       acc.set(c.name, existing)
     }
@@ -333,14 +351,23 @@ function mergeChampions(slices: DashboardSlice[]): Champion[] {
       const picks = Math.max(c.picks, 1)
       const deaths = Math.max(c.deaths, 1)
       const total = c.picks + c.bans
+      const positions = [...c.positions].sort()
       return {
         name: c.name,
-        positions: [...c.positions].sort(),
+        positions,
         picks: c.picks,
         bans: c.bans,
         presence: round(total / denom * 100, 1),
+        pickRate: round(c.picks / denom * 100, 1),
+        banRate: round(c.bans / denom * 100, 1),
         winrate: round(c.wins / picks * 100, 1),
         avgKda: round((c.kills + c.assists) / deaths, 2),
+        games: c.picks,
+        avgCsd15: round(avgWeighted(c.csd15), 1),
+        avgDpm: round(avgWeighted(c.dpm), 1),
+        avgGoldPerMin: round(avgWeighted(c.goldPerMin), 1),
+        sparkline: c.sparkline.slice(-8),
+        primaryRole: positions[0] ?? '',
       } satisfies Champion
     })
     .filter((c) => c.picks >= 3)

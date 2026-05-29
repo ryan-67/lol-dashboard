@@ -610,3 +610,94 @@ b,
 .team-multi-select {
   min-height: 88px;
 }
+
+/* Champions tab */
+.ring-center-label {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.ring-center-value {
+  font-size: 28px;
+  font-weight: 500;
+  color: var(--text-primary);
+  line-height: 1;
+}
+
+.ring-center-caption {
+  font-size: 11px;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-top: 4px;
+}
+
+.performer-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--component-gap);
+}
+
+@media (min-width: 640px) {
+  .performer-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 1024px) {
+  .performer-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+.performer-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  text-align: left;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  padding: 16px;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease;
+  font-family: var(--font-mono);
+}
+
+.performer-card:hover {
+  background: var(--bg-elevated);
+  border-color: var(--border-focus);
+}
+
+.performer-card.focused {
+  border-color: var(--accent);
+  background: var(--accent-bg);
+}
+
+.performer-card-role {
+  font-size: 11px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.performer-card-name {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.performer-card-stats {
+  font-size: 12px;
+}
+
+.sparkline-empty {
+  min-height: 28px;
+  display: flex;
+  align-items: center;
+}

@@ -272,6 +272,10 @@ def champ_bucket():
         "deaths": 0,
         "assists": 0,
         "positions": set(),
+        "csd15": [],
+        "dpm": [],
+        "goldpermin": [],
+        "recentresults": [],
     }
 
 
@@ -399,8 +403,18 @@ def compile_champions(champs_dict, team_games: int):
                 "deaths": c["deaths"],
                 "assists": c["assists"],
                 "presence": round(total / denom * 100, 1),
+                "pickRate": round(picks / denom * 100, 1),
+                "banRate": round(c["bans"] / denom * 100, 1),
                 "winrate": round(c["wins"] / picks * 100, 1) if picks else 0,
                 "avgKda": round((c["kills"] + c["assists"]) / deaths, 2),
+                "games": picks,
+                "avgCsd15": round(sum(c["csd15"]) / len(c["csd15"]), 1) if c["csd15"] else 0,
+                "avgDpm": round(sum(c["dpm"]) / len(c["dpm"]), 1) if c["dpm"] else 0,
+                "avgGoldPerMin": round(sum(c["goldpermin"]) / len(c["goldpermin"]), 1)
+                if c["goldpermin"]
+                else 0,
+                "sparkline": list(c["recentresults"][-8:]),
+                "primaryRole": sorted(c["positions"])[0] if c["positions"] else "",
             }
         )
     out.sort(key=lambda x: x["presence"], reverse=True)
@@ -598,6 +612,14 @@ def process_row(row, buckets: dict, team_to_league: dict[str, str]):
         c["kills"] += safe_int(row.get("kills", 0))
         c["deaths"] += safe_int(row.get("deaths", 0))
         c["assists"] += safe_int(row.get("assists", 0))
+        c["csd15"].append(safe_float(row.get("csdiffat15", 0)))
+        c["dpm"].append(safe_float(row.get("dpm", 0)))
+        gl = safe_float(row.get("gamelength", 0))
+        if gl > 0:
+            c["goldpermin"].append(safe_float(row.get("earnedgold", 0)) / gl * 60)
+        c["recentresults"].append(1 if result == "1" else 0)
+        if len(c["recentresults"]) > 12:
+            c["recentresults"] = c["recentresults"][-12:]
         if result == "1":
             c["wins"] += 1
         tc = bucket["team_champions"][(team_name, champion)]

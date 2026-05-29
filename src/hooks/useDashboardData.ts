@@ -65,8 +65,16 @@ export interface Champion {
   picks: number
   bans: number
   presence: number
+  pickRate?: number
+  banRate?: number
   winrate: number
   avgKda: number
+  games?: number
+  avgCsd15?: number
+  avgDpm?: number
+  avgGoldPerMin?: number
+  sparkline?: number[]
+  primaryRole?: string
   wins?: number
   kills?: number
   deaths?: number
