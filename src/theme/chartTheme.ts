@@ -1,0 +1,33 @@
+/** Shared Recharts styling aligned with design tokens */
+export const CHART = {
+  grid: 'rgba(92, 90, 84, 0.15)',
+  axis: '#9e9a8e',
+  tick: '#9e9a8e',
+  accent: '#c5a059',
+  accentDim: '#8c7340',
+  tooltip: {
+    background: '#141414',
+    border: '1px solid #262626',
+    borderRadius: 0,
+    color: '#f0ece2',
+  },
+  fontFamily: '"Noto Sans Mono", monospace',
+  fontSize: 12,
+} as const
+
+export const MATCHUP_COLORS = {
+  teamA: CHART.accent,
+  teamB: CHART.accentDim,
+} as const
+
+export const ROLE_COLORS: Record<string, string> = {
+  top: '#c5a059',
+  jungle: '#7a8c5a',
+  mid: '#9e8c7a',
+  adc: '#6a7a8c',
+  support: '#8c7340',
+}
+
+export function roleColor(position: string): string {
+  return ROLE_COLORS[position.toLowerCase()] ?? CHART.accent
+}

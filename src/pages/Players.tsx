@@ -2,23 +2,22 @@ import { useMemo, useState } from 'react'
 import { useDashboard } from '../context/DashboardContext'
 import type { Player } from '../hooks/useDashboardData'
 import { formatNum, formatPct } from '../lib/format'
+import SortableTh from '../components/ui/SortableTh'
+import { useScrollReveal } from '../hooks/useScrollReveal'
 
 function isDisplayablePlayer(p: Player): boolean {
-  return (
-    Boolean(p?.name) &&
-    typeof p.kda === 'number' &&
-    typeof p.games === 'number'
-  )
+  return Boolean(p?.name) && typeof p.kda === 'number' && typeof p.games === 'number'
 }
 
 export default function Players() {
-  const { filteredPlayers } = useDashboard()
+  const { filteredPlayers, league, split } = useDashboard()
   const [sortKey, setSortKey] = useState<keyof Player>('kda')
   const [sortDesc, setSortDesc] = useState(true)
+  const sectionRef = useScrollReveal(undefined, [league, split])
 
   const players = useMemo(
     () => filteredPlayers.filter(isDisplayablePlayer),
-    [filteredPlayers]
+    [filteredPlayers],
   )
 
   const sorted = useMemo(() => {
@@ -42,56 +41,48 @@ export default function Players() {
     }
   }
 
-  const th = (label: string, key: keyof Player) => (
-    <th
-      onClick={() => toggleSort(key)}
-      className="text-left text-xs text-slate-400 uppercase tracking-wider px-3 py-2 cursor-pointer hover:text-white select-none"
-    >
-      {label} {sortKey === key ? (sortDesc ? '↓' : '↑') : ''}
-    </th>
-  )
-
   return (
-    <div className="bg-slate-850 border border-slate-800 rounded-lg overflow-auto">
-      <table className="w-full text-sm">
-        <thead className="bg-slate-900 border-b border-slate-800">
-          <tr>
-            {th('Player', 'name')}
-            {th('Team', 'team')}
-            {th('League', 'league')}
-            {th('Position', 'position')}
-            {th('Games', 'games')}
-            {th('KDA', 'kda')}
-            {th('KP', 'kp')}
-            {th('DMG Share', 'dmgShare')}
-          </tr>
-        </thead>
-        <tbody>
-          {sorted.length === 0 ? (
-            <tr>
-              <td colSpan={8} className="px-3 py-8 text-center text-slate-500">
-                No players match the current filters.
-              </td>
-            </tr>
-          ) : (
-            sorted.map((p) => (
-              <tr
-                key={`${p.name}-${p.team}-${p.league}`}
-                className="border-b border-slate-800/50 hover:bg-slate-800/50"
-              >
-                <td className="px-3 py-2 font-medium text-white">{p.name}</td>
-                <td className="px-3 py-2 text-slate-300">{p.team ?? '—'}</td>
-                <td className="px-3 py-2 text-slate-400">{p.league ?? '—'}</td>
-                <td className="px-3 py-2 text-slate-300 uppercase">{p.position ?? '—'}</td>
-                <td className="px-3 py-2 text-slate-300">{p.games ?? '—'}</td>
-                <td className="px-3 py-2 font-bold text-blue-400">{formatNum(p.kda, 2)}</td>
-                <td className="px-3 py-2 text-slate-300">{formatPct(p.kp, 1)}</td>
-                <td className="px-3 py-2 text-slate-300">{formatPct(p.dmgShare, 1)}</td>
+    <div ref={sectionRef} className="page-section">
+      <div className="card">
+        <h2 className="card-title">Players</h2>
+        <p className="card-subtitle">All players matching the current league and split filters.</p>
+        <div className="table-wrap">
+          <table className="data-table">
+            <thead>
+              <tr>
+                <SortableTh label="Player" columnKey="name" sortKey={sortKey} sortDesc={sortDesc} onSort={toggleSort} />
+                <SortableTh label="Team" columnKey="team" sortKey={sortKey} sortDesc={sortDesc} onSort={toggleSort} />
+                <SortableTh label="League" columnKey="league" sortKey={sortKey} sortDesc={sortDesc} onSort={toggleSort} />
+                <SortableTh label="Position" columnKey="position" sortKey={sortKey} sortDesc={sortDesc} onSort={toggleSort} />
+                <SortableTh label="Games" columnKey="games" sortKey={sortKey} sortDesc={sortDesc} onSort={toggleSort} />
+                <SortableTh label="KDA" columnKey="kda" sortKey={sortKey} sortDesc={sortDesc} onSort={toggleSort} />
+                <SortableTh label="KP" columnKey="kp" sortKey={sortKey} sortDesc={sortDesc} onSort={toggleSort} />
+                <SortableTh label="DMG Share" columnKey="dmgShare" sortKey={sortKey} sortDesc={sortDesc} onSort={toggleSort} />
               </tr>
-            ))
-          )}
-        </tbody>
-      </table>
+            </thead>
+            <tbody>
+              {sorted.length === 0 ? (
+                <tr className="empty-row">
+                  <td colSpan={8}>No players match the current filters.</td>
+                </tr>
+              ) : (
+                sorted.map((p) => (
+                  <tr key={`${p.name}-${p.team}-${p.league}`}>
+                    <td className="font-medium">{p.name}</td>
+                    <td className="text-secondary">{p.team ?? '—'}</td>
+                    <td className="text-secondary">{p.league ?? '—'}</td>
+                    <td className="text-secondary uppercase">{p.position ?? '—'}</td>
+                    <td className="text-secondary">{p.games ?? '—'}</td>
+                    <td className="text-accent font-medium">{formatNum(p.kda, 2)}</td>
+                    <td className="text-secondary">{formatPct(p.kp, 1)}</td>
+                    <td className="text-secondary">{formatPct(p.dmgShare, 1)}</td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
     </div>
   )
 }

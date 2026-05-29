@@ -2,19 +2,22 @@ import { useMemo, useState } from 'react'
 import { useDashboard } from '../context/DashboardContext'
 import type { Champion } from '../hooks/useDashboardData'
 import { formatNum, formatPct } from '../lib/format'
+import SortableTh from '../components/ui/SortableTh'
+import { useScrollReveal } from '../hooks/useScrollReveal'
 
 function isDisplayableChampion(c: Champion): boolean {
   return Boolean(c?.name) && Array.isArray(c.positions)
 }
 
 export default function Champions() {
-  const { filteredChampions } = useDashboard()
+  const { filteredChampions, league, split } = useDashboard()
   const [sortKey, setSortKey] = useState<keyof Champion>('presence')
   const [sortDesc, setSortDesc] = useState(true)
+  const sectionRef = useScrollReveal(undefined, [league, split])
 
   const champions = useMemo(
     () => filteredChampions.filter(isDisplayableChampion),
-    [filteredChampions]
+    [filteredChampions],
   )
 
   const sorted = useMemo(() => {
@@ -43,53 +46,48 @@ export default function Champions() {
     }
   }
 
-  const th = (label: string, key: keyof Champion) => (
-    <th
-      onClick={() => toggleSort(key)}
-      className="text-left text-xs text-slate-400 uppercase tracking-wider px-3 py-2 cursor-pointer hover:text-white select-none"
-    >
-      {label} {sortKey === key ? (sortDesc ? '↓' : '↑') : ''}
-    </th>
-  )
-
   return (
-    <div className="bg-slate-850 border border-slate-800 rounded-lg overflow-auto">
-      <table className="w-full text-sm">
-        <thead className="bg-slate-900 border-b border-slate-800">
-          <tr>
-            {th('Champion', 'name')}
-            {th('Positions', 'positions')}
-            {th('Picks', 'picks')}
-            {th('Bans', 'bans')}
-            {th('Presence', 'presence')}
-            {th('Winrate', 'winrate')}
-            {th('Avg KDA', 'avgKda')}
-          </tr>
-        </thead>
-        <tbody>
-          {sorted.length === 0 ? (
-            <tr>
-              <td colSpan={7} className="px-3 py-8 text-center text-slate-500">
-                No champions match the current filters.
-              </td>
-            </tr>
-          ) : (
-            sorted.map((c) => (
-              <tr key={c.name} className="border-b border-slate-800/50 hover:bg-slate-800/50">
-                <td className="px-3 py-2 font-medium text-white">{c.name}</td>
-                <td className="px-3 py-2 text-slate-400 text-xs uppercase">
-                  {(c.positions ?? []).join(', ') || '—'}
-                </td>
-                <td className="px-3 py-2 text-slate-300">{c.picks ?? '—'}</td>
-                <td className="px-3 py-2 text-slate-300">{c.bans ?? '—'}</td>
-                <td className="px-3 py-2 font-bold text-blue-400">{formatPct(c.presence, 1)}</td>
-                <td className="px-3 py-2 text-slate-300">{formatPct(c.winrate, 1)}</td>
-                <td className="px-3 py-2 text-slate-300">{formatNum(c.avgKda, 2)}</td>
+    <div ref={sectionRef} className="page-section">
+      <div className="card">
+        <h2 className="card-title">Champions</h2>
+        <p className="card-subtitle">Pick, ban, and performance rates for the current filters.</p>
+        <div className="table-wrap">
+          <table className="data-table">
+            <thead>
+              <tr>
+                <SortableTh label="Champion" columnKey="name" sortKey={sortKey} sortDesc={sortDesc} onSort={toggleSort} />
+                <SortableTh label="Positions" columnKey="positions" sortKey={sortKey} sortDesc={sortDesc} onSort={toggleSort} />
+                <SortableTh label="Picks" columnKey="picks" sortKey={sortKey} sortDesc={sortDesc} onSort={toggleSort} />
+                <SortableTh label="Bans" columnKey="bans" sortKey={sortKey} sortDesc={sortDesc} onSort={toggleSort} />
+                <SortableTh label="Presence" columnKey="presence" sortKey={sortKey} sortDesc={sortDesc} onSort={toggleSort} />
+                <SortableTh label="Winrate" columnKey="winrate" sortKey={sortKey} sortDesc={sortDesc} onSort={toggleSort} />
+                <SortableTh label="Avg KDA" columnKey="avgKda" sortKey={sortKey} sortDesc={sortDesc} onSort={toggleSort} />
               </tr>
-            ))
-          )}
-        </tbody>
-      </table>
+            </thead>
+            <tbody>
+              {sorted.length === 0 ? (
+                <tr className="empty-row">
+                  <td colSpan={7}>No champions match the current filters.</td>
+                </tr>
+              ) : (
+                sorted.map((c) => (
+                  <tr key={c.name}>
+                    <td className="font-medium">{c.name}</td>
+                    <td className="text-secondary text-xs uppercase">
+                      {(c.positions ?? []).join(', ') || '—'}
+                    </td>
+                    <td className="text-secondary">{c.picks ?? '—'}</td>
+                    <td className="text-secondary">{c.bans ?? '—'}</td>
+                    <td className="text-accent font-medium">{formatPct(c.presence, 1)}</td>
+                    <td className="text-secondary">{formatPct(c.winrate, 1)}</td>
+                    <td className="text-secondary">{formatNum(c.avgKda, 2)}</td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
     </div>
   )
 }

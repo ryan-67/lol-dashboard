@@ -1,4 +1,5 @@
 import TopBar from './TopBar'
+import AnimatedOutlet from './AnimatedOutlet'
 import { useDashboard } from '../context/DashboardContext'
 import { NavLink, useLocation } from 'react-router-dom'
 
@@ -15,27 +16,24 @@ export default function Layout({ children }: { children: React.ReactNode }) {
   const location = useLocation()
 
   return (
-    <div className="min-h-screen flex flex-col bg-slate-950">
-      <header className="border-b border-slate-800">
-        <div className="px-6 py-4 flex items-center justify-between">
+    <div className="app-shell">
+      <header className="app-header">
+        <div className="app-header-inner py-4 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded bg-blue-600 flex items-center justify-center">
-              <span className="text-white font-bold text-sm">L</span>
+            <div
+              className="w-8 h-8 flex items-center justify-center border border-accent"
+              style={{ backgroundColor: 'var(--accent-bg)' }}
+            >
+              <span className="text-accent font-bold text-sm">L</span>
             </div>
-            <h1 className="text-xl font-bold text-white tracking-tight">LoL Pro Dashboard</h1>
+            <h1 className="text-base font-medium text-primary tracking-tight">LoL Pro Dashboard</h1>
           </div>
           <nav className="flex flex-wrap gap-1">
             {nav.map((item) => (
               <NavLink
                 key={item.to}
                 to={item.to + location.search}
-                className={({ isActive }) =>
-                  `px-3 py-1 rounded-md text-xs font-medium transition-colors ${
-                    isActive
-                      ? 'bg-blue-600/20 text-blue-400 border border-blue-600/30'
-                      : 'text-slate-400 hover:text-white hover:bg-slate-800'
-                  }`
-                }
+                className={({ isActive }) => `nav-tab${isActive ? ' active' : ''}`}
               >
                 {item.label}
               </NavLink>
@@ -45,29 +43,33 @@ export default function Layout({ children }: { children: React.ReactNode }) {
         <TopBar />
       </header>
 
-      <main className="flex-1 p-6 overflow-auto">
-        {error && (
-          <div className="rounded-lg border border-red-900/50 bg-red-950/30 p-4 mb-6">
-            <p className="text-red-400 text-sm font-medium">Failed to load data</p>
-            <p className="text-red-500/70 text-xs mt-1">{error}</p>
-            <p className="text-red-500/60 text-xs mt-2">
-              Ensure Oracle&apos;s Elixir CSV files exist in <code className="text-red-300">lol/</code> and run{' '}
-              <code className="text-red-300">npm run ingest</code>.
-            </p>
-          </div>
-        )}
+      <main className="app-main">
+        <div className="app-main-inner">
+          {error && (
+            <div className="error-banner">
+              <p className="error-title">Failed to load data</p>
+              <p className="error-detail">{error}</p>
+              <p className="error-detail mt-2">
+                Ensure Oracle&apos;s Elixir CSV files exist in <code>lol/</code> and run{' '}
+                <code>npm run ingest</code>.
+              </p>
+            </div>
+          )}
 
-        {loading && !error && (
-          <div className="flex items-center justify-center h-16 mb-4">
-            <div className="text-slate-400 text-sm animate-pulse">Loading dashboard data...</div>
-          </div>
-        )}
+          {loading && !error && (
+            <div className="flex items-center justify-center h-16 mb-8">
+              <div className="text-secondary text-sm">Loading dashboard data...</div>
+            </div>
+          )}
 
-        {!error && children}
+          {!error && <AnimatedOutlet>{children}</AnimatedOutlet>}
+        </div>
       </main>
 
-      <footer className="border-t border-slate-800 px-6 py-3 text-xs text-slate-600">
-        Data from Oracle's Elixir. Dashboard auto-refreshes daily.
+      <footer className="app-footer">
+        <div className="app-footer-inner">
+          Data from Oracle&apos;s Elixir. Dashboard auto-refreshes daily.
+        </div>
       </footer>
     </div>
   )

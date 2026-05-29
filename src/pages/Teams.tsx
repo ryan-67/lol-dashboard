@@ -2,6 +2,8 @@ import { useMemo, useState } from 'react'
 import { useDashboard } from '../context/DashboardContext'
 import type { Team } from '../hooks/useDashboardData'
 import { formatNum, formatPct } from '../lib/format'
+import SortableTh from '../components/ui/SortableTh'
+import { useScrollReveal } from '../hooks/useScrollReveal'
 
 function isDisplayableTeam(t: Team): boolean {
   return (
@@ -13,13 +15,14 @@ function isDisplayableTeam(t: Team): boolean {
 }
 
 export default function Teams() {
-  const { filteredTeams } = useDashboard()
+  const { filteredTeams, league, split } = useDashboard()
   const [sortKey, setSortKey] = useState<keyof Team>('winrate')
   const [sortDesc, setSortDesc] = useState(true)
+  const sectionRef = useScrollReveal(undefined, [league, split])
 
   const teams = useMemo(
     () => filteredTeams.filter(isDisplayableTeam),
-    [filteredTeams]
+    [filteredTeams],
   )
 
   const sorted = useMemo(() => {
@@ -43,65 +46,60 @@ export default function Teams() {
     }
   }
 
-  const th = (label: string, key: keyof Team) => (
-    <th
-      onClick={() => toggleSort(key)}
-      className="text-left text-xs text-slate-400 uppercase tracking-wider px-3 py-2 cursor-pointer hover:text-white select-none"
-    >
-      {label} {sortKey === key ? (sortDesc ? '↓' : '↑') : ''}
-    </th>
-  )
-
   return (
-    <div className="bg-slate-850 border border-slate-800 rounded-lg overflow-auto">
-      <table className="w-full text-sm">
-        <thead className="bg-slate-900 border-b border-slate-800">
-          <tr>
-            {th('Team', 'name')}
-            {th('League', 'league')}
-            {th('Games', 'games')}
-            {th('W', 'wins')}
-            {th('L', 'losses')}
-            {th('Winrate', 'winrate')}
-            {th('Avg KDA', 'avgKda')}
-            {th('Avg GD@15', 'avgGd15')}
-            {th('Towers', 'towers')}
-            {th('Drakes', 'dragons')}
-            {th('Barons', 'barons')}
-            {th('Heralds', 'heralds')}
-          </tr>
-        </thead>
-        <tbody>
-          {sorted.length === 0 ? (
-            <tr>
-              <td colSpan={11} className="px-3 py-8 text-center text-slate-500">
-                No teams match the current filters.
-              </td>
-            </tr>
-          ) : (
-            sorted.map((t) => (
-              <tr key={`${t.name}-${t.league}`} className="border-b border-slate-800/50 hover:bg-slate-800/50">
-                <td className="px-3 py-2 font-medium text-white">{t.name}</td>
-                <td className="px-3 py-2 text-slate-400">{t.league ?? '—'}</td>
-                <td className="px-3 py-2 text-slate-300">{t.games ?? '—'}</td>
-                <td className="px-3 py-2 text-green-400">{t.wins ?? '—'}</td>
-                <td className="px-3 py-2 text-red-400">{t.losses ?? '—'}</td>
-                <td className="px-3 py-2 font-bold text-blue-400">{formatPct(t.winrate, 1)}</td>
-                <td className="px-3 py-2 text-slate-300">{formatNum(t.avgKda, 2)}</td>
-                <td className="px-3 py-2 text-slate-300">
-                  {typeof t.avgGd15 === 'number'
-                    ? `${t.avgGd15 > 0 ? '+' : ''}${t.avgGd15}`
-                    : '—'}
-                </td>
-                <td className="px-3 py-2 text-slate-300">{t.towers ?? '—'}</td>
-                <td className="px-3 py-2 text-slate-300">{t.dragons ?? '—'}</td>
-                <td className="px-3 py-2 text-slate-300">{t.barons ?? '—'}</td>
-                <td className="px-3 py-2 text-slate-300">{t.heralds ?? '—'}</td>
+    <div ref={sectionRef} className="page-section">
+      <div className="card">
+        <h2 className="card-title">Teams</h2>
+        <p className="card-subtitle">Team records and objective stats for the current filters.</p>
+        <div className="table-wrap">
+          <table className="data-table">
+            <thead>
+              <tr>
+                <SortableTh label="Team" columnKey="name" sortKey={sortKey} sortDesc={sortDesc} onSort={toggleSort} />
+                <SortableTh label="League" columnKey="league" sortKey={sortKey} sortDesc={sortDesc} onSort={toggleSort} />
+                <SortableTh label="Games" columnKey="games" sortKey={sortKey} sortDesc={sortDesc} onSort={toggleSort} />
+                <SortableTh label="W" columnKey="wins" sortKey={sortKey} sortDesc={sortDesc} onSort={toggleSort} />
+                <SortableTh label="L" columnKey="losses" sortKey={sortKey} sortDesc={sortDesc} onSort={toggleSort} />
+                <SortableTh label="Winrate" columnKey="winrate" sortKey={sortKey} sortDesc={sortDesc} onSort={toggleSort} />
+                <SortableTh label="Avg KDA" columnKey="avgKda" sortKey={sortKey} sortDesc={sortDesc} onSort={toggleSort} />
+                <SortableTh label="Avg GD@15" columnKey="avgGd15" sortKey={sortKey} sortDesc={sortDesc} onSort={toggleSort} />
+                <SortableTh label="Towers" columnKey="towers" sortKey={sortKey} sortDesc={sortDesc} onSort={toggleSort} />
+                <SortableTh label="Drakes" columnKey="dragons" sortKey={sortKey} sortDesc={sortDesc} onSort={toggleSort} />
+                <SortableTh label="Barons" columnKey="barons" sortKey={sortKey} sortDesc={sortDesc} onSort={toggleSort} />
+                <SortableTh label="Heralds" columnKey="heralds" sortKey={sortKey} sortDesc={sortDesc} onSort={toggleSort} />
               </tr>
-            ))
-          )}
-        </tbody>
-      </table>
+            </thead>
+            <tbody>
+              {sorted.length === 0 ? (
+                <tr className="empty-row">
+                  <td colSpan={12}>No teams match the current filters.</td>
+                </tr>
+              ) : (
+                sorted.map((t) => (
+                  <tr key={`${t.name}-${t.league}`}>
+                    <td className="font-medium">{t.name}</td>
+                    <td className="text-secondary">{t.league ?? '—'}</td>
+                    <td className="text-secondary">{t.games ?? '—'}</td>
+                    <td className="text-secondary">{t.wins ?? '—'}</td>
+                    <td className="text-tertiary">{t.losses ?? '—'}</td>
+                    <td className="text-accent font-medium">{formatPct(t.winrate, 1)}</td>
+                    <td className="text-secondary">{formatNum(t.avgKda, 2)}</td>
+                    <td className="text-secondary">
+                      {typeof t.avgGd15 === 'number'
+                        ? `${t.avgGd15 > 0 ? '+' : ''}${t.avgGd15}`
+                        : '—'}
+                    </td>
+                    <td className="text-secondary">{t.towers ?? '—'}</td>
+                    <td className="text-secondary">{t.dragons ?? '—'}</td>
+                    <td className="text-secondary">{t.barons ?? '—'}</td>
+                    <td className="text-secondary">{t.heralds ?? '—'}</td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
     </div>
   )
 }

@@ -10,15 +10,20 @@ import {
   CartesianGrid,
   Legend,
 } from 'recharts'
+import Select from '../components/ui/Select'
+import AnimatedCounter from '../components/ui/AnimatedCounter'
+import { useScrollReveal } from '../hooks/useScrollReveal'
+import { CHART, MATCHUP_COLORS } from '../theme/chartTheme'
 
 export default function Matchups() {
-  const { data, loading, filteredTeams, filteredPlayers } = useDashboard()
+  const { data, loading, filteredTeams, filteredPlayers, league, split } = useDashboard()
   const [teamA, setTeamA] = useState('')
   const [teamB, setTeamB] = useState('')
+  const contentRef = useScrollReveal('.card', [teamA, teamB, league, split])
 
   const teams = useMemo(
     () => [...filteredTeams].sort((a, b) => a.name.localeCompare(b.name)),
-    [filteredTeams]
+    [filteredTeams],
   )
   const teamAData = useMemo(() => teams.find((t) => t.name === teamA), [teams, teamA])
   const teamBData = useMemo(() => teams.find((t) => t.name === teamB), [teams, teamB])
@@ -30,7 +35,7 @@ export default function Matchups() {
     const row = matchupRows.find(
       (m) =>
         (m.teamA === teamA && m.teamB === teamB) ||
-        (m.teamA === teamB && m.teamB === teamA)
+        (m.teamA === teamB && m.teamB === teamA),
     )
 
     if (!row) return null
@@ -92,116 +97,146 @@ export default function Matchups() {
     setTeamB(teamA)
   }
 
-  if (loading && !data) return <div className="text-slate-400">Loading matchup data...</div>
+  const tooltipStyle = CHART.tooltip
+
+  if (loading && !data) {
+    return <div className="card h-32 flex items-center justify-center text-secondary">Loading matchup data...</div>
+  }
 
   return (
-    <div className="space-y-6">
-      <h2 className="text-lg font-semibold text-white">Team Matchup Comparison</h2>
+    <div>
+      <h2 className="page-title">Team Matchup Comparison</h2>
 
-      <div className="flex flex-col md:flex-row md:items-center gap-3">
-        <select
+      <div className="matchup-controls">
+        <Select
+          label="Team A"
+          className="select-wide"
           value={teamA}
           onChange={(e) => setTeamA(e.target.value)}
-          className="bg-slate-900 border border-slate-700 rounded px-3 py-2 text-sm text-white min-w-[220px]"
         >
           <option value="">Select Team A</option>
           {teams.map((t) => (
-            <option key={t.name} value={t.name}>{t.name} ({t.league})</option>
+            <option key={t.name} value={t.name}>
+              {t.name} ({t.league})
+            </option>
           ))}
-        </select>
+        </Select>
 
-        <button
-          onClick={swap}
-          className="px-3 py-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded text-sm text-white"
-          disabled={!teamA && !teamB}
-        >
+        <button type="button" onClick={swap} disabled={!teamA && !teamB} className="btn">
           Swap
         </button>
 
-        <select
+        <Select
+          label="Team B"
+          className="select-wide"
           value={teamB}
           onChange={(e) => setTeamB(e.target.value)}
-          className="bg-slate-900 border border-slate-700 rounded px-3 py-2 text-sm text-white min-w-[220px]"
         >
           <option value="">Select Team B</option>
           {teams.map((t) => (
-            <option key={t.name} value={t.name}>{t.name} ({t.league})</option>
+            <option key={t.name} value={t.name}>
+              {t.name} ({t.league})
+            </option>
           ))}
-        </select>
+        </Select>
       </div>
 
       {!teamAData || !teamBData ? (
-        <div className="rounded-lg border border-slate-800 bg-slate-900 p-8 text-center text-slate-400">
-          select two teams to compare
-        </div>
+        <div className="empty-state">Select two teams to compare</div>
       ) : (
-        <div className="space-y-6">
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 bg-slate-900 border border-slate-800 rounded-lg p-4">
-            <div className="text-center rounded-md border border-slate-700/70 bg-slate-800/40 p-4">
-              <div className="text-xl font-bold text-white">{teamAData.name}</div>
-              <div className="text-sm text-slate-400">{teamAData.league}</div>
-              <div className="mt-2 text-2xl font-bold text-emerald-400">
-                {typeof teamAData.winrate === 'number' ? `${teamAData.winrate.toFixed(1)}%` : '—'}
+        <div ref={contentRef}>
+          <div className="page-section card">
+            <div className="matchup-summary">
+              <div className="stat-tile text-center">
+                <div className="stat-value">{teamAData.name}</div>
+                <div className="text-secondary text-sm">{teamAData.league}</div>
+                <div className="mt-2 text-2xl font-medium text-accent">
+                  {typeof teamAData.winrate === 'number' ? (
+                    <AnimatedCounter value={teamAData.winrate} suffix="%" />
+                  ) : (
+                    '—'
+                  )}
+                </div>
+                <div className="stat-label mt-1">Win Rate</div>
+                <div className="text-secondary text-xs mt-2">
+                  {teamAData.wins}W - {teamAData.losses}L
+                </div>
               </div>
-              <div className="text-xs text-slate-500">Win Rate</div>
-              <div className="text-xs text-slate-400 mt-2">{teamAData.wins}W - {teamAData.losses}L</div>
-            </div>
-            <div className="flex flex-col items-center justify-center text-slate-400 text-sm rounded-md border border-slate-700/70 bg-slate-800/20 p-4">
-              <div className="text-slate-500 text-xs uppercase tracking-wider">Head to Head</div>
-              {headToHead ? (
-                <>
-                  <div className="text-2xl text-slate-200 font-semibold mt-2">{headToHead.winsA} - {headToHead.winsB}</div>
-                  <div className="text-xs text-slate-500 mt-1">{headToHead.games} games played</div>
-                </>
-              ) : (
-                <div className="text-sm text-slate-500 mt-2">no games played</div>
-              )}
-            </div>
-            <div className="text-center rounded-md border border-slate-700/70 bg-slate-800/40 p-4">
-              <div className="text-xl font-bold text-white">{teamBData.name}</div>
-              <div className="text-sm text-slate-400">{teamBData.league}</div>
-              <div className="mt-2 text-2xl font-bold text-blue-400">
-                {typeof teamBData.winrate === 'number' ? `${teamBData.winrate.toFixed(1)}%` : '—'}
+
+              <div className="stat-tile flex flex-col items-center justify-center text-center">
+                <div className="stat-label">Head to Head</div>
+                {headToHead ? (
+                  <>
+                    <div className="stat-value mt-2">
+                      {headToHead.winsA} - {headToHead.winsB}
+                    </div>
+                    <div className="text-tertiary text-xs mt-1">{headToHead.games} games played</div>
+                  </>
+                ) : (
+                  <div className="text-secondary text-sm mt-2">No games played</div>
+                )}
               </div>
-              <div className="text-xs text-slate-500">Win Rate</div>
-              <div className="text-xs text-slate-400 mt-2">{teamBData.wins}W - {teamBData.losses}L</div>
+
+              <div className="stat-tile text-center">
+                <div className="stat-value">{teamBData.name}</div>
+                <div className="text-secondary text-sm">{teamBData.league}</div>
+                <div className="mt-2 text-2xl font-medium text-accent">
+                  {typeof teamBData.winrate === 'number' ? (
+                    <AnimatedCounter value={teamBData.winrate} suffix="%" />
+                  ) : (
+                    '—'
+                  )}
+                </div>
+                <div className="stat-label mt-1">Win Rate</div>
+                <div className="text-secondary text-xs mt-2">
+                  {teamBData.wins}W - {teamBData.losses}L
+                </div>
+              </div>
             </div>
           </div>
 
-          <div className="bg-slate-900 rounded-lg border border-slate-800 p-4">
-            <h3 className="text-sm font-semibold text-slate-200 mb-4">Team Stat Bars</h3>
+          <div className="page-section card">
+            <h3 className="card-title">Team Stat Bars</h3>
             <div className="h-80">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={comparisonBarData} margin={{ top: 8, right: 16, left: 16, bottom: 8 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
-                  <XAxis dataKey="stat" stroke="#64748b" fontSize={12} />
-                  <YAxis stroke="#64748b" fontSize={12} />
-                  <Tooltip
-                    contentStyle={{ background: '#0f172a', border: '1px solid #1e293b', borderRadius: '8px' }}
-                    itemStyle={{ color: '#e2e8f0' }}
+                  <CartesianGrid stroke={CHART.grid} strokeDasharray="3 3" />
+                  <XAxis
+                    dataKey="stat"
+                    stroke={CHART.axis}
+                    tick={{ fill: CHART.tick, fontSize: CHART.fontSize, fontFamily: CHART.fontFamily }}
                   />
-                  <Legend />
-                  <Bar dataKey="teamA" name={teamAData.name} fill="#10b981" radius={[4, 4, 0, 0]} />
-                  <Bar dataKey="teamB" name={teamBData.name} fill="#3b82f6" radius={[4, 4, 0, 0]} />
+                  <YAxis
+                    stroke={CHART.axis}
+                    tick={{ fill: CHART.tick, fontSize: CHART.fontSize, fontFamily: CHART.fontFamily }}
+                  />
+                  <Tooltip contentStyle={tooltipStyle} itemStyle={{ color: CHART.tooltip.color }} />
+                  <Legend
+                    wrapperStyle={{
+                      fontFamily: CHART.fontFamily,
+                      fontSize: CHART.fontSize,
+                      color: CHART.tick,
+                    }}
+                  />
+                  <Bar dataKey="teamA" name={teamAData.name} fill={MATCHUP_COLORS.teamA} />
+                  <Bar dataKey="teamB" name={teamBData.name} fill={MATCHUP_COLORS.teamB} />
                 </BarChart>
               </ResponsiveContainer>
             </div>
           </div>
 
-          <div className="bg-slate-900 rounded-lg border border-slate-800 p-4">
-            <h3 className="text-sm font-semibold text-slate-200 mb-4">Player Matchup Grid</h3>
+          <div className="page-section card">
+            <h3 className="card-title mb-4">Player Matchup Grid</h3>
             <div className="grid grid-cols-1 gap-3">
               {positionalMatchups.map(({ position, teamAPlayer, teamBPlayer }) => (
-                <div
-                  key={position}
-                  className="grid grid-cols-1 md:grid-cols-[1fr_auto_1fr] items-center gap-3 border border-slate-800/70 rounded-md p-3"
-                >
-                  <div className="text-sm">
+                <div key={position} className="matchup-row">
+                  <div className="matchup-row-player">
                     {teamAPlayer ? (
                       <>
-                        <div className="text-slate-100 font-medium">{teamAPlayer.name}</div>
-                        <div className="text-xs text-slate-400">
-                          KDA {typeof teamAPlayer.kda === 'number' ? teamAPlayer.kda.toFixed(2) : '—'} · GD@15{' '}
+                        <div className="player-name">{teamAPlayer.name}</div>
+                        <div className="player-stats">
+                          KDA{' '}
+                          {typeof teamAPlayer.kda === 'number' ? teamAPlayer.kda.toFixed(2) : '—'} · GD@15{' '}
                           {typeof teamAPlayer.gd15 === 'number'
                             ? `${teamAPlayer.gd15 > 0 ? '+' : ''}${teamAPlayer.gd15.toFixed(1)}`
                             : '—'}{' '}
@@ -209,16 +244,17 @@ export default function Matchups() {
                         </div>
                       </>
                     ) : (
-                      <div className="text-xs text-slate-500">no data</div>
+                      <div className="text-dim text-xs">No data</div>
                     )}
                   </div>
-                  <div className="text-xs uppercase tracking-wider text-slate-500 text-center min-w-20">{position}</div>
-                  <div className="text-sm text-right">
+                  <div className="matchup-row-position">{position}</div>
+                  <div className="matchup-row-player align-right">
                     {teamBPlayer ? (
                       <>
-                        <div className="text-slate-100 font-medium">{teamBPlayer.name}</div>
-                        <div className="text-xs text-slate-400">
-                          KDA {typeof teamBPlayer.kda === 'number' ? teamBPlayer.kda.toFixed(2) : '—'} · GD@15{' '}
+                        <div className="player-name">{teamBPlayer.name}</div>
+                        <div className="player-stats">
+                          KDA{' '}
+                          {typeof teamBPlayer.kda === 'number' ? teamBPlayer.kda.toFixed(2) : '—'} · GD@15{' '}
                           {typeof teamBPlayer.gd15 === 'number'
                             ? `${teamBPlayer.gd15 > 0 ? '+' : ''}${teamBPlayer.gd15.toFixed(1)}`
                             : '—'}{' '}
@@ -226,7 +262,7 @@ export default function Matchups() {
                         </div>
                       </>
                     ) : (
-                      <div className="text-xs text-slate-500">no data</div>
+                      <div className="text-dim text-xs">No data</div>
                     )}
                   </div>
                 </div>
@@ -234,33 +270,37 @@ export default function Matchups() {
             </div>
           </div>
 
-          <div className="bg-slate-900 rounded-lg border border-slate-800 p-4">
-            <h3 className="text-sm font-semibold text-slate-200 mb-4">Champion Overlap</h3>
+          <div className="page-section card">
+            <h3 className="card-title mb-4">Champion Overlap</h3>
             {championOverlap.length === 0 ? (
-              <div className="text-sm text-slate-500">
-                no shared champion picks between these teams
-              </div>
+              <div className="text-secondary text-sm">No shared champion picks between these teams</div>
             ) : (
-              <div className="overflow-auto">
-                <table className="w-full text-sm">
-                  <thead className="border-b border-slate-800">
+              <div className="table-wrap">
+                <table className="data-table">
+                  <thead>
                     <tr>
-                      <th className="text-left text-xs text-slate-400 uppercase tracking-wider px-3 py-2">Champion</th>
-                      <th className="text-left text-xs text-slate-400 uppercase tracking-wider px-3 py-2">{teamAData.name}</th>
-                      <th className="text-left text-xs text-slate-400 uppercase tracking-wider px-3 py-2">{teamBData.name}</th>
+                      <th>Champion</th>
+                      <th>{teamAData.name}</th>
+                      <th>{teamBData.name}</th>
                     </tr>
                   </thead>
                   <tbody>
                     {championOverlap.map((row) => (
-                      <tr key={row.champion} className="border-b border-slate-800/50 hover:bg-slate-800/40">
-                        <td className="px-3 py-2 text-slate-200">{row.champion}</td>
-                        <td className="px-3 py-2 text-slate-300">
+                      <tr key={row.champion}>
+                        <td className="font-medium">{row.champion}</td>
+                        <td className="text-secondary">
                           {row.teamAPicks} picks ·{' '}
-                          {typeof row.teamAWinrate === 'number' ? `${row.teamAWinrate.toFixed(1)}%` : '—'} WR
+                          {typeof row.teamAWinrate === 'number'
+                            ? `${row.teamAWinrate.toFixed(1)}%`
+                            : '—'}{' '}
+                          WR
                         </td>
-                        <td className="px-3 py-2 text-slate-300">
+                        <td className="text-secondary">
                           {row.teamBPicks} picks ·{' '}
-                          {typeof row.teamBWinrate === 'number' ? `${row.teamBWinrate.toFixed(1)}%` : '—'} WR
+                          {typeof row.teamBWinrate === 'number'
+                            ? `${row.teamBWinrate.toFixed(1)}%`
+                            : '—'}{' '}
+                          WR
                         </td>
                       </tr>
                     ))}
