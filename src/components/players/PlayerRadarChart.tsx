@@ -10,34 +10,58 @@ import {
   Tooltip,
 } from 'recharts'
 import type { Player } from '../../hooks/useDashboardData'
+import { makeChartTooltipContent } from '../ui/ChartTooltip'
 import {
   PLAYERS_ROLE_COLORS,
   buildRadarSeries,
   type RoleKey,
 } from '../../lib/playerRadar'
 import { animateRadarDraw } from '../../theme/animations'
-import { CHART, CHART_TOOLTIP_PROPS } from '../../theme/chartTheme'
+import { CHART } from '../../theme/chartTheme'
 
 interface PlayerRadarChartProps {
   player: Player
   role: RoleKey
   cohort: Player[]
+  compact?: boolean
 }
 
-export default function PlayerRadarChart({ player, role, cohort }: PlayerRadarChartProps) {
+export default function PlayerRadarChart({
+  player,
+  role,
+  cohort,
+  compact = false,
+}: PlayerRadarChartProps) {
   const chartRef = useRef<HTMLDivElement>(null)
   const color = PLAYERS_ROLE_COLORS[role]
   const data = buildRadarSeries(player, role, cohort)
+  const chartHeight = compact ? 200 : 260
+
+  const tooltipContent = makeChartTooltipContent(
+    () => player.name,
+    (props) => {
+      const point = props.payload?.[0]?.payload as {
+        metric?: string
+        formattedPlayer?: string
+        formattedAvg?: string
+      }
+      if (!point?.metric) return []
+      return [
+        { label: point.metric, value: point.formattedPlayer ?? '—' },
+        { label: 'Role avg', value: point.formattedAvg ?? '—' },
+      ]
+    },
+  )
 
   useGSAP(
     () => {
       animateRadarDraw(chartRef.current)
     },
-    { scope: chartRef, dependencies: [player.name, role] },
+    { scope: chartRef, dependencies: [player.name, role, compact] },
   )
 
   return (
-    <div className="radar-card">
+    <div className={compact ? 'radar-card radar-card-compact' : 'radar-card'}>
       <div className="radar-card-header">
         <h3 className="radar-card-title">{player.name}</h3>
         <p className="radar-card-subtitle">
@@ -45,36 +69,19 @@ export default function PlayerRadarChart({ player, role, cohort }: PlayerRadarCh
         </p>
       </div>
       <div ref={chartRef} className="radar-chart-wrap">
-        <ResponsiveContainer width="100%" height={260}>
-          <RadarChart data={data} cx="50%" cy="50%" outerRadius="72%">
+        <ResponsiveContainer width="100%" height={chartHeight}>
+          <RadarChart data={data} cx="50%" cy="50%" outerRadius={compact ? '68%' : '72%'}>
             <PolarGrid stroke={CHART.grid} />
             <PolarAngleAxis
               dataKey="metric"
               tick={{
                 fill: CHART.tick,
-                fontSize: 10,
+                fontSize: compact ? 9 : 10,
                 fontFamily: CHART.fontFamily,
               }}
             />
-            <PolarRadiusAxis
-              angle={90}
-              domain={[0, 100]}
-              tick={false}
-              axisLine={false}
-            />
-            <Tooltip
-              {...CHART_TOOLTIP_PROPS}
-              formatter={(_, __, item) => {
-                const payload = item?.payload as {
-                  formattedPlayer?: string
-                  formattedAvg?: string
-                }
-                return [
-                  `${payload?.formattedPlayer ?? ''} (avg ${payload?.formattedAvg ?? ''})`,
-                  player.name,
-                ]
-              }}
-            />
+            <PolarRadiusAxis angle={90} domain={[0, 100]} tick={false} axisLine={false} />
+            <Tooltip content={tooltipContent} />
             <Radar
               name="Role average"
               dataKey="avgNorm"
@@ -91,6 +98,7 @@ export default function PlayerRadarChart({ player, role, cohort }: PlayerRadarCh
               fill={color}
               fillOpacity={0.12}
               strokeWidth={2}
+              dot={{ r: 3, fill: color, strokeWidth: 0 }}
             />
           </RadarChart>
         </ResponsiveContainer>

@@ -8,13 +8,13 @@ import {
   PolarRadiusAxis,
   ResponsiveContainer,
   Tooltip,
-  Legend,
 } from 'recharts'
 import type { Team } from '../../hooks/useDashboardData'
+import { makeChartTooltipContent } from '../ui/ChartTooltip'
 import { buildComparisonRadarData } from '../../lib/teamAnalytics'
 import { formatGameLength } from '../../lib/matchupAnalytics'
 import { animateRadarDraw, scrollEntrance } from '../../theme/animations'
-import { CHART, CHART_TOOLTIP_PROPS, MATCHUP_COLORS } from '../../theme/chartTheme'
+import { CHART, MATCHUP_COLORS, MATCHUP_RADAR_STYLE } from '../../theme/chartTheme'
 
 interface TeamRadarComparisonProps {
   teamA: Team
@@ -33,6 +33,30 @@ function StatCell({ label, valueA, valueB }: { label: string; valueA: string; va
     </div>
   )
 }
+
+const teamRadarTooltip = makeChartTooltipContent(
+  (props) => {
+    const point = props.payload?.[0]?.payload as { metric?: string }
+    return point?.metric ?? (typeof props.label === 'string' ? props.label : undefined)
+  },
+  (props) => {
+    if (!props.payload?.length) return []
+    const point = props.payload[0]?.payload as Record<string, string | number>
+    return props.payload
+      .filter((item) => item.dataKey !== undefined)
+      .map((item) => {
+        let value = '—'
+        if (item.dataKey === 'avgNorm') {
+          value = String(point?.formattedAvg ?? '—')
+        } else if (item.dataKey === 'team0Norm') {
+          value = String(point?.team0Label ?? '—')
+        } else if (item.dataKey === 'team1Norm') {
+          value = String(point?.team1Label ?? '—')
+        }
+        return { label: String(item.name ?? ''), value }
+      })
+  },
+)
 
 export default function TeamRadarComparison({ teamA, teamB, cohort }: TeamRadarComparisonProps) {
   const sectionRef = useRef<HTMLDivElement>(null)
@@ -68,23 +92,7 @@ export default function TeamRadarComparison({ teamA, teamB, cohort }: TeamRadarC
               tick={{ fill: CHART.tick, fontSize: 10, fontFamily: CHART.fontFamily }}
             />
             <PolarRadiusAxis angle={90} domain={[0, 100]} tick={false} axisLine={false} />
-            <Tooltip
-              {...CHART_TOOLTIP_PROPS}
-              formatter={(_, __, item) => {
-                const payload = item?.payload as Record<string, string | number>
-                const index = item?.dataKey === 'team1Norm' ? 1 : 0
-                const raw = payload?.[`team${index}Label`] ?? ''
-                const avg = payload?.formattedAvg ?? ''
-                return [`${raw} (avg ${avg})`, item?.name ?? '']
-              }}
-            />
-            <Legend
-              wrapperStyle={{
-                fontFamily: CHART.fontFamily,
-                fontSize: CHART.fontSize,
-                color: CHART.tick,
-              }}
-            />
+            <Tooltip content={teamRadarTooltip} />
             <Radar
               name="Cohort average"
               dataKey="avgNorm"
@@ -97,21 +105,49 @@ export default function TeamRadarComparison({ teamA, teamB, cohort }: TeamRadarC
             <Radar
               name={teamA.name}
               dataKey="team0Norm"
-              stroke={MATCHUP_COLORS.teamA}
-              fill={MATCHUP_COLORS.teamA}
-              fillOpacity={0.1}
+              stroke={MATCHUP_RADAR_STYLE.teamA.stroke}
+              fill={MATCHUP_RADAR_STYLE.teamA.fill}
+              fillOpacity={MATCHUP_RADAR_STYLE.teamA.fillOpacity}
               strokeWidth={2}
+              dot={{ r: 3, fill: MATCHUP_RADAR_STYLE.teamA.stroke, strokeWidth: 0 }}
             />
             <Radar
               name={teamB.name}
               dataKey="team1Norm"
-              stroke={MATCHUP_COLORS.teamB}
-              fill={MATCHUP_COLORS.teamB}
-              fillOpacity={0.08}
+              stroke={MATCHUP_RADAR_STYLE.teamB.stroke}
+              fill={MATCHUP_RADAR_STYLE.teamB.fill}
+              fillOpacity={MATCHUP_RADAR_STYLE.teamB.fillOpacity}
               strokeWidth={2}
+              dot={{ r: 3, fill: MATCHUP_RADAR_STYLE.teamB.stroke, strokeWidth: 0 }}
             />
           </RadarChart>
         </ResponsiveContainer>
+      </div>
+      <div className="matchup-radar-legend">
+        <span className="matchup-radar-legend-item">
+          <span
+            className="matchup-radar-legend-swatch"
+            style={{ background: MATCHUP_COLORS.teamA }}
+          />
+          {teamA.name}
+        </span>
+        <span className="matchup-radar-legend-item">
+          <span
+            className="matchup-radar-legend-swatch"
+            style={{ background: MATCHUP_COLORS.teamB }}
+          />
+          {teamB.name}
+        </span>
+        <span className="matchup-radar-legend-item">
+          <span
+            className="matchup-radar-legend-swatch"
+            style={{
+              background: 'transparent',
+              borderBottom: '2px dashed rgba(240, 236, 226, 0.35)',
+            }}
+          />
+          Cohort average
+        </span>
       </div>
       <div className="matchup-team-stats">
         <div className="matchup-team-stats-header">

@@ -13,8 +13,31 @@ import {
 } from 'recharts'
 import type { Team } from '../../hooks/useDashboardData'
 import { leagueColor } from '../../lib/teamAnalytics'
+import { makeChartTooltipContent } from '../ui/ChartTooltip'
 import { scrollEntrance } from '../../theme/animations'
-import { CHART, CHART_TOOLTIP_PROPS } from '../../theme/chartTheme'
+import { CHART } from '../../theme/chartTheme'
+
+const teamScatterTooltip = makeChartTooltipContent(
+  (props) => {
+    const row = props.payload?.[0]?.payload as { name?: string; league?: string }
+    return row?.name ? `${row.name} (${row.league ?? ''})` : undefined
+  },
+  (props) => {
+    const row = props.payload?.[0]?.payload as { x?: number; y?: number; games?: number }
+    if (!row) return []
+    const rows = []
+    if (typeof row.x === 'number') {
+      rows.push({ label: 'Gold Diff@15', value: `${row.x > 0 ? '+' : ''}${row.x}` })
+    }
+    if (typeof row.y === 'number') {
+      rows.push({ label: 'Win Rate', value: `${row.y.toFixed(1)}%` })
+    }
+    if (typeof row.games === 'number') {
+      rows.push({ label: 'Games', value: String(row.games) })
+    }
+    return rows
+  },
+)
 
 interface TeamScatterPlotProps {
   teams: Team[]
@@ -66,17 +89,8 @@ export default function TeamScatterPlot({ teams }: TeamScatterPlotProps) {
             />
             <ZAxis type="number" dataKey="z" range={[80, 400]} />
             <Tooltip
-              {...CHART_TOOLTIP_PROPS}
+              content={teamScatterTooltip}
               cursor={{ strokeDasharray: '3 3', stroke: CHART.grid }}
-              formatter={(value: number, name: string) => {
-                if (name === 'Win Rate') return [`${value.toFixed(1)}%`, name]
-                if (name === 'Gold Diff@15') return [`${value > 0 ? '+' : ''}${value}`, name]
-                return [value, name]
-              }}
-              labelFormatter={(_, payload) => {
-                const row = payload?.[0]?.payload as Team & { key: string }
-                return row ? `${row.name} (${row.league})` : ''
-              }}
             />
             <Scatter
               name="Teams"

@@ -12,8 +12,33 @@ import {
 } from 'recharts'
 import { buildPresenceBarData } from '../../lib/championAnalytics'
 import type { Champion } from '../../hooks/useDashboardData'
+import { makeChartTooltipContent } from '../ui/ChartTooltip'
 import { scrollEntrance } from '../../theme/animations'
-import { CHART, CHART_TOOLTIP_PROPS } from '../../theme/chartTheme'
+import { CHART } from '../../theme/chartTheme'
+
+const presenceBarTooltip = makeChartTooltipContent(
+  (props) => {
+    const label = props.label
+    return typeof label === 'string' ? label : undefined
+  },
+  (props) => {
+    const row = props.payload?.[0]?.payload as {
+      pickRate?: number
+      banRate?: number
+      presence?: number
+      picks?: number
+      bans?: number
+    }
+    if (!row) return []
+    return [
+      { label: 'Pick %', value: `${(row.pickRate ?? 0).toFixed(1)}%` },
+      { label: 'Ban %', value: `${(row.banRate ?? 0).toFixed(1)}%` },
+      { label: 'Presence', value: `${(row.presence ?? 0).toFixed(1)}%` },
+      { label: 'Picks', value: String(row.picks ?? 0) },
+      { label: 'Bans', value: String(row.bans ?? 0) },
+    ]
+  },
+)
 
 interface PresenceBarChartProps {
   champions: Champion[]
@@ -52,20 +77,7 @@ export default function PresenceBarChart({ champions }: PresenceBarChartProps) {
               stroke={CHART.axis}
               tick={{ fill: CHART.tick, fontSize: 11, fontFamily: CHART.fontFamily }}
             />
-            <Tooltip
-              {...CHART_TOOLTIP_PROPS}
-              formatter={(value: number, name: string) => {
-                if (name === 'Pick %') return [`${value.toFixed(1)}%`, name]
-                if (name === 'Ban %') return [`${value.toFixed(1)}%`, name]
-                return [value, name]
-              }}
-              labelFormatter={(label, payload) => {
-                const row = payload?.[0]?.payload as { picks?: number; bans?: number; presence?: number }
-                return row
-                  ? `${label} · ${row.picks ?? 0} picks · ${row.bans ?? 0} bans · ${row.presence?.toFixed(1)}% presence`
-                  : label
-              }}
-            />
+            <Tooltip content={presenceBarTooltip} />
             <Legend
               wrapperStyle={{
                 fontFamily: CHART.fontFamily,

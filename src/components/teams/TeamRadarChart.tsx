@@ -11,8 +11,9 @@ import {
 } from 'recharts'
 import type { Team } from '../../hooks/useDashboardData'
 import { buildTeamRadarSeries, leagueColor } from '../../lib/teamAnalytics'
+import { makeChartTooltipContent } from '../ui/ChartTooltip'
 import { animateRadarDraw } from '../../theme/animations'
-import { CHART, CHART_TOOLTIP_PROPS } from '../../theme/chartTheme'
+import { CHART } from '../../theme/chartTheme'
 
 interface TeamRadarChartProps {
   team: Team
@@ -23,6 +24,22 @@ export default function TeamRadarChart({ team, cohort }: TeamRadarChartProps) {
   const chartRef = useRef<HTMLDivElement>(null)
   const color = leagueColor(team.league)
   const data = buildTeamRadarSeries(team, cohort)
+
+  const tooltipContent = makeChartTooltipContent(
+    () => team.name,
+    (props) => {
+      const point = props.payload?.[0]?.payload as {
+        metric?: string
+        formatted?: string
+        formattedAvg?: string
+      }
+      if (!point?.metric) return []
+      return [
+        { label: point.metric, value: point.formatted ?? '—' },
+        { label: 'Cohort avg', value: point.formattedAvg ?? '—' },
+      ]
+    },
+  )
 
   useGSAP(
     () => {
@@ -49,13 +66,7 @@ export default function TeamRadarChart({ team, cohort }: TeamRadarChartProps) {
               tick={{ fill: CHART.tick, fontSize: 10, fontFamily: CHART.fontFamily }}
             />
             <PolarRadiusAxis angle={90} domain={[0, 100]} tick={false} axisLine={false} />
-            <Tooltip
-              {...CHART_TOOLTIP_PROPS}
-              formatter={(_, __, item) => {
-                const payload = item?.payload as { formatted?: string; formattedAvg?: string }
-                return [`${payload?.formatted ?? ''} (avg ${payload?.formattedAvg ?? ''})`, team.name]
-              }}
-            />
+            <Tooltip content={tooltipContent} />
             <Radar
               name="League average"
               dataKey="avgNorm"

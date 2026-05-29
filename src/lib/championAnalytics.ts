@@ -78,6 +78,11 @@ export function scatterPickRate(champion: Champion, totalGames: number): number 
   return Math.min(100, round((champion.picks / totalGames) * 100, 1))
 }
 
+/** Presence for scatter: (picks + bans) / total games, capped at 100%. */
+export function scatterPresence(champion: Champion, totalGames: number): number {
+  return Math.min(100, round(((champion.picks + champion.bans) / totalGames) * 100, 1))
+}
+
 /** Win rate for scatter: wins / games. */
 export function scatterWinRate(champion: Champion): number {
   const games = champion.games ?? champion.picks

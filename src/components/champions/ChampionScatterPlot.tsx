@@ -21,8 +21,28 @@ import {
   totalGamesInCohort,
   roleColor,
 } from '../../lib/championAnalytics'
+import { makeChartTooltipContent } from '../ui/ChartTooltip'
 import { scrollEntrance } from '../../theme/animations'
-import { CHART, CHART_TOOLTIP_PROPS } from '../../theme/chartTheme'
+import { CHART } from '../../theme/chartTheme'
+
+const championScatterTooltip = makeChartTooltipContent(
+  (props) => (props.payload?.[0]?.payload as { name?: string })?.name,
+  (props) => {
+    const row = props.payload?.[0]?.payload as {
+      x?: number
+      y?: number
+      picks?: number
+      bans?: number
+    }
+    if (!row) return []
+    return [
+      { label: 'Pick Rate', value: `${Number(row.x ?? 0).toFixed(1)}%` },
+      { label: 'Win Rate', value: `${Number(row.y ?? 0).toFixed(1)}%` },
+      { label: 'Picks', value: String(row.picks ?? 0) },
+      { label: 'Bans', value: String(row.bans ?? 0) },
+    ]
+  },
+)
 
 interface ChampionScatterPlotProps {
   champions: Champion[]
@@ -130,17 +150,8 @@ export default function ChampionScatterPlot({
               label={REF_LABEL}
             />
             <Tooltip
-              {...CHART_TOOLTIP_PROPS}
+              content={championScatterTooltip}
               cursor={{ strokeDasharray: '3 3', stroke: CHART.grid }}
-              formatter={(value: number, name: string) => {
-                const label = name === 'x' || name === 'Pick Rate' ? 'Pick Rate' : 'Win Rate'
-                return [`${Number(value).toFixed(1)}%`, label]
-              }}
-              labelFormatter={(_, payload) => {
-                const row = payload?.[0]?.payload as Champion & { x: number; y: number }
-                if (!row) return ''
-                return `${row.name} · ${row.picks} picks · ${row.bans} bans`
-              }}
             />
             <Scatter
               name="Champions"

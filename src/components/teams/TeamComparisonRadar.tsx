@@ -17,8 +17,33 @@ import {
   leagueColor,
   teamKey,
 } from '../../lib/teamAnalytics'
+import { makeChartTooltipContent } from '../ui/ChartTooltip'
 import { animateRadarDraw } from '../../theme/animations'
-import { CHART, CHART_TOOLTIP_PROPS } from '../../theme/chartTheme'
+import { CHART } from '../../theme/chartTheme'
+
+const comparisonRadarTooltip = makeChartTooltipContent(
+  (props) => {
+    const point = props.payload?.[0]?.payload as { metric?: string }
+    return point?.metric ?? (typeof props.label === 'string' ? props.label : undefined)
+  },
+  (props) => {
+    if (!props.payload?.length) return []
+    const point = props.payload[0]?.payload as Record<string, string | number>
+    return props.payload
+      .filter((item) => item.dataKey !== undefined)
+      .map((item) => {
+        let value = '—'
+        const key = String(item.dataKey ?? '')
+        const teamIndex = key.match(/^team(\d+)Norm$/)?.[1]
+        if (key === 'avgNorm') {
+          value = String(point?.formattedAvg ?? '—')
+        } else if (teamIndex !== undefined) {
+          value = String(point?.[`team${teamIndex}Label`] ?? '—')
+        }
+        return { label: String(item.name ?? ''), value }
+      })
+  },
+)
 
 interface TeamComparisonRadarProps {
   teams: Team[]
@@ -51,7 +76,7 @@ export default function TeamComparisonRadar({ teams, cohort }: TeamComparisonRad
               tick={{ fill: CHART.tick, fontSize: 10, fontFamily: CHART.fontFamily }}
             />
             <PolarRadiusAxis angle={90} domain={[0, 100]} tick={false} axisLine={false} />
-            <Tooltip {...CHART_TOOLTIP_PROPS} />
+            <Tooltip content={comparisonRadarTooltip} />
             <Legend
               wrapperStyle={{
                 fontFamily: CHART.fontFamily,

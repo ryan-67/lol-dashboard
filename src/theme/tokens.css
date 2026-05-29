@@ -555,6 +555,121 @@ b,
   margin-top: 4px;
 }
 
+/* Chart tooltips */
+.chart-tooltip-name {
+  font-weight: 500;
+  color: var(--text-primary);
+  margin-bottom: 6px;
+}
+
+.chart-tooltip-row {
+  font-size: 12px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+/* Overview scatter legend */
+.scatter-legend {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 16px;
+  margin-top: 12px;
+}
+
+.scatter-legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-secondary);
+  background: none;
+  border: none;
+  padding: 4px 0;
+  cursor: pointer;
+  font-family: var(--font-mono);
+}
+
+.scatter-legend-item.is-hidden {
+  opacity: 0.35;
+}
+
+.scatter-legend-swatch {
+  width: 10px;
+  height: 10px;
+  border: 1px solid var(--border-subtle);
+}
+
+.scatter-legend-reset {
+  font-size: 11px;
+  margin-left: 4px;
+}
+
+/* Matchup player radars */
+.matchup-radar-row {
+  border: 1px solid var(--border-subtle);
+  padding: 12px;
+  background: var(--bg-elevated);
+}
+
+.matchup-radar-row-header {
+  text-align: center;
+  margin-bottom: 12px;
+}
+
+.matchup-radar-duo {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+}
+
+@media (min-width: 900px) {
+  .matchup-radar-duo {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.matchup-radar-slot .radar-card {
+  margin: 0;
+}
+
+.matchup-radar-slot .radar-card-compact .radar-chart-wrap {
+  min-height: 200px;
+}
+
+.matchup-radar-placeholder {
+  min-height: 200px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px dashed var(--border-subtle);
+  color: var(--text-tertiary);
+  font-size: 12px;
+}
+
+.matchup-radar-legend {
+  display: flex;
+  justify-content: center;
+  gap: 24px;
+  margin-top: 12px;
+  flex-wrap: wrap;
+}
+
+.matchup-radar-legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.matchup-radar-legend-swatch {
+  width: 14px;
+  height: 3px;
+}
+
 /* Utilities */
 .text-accent {
   color: var(--accent);

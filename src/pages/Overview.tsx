@@ -1,4 +1,4 @@
-import { useRef } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import { useGSAP } from '@gsap/react'
 import { useDashboard } from '../context/DashboardContext'
 import {
@@ -13,16 +13,80 @@ import {
   Scatter,
   CartesianGrid,
   ZAxis,
-  Legend,
   LabelList,
 } from 'recharts'
+import { makeChartTooltipContent } from '../components/ui/ChartTooltip'
 import { scrollEntranceStagger } from '../theme/animations'
-import { CHART, CHART_TOOLTIP_PROPS, roleColor } from '../theme/chartTheme'
+import {
+  scatterPresence,
+  scatterWinRate,
+  totalGamesInCohort,
+} from '../lib/championAnalytics'
+import { CHART, roleColor } from '../theme/chartTheme'
 import AnimatedCounter from '../components/ui/AnimatedCounter'
 
+const ROLE_POSITIONS = ['top', 'jungle', 'mid', 'adc', 'support'] as const
+
+const AXIS_LABEL_STYLE = {
+  fill: CHART.tick,
+  fontSize: CHART.fontSize,
+  fontFamily: CHART.fontFamily,
+}
+
+const teamBarTooltip = makeChartTooltipContent(
+  (props) => (props.payload?.[0]?.payload as { name?: string })?.name,
+  (props) => {
+    const row = props.payload?.[0]?.payload as { winrate?: number }
+    if (row?.winrate === undefined) return []
+    return [{ label: 'Winrate', value: `${row.winrate.toFixed(1)}%` }]
+  },
+)
+
+const playerScatterTooltip = makeChartTooltipContent(
+  (props) => (props.payload?.[0]?.payload as { name?: string })?.name,
+  (props) => {
+    const row = props.payload?.[0]?.payload as { gd15?: number; kda?: number; games?: number }
+    if (!row) return []
+    const rows = []
+    if (typeof row.gd15 === 'number') {
+      rows.push({
+        label: 'GD@15',
+        value: `${row.gd15 > 0 ? '+' : ''}${row.gd15.toFixed(1)}`,
+      })
+    }
+    if (typeof row.kda === 'number') {
+      rows.push({ label: 'KDA', value: row.kda.toFixed(2) })
+    }
+    if (typeof row.games === 'number') {
+      rows.push({ label: 'Games', value: String(row.games) })
+    }
+    return rows
+  },
+)
+
+const championScatterTooltip = makeChartTooltipContent(
+  (props) => (props.payload?.[0]?.payload as { name?: string })?.name,
+  (props) => {
+    const row = props.payload?.[0]?.payload as { x?: number; y?: number; picks?: number }
+    if (!row) return []
+    const rows = []
+    if (typeof row.x === 'number') {
+      rows.push({ label: 'Presence', value: `${row.x.toFixed(1)}%` })
+    }
+    if (typeof row.y === 'number') {
+      rows.push({ label: 'Winrate', value: `${row.y.toFixed(1)}%` })
+    }
+    if (typeof row.picks === 'number') {
+      rows.push({ label: 'Picks', value: String(row.picks) })
+    }
+    return rows
+  },
+)
+
 export default function Overview() {
-  const { data, filteredTeams, filteredPlayers, filteredChampions, loading, league, split } =
+  const { filteredTeams, filteredPlayers, filteredChampions, loading, league, split } =
     useDashboard()
+  const [hiddenRoles, setHiddenRoles] = useState<Set<string>>(() => new Set())
 
   const chartsGridRef = useRef<HTMLDivElement>(null)
   const snapshotGridRef = useRef<HTMLDivElement>(null)
@@ -34,57 +98,122 @@ export default function Overview() {
       scrollEntranceStagger(snapshotGridRef.current, '.card')
       scrollEntranceStagger(tableRef.current, '.card')
     },
-    { dependencies: [loading, league, split] },
+    { dependencies: [loading, league, split, hiddenRoles.size] },
   )
 
-  if (loading && !data) {
-    return <div className="card h-80" />
+  const totalGames = useMemo(() => totalGamesInCohort(filteredTeams), [filteredTeams])
+
+  const topTeamsByWinrate = useMemo(
+    () =>
+      [...filteredTeams]
+        .sort((a, b) => b.winrate - a.winrate)
+        .slice(0, 8)
+        .map((team) => ({
+          ...team,
+          shortName: team.name.length > 14 ? `${team.name.slice(0, 14)}...` : team.name,
+        })),
+    [filteredTeams],
+  )
+
+  const playersByPosition = useMemo(
+    () =>
+      ROLE_POSITIONS.map((position) => ({
+        position,
+        color: roleColor(position),
+        data: filteredPlayers
+          .filter((p) => (p.position?.toLowerCase() ?? '') === position)
+          .map((p) => ({
+            ...p,
+            x: p.gd15,
+            y: p.kda,
+            z: p.games,
+            label: '',
+          })),
+      })),
+    [filteredPlayers],
+  )
+
+  const visibleGroups = useMemo(
+    () => playersByPosition.filter((g) => !hiddenRoles.has(g.position)),
+    [playersByPosition, hiddenRoles],
+  )
+
+  const labelPlayerNames = useMemo(() => {
+    const all = visibleGroups.flatMap((g) => g.data)
+    return new Set(
+      [...all]
+        .sort((a, b) => b.games - a.games)
+        .slice(0, 12)
+        .map((p) => p.name),
+    )
+  }, [visibleGroups])
+
+  const scatterGroups = useMemo(
+    () =>
+      visibleGroups.map((group) => ({
+        ...group,
+        data: group.data.map((p) => ({
+          ...p,
+          label: labelPlayerNames.has(p.name) ? p.name : '',
+        })),
+      })),
+    [visibleGroups, labelPlayerNames],
+  )
+
+  const championScatterData = useMemo(
+    () =>
+      filteredChampions.map((c) => ({
+        ...c,
+        x: scatterPresence(c, totalGames),
+        y: scatterWinRate(c),
+        z: c.picks,
+        label: '',
+      })),
+    [filteredChampions, totalGames],
+  )
+
+  const top10ChampionLabels = useMemo(
+    () =>
+      new Set(
+        [...championScatterData]
+          .sort((a, b) => b.x - a.x)
+          .slice(0, 10)
+          .map((c) => c.name),
+      ),
+    [championScatterData],
+  )
+
+  const championChartData = useMemo(
+    () =>
+      championScatterData.map((c) => ({
+        ...c,
+        label: top10ChampionLabels.has(c.name) ? c.name : '',
+      })),
+    [championScatterData, top10ChampionLabels],
+  )
+
+  const hottestPlayers = useMemo(
+    () => [...filteredPlayers].sort((a, b) => b.kda - a.kda).slice(0, 10),
+    [filteredPlayers],
+  )
+
+  const topChampionByPresence = useMemo(
+    () => [...championScatterData].sort((a, b) => b.x - a.x)[0],
+    [championScatterData],
+  )
+
+  const toggleRole = (position: string) => {
+    setHiddenRoles((prev) => {
+      const next = new Set(prev)
+      if (next.has(position)) next.delete(position)
+      else next.add(position)
+      return next
+    })
   }
 
-  const topTeamsByWinrate = [...filteredTeams]
-    .sort((a, b) => b.winrate - a.winrate)
-    .slice(0, 8)
-    .map((team) => ({
-      ...team,
-      shortName: team.name.length > 14 ? `${team.name.slice(0, 14)}...` : team.name,
-    }))
-
-  const playersByPosition = ['top', 'jungle', 'mid', 'adc', 'support'].map((position) => ({
-    position,
-    color: roleColor(position),
-    data: filteredPlayers
-      .filter((p) => (p.position?.toLowerCase() ?? '') === position)
-      .map((p) => ({
-        ...p,
-        x: p.gd15,
-        y: p.kda,
-        z: p.games,
-      })),
-  }))
-
-  const championScatterData = filteredChampions.map((c) => ({
-    ...c,
-    x: c.presence,
-    y: c.winrate,
-    z: c.picks,
-    label: '',
-  }))
-
-  const top10ChampionLabels = new Set(
-    [...filteredChampions]
-      .sort((a, b) => b.presence - a.presence)
-      .slice(0, 10)
-      .map((c) => c.name),
-  )
-
-  championScatterData.forEach((champion) => {
-    if (top10ChampionLabels.has(champion.name)) {
-      champion.label = champion.name
-    }
-  })
-
-  const hottestPlayers = [...filteredPlayers].sort((a, b) => b.kda - a.kda).slice(0, 10)
-  const topChampionByPresence = [...filteredChampions].sort((a, b) => b.presence - a.presence)[0]
+  if (loading) {
+    return <div className="card h-80" />
+  }
 
   return (
     <div>
@@ -114,11 +243,7 @@ export default function Overview() {
                   stroke={CHART.axis}
                   tick={{ fill: CHART.tick, fontSize: CHART.fontSize, fontFamily: CHART.fontFamily }}
                 />
-                <Tooltip
-                  {...CHART_TOOLTIP_PROPS}
-                  formatter={(value: number) => [`${value.toFixed(1)}%`, 'Winrate']}
-                  labelFormatter={(_, payload) => payload?.[0]?.payload?.name ?? ''}
-                />
+                <Tooltip content={teamBarTooltip} />
                 <Bar dataKey="winrate">
                   {topTeamsByWinrate.map((t) => (
                     <Cell key={t.name} fill={CHART.accent} />
@@ -132,7 +257,7 @@ export default function Overview() {
         <div className="card">
           <h2 className="card-title">Player Performance Scatter</h2>
           <p className="card-subtitle">
-            X = GD@15, Y = KDA, bubble size = games, color by role.
+            X = GD@15, Y = KDA, bubble size = games. Click legend roles to filter.
           </p>
           <div className="h-80">
             <ResponsiveContainer width="100%" height="100%">
@@ -155,32 +280,47 @@ export default function Overview() {
                 />
                 <ZAxis type="number" dataKey="z" name="Games" range={[70, 420]} />
                 <Tooltip
-                  {...CHART_TOOLTIP_PROPS}
+                  content={playerScatterTooltip}
                   cursor={{ strokeDasharray: '3 3', stroke: CHART.grid }}
-                  formatter={(value: number, name: string) => {
-                    if (name === 'GD@15') return [`${value > 0 ? '+' : ''}${value}`, name]
-                    return [value, name]
-                  }}
-                  labelFormatter={(_, payload) => payload?.[0]?.payload?.name ?? ''}
                 />
-                <Legend
-                  wrapperStyle={{
-                    fontFamily: CHART.fontFamily,
-                    fontSize: CHART.fontSize,
-                    color: CHART.tick,
-                  }}
-                />
-                {playersByPosition.map((group) => (
+                {scatterGroups.map((group) => (
                   <Scatter
                     key={group.position}
                     name={group.position}
                     data={group.data}
                     fill={group.color}
                     fillOpacity={1}
-                  />
+                  >
+                    <LabelList
+                      dataKey="label"
+                      position="top"
+                      fill={CHART.tooltip.color}
+                      fontSize={9}
+                      fontFamily={CHART.fontFamily}
+                    />
+                  </Scatter>
                 ))}
               </ScatterChart>
             </ResponsiveContainer>
+          </div>
+          <div className="scatter-legend">
+            {playersByPosition.map((group) => {
+              const isHidden = hiddenRoles.has(group.position)
+              return (
+                <button
+                  key={group.position}
+                  type="button"
+                  className={`scatter-legend-item${isHidden ? ' is-hidden' : ''}`}
+                  onClick={() => toggleRole(group.position)}
+                >
+                  <span className="scatter-legend-swatch" style={{ background: group.color }} />
+                  {group.position}
+                </button>
+              )
+            })}
+            <button type="button" className="btn scatter-legend-reset" onClick={() => setHiddenRoles(new Set())}>
+              Show All
+            </button>
           </div>
         </div>
       </div>
@@ -191,7 +331,7 @@ export default function Overview() {
           <p className="card-subtitle">Bubble size = picks. Labels show top 10 by presence.</p>
           <div className="h-80">
             <ResponsiveContainer width="100%" height="100%">
-              <ScatterChart margin={{ top: 8, right: 24, left: 8, bottom: 8 }}>
+              <ScatterChart margin={{ top: 8, right: 24, left: 8, bottom: 24 }}>
                 <CartesianGrid stroke={CHART.grid} strokeDasharray="3 3" />
                 <XAxis
                   type="number"
@@ -201,28 +341,34 @@ export default function Overview() {
                   tickFormatter={(v) => `${v}%`}
                   stroke={CHART.axis}
                   tick={{ fill: CHART.tick, fontSize: CHART.fontSize, fontFamily: CHART.fontFamily }}
+                  label={{
+                    value: 'Presence (%)',
+                    position: 'insideBottom',
+                    offset: -8,
+                    ...AXIS_LABEL_STYLE,
+                  }}
                 />
                 <YAxis
                   type="number"
                   dataKey="y"
                   name="Winrate"
                   domain={[0, 100]}
-                  stroke={CHART.axis}
                   tickFormatter={(v) => `${v}%`}
+                  stroke={CHART.axis}
                   tick={{ fill: CHART.tick, fontSize: CHART.fontSize, fontFamily: CHART.fontFamily }}
+                  label={{
+                    value: 'Winrate (%)',
+                    angle: -90,
+                    position: 'insideLeft',
+                    ...AXIS_LABEL_STYLE,
+                  }}
                 />
                 <ZAxis type="number" dataKey="z" name="Picks" range={[70, 420]} />
                 <Tooltip
-                  {...CHART_TOOLTIP_PROPS}
+                  content={championScatterTooltip}
                   cursor={{ strokeDasharray: '3 3', stroke: CHART.grid }}
-                  formatter={(value: number, name: string) => {
-                    if (name === 'Presence' || name === 'Winrate')
-                      return [`${value.toFixed(1)}%`, name]
-                    return [value, name]
-                  }}
-                  labelFormatter={(_, payload) => payload?.[0]?.payload?.name ?? ''}
                 />
-                <Scatter name="Champions" data={championScatterData} fill={CHART.accent} fillOpacity={1}>
+                <Scatter name="Champions" data={championChartData} fill={CHART.accent} fillOpacity={1}>
                   <LabelList
                     dataKey="label"
                     position="top"
@@ -248,13 +394,11 @@ export default function Overview() {
               <div className="stat-value">{topTeamsByWinrate[0]?.name ?? 'N/A'}</div>
               <div className="stat-meta">
                 {topTeamsByWinrate[0] ? (
-                  <>
-                    <AnimatedCounter
-                      value={topTeamsByWinrate[0].winrate}
-                      suffix="% winrate"
-                      className="text-accent"
-                    />
-                  </>
+                  <AnimatedCounter
+                    value={topTeamsByWinrate[0].winrate}
+                    suffix="% winrate"
+                    className="text-accent"
+                  />
                 ) : (
                   ''
                 )}
@@ -280,7 +424,7 @@ export default function Overview() {
               <div className="stat-meta">
                 {topChampionByPresence ? (
                   <AnimatedCounter
-                    value={topChampionByPresence.presence}
+                    value={topChampionByPresence.x}
                     suffix="% presence"
                     className="text-accent"
                   />

@@ -30,8 +30,13 @@ export const CHART_TOOLTIP_PROPS = {
 } as const
 
 export const MATCHUP_COLORS = {
-  teamA: CHART.accent,
-  teamB: CHART.accentDim,
+  teamA: '#f0ece2',
+  teamB: '#5c8a8a',
+} as const
+
+export const MATCHUP_RADAR_STYLE = {
+  teamA: { stroke: MATCHUP_COLORS.teamA, fill: MATCHUP_COLORS.teamA, fillOpacity: 0.12 },
+  teamB: { stroke: MATCHUP_COLORS.teamB, fill: MATCHUP_COLORS.teamB, fillOpacity: 0.12 },
 } as const
 
 export const ROLE_COLORS: Record<string, string> = {
