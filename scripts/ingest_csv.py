@@ -448,7 +448,7 @@ def compile_champions(champs_dict, team_games: int, weekly_team_games: dict):
                 "avgGoldPerMin": round(sum(c["goldpermin"]) / len(c["goldpermin"]), 1)
                 if c["goldpermin"]
                 else 0,
-                "sparkline": list(c["recentresults"][-8:]),
+                "sparkline": list(c["recentresults"][-10:]),
                 "primaryRole": sorted(c["positions"])[0] if c["positions"] else "",
                 "weeklyStats": [
                     {
@@ -726,8 +726,8 @@ def process_row(row, buckets: dict, team_to_league: dict[str, str]):
         if gl > 0:
             c["goldpermin"].append(safe_float(row.get("earnedgold", 0)) / gl * 60)
         c["recentresults"].append(1 if result == "1" else 0)
-        if len(c["recentresults"]) > 12:
-            c["recentresults"] = c["recentresults"][-12:]
+        if len(c["recentresults"]) > 14:
+            c["recentresults"] = c["recentresults"][-14:]
         if result == "1":
             c["wins"] += 1
         tc = bucket["team_champions"][(team_name, champion)]

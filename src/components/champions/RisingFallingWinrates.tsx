@@ -7,6 +7,7 @@ import {
   RISING_COLOR,
   roleColor,
   roleLabel,
+  WINRATE_TREND_GAMES,
 } from '../../lib/championAnalytics'
 import { scrollEntrance } from '../../theme/animations'
 
@@ -72,9 +73,11 @@ export default function RisingFallingWinrates({ champions }: RisingFallingWinrat
   return (
     <div ref={sectionRef} className="page-section">
       <h2 className="card-title">Rising & Falling Winrates</h2>
-      <p className="card-subtitle">Recent 2 weeks vs prior 2 weeks (champion win %)</p>
+      <p className="card-subtitle">
+        Games 1–5 vs 6–10 win % (last {WINRATE_TREND_GAMES} picks per champion)
+      </p>
       {!result.sufficient ? (
-        <div className="empty-state">Not enough weekly data for winrate trend comparison</div>
+        <div className="empty-state">Not enough recent game data for winrate trends</div>
       ) : (
         <div className="overview-grid overview-grid-2">
           <TrendList title="Rising" entries={result.rising} direction="rising" />

@@ -433,7 +433,7 @@ function mergeChampions(slices: DashboardSlice[]): Champion[] {
         avgCsd15: round(avgWeighted(c.csd15), 1),
         avgDpm: round(avgWeighted(c.dpm), 1),
         avgGoldPerMin: round(avgWeighted(c.goldPerMin), 1),
-        sparkline: c.sparkline.slice(-8),
+        sparkline: c.sparkline.slice(-10),
         primaryRole: positions[0] ?? '',
         weeklyStats,
         gameDates: [...new Set(c.gameDates)].sort(),

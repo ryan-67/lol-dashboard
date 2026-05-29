@@ -266,20 +266,29 @@ export function computeRisingFalling(champions: Champion[]): RisingFallingResult
   return { sufficient: true, rising, falling }
 }
 
-function hasPicksInWeeks(c: Champion, weeks: string[]): boolean {
-  const stats = c.weeklyStats ?? []
-  return weeks.some((w) => (stats.find((s) => s.weekStart === w)?.picks ?? 0) > 0)
+export const WINRATE_TREND_GAMES = 10
+const WINRATE_TREND_HALF = WINRATE_TREND_GAMES / 2
+
+function winrateFromResults(results: number[]): number {
+  if (!results.length) return 0
+  const wins = results.reduce((sum, r) => sum + r, 0)
+  return (wins / results.length) * 100
 }
 
-function avgWinrateForWeeks(c: Champion, weeks: string[]): number {
-  if (!weeks.length) return 0
-  const stats = c.weeklyStats ?? []
-  const values = weeks
-    .map((w) => stats.find((s) => s.weekStart === w))
-    .filter((s): s is NonNullable<typeof s> => !!s && (s.picks ?? 0) > 0)
-    .map((s) => s.winrate ?? (s.picks ? ((s.wins ?? 0) / s.picks) * 100 : 0))
-  if (!values.length) return 0
-  return values.reduce((a, b) => a + b, 0) / values.length
+function lastGameResults(c: Champion): number[] {
+  return (c.sparkline ?? []).slice(-WINRATE_TREND_GAMES)
+}
+
+function splitGameWinrates(
+  results: number[],
+): { priorWinrate: number; recentWinrate: number } | null {
+  if (results.length < WINRATE_TREND_GAMES) return null
+  const priorSlice = results.slice(0, WINRATE_TREND_HALF)
+  const recentSlice = results.slice(WINRATE_TREND_HALF, WINRATE_TREND_GAMES)
+  return {
+    priorWinrate: winrateFromResults(priorSlice),
+    recentWinrate: winrateFromResults(recentSlice),
+  }
 }
 
 export interface RisingFallingWinrateEntry {
@@ -297,37 +306,24 @@ export interface RisingFallingWinrateResult {
 }
 
 export function computeRisingFallingWinrate(champions: Champion[]): RisingFallingWinrateResult {
-  const weeks = collectWeeks(champions)
+  const deltas: RisingFallingWinrateEntry[] = []
 
-  if (weeks.length < 2) {
-    return { sufficient: false, rising: [], falling: [] }
-  }
-
-  const recentWeeks = weeks.slice(-Math.min(2, weeks.length))
-  const priorEnd = weeks.length - recentWeeks.length
-  const priorWeeks = weeks.slice(Math.max(0, priorEnd - 2), priorEnd)
-
-  if (!priorWeeks.length || !recentWeeks.length) {
-    return { sufficient: false, rising: [], falling: [] }
-  }
-
-  const deltas: RisingFallingWinrateEntry[] = champions
-    .map((champion) => {
-      const priorWinrate = avgWinrateForWeeks(champion, priorWeeks)
-      const recentWinrate = avgWinrateForWeeks(champion, recentWeeks)
-      const delta = recentWinrate - priorWinrate
-      return {
-        champion,
-        role: roleForChampion(champion),
-        priorWinrate,
-        recentWinrate,
-        delta,
-      }
+  for (const champion of champions) {
+    const split = splitGameWinrates(lastGameResults(champion))
+    if (!split) continue
+    const delta = split.recentWinrate - split.priorWinrate
+    deltas.push({
+      champion,
+      role: roleForChampion(champion),
+      priorWinrate: split.priorWinrate,
+      recentWinrate: split.recentWinrate,
+      delta,
     })
-    .filter(
-      (entry) =>
-        hasPicksInWeeks(entry.champion, priorWeeks) || hasPicksInWeeks(entry.champion, recentWeeks),
-    )
+  }
+
+  if (!deltas.length) {
+    return { sufficient: false, rising: [], falling: [] }
+  }
 
   const rising = [...deltas]
     .filter((d) => d.delta > 0)
