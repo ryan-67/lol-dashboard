@@ -13,6 +13,7 @@ export interface DashboardSlice {
   champions: Champion[]
   matchups: Matchup[]
   teamChampions: TeamChampion[]
+  weeklyTeamGames?: Record<string, number>
 }
 
 export interface OEStoreMeta {
@@ -285,44 +286,56 @@ function mergeTeams(slices: DashboardSlice[]): Team[] {
     .sort((a, b) => b.winrate - a.winrate)
 }
 
+type ChampionMergeAcc = {
+  name: string
+  positions: Set<string>
+  picks: number
+  bans: number
+  wins: number
+  kills: number
+  deaths: number
+  assists: number
+  csd15: Array<{ value: number; weight: number }>
+  dpm: Array<{ value: number; weight: number }>
+  goldPerMin: Array<{ value: number; weight: number }>
+  sparkline: number[]
+  weekly: Map<string, { picks: number; bans: number }>
+  gameDates: string[]
+}
+
+function emptyChampionAcc(name: string): ChampionMergeAcc {
+  return {
+    name,
+    positions: new Set<string>(),
+    picks: 0,
+    bans: 0,
+    wins: 0,
+    kills: 0,
+    deaths: 0,
+    assists: 0,
+    csd15: [],
+    dpm: [],
+    goldPerMin: [],
+    sparkline: [],
+    weekly: new Map(),
+    gameDates: [],
+  }
+}
+
 function mergeChampions(slices: DashboardSlice[]): Champion[] {
-  const acc = new Map<
-    string,
-    {
-      name: string
-      positions: Set<string>
-      picks: number
-      bans: number
-      wins: number
-      kills: number
-      deaths: number
-      assists: number
-      csd15: Array<{ value: number; weight: number }>
-      dpm: Array<{ value: number; weight: number }>
-      goldPerMin: Array<{ value: number; weight: number }>
-      sparkline: number[]
-    }
-  >()
+  const acc = new Map<string, ChampionMergeAcc>()
 
   let totalTeamGames = 0
+  const mergedWeeklyTeamGames = new Map<string, number>()
+
   for (const slice of slices) {
     totalTeamGames += (slice.teams ?? []).reduce((sum, t) => sum + (t.games ?? 0), 0) / 2
+    for (const [week, count] of Object.entries(slice.weeklyTeamGames ?? {})) {
+      mergedWeeklyTeamGames.set(week, (mergedWeeklyTeamGames.get(week) ?? 0) + count)
+    }
     for (const raw of slice.champions ?? []) {
       const c = raw as ChampionRow
-      const existing = acc.get(c.name) ?? {
-        name: c.name,
-        positions: new Set<string>(),
-        picks: 0,
-        bans: 0,
-        wins: 0,
-        kills: 0,
-        deaths: 0,
-        assists: 0,
-        csd15: [],
-        dpm: [],
-        goldPerMin: [],
-        sparkline: [],
-      }
+      const existing = acc.get(c.name) ?? emptyChampionAcc(c.name)
       const picks = c.picks ?? 0
       existing.picks += picks
       existing.bans += c.bans ?? 0
@@ -340,6 +353,13 @@ function mergeChampions(slices: DashboardSlice[]): Champion[] {
         existing.goldPerMin.push({ value: c.avgGoldPerMin, weight: picks })
       }
       if (c.sparkline?.length) existing.sparkline.push(...c.sparkline)
+      for (const stat of c.weeklyStats ?? []) {
+        const week = existing.weekly.get(stat.weekStart) ?? { picks: 0, bans: 0 }
+        week.picks += stat.picks ?? 0
+        week.bans += stat.bans ?? 0
+        existing.weekly.set(stat.weekStart, week)
+      }
+      if (c.gameDates?.length) existing.gameDates.push(...c.gameDates)
       for (const pos of c.positions ?? []) existing.positions.add(pos)
       acc.set(c.name, existing)
     }
@@ -352,6 +372,18 @@ function mergeChampions(slices: DashboardSlice[]): Champion[] {
       const deaths = Math.max(c.deaths, 1)
       const total = c.picks + c.bans
       const positions = [...c.positions].sort()
+      const weeklyStats = [...c.weekly.entries()]
+        .sort(([a], [b]) => a.localeCompare(b))
+        .map(([weekStart, stats]) => {
+          const weekDenom = Math.max((mergedWeeklyTeamGames.get(weekStart) ?? 0) / 12, 1)
+          const weekTotal = stats.picks + stats.bans
+          return {
+            weekStart,
+            picks: stats.picks,
+            bans: stats.bans,
+            presence: round(weekTotal / weekDenom * 100, 1),
+          }
+        })
       return {
         name: c.name,
         positions,
@@ -368,6 +400,8 @@ function mergeChampions(slices: DashboardSlice[]): Champion[] {
         avgGoldPerMin: round(avgWeighted(c.goldPerMin), 1),
         sparkline: c.sparkline.slice(-8),
         primaryRole: positions[0] ?? '',
+        weeklyStats,
+        gameDates: [...new Set(c.gameDates)].sort(),
       } satisfies Champion
     })
     .filter((c) => c.picks >= 3)

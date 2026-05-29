@@ -10,8 +10,9 @@ import {
 } from '../lib/championAnalytics'
 import {
   ChampionScatterPlot,
+  MostOpChampion,
   PresenceBarChart,
-  RoleDistributionRing,
+  RisingFallingChampions,
   RoleFilterBar,
   TopPerformerCards,
 } from '../components/champions'
@@ -74,22 +75,15 @@ export default function Champions() {
         <div className="empty-state">No champions match the current filters.</div>
       ) : (
         <>
+          <MostOpChampion champions={roleFiltered} />
           <PresenceBarChart champions={roleFiltered} />
-
-          <div className="overview-grid overview-grid-2">
-            <ChampionScatterPlot
-              champions={roleFiltered}
-              focusedName={focusedName}
-              onFocus={setFocusedName}
-            />
-            <RoleDistributionRing champions={roleFiltered} />
-          </div>
-
-          <TopPerformerCards
+          <ChampionScatterPlot
             champions={roleFiltered}
             focusedName={focusedName}
             onFocus={setFocusedName}
           />
+          <RisingFallingChampions champions={roleFiltered} />
+          <TopPerformerCards champions={roleFiltered} />
         </>
       )}
 

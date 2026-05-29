@@ -21,7 +21,7 @@ import csv
 import re
 import sys
 from collections import defaultdict
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -129,6 +129,18 @@ def safe_float(val, default=0.0):
         return float(val) if val not in (None, "") else default
     except ValueError:
         return default
+
+
+def week_start_key(date_raw: str) -> str | None:
+    if not date_raw:
+        return None
+    try:
+        text = str(date_raw).strip()[:10]
+        dt = datetime.strptime(text, "%Y-%m-%d")
+    except ValueError:
+        return None
+    monday = dt - timedelta(days=dt.weekday())
+    return monday.strftime("%Y-%m-%d")
 
 
 def safe_int(val, default=0):
@@ -276,6 +288,8 @@ def champ_bucket():
         "dpm": [],
         "goldpermin": [],
         "recentresults": [],
+        "weekly": defaultdict(lambda: {"picks": 0, "bans": 0}),
+        "gameDates": [],
     }
 
 
@@ -287,6 +301,7 @@ def slice_store():
         "team_champions": defaultdict(lambda: {"picks": 0, "wins": 0}),
         "game_teams": defaultdict(list),
         "team_games": 0,
+        "weekly_team_games": defaultdict(int),
     }
 
 
@@ -383,7 +398,7 @@ def compile_teams(teams_dict):
     return out
 
 
-def compile_champions(champs_dict, team_games: int):
+def compile_champions(champs_dict, team_games: int, weekly_team_games: dict):
     out = []
     denom = max(team_games / 12, 1)
     for name, c in champs_dict.items():
@@ -415,6 +430,21 @@ def compile_champions(champs_dict, team_games: int):
                 else 0,
                 "sparkline": list(c["recentresults"][-8:]),
                 "primaryRole": sorted(c["positions"])[0] if c["positions"] else "",
+                "weeklyStats": [
+                    {
+                        "weekStart": wk,
+                        "picks": c["weekly"][wk]["picks"],
+                        "bans": c["weekly"][wk]["bans"],
+                        "presence": round(
+                            (c["weekly"][wk]["picks"] + c["weekly"][wk]["bans"])
+                            / max(weekly_team_games.get(wk, 0) / 12, 1)
+                            * 100,
+                            1,
+                        ),
+                    }
+                    for wk in sorted(c["weekly"].keys())
+                ],
+                "gameDates": sorted(set(c["gameDates"])),
             }
         )
     out.sort(key=lambda x: x["presence"], reverse=True)
@@ -473,7 +503,10 @@ def compile_slice(store):
     return {
         "players": compile_players(store["players"]),
         "teams": compile_teams(store["teams"]),
-        "champions": compile_champions(store["champions"], store["team_games"]),
+        "champions": compile_champions(
+            store["champions"], store["team_games"], dict(store["weekly_team_games"])
+        ),
+        "weeklyTeamGames": dict(store["weekly_team_games"]),
         "matchups": compile_matchups(store["game_teams"]),
         "teamChampions": compile_team_champions(store["team_champions"]),
     }
@@ -557,6 +590,9 @@ def process_row(row, buckets: dict, team_to_league: dict[str, str]):
             t["totalgold"].append(safe_float(row.get("totalgold", 0)))
             t["wardsplaced"].append(safe_float(row.get("wardsplaced", 0)))
         t["firstbloodgames"].append(1 if safe_int(row.get("firstblood", 0)) else 0)
+        week_key = week_start_key(row.get("date", ""))
+        if week_key:
+            bucket["weekly_team_games"][week_key] += 1
         if game_id:
             bucket["game_teams"][game_id].append(
                 {"team": team_name, "result": result, "league": bucket_league}
@@ -565,6 +601,8 @@ def process_row(row, buckets: dict, team_to_league: dict[str, str]):
             ban = row.get(f"ban{i}", "")
             if ban:
                 bucket["champions"][ban]["bans"] += 1
+                if week_key:
+                    bucket["champions"][ban]["weekly"][week_key]["bans"] += 1
         return
 
     pos = normalize_position(position)
@@ -607,8 +645,14 @@ def process_row(row, buckets: dict, team_to_league: dict[str, str]):
 
     if champion and team_name:
         c = bucket["champions"][champion]
+        week_key = week_start_key(row.get("date", ""))
+        date_only = str(row.get("date", "")).strip()[:10] if row.get("date") else None
         c["picks"] += 1
         c["positions"].add(pos)
+        if week_key:
+            c["weekly"][week_key]["picks"] += 1
+        if date_only:
+            c["gameDates"].append(date_only)
         c["kills"] += safe_int(row.get("kills", 0))
         c["deaths"] += safe_int(row.get("deaths", 0))
         c["assists"] += safe_int(row.get("assists", 0))

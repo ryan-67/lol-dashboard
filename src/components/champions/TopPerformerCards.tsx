@@ -1,14 +1,11 @@
 import { useRef } from 'react'
 import { useGSAP } from '@gsap/react'
 import type { Champion } from '../../hooks/useDashboardData'
-import { bestChampionPerRole, roleColor, roleLabel } from '../../lib/championAnalytics'
+import { bestByRole, roleColor, roleLabel } from '../../lib/championAnalytics'
 import { scrollEntranceStagger } from '../../theme/animations'
-import { CHART } from '../../theme/chartTheme'
 
 interface TopPerformerCardsProps {
   champions: Champion[]
-  focusedName: string | null
-  onFocus: (name: string) => void
 }
 
 function MiniSparkline({ data, color }: { data: number[]; color: string }) {
@@ -33,13 +30,9 @@ function MiniSparkline({ data, color }: { data: number[]; color: string }) {
   )
 }
 
-export default function TopPerformerCards({
-  champions,
-  focusedName,
-  onFocus,
-}: TopPerformerCardsProps) {
+export default function TopPerformerCards({ champions }: TopPerformerCardsProps) {
   const gridRef = useRef<HTMLDivElement>(null)
-  const topPerformers = bestChampionPerRole(champions)
+  const bestByRoleEntries = bestByRole(champions)
 
   useGSAP(
     () => {
@@ -48,38 +41,31 @@ export default function TopPerformerCards({
     { scope: gridRef, dependencies: [champions.length] },
   )
 
-  if (!topPerformers.length) {
-    return (
-      <div className="empty-state page-section">Not enough pick data for top performers by role.</div>
-    )
-  }
-
   return (
     <div className="page-section">
       <h2 className="card-title">Top Performers by Role</h2>
-      <p className="card-subtitle">Highest win rate with minimum 5 picks · click to focus in scatter</p>
-      <div ref={gridRef} className="performer-grid">
-        {topPerformers.map((c) => {
-          const role = c.primaryRole ?? c.positions?.[0] ?? ''
+      <p className="card-subtitle">Highest win rate with minimum 5 picks</p>
+      <div ref={gridRef} className="performer-grid performer-grid-5">
+        {bestByRoleEntries.map(({ role, champion }) => {
           const color = roleColor(role)
-          const isFocused = focusedName === c.name
           return (
-            <button
-              key={c.name}
-              type="button"
-              className={`performer-card${isFocused ? ' focused' : ''}`}
-              onClick={() => onFocus(c.name)}
-            >
+            <div key={role} className="performer-card performer-card-static">
               <div className="performer-card-role" style={{ color }}>
                 {roleLabel(role)}
               </div>
-              <div className="performer-card-name">{c.name}</div>
-              <div className="performer-card-stats">
-                <span className="text-accent">{c.winrate.toFixed(1)}% WR</span>
-                <span className="text-secondary"> · {c.avgKda.toFixed(2)} KDA</span>
-              </div>
-              <MiniSparkline data={c.sparkline ?? []} color={isFocused ? CHART.accent : color} />
-            </button>
+              {champion ? (
+                <>
+                  <div className="performer-card-name">{champion.name}</div>
+                  <div className="performer-card-stats">
+                    <span className="text-accent">{champion.winrate.toFixed(1)}% WR</span>
+                    <span className="text-secondary"> · {champion.avgKda.toFixed(2)} KDA</span>
+                  </div>
+                  <MiniSparkline data={champion.sparkline ?? []} color={color} />
+                </>
+              ) : (
+                <div className="text-dim text-sm">No qualifying data</div>
+              )}
+            </div>
           )
         })}
       </div>

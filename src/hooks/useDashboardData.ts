@@ -59,6 +59,13 @@ export interface Team {
   assists?: number
 }
 
+export interface ChampionWeekStat {
+  weekStart: string
+  picks: number
+  bans: number
+  presence: number
+}
+
 export interface Champion {
   name: string
   positions: string[]
@@ -75,6 +82,8 @@ export interface Champion {
   avgGoldPerMin?: number
   sparkline?: number[]
   primaryRole?: string
+  weeklyStats?: ChampionWeekStat[]
+  gameDates?: string[]
   wins?: number
   kills?: number
   deaths?: number
