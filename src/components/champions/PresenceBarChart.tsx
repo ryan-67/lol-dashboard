@@ -71,10 +71,10 @@ export default function PresenceBarChart({ champions }: PresenceBarChartProps) {
             <CartesianGrid stroke={CHART.grid} strokeDasharray="3 3" />
             <XAxis
               type="number"
-              domain={[0, 100]}
+              domain={[0, 200]}
               stroke={CHART.axis}
               tick={{ fill: CHART.tick, fontSize: CHART.fontSize, fontFamily: CHART.fontFamily }}
-              tickFormatter={(v) => `${Math.round(Number(v))}%`}
+              tickFormatter={(v) => `${Number(v).toFixed(1)}%`}
             />
             <YAxis
               type="category"

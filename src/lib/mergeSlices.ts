@@ -325,11 +325,11 @@ function emptyChampionAcc(name: string): ChampionMergeAcc {
 function mergeChampions(slices: DashboardSlice[]): Champion[] {
   const acc = new Map<string, ChampionMergeAcc>()
 
-  let totalTeamGames = 0
+  let totalGames = 0
   const mergedWeeklyTeamGames = new Map<string, number>()
 
   for (const slice of slices) {
-    totalTeamGames += (slice.teams ?? []).reduce((sum, t) => sum + (t.games ?? 0), 0) / 2
+    totalGames += (slice.teams ?? []).reduce((sum, t) => sum + (t.games ?? 0), 0) / 2
     for (const [week, count] of Object.entries(slice.weeklyTeamGames ?? {})) {
       mergedWeeklyTeamGames.set(week, (mergedWeeklyTeamGames.get(week) ?? 0) + count)
     }
@@ -365,23 +365,26 @@ function mergeChampions(slices: DashboardSlice[]): Champion[] {
     }
   }
 
-  const denom = Math.max(totalTeamGames / 12, 1)
+  const games = Math.max(totalGames, 1)
   return [...acc.values()]
     .map((c) => {
       const picks = Math.max(c.picks, 1)
       const deaths = Math.max(c.deaths, 1)
-      const total = c.picks + c.bans
       const positions = [...c.positions].sort()
+      const pickRate = Math.min(100, round((c.picks / games) * 100, 1))
+      const banRate = Math.min(100, round((c.bans / games) * 100, 1))
+      const presence = Math.min(200, round(pickRate + banRate, 1))
       const weeklyStats = [...c.weekly.entries()]
         .sort(([a], [b]) => a.localeCompare(b))
         .map(([weekStart, stats]) => {
-          const weekDenom = Math.max((mergedWeeklyTeamGames.get(weekStart) ?? 0) / 12, 1)
-          const weekTotal = stats.picks + stats.bans
+          const weekGames = Math.max((mergedWeeklyTeamGames.get(weekStart) ?? 0) / 2, 1)
+          const weekPick = Math.min(100, round((stats.picks / weekGames) * 100, 1))
+          const weekBan = Math.min(100, round((stats.bans / weekGames) * 100, 1))
           return {
             weekStart,
             picks: stats.picks,
             bans: stats.bans,
-            presence: round(weekTotal / weekDenom * 100, 1),
+            presence: Math.min(200, round(weekPick + weekBan, 1)),
           }
         })
       return {
@@ -389,9 +392,9 @@ function mergeChampions(slices: DashboardSlice[]): Champion[] {
         positions,
         picks: c.picks,
         bans: c.bans,
-        presence: round(total / denom * 100, 1),
-        pickRate: round(c.picks / denom * 100, 1),
-        banRate: round(c.bans / denom * 100, 1),
+        presence,
+        pickRate,
+        banRate,
         winrate: round(c.wins / picks * 100, 1),
         wins: c.wins,
         avgKda: round((c.kills + c.assists) / deaths, 2),

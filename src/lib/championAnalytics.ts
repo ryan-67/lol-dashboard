@@ -49,12 +49,25 @@ export function filterByRole(champions: Champion[], role: RoleFilter): Champion[
   return champions.filter((c) => championHasRole(c, role))
 }
 
-export function getPickRate(c: Champion): number {
-  return c.pickRate ?? 0
+export function getPickRate(c: Champion, totalGames?: number): number {
+  if (totalGames && totalGames > 0) {
+    return championPresenceRates(c, totalGames).pickRate
+  }
+  return Math.min(100, c.pickRate ?? 0)
 }
 
-export function getBanRate(c: Champion): number {
-  return c.banRate ?? 0
+export function getBanRate(c: Champion, totalGames?: number): number {
+  if (totalGames && totalGames > 0) {
+    return championPresenceRates(c, totalGames).banRate
+  }
+  return Math.min(100, c.banRate ?? 0)
+}
+
+export function getPresence(c: Champion, totalGames?: number): number {
+  if (totalGames && totalGames > 0) {
+    return championPresenceRates(c, totalGames).presence
+  }
+  return Math.min(200, c.presence ?? 0)
 }
 
 export function topByPresence(champions: Champion[], limit = 20): Champion[] {
@@ -83,28 +96,29 @@ export function scatterBanRate(champion: Champion, totalGames: number): number {
   return Math.min(100, round((champion.bans / totalGames) * 100, 1))
 }
 
-/** Presence for scatter: (picks + bans) / total games, capped at 100%. */
+/** Presence = pickRate + banRate, capped at 200%. */
 export function scatterPresence(champion: Champion, totalGames: number): number {
-  return Math.min(100, round(((champion.picks + champion.bans) / totalGames) * 100, 1))
+  return championPresenceRates(champion, totalGames).presence
 }
 
-/** Stacked bar rates: pick + ban capped to 100% total for chart axis. */
+/** Canonical pick/ban/presence from raw counts and cohort game count. */
+export function championPresenceRates(
+  champion: Champion,
+  totalGames: number,
+): { pickRate: number; banRate: number; presence: number } {
+  const games = Math.max(totalGames, 1)
+  const pickRate = Math.min(100, round((champion.picks / games) * 100, 1))
+  const banRate = Math.min(100, round((champion.bans / games) * 100, 1))
+  const presence = Math.min(200, round(pickRate + banRate, 1))
+  return { pickRate, banRate, presence }
+}
+
+/** Stacked bar rates (same as championPresenceRates). */
 export function presenceBarRates(
   champion: Champion,
   totalGames: number,
 ): { pickRate: number; banRate: number; presence: number } {
-  let pickRate = scatterPickRate(champion, totalGames)
-  let banRate = scatterBanRate(champion, totalGames)
-  const sum = pickRate + banRate
-  if (sum > 100) {
-    pickRate = round((pickRate / sum) * 100, 1)
-    banRate = round((banRate / sum) * 100, 1)
-  }
-  return {
-    pickRate,
-    banRate,
-    presence: round(pickRate + banRate, 1),
-  }
+  return championPresenceRates(champion, totalGames)
 }
 
 /** Win rate for scatter: wins / games. */

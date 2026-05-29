@@ -400,13 +400,16 @@ def compile_teams(teams_dict):
 
 def compile_champions(champs_dict, team_games: int, weekly_team_games: dict):
     out = []
-    denom = max(team_games / 12, 1)
+    # team_games counts team-rows (2 per match)
+    denom = max(team_games / 2, 1)
     for name, c in champs_dict.items():
         picks = c["picks"]
         if picks < MIN_CHAMP_PICKS:
             continue
         deaths = max(c["deaths"], 1)
-        total = picks + c["bans"]
+        pick_rate = min(100.0, round(picks / denom * 100, 1))
+        ban_rate = min(100.0, round(c["bans"] / denom * 100, 1))
+        presence = min(200.0, round(pick_rate + ban_rate, 1))
         out.append(
             {
                 "name": name,
@@ -417,9 +420,9 @@ def compile_champions(champs_dict, team_games: int, weekly_team_games: dict):
                 "kills": c["kills"],
                 "deaths": c["deaths"],
                 "assists": c["assists"],
-                "presence": round(total / denom * 100, 1),
-                "pickRate": round(picks / denom * 100, 1),
-                "banRate": round(c["bans"] / denom * 100, 1),
+                "presence": presence,
+                "pickRate": pick_rate,
+                "banRate": ban_rate,
                 "winrate": round(c["wins"] / picks * 100, 1) if picks else 0,
                 "avgKda": round((c["kills"] + c["assists"]) / deaths, 2),
                 "games": picks,
@@ -435,11 +438,13 @@ def compile_champions(champs_dict, team_games: int, weekly_team_games: dict):
                         "weekStart": wk,
                         "picks": c["weekly"][wk]["picks"],
                         "bans": c["weekly"][wk]["bans"],
-                        "presence": round(
-                            (c["weekly"][wk]["picks"] + c["weekly"][wk]["bans"])
-                            / max(weekly_team_games.get(wk, 0) / 12, 1)
-                            * 100,
-                            1,
+                        "presence": min(
+                            200.0,
+                            round(
+                                min(100.0, c["weekly"][wk]["picks"] / max(weekly_team_games.get(wk, 0) / 2, 1) * 100)
+                                + min(100.0, c["weekly"][wk]["bans"] / max(weekly_team_games.get(wk, 0) / 2, 1) * 100),
+                                1,
+                            ),
                         ),
                     }
                     for wk in sorted(c["weekly"].keys())
