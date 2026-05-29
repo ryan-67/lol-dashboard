@@ -72,20 +72,22 @@ export default function PlayerDropdown({ players, selectedKeys, onChange }: Play
               Reset
             </button>
           </div>
-          <ul className="player-dropdown-list">
-            {options.map((option) => (
-              <li key={option.key}>
-                <label className="player-dropdown-option">
-                  <input
-                    type="checkbox"
-                    checked={selectedKeys.includes(option.key)}
-                    onChange={() => toggle(option.key)}
-                  />
-                  <span>{option.label}</span>
-                </label>
-              </li>
-            ))}
-          </ul>
+          <div className="player-dropdown-scroll" data-lenis-prevent>
+            <ul className="player-dropdown-list">
+              {options.map((option) => (
+                <li key={option.key}>
+                  <label className="player-dropdown-option">
+                    <input
+                      type="checkbox"
+                      checked={selectedKeys.includes(option.key)}
+                      onChange={() => toggle(option.key)}
+                    />
+                    <span>{option.label}</span>
+                  </label>
+                </li>
+              ))}
+            </ul>
+          </div>
         </div>
       )}
     </div>

@@ -843,19 +843,31 @@ b,
   top: calc(100% + 4px);
   left: 0;
   z-index: 20;
+  display: flex;
+  flex-direction: column;
   width: min(420px, 100vw - 2 * var(--padding-x-mobile));
-  max-height: 320px;
-  overflow: auto;
+  max-height: 40vh;
+  overflow: hidden;
   padding: 12px;
 }
 
 .player-dropdown-actions {
   display: flex;
+  flex-shrink: 0;
   flex-wrap: wrap;
   gap: 8px;
   margin-bottom: 12px;
   padding-bottom: 12px;
   border-bottom: 1px solid var(--border-subtle);
+}
+
+.player-dropdown-scroll {
+  flex: 1;
+  min-height: 0;
+  max-height: min(300px, calc(40vh - 72px));
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
 }
 
 .player-dropdown-list {

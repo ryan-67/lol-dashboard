@@ -24,6 +24,7 @@
 
   .lenis.lenis-smooth [data-lenis-prevent] {
     overscroll-behavior: contain;
+    touch-action: pan-y;
   }
 
   .lenis.lenis-stopped {
