@@ -593,7 +593,8 @@ b,
 }
 
 .scatter-legend-item.is-hidden {
-  opacity: 0.35;
+  opacity: 0.3;
+  text-decoration: line-through;
 }
 
 .scatter-legend-swatch {

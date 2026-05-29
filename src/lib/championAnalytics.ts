@@ -73,14 +73,38 @@ export function totalGamesInCohort(teams: Team[]): number {
   return Math.max(teams.reduce((sum, t) => sum + (t.games ?? 0), 0) / 2, 1)
 }
 
-/** Pick rate for scatter: total picks / total games, capped at 100%. */
+/** Pick rate: picks / total games, capped at 100%. */
 export function scatterPickRate(champion: Champion, totalGames: number): number {
   return Math.min(100, round((champion.picks / totalGames) * 100, 1))
+}
+
+/** Ban rate: bans / total games, capped at 100%. */
+export function scatterBanRate(champion: Champion, totalGames: number): number {
+  return Math.min(100, round((champion.bans / totalGames) * 100, 1))
 }
 
 /** Presence for scatter: (picks + bans) / total games, capped at 100%. */
 export function scatterPresence(champion: Champion, totalGames: number): number {
   return Math.min(100, round(((champion.picks + champion.bans) / totalGames) * 100, 1))
+}
+
+/** Stacked bar rates: pick + ban capped to 100% total for chart axis. */
+export function presenceBarRates(
+  champion: Champion,
+  totalGames: number,
+): { pickRate: number; banRate: number; presence: number } {
+  let pickRate = scatterPickRate(champion, totalGames)
+  let banRate = scatterBanRate(champion, totalGames)
+  const sum = pickRate + banRate
+  if (sum > 100) {
+    pickRate = round((pickRate / sum) * 100, 1)
+    banRate = round((banRate / sum) * 100, 1)
+  }
+  return {
+    pickRate,
+    banRate,
+    presence: round(pickRate + banRate, 1),
+  }
 }
 
 /** Win rate for scatter: wins / games. */
@@ -134,15 +158,21 @@ export interface PresenceBarRow {
   bans: number
 }
 
-export function buildPresenceBarData(champions: Champion[]): PresenceBarRow[] {
-  return topByPresence(champions, 20).map((c) => ({
-    name: c.name,
-    pickRate: getPickRate(c),
-    banRate: getBanRate(c),
-    presence: c.presence,
-    picks: c.picks,
-    bans: c.bans,
-  }))
+export function buildPresenceBarData(champions: Champion[], totalGames: number): PresenceBarRow[] {
+  return [...champions]
+    .map((c) => {
+      const rates = presenceBarRates(c, totalGames)
+      return {
+        name: c.name,
+        pickRate: rates.pickRate,
+        banRate: rates.banRate,
+        presence: rates.presence,
+        picks: c.picks,
+        bans: c.bans,
+      }
+    })
+    .sort((a, b) => b.presence - a.presence)
+    .slice(0, 20)
 }
 
 function collectWeeks(champions: Champion[]): string[] {

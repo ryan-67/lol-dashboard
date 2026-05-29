@@ -1,4 +1,4 @@
-import { useRef } from 'react'
+import { useMemo, useRef } from 'react'
 import { useGSAP } from '@gsap/react'
 import {
   BarChart,
@@ -10,8 +10,9 @@ import {
   ResponsiveContainer,
   Legend,
 } from 'recharts'
-import { buildPresenceBarData } from '../../lib/championAnalytics'
+import { buildPresenceBarData, totalGamesInCohort } from '../../lib/championAnalytics'
 import type { Champion } from '../../hooks/useDashboardData'
+import { useDashboard } from '../../context/DashboardContext'
 import { makeChartTooltipContent } from '../ui/ChartTooltip'
 import { scrollEntrance } from '../../theme/animations'
 import { CHART } from '../../theme/chartTheme'
@@ -34,8 +35,8 @@ const presenceBarTooltip = makeChartTooltipContent(
       { label: 'Pick %', value: `${(row.pickRate ?? 0).toFixed(1)}%` },
       { label: 'Ban %', value: `${(row.banRate ?? 0).toFixed(1)}%` },
       { label: 'Presence', value: `${(row.presence ?? 0).toFixed(1)}%` },
-      { label: 'Picks', value: String(row.picks ?? 0) },
-      { label: 'Bans', value: String(row.bans ?? 0) },
+      { label: 'Picks', value: String(Math.round(row.picks ?? 0)) },
+      { label: 'Bans', value: String(Math.round(row.bans ?? 0)) },
     ]
   },
 )
@@ -46,13 +47,18 @@ interface PresenceBarChartProps {
 
 export default function PresenceBarChart({ champions }: PresenceBarChartProps) {
   const sectionRef = useRef<HTMLDivElement>(null)
-  const data = buildPresenceBarData(champions)
+  const { filteredTeams } = useDashboard()
+  const totalGames = useMemo(() => totalGamesInCohort(filteredTeams), [filteredTeams])
+  const data = useMemo(
+    () => buildPresenceBarData(champions, totalGames),
+    [champions, totalGames],
+  )
 
   useGSAP(
     () => {
       scrollEntrance(sectionRef.current)
     },
-    { scope: sectionRef, dependencies: [champions.length] },
+    { scope: sectionRef, dependencies: [champions.length, totalGames] },
   )
 
   return (
@@ -65,10 +71,10 @@ export default function PresenceBarChart({ champions }: PresenceBarChartProps) {
             <CartesianGrid stroke={CHART.grid} strokeDasharray="3 3" />
             <XAxis
               type="number"
-              domain={[0, 'dataMax']}
+              domain={[0, 100]}
               stroke={CHART.axis}
               tick={{ fill: CHART.tick, fontSize: CHART.fontSize, fontFamily: CHART.fontFamily }}
-              tickFormatter={(v) => `${v}%`}
+              tickFormatter={(v) => `${Math.round(Number(v))}%`}
             />
             <YAxis
               type="category"

@@ -16,16 +16,33 @@ import {
   LabelList,
 } from 'recharts'
 import { makeChartTooltipContent } from '../components/ui/ChartTooltip'
+import RoleToggleLegend from '../components/ui/RoleToggleLegend'
 import { scrollEntranceStagger } from '../theme/animations'
 import {
+  ROLES,
+  championHasRole,
+  roleColor,
+  roleLabel,
   scatterPresence,
   scatterWinRate,
   totalGamesInCohort,
 } from '../lib/championAnalytics'
-import { CHART, roleColor } from '../theme/chartTheme'
+import { CHART, roleColor as playerRoleColor } from '../theme/chartTheme'
 import AnimatedCounter from '../components/ui/AnimatedCounter'
 
 const ROLE_POSITIONS = ['top', 'jungle', 'mid', 'adc', 'support'] as const
+
+const PLAYER_ROLE_LEGEND = ROLE_POSITIONS.map((position) => ({
+  key: position,
+  label: position.toUpperCase(),
+  color: playerRoleColor(position),
+}))
+
+const CHAMPION_ROLE_LEGEND = ROLES.map((role) => ({
+  key: role,
+  label: roleLabel(role),
+  color: roleColor(role),
+}))
 
 const AXIS_LABEL_STYLE = {
   fill: CHART.tick,
@@ -87,6 +104,7 @@ export default function Overview() {
   const { filteredTeams, filteredPlayers, filteredChampions, loading, league, split } =
     useDashboard()
   const [hiddenRoles, setHiddenRoles] = useState<Set<string>>(() => new Set())
+  const [hiddenChampionRoles, setHiddenChampionRoles] = useState<Set<string>>(() => new Set())
 
   const chartsGridRef = useRef<HTMLDivElement>(null)
   const snapshotGridRef = useRef<HTMLDivElement>(null)
@@ -98,7 +116,7 @@ export default function Overview() {
       scrollEntranceStagger(snapshotGridRef.current, '.card')
       scrollEntranceStagger(tableRef.current, '.card')
     },
-    { dependencies: [loading, league, split, hiddenRoles.size] },
+    { dependencies: [loading, league, split, hiddenRoles.size, hiddenChampionRoles.size] },
   )
 
   const totalGames = useMemo(() => totalGamesInCohort(filteredTeams), [filteredTeams])
@@ -119,7 +137,7 @@ export default function Overview() {
     () =>
       ROLE_POSITIONS.map((position) => ({
         position,
-        color: roleColor(position),
+        color: playerRoleColor(position),
         data: filteredPlayers
           .filter((p) => (p.position?.toLowerCase() ?? '') === position)
           .map((p) => ({
@@ -160,36 +178,51 @@ export default function Overview() {
     [visibleGroups, labelPlayerNames],
   )
 
-  const championScatterData = useMemo(
+  const championsByRole = useMemo(
     () =>
-      filteredChampions.map((c) => ({
-        ...c,
-        x: scatterPresence(c, totalGames),
-        y: scatterWinRate(c),
-        z: c.picks,
-        label: '',
+      ROLES.map((role) => ({
+        role,
+        color: roleColor(role),
+        data: filteredChampions
+          .filter((c) => championHasRole(c, role))
+          .map((c) => ({
+            ...c,
+            x: scatterPresence(c, totalGames),
+            y: scatterWinRate(c),
+            z: c.picks,
+            label: '',
+          })),
       })),
     [filteredChampions, totalGames],
+  )
+
+  const visibleChampionGroups = useMemo(
+    () => championsByRole.filter((g) => !hiddenChampionRoles.has(g.role)),
+    [championsByRole, hiddenChampionRoles],
   )
 
   const top10ChampionLabels = useMemo(
     () =>
       new Set(
-        [...championScatterData]
-          .sort((a, b) => b.x - a.x)
+        [...filteredChampions]
+          .map((c) => ({ name: c.name, presence: scatterPresence(c, totalGames) }))
+          .sort((a, b) => b.presence - a.presence)
           .slice(0, 10)
           .map((c) => c.name),
       ),
-    [championScatterData],
+    [filteredChampions, totalGames],
   )
 
-  const championChartData = useMemo(
+  const championChartGroups = useMemo(
     () =>
-      championScatterData.map((c) => ({
-        ...c,
-        label: top10ChampionLabels.has(c.name) ? c.name : '',
+      visibleChampionGroups.map((group) => ({
+        ...group,
+        data: group.data.map((c) => ({
+          ...c,
+          label: top10ChampionLabels.has(c.name) ? c.name : '',
+        })),
       })),
-    [championScatterData, top10ChampionLabels],
+    [visibleChampionGroups, top10ChampionLabels],
   )
 
   const hottestPlayers = useMemo(
@@ -197,16 +230,27 @@ export default function Overview() {
     [filteredPlayers],
   )
 
-  const topChampionByPresence = useMemo(
-    () => [...championScatterData].sort((a, b) => b.x - a.x)[0],
-    [championScatterData],
-  )
+  const topChampionByPresence = useMemo(() => {
+    const ranked = [...filteredChampions]
+      .map((c) => ({ ...c, presence: scatterPresence(c, totalGames) }))
+      .sort((a, b) => b.presence - a.presence)
+    return ranked[0]
+  }, [filteredChampions, totalGames])
 
-  const toggleRole = (position: string) => {
+  const togglePlayerRole = (position: string) => {
     setHiddenRoles((prev) => {
       const next = new Set(prev)
       if (next.has(position)) next.delete(position)
       else next.add(position)
+      return next
+    })
+  }
+
+  const toggleChampionRole = (role: string) => {
+    setHiddenChampionRoles((prev) => {
+      const next = new Set(prev)
+      if (next.has(role)) next.delete(role)
+      else next.add(role)
       return next
     })
   }
@@ -303,32 +347,22 @@ export default function Overview() {
               </ScatterChart>
             </ResponsiveContainer>
           </div>
-          <div className="scatter-legend">
-            {playersByPosition.map((group) => {
-              const isHidden = hiddenRoles.has(group.position)
-              return (
-                <button
-                  key={group.position}
-                  type="button"
-                  className={`scatter-legend-item${isHidden ? ' is-hidden' : ''}`}
-                  onClick={() => toggleRole(group.position)}
-                >
-                  <span className="scatter-legend-swatch" style={{ background: group.color }} />
-                  {group.position}
-                </button>
-              )
-            })}
-            <button type="button" className="btn scatter-legend-reset" onClick={() => setHiddenRoles(new Set())}>
-              Show All
-            </button>
-          </div>
+          <RoleToggleLegend
+            items={PLAYER_ROLE_LEGEND}
+            hiddenKeys={hiddenRoles}
+            onToggle={togglePlayerRole}
+            onReset={() => setHiddenRoles(new Set())}
+            resetLabel="Show All"
+          />
         </div>
       </div>
 
       <div ref={snapshotGridRef} className="overview-section overview-grid overview-grid-2">
         <div className="card">
           <h2 className="card-title">Champion Presence vs Winrate</h2>
-          <p className="card-subtitle">Bubble size = picks. Labels show top 10 by presence.</p>
+          <p className="card-subtitle">
+            Bubble size = picks. Labels show top 10 by presence. Click legend to filter roles.
+          </p>
           <div className="h-80">
             <ResponsiveContainer width="100%" height="100%">
               <ScatterChart margin={{ top: 8, right: 24, left: 8, bottom: 24 }}>
@@ -368,18 +402,32 @@ export default function Overview() {
                   content={championScatterTooltip}
                   cursor={{ strokeDasharray: '3 3', stroke: CHART.grid }}
                 />
-                <Scatter name="Champions" data={championChartData} fill={CHART.accent} fillOpacity={1}>
-                  <LabelList
-                    dataKey="label"
-                    position="top"
-                    fill={CHART.tooltip.color}
-                    fontSize={10}
-                    fontFamily={CHART.fontFamily}
-                  />
-                </Scatter>
+                {championChartGroups.map((group) => (
+                  <Scatter
+                    key={group.role}
+                    name={group.role}
+                    data={group.data}
+                    fill={group.color}
+                    fillOpacity={1}
+                  >
+                    <LabelList
+                      dataKey="label"
+                      position="top"
+                      fill={CHART.tooltip.color}
+                      fontSize={10}
+                      fontFamily={CHART.fontFamily}
+                    />
+                  </Scatter>
+                ))}
               </ScatterChart>
             </ResponsiveContainer>
           </div>
+          <RoleToggleLegend
+            items={CHAMPION_ROLE_LEGEND}
+            hiddenKeys={hiddenChampionRoles}
+            onToggle={toggleChampionRole}
+            onReset={() => setHiddenChampionRoles(new Set())}
+          />
         </div>
 
         <div className="card">
@@ -424,7 +472,7 @@ export default function Overview() {
               <div className="stat-meta">
                 {topChampionByPresence ? (
                   <AnimatedCounter
-                    value={topChampionByPresence.x}
+                    value={topChampionByPresence.presence}
                     suffix="% presence"
                     className="text-accent"
                   />
