@@ -587,3 +587,26 @@ b,
 .players-table-toggle {
   margin-bottom: var(--component-gap);
 }
+
+/* Teams tab */
+.team-filter-bar {
+  margin-bottom: var(--component-gap);
+  padding-bottom: var(--component-gap);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.team-compare-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 12px;
+  margin-top: var(--component-gap);
+}
+
+.team-multi-select-wrap {
+  min-width: 280px;
+}
+
+.team-multi-select {
+  min-height: 88px;
+}

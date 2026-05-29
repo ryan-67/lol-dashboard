@@ -255,6 +255,10 @@ def team_bucket():
         "barons": 0,
         "heralds": 0,
         "gd15": [],
+        "gamelength": [],
+        "totalgold": [],
+        "wardsplaced": [],
+        "firstbloodgames": [],
         "league": "",
     }
 
@@ -342,6 +346,33 @@ def compile_teams(teams_dict):
                 "dragons": t["dragons"],
                 "barons": t["barons"],
                 "heralds": t["heralds"],
+                "dragonsPerGame": round(t["dragons"] / games, 2),
+                "baronsPerGame": round(t["barons"] / games, 2),
+                "towersPerGame": round(t["towers"] / games, 2),
+                "heraldsPerGame": round(t["heralds"] / games, 2),
+                "objPerGame": round((t["dragons"] + t["barons"] + t["heralds"]) / games, 2),
+                "avgGameLength": round(sum(t["gamelength"]) / len(t["gamelength"]), 0)
+                if t["gamelength"]
+                else 0,
+                "goldPerMin": round(
+                    sum(
+                        (tg / gl) * 60
+                        for tg, gl in zip(t["totalgold"], t["gamelength"])
+                        if gl > 0
+                    )
+                    / max(len([gl for gl in t["gamelength"] if gl > 0]), 1),
+                    1,
+                ),
+                "wardsPerMin": round(
+                    sum(
+                        (w / gl) * 60
+                        for w, gl in zip(t["wardsplaced"], t["gamelength"])
+                        if gl > 0
+                    )
+                    / max(len([gl for gl in t["gamelength"] if gl > 0]), 1),
+                    2,
+                ),
+                "firstBloodRate": round(sum(t["firstbloodgames"]) / games * 100, 1) if games else 0,
             }
         )
     out.sort(key=lambda x: x["winrate"], reverse=True)
@@ -506,6 +537,12 @@ def process_row(row, buckets: dict, team_to_league: dict[str, str]):
         t["deaths"] += safe_int(row.get("deaths", 0))
         t["assists"] += safe_int(row.get("assists", 0))
         t["gd15"].append(safe_float(row.get("golddiffat15", 0)))
+        gl = safe_float(row.get("gamelength", 0))
+        if gl > 0:
+            t["gamelength"].append(gl)
+            t["totalgold"].append(safe_float(row.get("totalgold", 0)))
+            t["wardsplaced"].append(safe_float(row.get("wardsplaced", 0)))
+        t["firstbloodgames"].append(1 if safe_int(row.get("firstblood", 0)) else 0)
         if game_id:
             bucket["game_teams"][game_id].append(
                 {"team": team_name, "result": result, "league": bucket_league}

@@ -45,6 +45,15 @@ export interface Team {
   dragons: number
   barons: number
   heralds: number
+  dragonsPerGame?: number
+  baronsPerGame?: number
+  towersPerGame?: number
+  heraldsPerGame?: number
+  objPerGame?: number
+  avgGameLength?: number
+  goldPerMin?: number
+  wardsPerMin?: number
+  firstBloodRate?: number
   kills?: number
   deaths?: number
   assists?: number

@@ -192,6 +192,10 @@ function mergeTeams(slices: DashboardSlice[]): Team[] {
       barons: number
       heralds: number
       gd15: Array<{ value: number; weight: number }>
+      goldPerMin: Array<{ value: number; weight: number }>
+      wardsPerMin: Array<{ value: number; weight: number }>
+      avgGameLength: Array<{ value: number; weight: number }>
+      firstBloodRate: Array<{ value: number; weight: number }>
     }
   >()
 
@@ -214,6 +218,10 @@ function mergeTeams(slices: DashboardSlice[]): Team[] {
         barons: 0,
         heralds: 0,
         gd15: [],
+        goldPerMin: [],
+        wardsPerMin: [],
+        avgGameLength: [],
+        firstBloodRate: [],
       }
 
       existing.games += games
@@ -228,6 +236,18 @@ function mergeTeams(slices: DashboardSlice[]): Team[] {
       existing.heralds += t.heralds ?? 0
       if (games > 0 && typeof t.avgGd15 === 'number') {
         existing.gd15.push({ value: t.avgGd15, weight: games })
+      }
+      if (games > 0 && typeof t.goldPerMin === 'number') {
+        existing.goldPerMin.push({ value: t.goldPerMin, weight: games })
+      }
+      if (games > 0 && typeof t.wardsPerMin === 'number') {
+        existing.wardsPerMin.push({ value: t.wardsPerMin, weight: games })
+      }
+      if (games > 0 && typeof t.avgGameLength === 'number') {
+        existing.avgGameLength.push({ value: t.avgGameLength, weight: games })
+      }
+      if (games > 0 && typeof t.firstBloodRate === 'number') {
+        existing.firstBloodRate.push({ value: t.firstBloodRate, weight: games })
       }
       acc.set(key, existing)
     }
@@ -250,6 +270,15 @@ function mergeTeams(slices: DashboardSlice[]): Team[] {
         dragons: t.dragons,
         barons: t.barons,
         heralds: t.heralds,
+        dragonsPerGame: round(t.dragons / games, 2),
+        baronsPerGame: round(t.barons / games, 2),
+        towersPerGame: round(t.towers / games, 2),
+        heraldsPerGame: round(t.heralds / games, 2),
+        objPerGame: round((t.dragons + t.barons + t.heralds) / games, 2),
+        avgGameLength: round(avgWeighted(t.avgGameLength), 0),
+        goldPerMin: round(avgWeighted(t.goldPerMin), 1),
+        wardsPerMin: round(avgWeighted(t.wardsPerMin), 2),
+        firstBloodRate: round(avgWeighted(t.firstBloodRate), 1),
       } satisfies Team
     })
     .filter((t) => t.games >= 3)
