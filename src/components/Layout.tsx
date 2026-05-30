@@ -24,9 +24,9 @@ export default function Layout({ children }: { children: React.ReactNode }) {
               className="w-8 h-8 flex items-center justify-center border border-accent"
               style={{ backgroundColor: 'var(--accent-bg)' }}
             >
-              <span className="text-accent font-bold text-sm">L</span>
+              <span className="text-accent font-bold text-sm">N</span>
             </div>
-            <h1 className="text-base font-medium text-primary tracking-tight">LoL Pro Dashboard</h1>
+            <h1 className="text-base font-medium text-primary tracking-tight">nucky</h1>
           </div>
           <nav className="flex flex-wrap gap-1">
             {nav.map((item) => (

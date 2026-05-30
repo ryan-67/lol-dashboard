@@ -1,6 +1,5 @@
-# LoL Pro Dashboard
+# nucky
 
-[![Deploy to GitHub Pages](https://github.com/ryan-67/lol-dashboard/actions/workflows/deploy.yml/badge.svg)](https://github.com/ryan-67/lol-dashboard/actions/workflows/deploy.yml)
 [![Refresh Dashboard Data](https://github.com/ryan-67/lol-dashboard/actions/workflows/refresh-data.yml/badge.svg)](https://github.com/ryan-67/lol-dashboard/actions/workflows/refresh-data.yml)
 ![React](https://img.shields.io/badge/React-18-61DAFB?logo=react&logoColor=white)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?logo=typescript&logoColor=white)
@@ -8,7 +7,7 @@
 
 **A static, design-forward analytics dashboard for tier-1 League of Legends esports — built on Oracle's Elixir data.**
 
-[Live site](https://ryan-67.github.io/lol-dashboard/) · [Report an issue](https://github.com/ryan-67/lol-dashboard/issues)
+[Live site](https://nucky.gg) · [Report an issue](https://github.com/ryan-67/lol-dashboard/issues)
 
 ---
 
@@ -22,7 +21,7 @@ It scratches the itch of "I want Rift data at a glance" — league standings, ch
 
 ## Overview
 
-LoL Pro Dashboard is a five-tab analytics experience scoped by **league** (LCK, LPL, LEC, LCS, or All Tier 1) and **split** (individual seasons and international events). Pick a context from the sticky header, then move across tabs to follow the story from macro (league snapshot) down to micro (lane-level matchup radars).
+**nucky** is a five-tab analytics experience scoped by **league** (LCK, LPL, LEC, LCS, or All Tier 1) and **split** (individual seasons and international events). Pick a context from the sticky header, then move across tabs to follow the story from macro (league snapshot) down to micro (lane-level matchup radars).
 
 Every chart, table, and radar is driven by a preprocessed JSON store (`public/data/oe_slices.json`) that is rebuilt from Oracle's Elixir CSVs at build time. There is no API server, no database, and no loading spinner waiting on a query — just fetch, filter, and render.
 
@@ -83,9 +82,9 @@ Every chart, table, and radar is driven by a preprocessed JSON store (`public/da
 | Motion | GSAP 3 + ScrollTrigger, `@gsap/react` |
 | Scroll | Lenis smooth scroll (integrated with ScrollTrigger scroller proxy) |
 | Data | Python 3 ingestion → static JSON |
-| Deploy | GitHub Pages (GitHub Actions) |
+| Deploy | Cloudflare Pages |
 
-The app follows a **static-site philosophy**: Oracle's Elixir CSVs are ingested once (locally or in CI) into a slice-indexed JSON store keyed by `{split}|{league}`. At runtime, `mergeSlices()` combines the relevant slices based on the user's league and split selection, and all analytics run client-side in pure TypeScript helpers. This keeps hosting free, latency low, and the deployment surface minimal — a `dist/` folder on GitHub Pages.
+The app follows a **static-site philosophy**: Oracle's Elixir CSVs are ingested once (locally or in CI) into a slice-indexed JSON store keyed by `{split}|{league}`. At runtime, `mergeSlices()` combines the relevant slices based on the user's league and split selection, and all analytics run client-side in pure TypeScript helpers. This keeps latency low and the deployment surface minimal — a `dist/` folder served from the root domain.
 
 ```
 Oracle's Elixir CSVs (lol/)
@@ -97,7 +96,7 @@ scripts/ingest_csv.py  ──►  public/data/oe_slices.json
    refresh-data.yml            npm run build
    (scheduled CI)                    │
                                      ▼
-                              dist/ → GitHub Pages
+                              dist/ → Cloudflare Pages
 ```
 
 ---
@@ -123,7 +122,7 @@ An earlier single-file processor that aggregates a single CSV into `public/dashb
 
 ### Automated refresh — `refresh-data.yml`
 
-A GitHub Actions workflow runs on a **daily schedule** (06:00 UTC) and on manual dispatch. It executes `python scripts/ingest_csv.py`, then commits and pushes `public/data/oe_slices.json` if the data changed. The next push to `main` triggers a redeploy.
+A GitHub Actions workflow runs on a **daily schedule** (06:00 UTC) and on manual dispatch. It executes `python scripts/ingest_csv.py`, then commits and pushes `public/data/oe_slices.json` if the data changed. Cloudflare Pages rebuilds automatically on each push to `main`.
 
 ---
 
@@ -168,13 +167,15 @@ All computation lives in `src/lib/` — no magic in JSX.
 
 ## Deployment
 
-Pushes to `main` trigger `.github/workflows/deploy.yml`:
+The site is hosted on **Cloudflare Pages** at [nucky.gg](https://nucky.gg). Every push to `main` triggers an automatic build and deploy.
 
-1. `npm ci`
-2. `npm run build` (runs `prebuild` ingest, TypeScript check, Vite production build)
-3. Upload `dist/` to GitHub Pages
+SPA routing is handled by `public/_redirects`:
 
-The site is served at **https://ryan-67.github.io/lol-dashboard/** with Vite `base` set to `/lol-dashboard/`.
+```
+/* /index.html 200
+```
+
+This ensures React Router routes (`/teams`, `/players`, etc.) resolve correctly on refresh and direct navigation.
 
 ---
 
@@ -195,7 +196,7 @@ npm install
 # Regenerate the data store from lol/*.csv
 npm run ingest
 
-# Start dev server (http://localhost:5173/lol-dashboard/)
+# Start dev server (http://localhost:5173/)
 npm run dev
 
 # Production build (ingest + tsc + vite build)
