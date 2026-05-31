@@ -4,12 +4,15 @@ import Lenis from 'lenis'
 import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import { DashboardProvider } from './context/DashboardContext'
+import { AuthProvider } from './context/AuthContext'
 import Layout from './components/Layout'
 import Overview from './pages/Overview'
 import Players from './pages/Players'
 import Teams from './pages/Teams'
 import Champions from './pages/Champions'
 import Matchups from './pages/Matchups'
+import AuthCallback from './pages/AuthCallback'
+import ResetPassword from './pages/ResetPassword'
 
 gsap.registerPlugin(ScrollTrigger)
 
@@ -60,19 +63,23 @@ function SmoothScroll({ children }: { children: React.ReactNode }) {
 
 function App() {
   return (
-    <DashboardProvider>
-      <SmoothScroll>
-        <Layout>
-          <Routes>
-            <Route path="/" element={<Overview />} />
-            <Route path="/players" element={<Players />} />
-            <Route path="/teams" element={<Teams />} />
-            <Route path="/champions" element={<Champions />} />
-            <Route path="/matchups" element={<Matchups />} />
-          </Routes>
-        </Layout>
-      </SmoothScroll>
-    </DashboardProvider>
+    <AuthProvider>
+      <DashboardProvider>
+        <SmoothScroll>
+          <Layout>
+            <Routes>
+              <Route path="/" element={<Overview />} />
+              <Route path="/players" element={<Players />} />
+              <Route path="/teams" element={<Teams />} />
+              <Route path="/champions" element={<Champions />} />
+              <Route path="/matchups" element={<Matchups />} />
+              <Route path="/auth/callback" element={<AuthCallback />} />
+              <Route path="/auth/reset-password" element={<ResetPassword />} />
+            </Routes>
+          </Layout>
+        </SmoothScroll>
+      </DashboardProvider>
+    </AuthProvider>
   )
 }
 

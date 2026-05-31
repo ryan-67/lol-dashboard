@@ -1,6 +1,9 @@
+import { useState } from 'react'
 import TopBar from './TopBar'
 import AnimatedOutlet from './AnimatedOutlet'
+import AuthModal from './AuthModal'
 import { useDashboard } from '../context/DashboardContext'
+import { useAuth } from '../context/AuthContext'
 import { NavLink, useLocation } from 'react-router-dom'
 
 const nav = [
@@ -13,6 +16,8 @@ const nav = [
 
 export default function Layout({ children }: { children: React.ReactNode }) {
   const { loading, error } = useDashboard()
+  const { user, loading: authLoading, signOut } = useAuth()
+  const [showAuth, setShowAuth] = useState(false)
   const location = useLocation()
 
   return (
@@ -28,17 +33,35 @@ export default function Layout({ children }: { children: React.ReactNode }) {
             </div>
             <h1 className="text-base font-medium text-primary tracking-tight">nucky</h1>
           </div>
-          <nav className="flex flex-wrap gap-1">
-            {nav.map((item) => (
-              <NavLink
-                key={item.to}
-                to={item.to + location.search}
-                className={({ isActive }) => `nav-tab${isActive ? ' active' : ''}`}
-              >
-                {item.label}
-              </NavLink>
-            ))}
-          </nav>
+          <div className="flex flex-wrap items-center gap-3">
+            <nav className="flex flex-wrap gap-1">
+              {nav.map((item) => (
+                <NavLink
+                  key={item.to}
+                  to={item.to + location.search}
+                  className={({ isActive }) => `nav-tab${isActive ? ' active' : ''}`}
+                >
+                  {item.label}
+                </NavLink>
+              ))}
+            </nav>
+            {!authLoading && (
+              <div className="flex items-center gap-2">
+                {user ? (
+                  <>
+                    <span className="text-secondary text-xs">{user.email}</span>
+                    <button type="button" className="btn" onClick={() => signOut()}>
+                      logout
+                    </button>
+                  </>
+                ) : (
+                  <button type="button" className="btn" onClick={() => setShowAuth(true)}>
+                    login
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
         </div>
         <TopBar />
       </header>
@@ -71,6 +94,8 @@ export default function Layout({ children }: { children: React.ReactNode }) {
           Data from Oracle&apos;s Elixir. Dashboard auto-refreshes daily.
         </div>
       </footer>
+
+      <AuthModal open={showAuth} onClose={() => setShowAuth(false)} />
     </div>
   )
 }
