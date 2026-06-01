@@ -6,9 +6,7 @@ Usage:
     python scripts/ingest_csv.py
 
 Reads:
-    lol/2024_oracle_elixir.csv
-    lol/2025_oracle_elixir.csv
-    lol/2026_oracle_elixir.csv
+    lol/*_oracle_elixir.csv
 
 Writes:
     public/data/oe_slices.json
@@ -27,11 +25,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 LOL_DIR = ROOT / "lol"
 OUT_PATH = ROOT / "public" / "data" / "oe_slices.json"
-CSV_FILES = [
-    LOL_DIR / "2024_oracle_elixir.csv",
-    LOL_DIR / "2025_oracle_elixir.csv",
-    LOL_DIR / "2026_oracle_elixir.csv",
-]
+CSV_FILES = sorted(LOL_DIR.glob("*_oracle_elixir.csv"))
 
 TARGET_LEAGUES = {"LCK", "LPL", "LEC", "LCS"}
 INTERNATIONAL_LEAGUES = {"MSI", "WLDs", "FST"}
@@ -170,6 +164,7 @@ def normalize_split(
     year: str,
     raw_split: str,
     playoffs: str,
+    date_raw: str = "",
 ) -> tuple[str, bool]:
     """
     Map a raw Oracle Elixir split value to a canonical season label.
@@ -208,6 +203,14 @@ def normalize_split(
     if label:
         return label, True
 
+    if not (combined or split_text):
+        text = str(date_raw).strip()[:10]
+        try:
+            month = datetime.strptime(text, "%Y-%m-%d").month
+            return ("Spring" if month <= 6 else "Summer"), False
+        except ValueError:
+            pass
+
     fallback = combined or split_text or "Unknown"
     warning_key = f"{league}|{year}|{raw_split}|playoffs={playoffs}"
     if warning_key not in UNMAPPED_WARNINGS:
@@ -220,8 +223,8 @@ def normalize_split(
     return fallback, False
 
 
-def canonical_split_key(league: str, year: str, raw_split: str, playoffs: str) -> str:
-    label, _ = normalize_split(league, year, raw_split, playoffs)
+def canonical_split_key(league: str, year: str, raw_split: str, playoffs: str, date_raw: str = "") -> str:
+    label, _ = normalize_split(league, year, raw_split, playoffs, date_raw)
     return f"{year} {label}"
 
 
@@ -553,8 +556,9 @@ def resolve_bucket_key(
     if league not in ALLOWED_LEAGUES:
         return None
 
-    sk = canonical_split_key(league, year, raw_split, playoffs)
-    _, is_international = normalize_split(league, year, raw_split, playoffs)
+    date_raw = row.get("date", "")
+    sk = canonical_split_key(league, year, raw_split, playoffs, date_raw)
+    _, is_international = normalize_split(league, year, raw_split, playoffs, date_raw)
 
     if league in TARGET_LEAGUES:
         return sk, league

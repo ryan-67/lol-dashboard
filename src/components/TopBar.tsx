@@ -2,8 +2,10 @@ import { useDashboard } from '../context/DashboardContext'
 import Select from './ui/Select'
 
 export default function TopBar() {
-  const { league, setLeague, split, setSplit, refresh, loading, lastUpdated, leagues, splits } =
+  const { league, setLeague, year, setYear, split, setSplit, refresh, loading, lastUpdated, leagues, years, splits } =
     useDashboard()
+
+  const splitLabel = (value: string) => value.replace(/^\d{4}\s+/, '')
 
   return (
     <div
@@ -23,11 +25,21 @@ export default function TopBar() {
             </Select>
           </div>
           <div className="flex items-center gap-2">
+            <span className="label-field">Year</span>
+            <Select label="Year" value={year} onChange={(e) => setYear(e.target.value)}>
+              {years.map((y) => (
+                <option key={y} value={y}>
+                  {y}
+                </option>
+              ))}
+            </Select>
+          </div>
+          <div className="flex items-center gap-2">
             <span className="label-field">Split</span>
             <Select label="Split" value={split} onChange={(e) => setSplit(e.target.value)}>
               {splits.map((s) => (
                 <option key={s} value={s}>
-                  {s}
+                  {splitLabel(s)}
                 </option>
               ))}
             </Select>
