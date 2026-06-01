@@ -1,36 +1,79 @@
+# Refresh Oracle's Elixir data: Drive → ingest → Supabase → commit JSON backup.
+#
+# Schedule: Sunday 22:00 UTC — after typical LCK weekend games and OE weekly CSV drops
+# (Monday/Tuesday). Use workflow_dispatch for manual runs.
+#
+# Secrets: SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, GOOGLE_SERVICE_ACCOUNT_KEY
+# Optional: OE_DRIVE_FOLDER_ID (defaults to community OE CSV Drive folder)
+
 name: Refresh Dashboard Data
 
 on:
   workflow_dispatch:
   schedule:
-    - cron: '0 6 * * *'
+    - cron: '0 22 * * 0'
 
 permissions:
   contents: write
 
+concurrency:
+  group: refresh-dashboard-data
+  cancel-in-progress: false
+
 jobs:
   refresh:
     runs-on: ubuntu-latest
+    timeout-minutes: 120
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Free disk space
+        uses: jlumbroso/free-disk-space@v1.3.1
+        with:
+          tool-cache: false
+          android: true
+          dotnet: true
+          haskell: true
+          large-packages: true
+          docker-images: true
+          swap-storage: true
 
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
+          cache: pip
+          cache-dependency-path: scripts/requirements-ingest.txt
 
-      - name: Ingest Oracle Elixir CSVs
+      - name: Install Python dependencies
+        run: pip install -r scripts/requirements-ingest.txt
+
+      - name: Download Oracle's Elixir CSVs from Google Drive
+        env:
+          GOOGLE_SERVICE_ACCOUNT_KEY: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_KEY }}
+          OE_DRIVE_FOLDER_ID: ${{ secrets.OE_DRIVE_FOLDER_ID }}
+        run: python scripts/download_oe_csv.py
+
+      - name: Ingest CSVs into slice JSON shards
         run: python scripts/ingest_csv.py
 
-      - name: Commit and push
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add public/data/oe_slices*.json
-          if git diff --cached --quiet; then
-            echo "No changes"
-          else
-            git commit -m "chore: refresh oe_slices data store $(date -u +%Y-%m-%d)"
-            git push
-          fi
+      - name: Seed Supabase oe_slices
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: python scripts/seed_supabase.py
+
+      - name: Verify Supabase seed health
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: python scripts/verify_supabase_seed.py
+
+      - name: Commit and push JSON backup
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: 'chore(data): refresh oe_slices from Oracle Elixir (${{ github.run_number }})'
+          file_pattern: public/data/oe_slices*.json
+          branch: ${{ github.ref_name }}

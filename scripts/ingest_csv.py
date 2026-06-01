@@ -9,8 +9,8 @@ Reads:
     lol/*_oracle_elixir.csv
 
 Writes:
-    public/data/oe_slices.json (manifest)
-    public/data/oe_slices_YYYY.json (year shards)
+    public/data/oe_slices.json (manifest with year_files; not read by the frontend)
+    public/data/oe_slices_YYYY.json (year shards — source for scripts/seed_supabase.py)
 """
 
 from __future__ import annotations

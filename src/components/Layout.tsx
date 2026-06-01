@@ -73,8 +73,9 @@ export default function Layout({ children }: { children: React.ReactNode }) {
               <p className="error-title">Failed to load data</p>
               <p className="error-detail">{error}</p>
               <p className="error-detail mt-2">
-                Ensure Oracle&apos;s Elixir CSV files exist in <code>lol/</code> and run{' '}
-                <code>npm run ingest</code>.
+                Check <code>VITE_SUPABASE_URL</code> / <code>VITE_SUPABASE_ANON_KEY</code> in{' '}
+                <code>.env</code>, confirm RLS allows read on <code>oe_slices</code>, and run{' '}
+                <code>python scripts/seed_supabase.py</code> if the table is empty.
               </p>
             </div>
           )}

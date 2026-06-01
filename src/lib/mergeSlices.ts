@@ -35,6 +35,24 @@ export interface OEStore {
 
 export const TIER1_LEAGUES = ['LCK', 'LPL', 'LEC', 'LCS'] as const
 
+const SEASON_ORDER: Record<string, number> = {
+  Winter: 0,
+  'First Stand': 1,
+  Spring: 2,
+  MSI: 3,
+  Summer: 4,
+  Worlds: 5,
+}
+
+/** Matches ingest_csv.py split_sort_key for consistent split dropdown order. */
+export function splitSortKey(splitLabel: string): [number, number, string] {
+  const spaceIdx = splitLabel.indexOf(' ')
+  const yearPart = spaceIdx >= 0 ? splitLabel.slice(0, spaceIdx) : splitLabel
+  const season = spaceIdx >= 0 ? splitLabel.slice(spaceIdx + 1) : splitLabel
+  const year = /^\d+$/.test(yearPart) ? parseInt(yearPart, 10) : 0
+  return [year, SEASON_ORDER[season] ?? 99, season.toLowerCase()]
+}
+
 type PlayerRow = Player & {
   kills?: number
   deaths?: number

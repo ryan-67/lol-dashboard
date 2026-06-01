@@ -1,5 +1,12 @@
 import { useState, useEffect, useCallback } from 'react'
-import type { OEStore } from '../lib/mergeSlices'
+import type { OEStore, OEStoreMeta } from '../lib/mergeSlices'
+import { TIER1_LEAGUES } from '../lib/mergeSlices'
+import {
+  buildStoreFromSliceRows,
+  fetchOESliceCatalog,
+  fetchOESlices,
+} from '../lib/loadOEStore'
+import { isSupabaseConfigured } from '../lib/supabaseClient'
 
 export interface DashboardMeta {
   source: string
@@ -144,85 +151,101 @@ export interface DashboardData {
   teamChampions: TeamChampion[]
 }
 
+export const DEFAULT_SPLIT = '2026 Spring'
+export const DEFAULT_LEAGUES: string[] = [...TIER1_LEAGUES]
+
+export function leaguesToLeagueLabel(leagues: string[]): string {
+  const tier1 = TIER1_LEAGUES as readonly string[]
+  if (leagues.length === tier1.length && tier1.every((l) => leagues.includes(l))) {
+    return 'All Tier 1'
+  }
+  return leagues[0] ?? 'All Tier 1'
+}
+
+export function leagueLabelToLeagues(league: string): string[] {
+  return league === 'All Tier 1' ? [...TIER1_LEAGUES] : [league]
+}
+
 interface UseDashboardDataReturn {
   store: OEStore | null
+  catalog: OEStoreMeta | null
   loading: boolean
   error: string | null
   refresh: () => void
   lastUpdated: Date | null
-}
-
-const DATA_URL = (import.meta.env.BASE_URL || '/') + 'data/oe_slices.json'
-
-interface OEManifest {
-  meta: DashboardMeta
-  year_files: Record<string, string>
+  selectedSplit: string
+  selectedLeagues: string[]
+  setSelectedSplit: (split: string) => void
+  setSelectedLeagues: (leagues: string[]) => void
 }
 
 export function useDashboardData(): UseDashboardDataReturn {
+  const [catalog, setCatalog] = useState<OEStoreMeta | null>(null)
   const [store, setStore] = useState<OEStore | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null)
-  const [cacheBust, setCacheBust] = useState(Date.now())
+  const [selectedSplit, setSelectedSplit] = useState(DEFAULT_SPLIT)
+  const [selectedLeagues, setSelectedLeagues] = useState<string[]>(DEFAULT_LEAGUES)
+  const [fetchGeneration, setFetchGeneration] = useState(0)
 
   const fetchData = useCallback(async () => {
     setLoading(true)
     setError(null)
-    try {
-      const url = `${DATA_URL}?v=${cacheBust}`
-      const res = await fetch(url)
-      if (!res.ok) {
-        throw new Error(
-          res.status === 404
-            ? 'Data store not found. Run `npm run ingest` to build oe_slices.json from lol/ CSV files.'
-            : `HTTP ${res.status} loading dashboard data`
-        )
-      }
-      const manifest = (await res.json()) as OEManifest
-      if (!manifest?.meta?.splits?.length || !manifest?.year_files) {
-        throw new Error('Malformed data store: missing meta.splits or year_files')
-      }
 
-      const yearEntries = Object.entries(manifest.year_files)
-      if (!yearEntries.length) {
-        throw new Error('Malformed data store: no yearly shard files present')
-      }
-
-      const shardResponses = await Promise.all(
-        yearEntries.map(async ([year, fileName]) => {
-          const shardUrl = `${(import.meta.env.BASE_URL || '/') + 'data/'}${fileName}?v=${cacheBust}`
-          const shardRes = await fetch(shardUrl)
-          if (!shardRes.ok) {
-            throw new Error(`HTTP ${shardRes.status} loading shard ${year}`)
-          }
-          const shard = (await shardRes.json()) as { slices?: Record<string, OEStore['slices'][string]> }
-          return shard.slices ?? {}
-        }),
+    if (!isSupabaseConfigured) {
+      setCatalog(null)
+      setStore(null)
+      setError(
+        'Supabase is not configured. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY in .env and restart the dev server.',
       )
+      setLoading(false)
+      return
+    }
 
-      const mergedSlices: OEStore['slices'] = {}
-      for (const shardSlices of shardResponses) {
-        Object.assign(mergedSlices, shardSlices)
+    try {
+      const meta = catalog ?? (await fetchOESliceCatalog())
+      if (!catalog) {
+        setCatalog(meta)
       }
 
-      setStore({ meta: manifest.meta as OEStore['meta'], slices: mergedSlices })
-      setLastUpdated(new Date())
+      const rows = await fetchOESlices({
+        split: selectedSplit,
+        leagues: selectedLeagues,
+      })
+      const nextStore = buildStoreFromSliceRows(meta, rows)
+      setStore(nextStore)
+      setLastUpdated(new Date(nextStore.meta.generated_at))
     } catch (err) {
       setStore(null)
       setError(err instanceof Error ? err.message : 'Failed to load dashboard data')
     } finally {
       setLoading(false)
     }
-  }, [cacheBust])
+  }, [catalog, selectedSplit, selectedLeagues, fetchGeneration])
 
   useEffect(() => {
-    fetchData()
+    void fetchData()
   }, [fetchData])
 
   const refresh = useCallback(() => {
-    setCacheBust(Date.now())
+    setFetchGeneration((n) => n + 1)
   }, [])
 
-  return { store, loading, error, refresh, lastUpdated }
+  const setSelectedLeaguesSafe = useCallback((leagues: string[]) => {
+    setSelectedLeagues(leagues.length ? leagues : [...DEFAULT_LEAGUES])
+  }, [])
+
+  return {
+    store,
+    catalog,
+    loading,
+    error,
+    refresh,
+    lastUpdated,
+    selectedSplit,
+    selectedLeagues,
+    setSelectedSplit,
+    setSelectedLeagues: setSelectedLeaguesSafe,
+  }
 }

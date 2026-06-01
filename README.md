@@ -23,7 +23,7 @@ It scratches the itch of "I want Rift data at a glance" — league standings, ch
 
 **nucky** is a five-tab analytics experience scoped by **league** (LCK, LPL, LEC, LCS, or All Tier 1) and **split** (individual seasons and international events). Pick a context from the sticky header, then move across tabs to follow the story from macro (league snapshot) down to micro (lane-level matchup radars).
 
-Every chart, table, and radar is driven by a preprocessed JSON store (`public/data/oe_slices.json`) that is rebuilt from Oracle's Elixir CSVs at build time. There is no API server, no database, and no loading spinner waiting on a query — just fetch, filter, and render.
+Every chart, table, and radar is driven by slice data loaded from **Supabase** (`oe_slices` table) on mount. Oracle's Elixir CSVs are ingested offline into JSON shards, seeded into Postgres, and the app fetches all slices once at runtime — then filters client-side by league and split.
 
 ### Global filters & defaults
 
@@ -32,7 +32,7 @@ Every chart, table, and radar is driven by a preprocessed JSON store (`public/da
 | **League** | All Tier 1, LCK, LPL, LEC, LCS | All Tier 1 |
 | **Split** | All splits + individual events (MSI, Worlds, First Stand, regional splits) | **2026 Spring** |
 
-Filters live in the sticky `TopBar` and propagate to every tab via `DashboardContext`. A manual **Refresh** button re-fetches the data store at runtime.
+Filters live in the sticky `TopBar` and propagate to every tab via `DashboardContext`. A manual **Refresh** button re-queries Supabase at runtime.
 
 ---
 
@@ -91,10 +91,11 @@ Filters live in the sticky `TopBar` and propagate to every tab via `DashboardCon
 | Charts | Recharts 2 |
 | Motion | GSAP 3 + ScrollTrigger, `@gsap/react` |
 | Scroll | Lenis smooth scroll (integrated with ScrollTrigger scroller proxy) |
-| Data | Python 3 ingestion → static JSON |
+| Data | Python 3 ingestion → JSON shards → Supabase `oe_slices` |
+| Backend | Supabase (Postgres + PostgREST) |
 | Hosting | Cloudflare Pages |
 
-The app follows a **static-site philosophy**: Oracle's Elixir CSVs are ingested once (locally or in CI) into a slice-indexed JSON store keyed by `{split}|{league}`. At runtime, `mergeSlices()` combines the relevant slices based on the user's league and split selection, and all analytics run client-side in pure TypeScript helpers. This keeps latency low and the deployment surface minimal — a `dist/` folder served from the root domain at `/`.
+Oracle's Elixir CSVs are ingested (locally or in CI) into year-sharded JSON under `public/data/`, then upserted into Supabase. At runtime, `loadOEStoreFromSupabase()` loads all rows and rebuilds the in-memory store keyed by `{split}|{league}`. `mergeSlices()` combines the relevant slices for the user's league and split selection; analytics run client-side in pure TypeScript helpers. The UI is still a static SPA — only data loading hits the network.
 
 React Router runs **without a basename** — the app is built for root-domain hosting, not a repo-named subpath.
 
@@ -102,13 +103,19 @@ React Router runs **without a basename** — the app is built for root-domain ho
 Oracle's Elixir CSVs (lol/)
         │
         ▼
-scripts/ingest_csv.py  ──►  public/data/oe_slices.json
-        │                           │
-        ▼                           ▼
-   refresh-data.yml            npm run build
-   (scheduled CI)                    │
-                                     ▼
-                              dist/ → Cloudflare Pages (nucky.gg)
+scripts/ingest_csv.py  ──►  public/data/oe_slices_YYYY.json  (legacy JSON backup)
+        │
+        ▼
+scripts/seed_supabase.py ──►  Supabase oe_slices (split, league, data jsonb)
+        │
+        ▼
+   refresh-data.yml (scheduled CI: ingest → seed)
+        │
+        ▼
+   Browser: loadOEStoreFromSupabase() → mergeSlices() → charts
+        │
+        ▼
+   dist/ → Cloudflare Pages (nucky.gg)
 ```
 
 ---
@@ -121,9 +128,10 @@ lol-dashboard/
 │   ├── _redirects              # Cloudflare SPA fallback (/* → index.html)
 │   ├── favicon.svg               # nucky "N" mark
 │   └── data/
-│       └── oe_slices.json        # Preprocessed slice store (committed, ~16 MB)
+│       └── oe_slices_*.json      # Ingest output (legacy; used by seed script until removed)
 ├── scripts/
-│   ├── ingest_csv.py             # Primary CSV → slice store pipeline
+│   ├── ingest_csv.py             # CSV → year-sharded JSON
+│   ├── seed_supabase.py          # JSON shards → Supabase oe_slices
 │   └── process_oe_csv.py         # Legacy single-file processor
 ├── src/
 │   ├── pages/                    # Route-level views (Overview, Players, Teams, …)
@@ -136,9 +144,11 @@ lol-dashboard/
 │   │   ├── Layout.tsx            # Shell, nav, header branding
 │   │   ├── TopBar.tsx            # League/split filters
 │   │   └── AnimatedOutlet.tsx    # Tab fade transitions
-│   ├── lib/                      # Analytics engines (see below)
+│   ├── lib/
+│   │   ├── loadOEStore.ts        # Supabase → OEStore
+│   │   └── mergeSlices.ts        # Slice merge + analytics inputs
 │   ├── context/                  # DashboardContext — league, split, filtered data
-│   ├── hooks/                    # useDashboardData — fetches oe_slices.json
+│   ├── hooks/                    # useDashboardData — loads store from Supabase
 │   └── theme/                    # tokens.css, animations.ts, chartTheme.ts
 ├── .github/workflows/
 │   └── refresh-data.yml          # Daily data refresh (no deploy step)
@@ -151,7 +161,7 @@ lol-dashboard/
 
 ### `scripts/ingest_csv.py` (primary)
 
-The main ingestion script reads Oracle's Elixir CSV files from the `lol/` directory (`2024_oracle_elixir.csv`, `2025_oracle_elixir.csv`, `2026_oracle_elixir.csv`) and writes a slice-indexed store to `public/data/oe_slices.json` (schema version **2.1**).
+The main ingestion script reads Oracle's Elixir CSV files from the `lol/` directory and writes year-sharded JSON (`public/data/oe_slices_YYYY.json`) plus a small manifest (`oe_slices.json` with `year_files`). Schema version **2.1**. The frontend does not read these files directly; they are the source for `seed_supabase.py`.
 
 Each slice contains:
 - **Players** — aggregated stats plus per-game `gameLog` and `championPool`
@@ -168,15 +178,27 @@ Rows are bucketed by `{year} {split}` and league. Tier-1 leagues (LCK, LPL, LEC,
 
 An earlier single-file processor that aggregates a single CSV into `public/dashboard_data.json`. The live dashboard uses the slice store produced by `ingest_csv.py`; this script remains for ad-hoc single-file processing.
 
+### `scripts/seed_supabase.py`
+
+Reads `public/data/oe_slices_*.json` shards and upserts into Supabase `oe_slices` (`split`, `league`, `data` jsonb). Requires `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY`. Run locally via `npm run seed:supabase`.
+
 ### Automated refresh — `refresh-data.yml`
 
-The only GitHub Actions workflow in this repo. It runs on a **daily schedule** (06:00 UTC) and on manual dispatch:
+Runs **Sunday 22:00 UTC** (after typical OE weekly CSV drops) and on **workflow_dispatch**:
 
-1. Checkout + Python 3.11 setup
-2. `python scripts/ingest_csv.py`
-3. Commit and push `public/data/oe_slices.json` if changed
+1. Free disk space on the runner (CSVs are 100+ MB each)
+2. `python scripts/download_oe_csv.py` — stream-download yearly CSVs from Google Drive
+3. `python scripts/ingest_csv.py` — build JSON shards in `public/data/`
+4. `python scripts/seed_supabase.py` — upsert into Supabase
+5. `python scripts/verify_supabase_seed.py` — fail if latest split has no rows
+6. Auto-commit `public/data/oe_slices*.json` backup via `git-auto-commit-action`
 
-There is **no deploy workflow** — Cloudflare Pages watches `main` and rebuilds automatically after every push (including data refresh commits).
+**GitHub secrets:** `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `GOOGLE_SERVICE_ACCOUNT_KEY`  
+**Optional:** `OE_DRIVE_FOLDER_ID` (defaults to the community OE CSV Drive folder)
+
+Install pipeline deps: `pip install -r scripts/requirements-ingest.txt`
+
+Cloudflare Pages rebuilds the frontend on push; data is served live from Supabase.
 
 ---
 
@@ -249,8 +271,10 @@ This ensures React Router routes (`/teams`, `/players`, etc.) resolve correctly 
 ### Prerequisites
 
 - **Node.js** 20+
-- **Python** 3.11+ (for ingestion)
-- Oracle's Elixir CSV files placed in `lol/` (not committed — large files)
+- **Python** 3.11+ (for ingestion / seeding)
+- **Supabase** project with `oe_slices` table seeded
+- `.env` with `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` (see `.env.example`)
+- Oracle's Elixir CSV files in `lol/` for regeneration (not committed — large files)
 
 ### Commands
 
@@ -258,22 +282,23 @@ This ensures React Router routes (`/teams`, `/players`, etc.) resolve correctly 
 # Install frontend dependencies
 npm install
 
-# Regenerate the data store from lol/*.csv
+# Regenerate JSON shards from lol/*.csv (optional; for seeding)
 npm run ingest
 
-# Start dev server (http://localhost:5173/)
+# Upsert shards into Supabase (needs service role key in .env)
+npm run seed:supabase
+
+# Start dev server (http://localhost:5173/) — loads data from Supabase
 npm run dev
 
-# Production build (ingest + tsc + vite build)
+# Production build (tsc + vite build)
 npm run build
 
 # Preview production build locally
 npm run preview
 ```
 
-`npm run build` automatically runs ingestion via the `prebuild` hook, so a fresh clone with CSVs in `lol/` will produce an up-to-date `oe_slices.json` before compiling.
-
-If you don't have local CSVs, the committed `public/data/oe_slices.json` is sufficient for frontend development.
+The app loads dashboard data from Supabase at runtime, not from `public/data/*.json`. JSON files remain in the repo temporarily as the ingest → seed pipeline artifact.
 
 ---
 
@@ -308,4 +333,4 @@ MIT
 
 ---
 
-*nucky — built for the Rift. Powered by Oracle's Elixir. Shipped as static HTML on Cloudflare.*
+*nucky — built for the Rift. Powered by Oracle's Elixir. Shipped on Cloudflare with data from Supabase.*

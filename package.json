@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "ingest": "python scripts/ingest_csv.py",
-    "prebuild": "python scripts/ingest_csv.py",
+    "seed:supabase": "python scripts/seed_supabase.py",
     "dev": "vite",
     "build": "tsc && vite build",
     "preview": "vite preview"
