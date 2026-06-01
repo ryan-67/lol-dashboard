@@ -154,6 +154,11 @@ interface UseDashboardDataReturn {
 
 const DATA_URL = (import.meta.env.BASE_URL || '/') + 'data/oe_slices.json'
 
+interface OEManifest {
+  meta: DashboardMeta
+  year_files: Record<string, string>
+}
+
 export function useDashboardData(): UseDashboardDataReturn {
   const [store, setStore] = useState<OEStore | null>(null)
   const [loading, setLoading] = useState(true)
@@ -174,11 +179,34 @@ export function useDashboardData(): UseDashboardDataReturn {
             : `HTTP ${res.status} loading dashboard data`
         )
       }
-      const json = (await res.json()) as OEStore
-      if (!json?.meta?.splits?.length || !json?.slices) {
-        throw new Error('Malformed data store: missing meta.splits or slices')
+      const manifest = (await res.json()) as OEManifest
+      if (!manifest?.meta?.splits?.length || !manifest?.year_files) {
+        throw new Error('Malformed data store: missing meta.splits or year_files')
       }
-      setStore(json)
+
+      const yearEntries = Object.entries(manifest.year_files)
+      if (!yearEntries.length) {
+        throw new Error('Malformed data store: no yearly shard files present')
+      }
+
+      const shardResponses = await Promise.all(
+        yearEntries.map(async ([year, fileName]) => {
+          const shardUrl = `${(import.meta.env.BASE_URL || '/') + 'data/'}${fileName}?v=${cacheBust}`
+          const shardRes = await fetch(shardUrl)
+          if (!shardRes.ok) {
+            throw new Error(`HTTP ${shardRes.status} loading shard ${year}`)
+          }
+          const shard = (await shardRes.json()) as { slices?: Record<string, OEStore['slices'][string]> }
+          return shard.slices ?? {}
+        }),
+      )
+
+      const mergedSlices: OEStore['slices'] = {}
+      for (const shardSlices of shardResponses) {
+        Object.assign(mergedSlices, shardSlices)
+      }
+
+      setStore({ meta: manifest.meta as OEStore['meta'], slices: mergedSlices })
       setLastUpdated(new Date())
     } catch (err) {
       setStore(null)

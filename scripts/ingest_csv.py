@@ -9,7 +9,8 @@ Reads:
     lol/*_oracle_elixir.csv
 
 Writes:
-    public/data/oe_slices.json
+    public/data/oe_slices.json (manifest)
+    public/data/oe_slices_YYYY.json (year shards)
 """
 
 from __future__ import annotations
@@ -24,7 +25,8 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 LOL_DIR = ROOT / "lol"
-OUT_PATH = ROOT / "public" / "data" / "oe_slices.json"
+OUT_DIR = ROOT / "public" / "data"
+OUT_PATH = OUT_DIR / "oe_slices.json"
 CSV_FILES = sorted(LOL_DIR.glob("*_oracle_elixir.csv"))
 
 TARGET_LEAGUES = {"LCK", "LPL", "LEC", "LCS"}
@@ -804,13 +806,34 @@ def ingest():
         "csv_files": [p.name for p in CSV_FILES],
     }
 
-    OUT_PATH.parent.mkdir(parents=True, exist_ok=True)
-    payload = {"meta": meta, "slices": slices}
+    OUT_DIR.mkdir(parents=True, exist_ok=True)
+
+    slices_by_year: dict[str, dict] = defaultdict(dict)
+    for key, value in slices.items():
+        year = key.split(" ", 1)[0]
+        slices_by_year[year][key] = value
+
+    shard_files: dict[str, str] = {}
+    for year, year_slices in sorted(slices_by_year.items()):
+        shard_name = f"oe_slices_{year}.json"
+        shard_path = OUT_DIR / shard_name
+        with shard_path.open("w", encoding="utf-8") as f:
+            json.dump({"slices": year_slices}, f, separators=(",", ":"))
+        shard_files[year] = shard_name
+        print(f"  Wrote shard {shard_name} ({shard_path.stat().st_size / 1024:.1f} KB)")
+
+    # Remove old shard files no longer present.
+    keep = {"oe_slices.json", *shard_files.values()}
+    for existing in OUT_DIR.glob("oe_slices_*.json"):
+        if existing.name not in keep:
+            existing.unlink(missing_ok=True)
+
+    payload = {"meta": meta, "year_files": shard_files}
     with OUT_PATH.open("w", encoding="utf-8") as f:
         json.dump(payload, f, separators=(",", ":"))
 
     size_kb = OUT_PATH.stat().st_size / 1024
-    print(f"Wrote {OUT_PATH} ({size_kb:.1f} KB)")
+    print(f"Wrote manifest {OUT_PATH} ({size_kb:.1f} KB)")
     print(f"  Splits: {len(meta['splits'])}")
     print(f"  Slice keys: {len(slices)}")
     if UNMAPPED_WARNINGS:
