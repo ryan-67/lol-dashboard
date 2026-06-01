@@ -741,6 +741,15 @@ def process_row(row, buckets: dict, team_to_league: dict[str, str]):
 
 
 def ingest():
+    if not CSV_FILES:
+        if OUT_PATH.exists():
+            print("WARNING: No *_oracle_elixir.csv files found; keeping existing data store.", file=sys.stderr)
+            print(f"Using existing {OUT_PATH}", file=sys.stderr)
+            return
+        print("ERROR: No Oracle's Elixir CSV files found and no existing data store:", file=sys.stderr)
+        print("Place Oracle's Elixir CSV files in lol/ or run from project root.", file=sys.stderr)
+        sys.exit(1)
+
     missing = [str(p) for p in CSV_FILES if not p.exists()]
     if missing:
         if OUT_PATH.exists():
