@@ -9,8 +9,8 @@ import {
 import type { User } from '@supabase/supabase-js'
 import { supabase } from '../lib/supabaseClient'
 
-const OAUTH_REDIRECT_TO = 'https://www.getfolk.app/go/ocR2bDMtrH'
-const RESET_PASSWORD_REDIRECT_TO = 'https://www.getfolk.app/go/UjsBOT6Bey'
+const OAUTH_REDIRECT_TO = 'https://nucky.gg/auth/callback'
+const RESET_PASSWORD_REDIRECT_TO = 'https://nucky.gg/auth/reset-password'
 
 interface AuthContextValue {
   user: User | null
