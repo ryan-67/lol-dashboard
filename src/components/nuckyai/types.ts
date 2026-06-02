@@ -18,6 +18,7 @@ export interface MessageRow {
   role: 'user' | 'assistant' | 'system' | 'tool'
   content: string
   created_at?: string
+  retryable?: boolean
 }
 
 export interface ChartDataset {

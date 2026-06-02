@@ -13,13 +13,16 @@ export default function NuckyAIContainer() {
   const { user } = useAuth()
   const [profile, setProfile] = useState<ProfileRow | null>(null)
   const [conversations, setConversations] = useState<ConversationRow[]>([])
+  const [conversationsLoading, setConversationsLoading] = useState(false)
   const [messages, setMessages] = useState<MessageRow[]>([])
+  const [toast, setToast] = useState<string | null>(null)
+  const [checkoutLoading, setCheckoutLoading] = useState(false)
   const [searchParams, setSearchParams] = useSearchParams()
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false)
   const [activeConversationId, setActiveConversationId] = useState<string | null>(
     searchParams.get('conversation_id'),
   )
-  const { streaming, sendMessage, appendErrorBubble } = useAgentChat()
+  const { streaming, sendMessage } = useAgentChat()
 
   useGSAP(() => {
     scrollEntrance(document.querySelector('.nuckyai-shell'))
@@ -42,12 +45,14 @@ export default function NuckyAIContainer() {
 
   const loadConversations = useCallback(async () => {
     if (!user) return
+    setConversationsLoading(true)
     const { data } = await supabase
       .from('conversations')
       .select('id, title, updated_at, created_at')
       .eq('user_id', user.id)
       .order('updated_at', { ascending: false })
     setConversations((data as ConversationRow[] | null) ?? [])
+    setConversationsLoading(false)
   }, [user])
 
   const loadMessages = useCallback(
@@ -70,6 +75,23 @@ export default function NuckyAIContainer() {
   }, [loadProfile, loadConversations])
 
   useEffect(() => {
+    const checkout = searchParams.get('checkout')
+    if (checkout === 'success') {
+      setToast('welcome to nuckyAI')
+      void loadProfile()
+      const next = new URLSearchParams(searchParams)
+      next.delete('checkout')
+      next.delete('session_id')
+      setSearchParams(next, { replace: true })
+    } else if (checkout === 'cancel') {
+      setToast('no worries - come back anytime')
+      const next = new URLSearchParams(searchParams)
+      next.delete('checkout')
+      setSearchParams(next, { replace: true })
+    }
+  }, [loadProfile, searchParams, setSearchParams])
+
+  useEffect(() => {
     const fromQuery = searchParams.get('conversation_id')
     if (fromQuery && fromQuery !== activeConversationId) {
       setActiveConversationId(fromQuery)
@@ -90,7 +112,7 @@ export default function NuckyAIContainer() {
       setMessages((prev) => [
         ...prev,
         { role: 'user', content: message, created_at: now },
-        { role: 'assistant', content: '', created_at: now },
+        { role: 'assistant', content: '', created_at: now, retryable: false },
       ])
 
       void sendMessage({
@@ -116,16 +138,33 @@ export default function NuckyAIContainer() {
         },
         onDone: () => {
           void loadConversations()
-          if (activeConversationId) {
-            void loadMessages(activeConversationId)
+          const nextConversationId = activeConversationId ?? searchParams.get('conversation_id')
+          if (nextConversationId) {
+            void loadMessages(nextConversationId)
           }
         },
         onError: (err) => {
-          setMessages((prev) => appendErrorBubble(prev, err))
+          setMessages((prev) => {
+            const copy = [...prev]
+            for (let i = copy.length - 1; i >= 0; i -= 1) {
+              if (copy[i].role === 'assistant') {
+                copy[i] = {
+                  ...copy[i],
+                  content: copy[i].content || err,
+                  retryable: true,
+                }
+                return copy
+              }
+            }
+            return [
+              ...copy,
+              { role: 'assistant', content: err, created_at: new Date().toISOString(), retryable: true },
+            ]
+          })
         },
       })
     },
-    [activeConversationId, appendErrorBubble, loadConversations, loadMessages, searchParams, sendMessage, setSearchParams],
+    [activeConversationId, loadConversations, loadMessages, searchParams, sendMessage, setSearchParams],
   )
 
   const regenerate = useCallback(() => {
@@ -147,6 +186,39 @@ export default function NuckyAIContainer() {
     return profile.username ? `nuckyAI — @${profile.username}` : 'nuckyAI'
   }, [profile])
 
+  const subscribe = useCallback(async () => {
+    if (!user) return
+    setCheckoutLoading(true)
+    try {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession()
+      const functionBase = (import.meta.env.VITE_SUPABASE_URL ?? '').trim().replace(/\/$/, '')
+      const priceId = (import.meta.env.VITE_STRIPE_PRICE_ID ?? '').trim()
+      if (!priceId) {
+        throw new Error('missing VITE_STRIPE_PRICE_ID')
+      }
+      const response = await fetch(`${functionBase}/functions/v1/stripe-checkout`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}),
+        },
+        body: JSON.stringify({ price_id: priceId }),
+      })
+      if (!response.ok) {
+        throw new Error(`checkout failed (${response.status})`)
+      }
+      const payload = (await response.json()) as { url?: string }
+      if (!payload.url) throw new Error('missing checkout url')
+      window.location.assign(payload.url)
+    } catch {
+      setToast('checkout failed. try again.')
+    } finally {
+      setCheckoutLoading(false)
+    }
+  }, [user])
+
   if (!user) {
     return (
       <div className="card nuckyai-shell">
@@ -160,7 +232,23 @@ export default function NuckyAIContainer() {
     return (
       <div className="card nuckyai-shell">
         <h2 className="card-title">nuckyAI</h2>
-        <p className="text-secondary text-sm mt-3">nuckyAI is only available with a subscription.</p>
+        {toast && (
+          <div className="mb-3 border border-[var(--border-subtle)] bg-[var(--bg-elevated)] px-3 py-2 text-xs text-[var(--text-secondary)]">
+            {toast}
+          </div>
+        )}
+        <div className="border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-4 mt-3 max-w-xl">
+          <h3 className="text-sm text-[var(--text-primary)] mb-2">unlock nuckyAI</h3>
+          <ul className="list-disc pl-5 text-sm text-[var(--text-secondary)] space-y-1">
+            <li>unlimited analyst chat</li>
+            <li>real-time stats context</li>
+            <li>predictions + matchup reads</li>
+          </ul>
+          <div className="mt-3 text-xs text-[var(--text-tertiary)]">$9/mo pro subscription</div>
+          <button type="button" className="btn mt-3" disabled={checkoutLoading} onClick={subscribe}>
+            {checkoutLoading ? 'loading...' : 'subscribe'}
+          </button>
+        </div>
       </div>
     )
   }
@@ -177,16 +265,34 @@ export default function NuckyAIContainer() {
           chats
         </button>
       </div>
+      {toast && (
+        <div
+          className={`border-b border-[var(--border-subtle)] px-3 py-2 text-xs ${
+            toast.includes('welcome')
+              ? 'bg-[rgba(22,163,74,0.08)] text-[rgb(22,163,74)]'
+              : 'bg-[var(--bg-elevated)] text-[var(--text-secondary)]'
+          }`}
+        >
+          {toast}
+        </div>
+      )}
       <div className="flex-1 min-h-0 flex">
         <ChatSidebar
           conversations={conversations}
+          loading={conversationsLoading}
           activeConversationId={activeConversationId}
           onSelect={setActiveConversationId}
           onNewChat={beginNewChat}
           mobileOpen={mobileSidebarOpen}
           onCloseMobile={() => setMobileSidebarOpen(false)}
         />
-        <ChatWindow messages={messages} streaming={streaming} onSend={send} onRegenerate={regenerate} />
+        <ChatWindow
+          messages={messages}
+          streaming={streaming}
+          onSend={send}
+          onRegenerate={regenerate}
+          onRetry={regenerate}
+        />
       </div>
     </div>
   )

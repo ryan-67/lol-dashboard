@@ -121,7 +121,7 @@ export function useAgentChat() {
             }
           }
         }
-      } catch (err) {
+      } catch {
         const msg = 'nuckyAI is taking a nap. try again.'
         setStreamError(msg)
         onError?.(msg)

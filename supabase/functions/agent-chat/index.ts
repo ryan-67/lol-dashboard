@@ -99,7 +99,7 @@ Deno.serve(async (req) => {
           ),
         );
 
-        const plan = await classifyIntent(openrouterApiKey, message);
+        const plan = await classifyIntent(openrouterApiKey, message, conversation.history);
 
         let dbResults: unknown = null;
         let externalContext = "";

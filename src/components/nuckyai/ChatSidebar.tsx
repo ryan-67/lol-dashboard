@@ -2,6 +2,7 @@ import type { ConversationRow } from './types'
 
 interface ChatSidebarProps {
   conversations: ConversationRow[]
+  loading?: boolean
   activeConversationId: string | null
   onSelect: (id: string) => void
   onNewChat: () => void
@@ -22,6 +23,7 @@ function relativeDate(value: string): string {
 
 export default function ChatSidebar({
   conversations,
+  loading = false,
   activeConversationId,
   onSelect,
   onNewChat,
@@ -36,7 +38,25 @@ export default function ChatSidebar({
         </button>
       </div>
       <div className="overflow-y-auto p-2">
-        {conversations.map((conversation) => {
+        {loading && (
+          <div className="space-y-2">
+            {Array.from({ length: 4 }).map((_, idx) => (
+              <div
+                key={`skeleton-${idx}`}
+                className="border border-[var(--border-subtle)] bg-[var(--bg-base)] px-3 py-3 animate-pulse"
+              >
+                <div className="h-3 w-2/3 bg-[var(--bg-elevated)]" />
+                <div className="h-2 w-1/3 bg-[var(--bg-elevated)] mt-2" />
+              </div>
+            ))}
+          </div>
+        )}
+        {!loading && conversations.length === 0 && (
+          <div className="text-xs text-[var(--text-tertiary)] px-2 py-3">
+            no conversations yet. start one above
+          </div>
+        )}
+        {!loading && conversations.map((conversation) => {
           const active = conversation.id === activeConversationId
           return (
             <button

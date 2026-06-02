@@ -9,9 +9,10 @@ interface ChatWindowProps {
   streaming: boolean
   onSend: (message: string) => void
   onRegenerate: () => void
+  onRetry: () => void
 }
 
-export default function ChatWindow({ messages, streaming, onSend, onRegenerate }: ChatWindowProps) {
+export default function ChatWindow({ messages, streaming, onSend, onRegenerate, onRetry }: ChatWindowProps) {
   const [draft, setDraft] = useState('')
   const isEmpty = useMemo(() => messages.length === 0, [messages.length])
 
@@ -31,7 +32,7 @@ export default function ChatWindow({ messages, streaming, onSend, onRegenerate }
           </div>
         </div>
       ) : (
-        <MessageList messages={messages} onRegenerate={onRegenerate} isTyping={streaming} />
+        <MessageList messages={messages} onRegenerate={onRegenerate} onRetry={onRetry} isTyping={streaming} />
       )}
       <ChatInput value={draft} onChange={setDraft} onSend={send} disabled={streaming} />
     </section>

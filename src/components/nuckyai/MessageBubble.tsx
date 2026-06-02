@@ -18,6 +18,7 @@ interface MessageBubbleProps {
   message: MessageRow
   isAssistant: boolean
   onRegenerate?: () => void
+  onRetry?: () => void
 }
 
 interface TextBlock {
@@ -123,8 +124,8 @@ function ChartBlock({ json }: { json: string }) {
 
   if (!payload || !payload.labels?.length || !payload.datasets?.length) {
     return (
-      <pre className="border border-[var(--border-subtle)] bg-[var(--bg-base)] p-3 text-xs text-[var(--text-secondary)] overflow-x-auto">
-        invalid chart payload
+      <pre className="border border-[var(--border-subtle)] bg-[var(--bg-base)] p-3 text-xs text-[var(--text-secondary)] overflow-x-auto whitespace-pre-wrap">
+        {json}
       </pre>
     )
   }
@@ -198,7 +199,18 @@ function ChartBlock({ json }: { json: string }) {
   )
 }
 
-export default function MessageBubble({ message, isAssistant, onRegenerate }: MessageBubbleProps) {
+function relativeTime(value?: string) {
+  if (!value) return ''
+  const d = new Date(value)
+  if (Number.isNaN(d.getTime())) return ''
+  const delta = Date.now() - d.getTime()
+  if (delta < 60_000) return 'now'
+  if (delta < 3_600_000) return `${Math.floor(delta / 60_000)}m ago`
+  if (delta < 86_400_000) return `${Math.floor(delta / 3_600_000)}h ago`
+  return `${Math.floor(delta / 86_400_000)}d ago`
+}
+
+export default function MessageBubble({ message, isAssistant, onRegenerate, onRetry }: MessageBubbleProps) {
   const [copied, setCopied] = useState(false)
   const blocks = useMemo(() => parseBlocks(message.content), [message.content])
 
@@ -215,7 +227,7 @@ export default function MessageBubble({ message, isAssistant, onRegenerate }: Me
           isAssistant
             ? 'border-[var(--border-subtle)] bg-[var(--bg-surface)]'
             : 'border-[var(--accent)] bg-[var(--accent-bg)]'
-        }`}
+        } group`}
       >
         {blocks.map((block, idx) => {
           if (block.type === 'text') {
@@ -258,6 +270,20 @@ export default function MessageBubble({ message, isAssistant, onRegenerate }: Me
             >
               regenerate
             </button>
+            {message.retryable && (
+              <button
+                type="button"
+                className="text-[var(--text-secondary)] hover:text-[var(--accent)]"
+                onClick={onRetry}
+              >
+                retry
+              </button>
+            )}
+          </div>
+        )}
+        {isAssistant && (
+          <div className="mt-1 text-[11px] text-[var(--text-tertiary)] opacity-0 group-hover:opacity-100 transition-opacity">
+            {relativeTime(message.created_at)}
           </div>
         )}
       </div>

@@ -5,24 +5,37 @@ import type { MessageRow } from './types'
 interface MessageListProps {
   messages: MessageRow[]
   onRegenerate: () => void
+  onRetry: () => void
   isTyping: boolean
 }
 
-export default function MessageList({ messages, onRegenerate, isTyping }: MessageListProps) {
+export default function MessageList({ messages, onRegenerate, onRetry, isTyping }: MessageListProps) {
   const bottomRef = useRef<HTMLDivElement>(null)
+  const containerRef = useRef<HTMLDivElement>(null)
+  const shouldAutoScrollRef = useRef(true)
+
+  const updateAutoScrollState = () => {
+    const el = containerRef.current
+    if (!el) return
+    const distance = el.scrollHeight - el.scrollTop - el.clientHeight
+    shouldAutoScrollRef.current = distance <= 200
+  }
 
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' })
+    if (shouldAutoScrollRef.current) {
+      bottomRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' })
+    }
   }, [messages, isTyping])
 
   return (
-    <div className="flex-1 overflow-y-auto p-4 space-y-3">
+    <div ref={containerRef} className="flex-1 overflow-y-auto p-4 space-y-3" onScroll={updateAutoScrollState}>
       {messages.map((message, idx) => (
         <MessageBubble
           key={`${message.created_at ?? 'm'}-${idx}`}
           message={message}
           isAssistant={message.role === 'assistant'}
           onRegenerate={onRegenerate}
+          onRetry={onRetry}
         />
       ))}
       {isTyping && (

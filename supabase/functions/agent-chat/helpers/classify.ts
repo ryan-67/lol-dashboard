@@ -8,24 +8,67 @@ export interface IntentPlan {
   reason: string;
 }
 
-function heuristic(question: string): IntentPlan {
-  const q = question.toLowerCase();
-  const sqlHints = /(winrate|kda|csd|gd@?15|xpd@?15|history|h2h|head.?to.?head|compare|stats?|record)/;
-  const vectorHints = /(patch|meta|rumor|reddit|liquipedia|odds|kalshi|news|injury|roster|upcoming)/;
-  const complexHints = /(predict|prediction|who wins|draft|breakdown|edge|favored|favorite)/;
+const SQL_HINTS =
+  /\b(winrate|kda|cs|gold|stats?|compare|rank|record|kills?|deaths?|assists?|mvp|damage|history|h2h|head.?to.?head|gd@?15|xpd@?15)\b/;
+const VECTOR_HINTS =
+  /\b(patch|meta|roster|rumou?r|reddit|kalshi|odds|betting|recent|news|draft|tournament|liquipedia|injury|upcoming)\b/;
+const COMPLEX_HINTS = /\b(predict|prediction|who wins|breakdown|edge|favou?red|favorite)\b/;
 
-  const needsSql = sqlHints.test(q) || complexHints.test(q);
-  const needsVector = vectorHints.test(q) || complexHints.test(q);
+function heuristic(question: string, needsSqlOverride = false, needsVectorOverride = false): IntentPlan {
+  const q = question.toLowerCase();
+  const needsSql = needsSqlOverride || SQL_HINTS.test(q) || COMPLEX_HINTS.test(q);
+  const needsVector = needsVectorOverride || VECTOR_HINTS.test(q) || COMPLEX_HINTS.test(q);
   return {
     needs_sql: needsSql,
     needs_vector: needsVector,
-    complexity: complexHints.test(q) ? "complex" : "simple",
+    complexity: COMPLEX_HINTS.test(q) ? "complex" : "simple",
     reason: "heuristic fallback",
   };
 }
 
-export async function classifyIntent(apiKey: string, message: string): Promise<IntentPlan> {
-  const fallback = heuristic(message);
+function inferThreadBias(history: OpenRouterChatMessage[]): { preferSql: boolean; preferVector: boolean } {
+  const userTurns = history.filter((m) => m.role === "user").slice(-8);
+  const sqlHits = userTurns.reduce((acc, turn) => acc + (SQL_HINTS.test(turn.content.toLowerCase()) ? 1 : 0), 0);
+  const vectorHits = userTurns.reduce((acc, turn) => acc + (VECTOR_HINTS.test(turn.content.toLowerCase()) ? 1 : 0), 0);
+  return {
+    preferSql: sqlHits > vectorHits && sqlHits >= 2,
+    preferVector: vectorHits > sqlHits && vectorHits >= 2,
+  };
+}
+
+export async function classifyIntent(
+  apiKey: string,
+  message: string,
+  history: OpenRouterChatMessage[] = [],
+): Promise<IntentPlan> {
+  const q = message.toLowerCase();
+  const keywordSql = SQL_HINTS.test(q);
+  const keywordVector = VECTOR_HINTS.test(q);
+  const fallbackBothSimple: IntentPlan = {
+    needs_sql: true,
+    needs_vector: true,
+    complexity: "simple",
+    reason: "classifier fallback",
+  };
+
+  if (keywordSql && !keywordVector) {
+    return heuristic(message, true, false);
+  }
+
+  if (keywordVector && !keywordSql) {
+    return heuristic(message, false, true);
+  }
+
+  const inDeepThread = history.length > 12;
+  if (inDeepThread && !keywordSql && !keywordVector) {
+    const bias = inferThreadBias(history);
+    if (bias.preferSql) {
+      return { needs_sql: true, needs_vector: false, complexity: "simple", reason: "deep-thread sql bias" };
+    }
+    if (bias.preferVector) {
+      return { needs_sql: false, needs_vector: true, complexity: "simple", reason: "deep-thread vector bias" };
+    }
+  }
 
   try {
     const model = "google/gemini-1.5-flash";
@@ -43,7 +86,7 @@ export async function classifyIntent(apiKey: string, message: string): Promise<I
 
     const start = raw.indexOf("{");
     const end = raw.lastIndexOf("}");
-    if (start === -1 || end === -1) return fallback;
+    if (start === -1 || end === -1) return fallbackBothSimple;
 
     const parsed = JSON.parse(raw.slice(start, end + 1));
     return {
@@ -53,7 +96,7 @@ export async function classifyIntent(apiKey: string, message: string): Promise<I
       reason: String(parsed.reason ?? "model"),
     };
   } catch {
-    return fallback;
+    return fallbackBothSimple;
   }
 }
 
