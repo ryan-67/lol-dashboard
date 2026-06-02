@@ -15,7 +15,6 @@ interface DashboardContextValue {
   data: DashboardData | null
   loading: boolean
   error: string | null
-  refresh: () => void
   lastUpdated: Date | null
 
   league: string
@@ -45,7 +44,6 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
     catalog,
     loading,
     error,
-    refresh,
     lastUpdated,
     selectedSplit,
     selectedLeagues,
@@ -125,7 +123,6 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
         data,
         loading,
         error,
-        refresh,
         lastUpdated,
         league,
         setLeague,

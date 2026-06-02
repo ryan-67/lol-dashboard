@@ -32,7 +32,7 @@ Every chart, table, and radar is driven by slice data loaded from **Supabase** (
 | **League** | All Tier 1, LCK, LPL, LEC, LCS | All Tier 1 |
 | **Split** | All splits + individual events (MSI, Worlds, First Stand, regional splits) | **2026 Spring** |
 
-Filters live in the sticky `TopBar` and propagate to every tab via `DashboardContext`. A manual **Refresh** button re-queries Supabase at runtime.
+Filters live in the sticky `TopBar` and propagate to every tab via `DashboardContext`. Data reloads when league, year, or split changes.
 
 ---
 

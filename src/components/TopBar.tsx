@@ -2,7 +2,7 @@ import { useDashboard } from '../context/DashboardContext'
 import Select from './ui/Select'
 
 export default function TopBar() {
-  const { league, setLeague, year, setYear, split, setSplit, refresh, loading, lastUpdated, leagues, years, splits } =
+  const { league, setLeague, year, setYear, split, setSplit, lastUpdated, leagues, years, splits } =
     useDashboard()
 
   const splitLabel = (value: string) => value.replace(/^\d{4}\s+/, '')
@@ -46,16 +46,11 @@ export default function TopBar() {
           </div>
         </div>
 
-        <div className="flex items-center gap-3">
-          {lastUpdated && (
-            <span className="text-xs text-tertiary">
-              updated {lastUpdated.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-            </span>
-          )}
-          <button type="button" onClick={refresh} disabled={loading} className="btn">
-            {loading ? 'Loading...' : 'Refresh'}
-          </button>
-        </div>
+        {lastUpdated && (
+          <span className="text-xs text-tertiary">
+            updated {lastUpdated.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+          </span>
+        )}
       </div>
     </div>
   )

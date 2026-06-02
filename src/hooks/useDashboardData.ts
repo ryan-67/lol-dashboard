@@ -171,7 +171,6 @@ interface UseDashboardDataReturn {
   catalog: OEStoreMeta | null
   loading: boolean
   error: string | null
-  refresh: () => void
   lastUpdated: Date | null
   selectedSplit: string
   selectedLeagues: string[]
@@ -187,8 +186,6 @@ export function useDashboardData(): UseDashboardDataReturn {
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null)
   const [selectedSplit, setSelectedSplit] = useState(DEFAULT_SPLIT)
   const [selectedLeagues, setSelectedLeagues] = useState<string[]>(DEFAULT_LEAGUES)
-  const [fetchGeneration, setFetchGeneration] = useState(0)
-
   const fetchData = useCallback(async () => {
     setLoading(true)
     setError(null)
@@ -222,15 +219,11 @@ export function useDashboardData(): UseDashboardDataReturn {
     } finally {
       setLoading(false)
     }
-  }, [catalog, selectedSplit, selectedLeagues, fetchGeneration])
+  }, [catalog, selectedSplit, selectedLeagues])
 
   useEffect(() => {
     void fetchData()
   }, [fetchData])
-
-  const refresh = useCallback(() => {
-    setFetchGeneration((n) => n + 1)
-  }, [])
 
   const setSelectedLeaguesSafe = useCallback((leagues: string[]) => {
     setSelectedLeagues(leagues.length ? leagues : [...DEFAULT_LEAGUES])
@@ -241,7 +234,6 @@ export function useDashboardData(): UseDashboardDataReturn {
     catalog,
     loading,
     error,
-    refresh,
     lastUpdated,
     selectedSplit,
     selectedLeagues,
