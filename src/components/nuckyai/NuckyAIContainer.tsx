@@ -240,11 +240,11 @@ export default function NuckyAIContainer() {
         <div className="border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-4 mt-3 max-w-xl">
           <h3 className="text-sm text-[var(--text-primary)] mb-2">unlock nuckyAI</h3>
           <ul className="list-disc pl-5 text-sm text-[var(--text-secondary)] space-y-1">
-            <li>unlimited analyst chat</li>
+            <li>RAG supported knowledge+statistics backed AI analyst</li>
             <li>real-time stats context</li>
             <li>predictions + matchup reads</li>
           </ul>
-          <div className="mt-3 text-xs text-[var(--text-tertiary)]">$9/mo pro subscription</div>
+          <div className="mt-3 text-xs text-[var(--text-tertiary)]">$9.99/mo pro subscription</div>
           <button type="button" className="btn mt-3" disabled={checkoutLoading} onClick={subscribe}>
             {checkoutLoading ? 'loading...' : 'subscribe'}
           </button>

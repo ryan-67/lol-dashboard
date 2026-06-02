@@ -23,6 +23,8 @@ export default function Layout({ children }: { children: React.ReactNode }) {
   const [showAuth, setShowAuth] = useState(false)
   const [isSubscribed, setIsSubscribed] = useState(false)
   const location = useLocation()
+  const hideTopBarRoutes = new Set(['/nuckyai', '/faq', '/profile'])
+  const shouldShowTopBar = !hideTopBarRoutes.has(location.pathname)
 
   useEffect(() => {
     let mounted = true
@@ -110,7 +112,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
             )}
           </div>
         </div>
-        <TopBar />
+        {shouldShowTopBar && <TopBar />}
       </header>
 
       <main className="app-main">
