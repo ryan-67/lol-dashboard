@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useGSAP } from '@gsap/react'
 import { useDashboard } from '../context/DashboardContext'
+import { useAuth } from '../context/AuthContext'
 import type { Player } from '../hooks/useDashboardData'
 import { formatNum, formatPct } from '../lib/format'
 import {
@@ -21,8 +22,10 @@ import PlayerConsistencyStrip from '../components/players/PlayerConsistencyStrip
 import SortableTh from '../components/ui/SortableTh'
 import { findDefaultPlayerKey, playerKey } from '../lib/playerAnalytics'
 import { scrollEntranceStagger, refreshScrollTrigger } from '../theme/animations'
+import { supabase } from '../lib/supabaseClient'
 
 export default function Players() {
+  const { user } = useAuth()
   const { filteredPlayers, league, split } = useDashboard()
   const [roleFilter, setRoleFilter] = useState<RoleFilter>('all')
   const [selectedPlayerKeys, setSelectedPlayerKeys] = useState<string[]>([])
@@ -53,15 +56,43 @@ export default function Players() {
 
   const radarGridRef = useRef<HTMLDivElement>(null)
   const analyticsRef = useRef<HTMLDivElement>(null)
+  const [favoritePlayerName, setFavoritePlayerName] = useState<string | null>(null)
+  const [favoriteTeamName, setFavoriteTeamName] = useState<string | null>(null)
+
+  useEffect(() => {
+    async function loadProfileDefaults() {
+      if (!user) {
+        setFavoritePlayerName(null)
+        setFavoriteTeamName(null)
+        return
+      }
+      const { data } = await supabase
+        .from('profiles')
+        .select('favorite_player, favorite_team')
+        .eq('id', user.id)
+        .maybeSingle()
+      setFavoritePlayerName((data?.favorite_player as string | null) ?? null)
+      setFavoriteTeamName((data?.favorite_team as string | null) ?? null)
+    }
+    void loadProfileDefaults()
+  }, [user])
 
   useEffect(() => {
     setSelectedPlayerKeys((prev) => {
       const valid = prev.filter((key) => players.some((p) => playerKey(p) === key))
       if (valid.length) return valid
+      if (favoritePlayerName) {
+        const favorite = players.find((player) => {
+          if (player.name !== favoritePlayerName) return false
+          if (!favoriteTeamName) return true
+          return player.team === favoriteTeamName
+        })
+        if (favorite) return [playerKey(favorite)]
+      }
       const defaultKey = findDefaultPlayerKey(players)
       return defaultKey ? [defaultKey] : []
     })
-  }, [players])
+  }, [favoritePlayerName, favoriteTeamName, players])
 
   const selectedPlayers = useMemo(
     () =>
@@ -114,23 +145,6 @@ export default function Players() {
     <div className="page-section">
       <RoleFilterBar value={roleFilter} onChange={setRoleFilter} />
 
-      <section ref={analyticsRef} className="player-analytics-section">
-        <PlayerDropdown
-          players={players}
-          selectedKeys={selectedPlayerKeys}
-          onChange={setSelectedPlayerKeys}
-        />
-        {selectedPlayers.length > 0 && (
-          <>
-            <div className="player-analytics-grid">
-              <PlayerFormChart players={selectedPlayers} cohortPlayers={players} />
-              <PlayerChampionPool players={selectedPlayers} />
-            </div>
-            <PlayerConsistencyStrip players={selectedPlayers} cohortPlayers={players} />
-          </>
-        )}
-      </section>
-
       {radarPlayers.length === 0 ? (
         <div className="empty-state">No players match the current filters.</div>
       ) : (
@@ -151,6 +165,23 @@ export default function Players() {
           })}
         </div>
       )}
+
+      <section ref={analyticsRef} className="player-analytics-section">
+        <PlayerDropdown
+          players={players}
+          selectedKeys={selectedPlayerKeys}
+          onChange={setSelectedPlayerKeys}
+        />
+        {selectedPlayers.length > 0 && (
+          <>
+            <div className="player-analytics-grid">
+              <PlayerFormChart players={selectedPlayers} cohortPlayers={players} />
+              <PlayerChampionPool players={selectedPlayers} />
+            </div>
+            <PlayerConsistencyStrip players={selectedPlayers} cohortPlayers={players} />
+          </>
+        )}
+      </section>
 
       <div className="players-table-toggle">
         <button type="button" className="btn" onClick={() => setShowTable((v) => !v)}>

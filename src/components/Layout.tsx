@@ -5,7 +5,7 @@ import AuthModal from './AuthModal'
 import { useDashboard } from '../context/DashboardContext'
 import { useAuth } from '../context/AuthContext'
 import { supabase } from '../lib/supabaseClient'
-import { NavLink, useLocation } from 'react-router-dom'
+import { Link, NavLink, useLocation } from 'react-router-dom'
 
 const nav = [
   { to: '/', label: 'Overview' },
@@ -14,6 +14,7 @@ const nav = [
   { to: '/champions', label: 'Champions' },
   { to: '/matchups', label: 'Matchups' },
   { to: '/nuckyai', label: 'nuckyAI' },
+  { to: '/faq', label: 'FAQ' },
 ]
 
 export default function Layout({ children }: { children: React.ReactNode }) {
@@ -30,12 +31,22 @@ export default function Layout({ children }: { children: React.ReactNode }) {
         if (mounted) setIsSubscribed(false)
         return
       }
-      const { data } = await supabase
+      const { data: profileData } = await supabase
         .from('profiles')
-        .select('is_subscribed')
+        .select('is_subscribed, plan')
         .eq('id', user.id)
         .maybeSingle()
-      if (mounted) setIsSubscribed(Boolean(data?.is_subscribed))
+
+      const { data: subData } = await supabase
+        .from('subscriptions')
+        .select('status')
+        .eq('user_id', user.id)
+        .in('status', ['active', 'trialing'])
+        .limit(1)
+
+      const hasActiveSub = Array.isArray(subData) && subData.length > 0
+      const isProProfile = Boolean(profileData?.is_subscribed) || String(profileData?.plan ?? '') === 'pro'
+      if (mounted) setIsSubscribed(isProProfile || hasActiveSub)
     }
     void loadSubscription()
     return () => {
@@ -84,7 +95,9 @@ export default function Layout({ children }: { children: React.ReactNode }) {
               <div className="flex items-center gap-2">
                 {user ? (
                   <>
-                    <span className="text-secondary text-xs">{user.email}</span>
+                    <Link className="text-secondary text-xs hover:text-[var(--accent)]" to="/profile">
+                      {user.email}
+                    </Link>
                     <button type="button" className="btn" onClick={() => signOut()}>
                       logout
                     </button>
@@ -126,8 +139,14 @@ export default function Layout({ children }: { children: React.ReactNode }) {
       </main>
 
       <footer className="app-footer">
-        <div className="app-footer-inner">
-          Data from Oracle&apos;s Elixir. Dashboard auto-refreshes daily.
+        <div className="app-footer-inner flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <span>Data from Oracle&apos;s Elixir. Dashboard auto-refreshes daily.</span>
+          <div className="text-[11px] text-[var(--text-tertiary)]">
+            c 2026 nucky -{' '}
+            <Link className="text-[var(--accent)] hover:underline" to="/private-policy">
+              Private Policy
+            </Link>
+          </div>
         </div>
       </footer>
 

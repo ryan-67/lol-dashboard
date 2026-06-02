@@ -12,6 +12,9 @@ import Teams from './pages/Teams'
 import Champions from './pages/Champions'
 import Matchups from './pages/Matchups'
 import NuckyAI from './pages/NuckyAI'
+import FAQ from './pages/FAQ'
+import PrivatePolicy from './pages/PrivatePolicy'
+import UserProfile from './pages/UserProfile'
 import AuthCallback from './pages/AuthCallback'
 import ResetPassword from './pages/ResetPassword'
 
@@ -75,6 +78,9 @@ function App() {
               <Route path="/champions" element={<Champions />} />
               <Route path="/matchups" element={<Matchups />} />
               <Route path="/nuckyai" element={<NuckyAI />} />
+              <Route path="/faq" element={<FAQ />} />
+              <Route path="/private-policy" element={<PrivatePolicy />} />
+              <Route path="/profile" element={<UserProfile />} />
               <Route path="/auth/callback" element={<AuthCallback />} />
               <Route path="/auth/reset-password" element={<ResetPassword />} />
             </Routes>
