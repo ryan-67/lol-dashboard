@@ -22,6 +22,7 @@ export default function AuthModal({ open, onClose }: AuthModalProps) {
 
   const [view, setView] = useState<AuthView>('signin')
   const [email, setEmail] = useState('')
+  const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
@@ -32,6 +33,7 @@ export default function AuthModal({ open, onClose }: AuthModalProps) {
 
   const resetForm = () => {
     setEmail('')
+    setUsername('')
     setPassword('')
     setConfirmPassword('')
     setError(null)
@@ -72,7 +74,7 @@ export default function AuthModal({ open, onClose }: AuthModalProps) {
     }
     setSubmitting(true)
     setError(null)
-    const { error: signUpError } = await signUpWithEmail(email, password)
+    const { error: signUpError } = await signUpWithEmail(email, password, username)
     setSubmitting(false)
     if (signUpError) {
       setError(signUpError)
@@ -156,6 +158,15 @@ export default function AuthModal({ open, onClose }: AuthModalProps) {
           <>
             <h2 className="card-title">create account</h2>
             <form className="flex flex-col gap-3 mt-4" onSubmit={handleSignUp}>
+              <input
+                type="text"
+                className={inputClass}
+                placeholder="username"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                required
+                autoComplete="username"
+              />
               <input
                 type="email"
                 className={inputClass}

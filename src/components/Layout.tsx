@@ -1,9 +1,10 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import TopBar from './TopBar'
 import AnimatedOutlet from './AnimatedOutlet'
 import AuthModal from './AuthModal'
 import { useDashboard } from '../context/DashboardContext'
 import { useAuth } from '../context/AuthContext'
+import { supabase } from '../lib/supabaseClient'
 import { NavLink, useLocation } from 'react-router-dom'
 
 const nav = [
@@ -12,13 +13,35 @@ const nav = [
   { to: '/teams', label: 'Teams' },
   { to: '/champions', label: 'Champions' },
   { to: '/matchups', label: 'Matchups' },
+  { to: '/nuckyai', label: 'nuckyAI' },
 ]
 
 export default function Layout({ children }: { children: React.ReactNode }) {
   const { loading, error } = useDashboard()
   const { user, loading: authLoading, signOut } = useAuth()
   const [showAuth, setShowAuth] = useState(false)
+  const [isSubscribed, setIsSubscribed] = useState(false)
   const location = useLocation()
+
+  useEffect(() => {
+    let mounted = true
+    async function loadSubscription() {
+      if (!user) {
+        if (mounted) setIsSubscribed(false)
+        return
+      }
+      const { data } = await supabase
+        .from('profiles')
+        .select('is_subscribed')
+        .eq('id', user.id)
+        .maybeSingle()
+      if (mounted) setIsSubscribed(Boolean(data?.is_subscribed))
+    }
+    void loadSubscription()
+    return () => {
+      mounted = false
+    }
+  }, [user])
 
   return (
     <div className="app-shell">
@@ -35,15 +58,35 @@ export default function Layout({ children }: { children: React.ReactNode }) {
           </div>
           <div className="flex flex-wrap items-center gap-3">
             <nav className="flex flex-wrap gap-1">
-              {nav.map((item) => (
-                <NavLink
-                  key={item.to}
-                  to={item.to + location.search}
-                  className={({ isActive }) => `nav-tab${isActive ? ' active' : ''}`}
-                >
-                  {item.label}
-                </NavLink>
-              ))}
+              {nav.map((item) => {
+                const isNuckyAi = item.to === '/nuckyai'
+                const blocked = isNuckyAi && !isSubscribed
+                if (blocked) {
+                  return (
+                    <div key={item.to} className="relative group">
+                      <button
+                        type="button"
+                        className="nav-tab opacity-50 cursor-not-allowed"
+                        onClick={(e) => e.preventDefault()}
+                      >
+                        {item.label}
+                      </button>
+                      <div className="pointer-events-none absolute top-full left-0 mt-1 hidden group-hover:block border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-2 py-1 text-[11px] text-[var(--text-secondary)] whitespace-nowrap z-50">
+                        nuckyAI is only available with a subscription
+                      </div>
+                    </div>
+                  )
+                }
+                return (
+                  <NavLink
+                    key={item.to}
+                    to={item.to + location.search}
+                    className={({ isActive }) => `nav-tab${isActive ? ' active' : ''}`}
+                  >
+                    {item.label}
+                  </NavLink>
+                )
+              })}
             </nav>
             {!authLoading && (
               <div className="flex items-center gap-2">

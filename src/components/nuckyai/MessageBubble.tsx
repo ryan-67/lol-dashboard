@@ -1,0 +1,266 @@
+import { useMemo, useState } from 'react'
+import {
+  Bar,
+  BarChart,
+  CartesianGrid,
+  Legend,
+  Line,
+  LineChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from 'recharts'
+import type { ChartPayload, MessageRow } from './types'
+import { CHART, CHART_TOOLTIP_PROPS } from '../../theme/chartTheme'
+
+interface MessageBubbleProps {
+  message: MessageRow
+  isAssistant: boolean
+  onRegenerate?: () => void
+}
+
+interface TextBlock {
+  type: 'text' | 'code' | 'chart'
+  content: string
+}
+
+function parseBlocks(content: string): TextBlock[] {
+  const blocks: TextBlock[] = []
+  const chartOrCode = /```(chart|[\w-]+)?\n([\s\S]*?)```/g
+  let last = 0
+  let match: RegExpExecArray | null
+
+  while ((match = chartOrCode.exec(content)) !== null) {
+    if (match.index > last) {
+      blocks.push({ type: 'text', content: content.slice(last, match.index) })
+    }
+    const lang = (match[1] ?? '').toLowerCase()
+    if (lang === 'chart') {
+      blocks.push({ type: 'chart', content: match[2].trim() })
+    } else {
+      blocks.push({ type: 'code', content: match[2].trim() })
+    }
+    last = match.index + match[0].length
+  }
+
+  if (last < content.length) {
+    blocks.push({ type: 'text', content: content.slice(last) })
+  }
+
+  return blocks.filter((b) => b.content.trim().length > 0)
+}
+
+function inlineBold(text: string): React.ReactNode[] {
+  const parts = text.split(/(\*\*.*?\*\*)/g)
+  return parts.map((part, idx) => {
+    if (part.startsWith('**') && part.endsWith('**')) {
+      return <strong key={`${part}-${idx}`}>{part.slice(2, -2)}</strong>
+    }
+    return <span key={`${part}-${idx}`}>{part}</span>
+  })
+}
+
+function renderText(content: string) {
+  const lines = content.trim().split('\n')
+  const nodes: React.ReactNode[] = []
+  let i = 0
+  while (i < lines.length) {
+    const line = lines[i]
+    if (/^\s*[-*]\s+/.test(line)) {
+      const items: string[] = []
+      while (i < lines.length && /^\s*[-*]\s+/.test(lines[i])) {
+        items.push(lines[i].replace(/^\s*[-*]\s+/, ''))
+        i += 1
+      }
+      nodes.push(
+        <ul key={`ul-${i}`} className="list-disc pl-5 my-2 text-sm text-[var(--text-primary)] space-y-1">
+          {items.map((item, idx) => (
+            <li key={`${item}-${idx}`}>{inlineBold(item)}</li>
+          ))}
+        </ul>,
+      )
+      continue
+    }
+    if (/^\s*\d+\.\s+/.test(line)) {
+      const items: string[] = []
+      while (i < lines.length && /^\s*\d+\.\s+/.test(lines[i])) {
+        items.push(lines[i].replace(/^\s*\d+\.\s+/, ''))
+        i += 1
+      }
+      nodes.push(
+        <ol key={`ol-${i}`} className="list-decimal pl-5 my-2 text-sm text-[var(--text-primary)] space-y-1">
+          {items.map((item, idx) => (
+            <li key={`${item}-${idx}`}>{inlineBold(item)}</li>
+          ))}
+        </ol>,
+      )
+      continue
+    }
+
+    if (line.trim()) {
+      nodes.push(
+        <p key={`p-${i}`} className="text-sm text-[var(--text-primary)] leading-6 mb-2">
+          {inlineBold(line)}
+        </p>,
+      )
+    } else {
+      nodes.push(<div key={`sp-${i}`} className="h-2" />)
+    }
+    i += 1
+  }
+  return nodes
+}
+
+function ChartBlock({ json }: { json: string }) {
+  const payload = useMemo(() => {
+    try {
+      return JSON.parse(json) as ChartPayload
+    } catch {
+      return null
+    }
+  }, [json])
+
+  if (!payload || !payload.labels?.length || !payload.datasets?.length) {
+    return (
+      <pre className="border border-[var(--border-subtle)] bg-[var(--bg-base)] p-3 text-xs text-[var(--text-secondary)] overflow-x-auto">
+        invalid chart payload
+      </pre>
+    )
+  }
+
+  const data = payload.labels.map((label, idx) => {
+    const row: Record<string, string | number> = { label }
+    payload.datasets.forEach((set) => {
+      row[set.label] = Number(set.data[idx] ?? 0)
+    })
+    return row
+  })
+
+  const colors = ['#c5a059', '#8c7340', '#9e8c7a', '#6a7a8c']
+
+  return (
+    <div className="border border-[var(--border-subtle)] bg-[var(--bg-base)] p-3 my-2">
+      <div className="text-xs text-[var(--text-secondary)] mb-2">{payload.title}</div>
+      <div className="h-64">
+        <ResponsiveContainer width="100%" height="100%">
+          {payload.type === 'line' ? (
+            <LineChart data={data} margin={{ top: 8, right: 12, left: 0, bottom: 8 }}>
+              <CartesianGrid stroke={CHART.grid} strokeDasharray="3 3" />
+              <XAxis
+                dataKey="label"
+                stroke={CHART.axis}
+                tick={{ fill: CHART.tick, fontSize: CHART.fontSize, fontFamily: CHART.fontFamily }}
+              />
+              <YAxis
+                stroke={CHART.axis}
+                tick={{ fill: CHART.tick, fontSize: CHART.fontSize, fontFamily: CHART.fontFamily }}
+              />
+              <Tooltip {...CHART_TOOLTIP_PROPS} />
+              <Legend />
+              {payload.datasets.map((set, idx) => (
+                <Line
+                  key={set.label}
+                  type="monotone"
+                  dataKey={set.label}
+                  stroke={colors[idx % colors.length]}
+                  dot={false}
+                />
+              ))}
+            </LineChart>
+          ) : (
+            <BarChart data={data} margin={{ top: 8, right: 12, left: 0, bottom: 8 }}>
+              <CartesianGrid stroke={CHART.grid} strokeDasharray="3 3" />
+              <XAxis
+                dataKey="label"
+                stroke={CHART.axis}
+                tick={{ fill: CHART.tick, fontSize: CHART.fontSize, fontFamily: CHART.fontFamily }}
+              />
+              <YAxis
+                stroke={CHART.axis}
+                tick={{ fill: CHART.tick, fontSize: CHART.fontSize, fontFamily: CHART.fontFamily }}
+              />
+              <Tooltip {...CHART_TOOLTIP_PROPS} />
+              <Legend />
+              {payload.datasets.map((set, idx) => (
+                <Bar
+                  key={set.label}
+                  dataKey={set.label}
+                  fill={colors[idx % colors.length]}
+                  stroke={colors[idx % colors.length]}
+                />
+              ))}
+            </BarChart>
+          )}
+        </ResponsiveContainer>
+      </div>
+    </div>
+  )
+}
+
+export default function MessageBubble({ message, isAssistant, onRegenerate }: MessageBubbleProps) {
+  const [copied, setCopied] = useState(false)
+  const blocks = useMemo(() => parseBlocks(message.content), [message.content])
+
+  const copy = async () => {
+    await navigator.clipboard.writeText(message.content)
+    setCopied(true)
+    window.setTimeout(() => setCopied(false), 1200)
+  }
+
+  return (
+    <div className={`w-full ${isAssistant ? '' : 'flex justify-end'}`}>
+      <div
+        className={`border px-3 py-2 max-w-[95%] md:max-w-[85%] ${
+          isAssistant
+            ? 'border-[var(--border-subtle)] bg-[var(--bg-surface)]'
+            : 'border-[var(--accent)] bg-[var(--accent-bg)]'
+        }`}
+      >
+        {blocks.map((block, idx) => {
+          if (block.type === 'text') {
+            return <div key={`t-${idx}`}>{renderText(block.content)}</div>
+          }
+          if (block.type === 'chart') {
+            return <ChartBlock key={`c-${idx}`} json={block.content} />
+          }
+          return (
+            <div key={`code-${idx}`} className="my-2 border border-[var(--border-subtle)] bg-[var(--bg-base)]">
+              <div className="flex justify-end border-b border-[var(--border-subtle)] px-2 py-1">
+                <button
+                  type="button"
+                  className="text-xs text-[var(--text-secondary)] hover:text-[var(--accent)]"
+                  onClick={() => navigator.clipboard.writeText(block.content)}
+                >
+                  copy
+                </button>
+              </div>
+              <pre className="p-3 overflow-x-auto text-xs text-[var(--text-primary)] whitespace-pre-wrap">
+                {block.content}
+              </pre>
+            </div>
+          )
+        })}
+
+        {isAssistant && (
+          <div className="mt-2 flex items-center gap-3 text-xs">
+            <button
+              type="button"
+              className="text-[var(--text-secondary)] hover:text-[var(--accent)]"
+              onClick={copy}
+            >
+              {copied ? 'copied' : 'copy'}
+            </button>
+            <button
+              type="button"
+              className="text-[var(--text-secondary)] hover:text-[var(--accent)]"
+              onClick={onRegenerate}
+            >
+              regenerate
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}

@@ -18,7 +18,11 @@ interface AuthContextValue {
   signInWithGoogle: () => Promise<void>
   signInWithDiscord: () => Promise<void>
   signInWithEmail: (email: string, password: string) => Promise<{ error: string | null }>
-  signUpWithEmail: (email: string, password: string) => Promise<{ error: string | null }>
+  signUpWithEmail: (
+    email: string,
+    password: string,
+    username: string,
+  ) => Promise<{ error: string | null }>
   resetPasswordForEmail: (email: string) => Promise<{ error: string | null }>
   signOut: () => Promise<void>
 }
@@ -64,13 +68,36 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return { error: error?.message ?? null }
   }, [])
 
-  const signUpWithEmail = useCallback(async (email: string, password: string) => {
-    const { error } = await supabase.auth.signUp({ email, password })
-    if (!error) {
-      window.alert('check your email to confirm your account')
-    }
-    return { error: error?.message ?? null }
-  }, [])
+  const signUpWithEmail = useCallback(
+    async (email: string, password: string, username: string) => {
+      const cleanUsername = username.trim()
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: { username: cleanUsername || null },
+        },
+      })
+
+      // Manual fallback in case handle_new_user trigger is missing.
+      if (!error && data.user) {
+        await supabase.from('profiles').upsert(
+          {
+            id: data.user.id,
+            username: cleanUsername || null,
+            avatar_url: null,
+          },
+          { onConflict: 'id' },
+        )
+      }
+
+      if (!error) {
+        window.alert('check your email to confirm your account')
+      }
+      return { error: error?.message ?? null }
+    },
+    [],
+  )
 
   const resetPasswordForEmail = useCallback(async (email: string) => {
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
