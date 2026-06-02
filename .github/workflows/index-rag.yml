@@ -1,8 +1,9 @@
-# Weekly RAG index: Liquipedia + patch notes → Supabase documents
+# Weekly RAG index: Liquipedia, patch notes, Reddit, Kalshi → Supabase documents
 #
 # Schedule: Monday 04:00 UTC. Manual: workflow_dispatch.
 #
 # Secrets: SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, OPENROUTER_API_KEY
+# Optional: KALSHI_API_KEY (Kalshi API key ID for market data requests)
 
 name: Index RAG Documents
 
@@ -38,4 +39,5 @@ jobs:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
           OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          KALSHI_API_KEY: ${{ secrets.KALSHI_API_KEY }}
         run: npm run index:rag

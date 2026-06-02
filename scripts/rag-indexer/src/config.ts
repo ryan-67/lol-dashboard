@@ -12,6 +12,29 @@ export const DRY_RUN = process.argv.includes('--dry-run')
 export const SUPABASE_URL = (process.env.SUPABASE_URL ?? '').trim().replace(/\/$/, '')
 export const SUPABASE_SERVICE_ROLE_KEY = (process.env.SUPABASE_SERVICE_ROLE_KEY ?? '').trim()
 export const OPENROUTER_API_KEY = (process.env.OPENROUTER_API_KEY ?? '').trim()
+export const KALSHI_API_KEY = (process.env.KALSHI_API_KEY ?? '').trim()
+
+export const REDDIT_SUBREDDIT = 'lolesports'
+export const REDDIT_USER_AGENT = 'web:nucky-rag-indexer:1.0 (+https://nucky.gg)'
+export const REDDIT_MIN_COMMENT_SCORE = 10
+export const REDDIT_MAX_THREADS = 40
+export const REDDIT_MAX_COMMENTS_PER_THREAD = 25
+export const REDDIT_LOOKBACK_DAYS = 21
+export const POST_MATCH_TITLE_RE = /post[- ]?match\s+discussion/i
+
+export const KALSHI_API_BASE = 'https://api.elections.kalshi.com/trade-api/v2'
+export const KALSHI_LOL_SERIES = [
+  'KXLOLGAME',
+  'KXLOLMAP',
+  'KXLOLTOTAL',
+  'KXLOLTOTALMAPS',
+] as const
+
+/** Kalshi market titles must match tier-1 pro patterns and avoid academy/college lines */
+export const KALSHI_TIER1_RE =
+  /\b(LCK|LPL|LEC|LCS|MSI|Worlds|First Stand|T1|Gen\.?G|Hanwha|KT Rolster|Dplus|DRX|Bilibili|Top Esports|Weibo|JD Gaming|G2 Esports|Fnatic|Team Liquid|Cloud9|FlyQuest|100 Thieves|Invictus|EDG|LNG)\b/i
+export const KALSHI_EXCLUDE_RE =
+  /\b(University|College|Academy|LTA |Hitpoint|Road Of Legends|eSuba|NightBirds|CCG Esports|Winthrop|PCIFIC|Misa Esports)\b/i
 
 export const EMBEDDING_MODEL = 'openai/text-embedding-3-small'
 export const EMBEDDING_DIM = 1536

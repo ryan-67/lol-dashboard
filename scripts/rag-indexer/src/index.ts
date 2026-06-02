@@ -1,7 +1,9 @@
 import { DRY_RUN } from './config.js'
 import { chunkPages } from './chunk.js'
 import { scrapeLiquipedia } from './scrapers/liquipedia.js'
+import { scrapeKalshiOdds } from './scrapers/kalshi.js'
 import { scrapePatchNotes } from './scrapers/patch-notes.js'
+import { scrapeRedditPostMatch } from './scrapers/reddit.js'
 import { dedupePages } from './utils/url.js'
 import type { ScrapedPage, TextChunk } from './types.js'
 import { pruneStaleChunks, upsertChunks } from './upsert.js'
@@ -47,8 +49,15 @@ async function main(): Promise<void> {
 
   const liquipediaPages = await scrapeLiquipedia()
   const patchPages = await scrapePatchNotes()
+  const redditPages = await scrapeRedditPostMatch()
+  const kalshiPages = await scrapeKalshiOdds()
 
-  const pages = dedupePages([...liquipediaPages, ...patchPages])
+  const pages = dedupePages([
+    ...liquipediaPages,
+    ...patchPages,
+    ...redditPages,
+    ...kalshiPages,
+  ])
   summarizePages('Scraped total', pages)
 
   const chunks = chunkPages(pages)

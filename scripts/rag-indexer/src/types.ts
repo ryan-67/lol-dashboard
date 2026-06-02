@@ -1,4 +1,4 @@
-export type DocumentSource = 'liquipedia' | 'patch_notes'
+export type DocumentSource = 'liquipedia' | 'patch_notes' | 'reddit' | 'kalshi'
 
 export interface ScrapedPage {
   source: DocumentSource

@@ -19,8 +19,19 @@ npm run index:rag:dry   # scrape + chunk only (no embed/upsert)
 
 ## Sources
 
-- **Liquipedia**: tier-1 Spring 2026 splits, team/player pages, recent match pages (API `action=parse`).
-- **Patch notes**: [Riot patch notes tag](https://www.leagueoflegends.com/en-us/news/tags/patch-notes/) from Patch 26.1+ (2026 Spring).
+- **Liquipedia**: tier-1 Spring splits, team/player pages, recent match pages (MediaWiki API)
+- **Patch notes**: [Riot patch notes tag](https://www.leagueoflegends.com/en-us/news/tags/patch-notes/) from Patch 26.1+ (2026 Spring)
+- **Reddit**: r/lolesports post-match discussion threads — top-level comments with score ≥ 10 (PullPush fallback if Reddit JSON is blocked)
+- **Kalshi**: open tier-1 LoL match odds from `KXLOLGAME` and related series ([Kalshi market data API](https://docs.kalshi.com/getting_started/quick_start_market_data))
+
+## Env vars
+
+| Variable | Required | Purpose |
+|----------|----------|---------|
+| `SUPABASE_URL` | yes | Upsert target |
+| `SUPABASE_SERVICE_ROLE_KEY` | yes | Upsert auth |
+| `OPENROUTER_API_KEY` | yes (full run) | Embeddings |
+| `KALSHI_API_KEY` | optional | Kalshi API key ID header (public market data works without it) |
 
 ## Idempotency
 
