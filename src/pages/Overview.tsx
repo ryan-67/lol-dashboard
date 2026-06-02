@@ -27,6 +27,7 @@ import {
   scatterWinRate,
   totalGamesInCohort,
 } from '../lib/championAnalytics'
+import { computeAggregateScore, normalizePosition, playersForRole, type RoleKey } from '../lib/playerRadar'
 import { CHART, roleColor as playerRoleColor } from '../theme/chartTheme'
 import AnimatedCounter from '../components/ui/AnimatedCounter'
 
@@ -225,10 +226,18 @@ export default function Overview() {
     [visibleChampionGroups, top10ChampionLabels],
   )
 
-  const hottestPlayers = useMemo(
-    () => [...filteredPlayers].sort((a, b) => b.kda - a.kda).slice(0, 10),
-    [filteredPlayers],
-  )
+  const playerPerformanceRows = useMemo(() => {
+    return filteredPlayers
+      .map((player) => {
+        const role = (normalizePosition(player.position) ?? 'mid') as RoleKey
+        const cohort = playersForRole(filteredPlayers, role)
+        const score = computeAggregateScore(player, role, cohort) * 100
+        return { ...player, role, performanceScore: score }
+      })
+      .sort((a, b) => b.performanceScore - a.performanceScore)
+  }, [filteredPlayers])
+
+  const hottestPlayers = useMemo(() => playerPerformanceRows.slice(0, 10), [playerPerformanceRows])
 
   const topChampionByPresence = useMemo(() => {
     const ranked = [...filteredChampions]
@@ -453,12 +462,17 @@ export default function Overview() {
               </div>
             </div>
             <div className="stat-tile">
-              <div className="stat-label">Highest KDA Player</div>
+              <div className="stat-label">Best Performing Player</div>
               <div className="stat-value">{hottestPlayers[0]?.name ?? 'N/A'}</div>
               <div className="stat-meta">
                 {hottestPlayers[0] ? (
                   <>
-                    <AnimatedCounter value={hottestPlayers[0].kda} decimals={2} suffix=" KDA" /> ·{' '}
+                    <AnimatedCounter
+                      value={hottestPlayers[0].performanceScore}
+                      decimals={1}
+                      suffix=" score"
+                    />{' '}
+                    ·{' '}
                     {hottestPlayers[0].team}
                   </>
                 ) : (
@@ -496,7 +510,7 @@ export default function Overview() {
                   <th>Player</th>
                   <th>Team</th>
                   <th>Position</th>
-                  <th>KDA</th>
+                  <th>Performance Score</th>
                   <th>Games</th>
                 </tr>
               </thead>
@@ -507,7 +521,7 @@ export default function Overview() {
                     <td className="font-medium">{player.name}</td>
                     <td className="text-secondary">{player.team}</td>
                     <td className="text-secondary uppercase">{player.position}</td>
-                    <td className="text-accent font-medium">{player.kda.toFixed(2)}</td>
+                    <td className="text-accent font-medium">{player.performanceScore.toFixed(1)}</td>
                     <td className="text-secondary">{player.games}</td>
                   </tr>
                 ))}
