@@ -59,6 +59,6 @@ export async function classifyIntent(apiKey: string, message: string): Promise<I
 
 export function pickFinalModel(plan: IntentPlan): string {
   return plan.complexity === "complex"
-    ? "anthropic/claude-3.5-sonnet"
+    ? "anthropic/claude-sonnet-4"
     : "google/gemini-1.5-flash";
 }
