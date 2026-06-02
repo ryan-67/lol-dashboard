@@ -60,15 +60,21 @@ export default function UserProfile() {
   const save = useCallback(async () => {
     if (!user) return
     setSaving(true)
+    const cleanUsername = username.trim()
     const payload = {
-      username: username.trim() || null,
+      id: user.id,
+      username: cleanUsername || null,
       favorite_player: favoritePlayer.trim() || null,
       favorite_team: favoriteTeam.trim() || null,
     }
-    const { error } = await supabase.from('profiles').update(payload).eq('id', user.id)
+    const { error } = await supabase.from('profiles').upsert(payload, { onConflict: 'id' })
     setSaving(false)
     if (error) {
-      setSavedMsg('save failed. try again.')
+      if (error.code === '23505') {
+        setSavedMsg('username already taken.')
+      } else {
+        setSavedMsg(`save failed: ${error.message}`)
+      }
       return
     }
     setSavedMsg('profile updated.')
