@@ -14,6 +14,80 @@ interface ChatRequestBody {
 }
 
 const encoder = new TextEncoder();
+const DAILY_LIMIT = 25;
+const MONTHLY_LIMIT = 750;
+const LOL_TOPIC_HINTS =
+  /\b(league of legends|lol|lck|lpl|lec|lcs|msi|worlds|t1|gen\.?g|faker|chovy|zeus|baron|dragon|summoner|riot|champion|draft|patch|meta|kalshi|liquipedia|oracle'?s elixir)\b/i;
+
+function getClientIp(req: Request): string {
+  const forwarded = req.headers.get("x-forwarded-for") ?? "";
+  const firstForwarded = forwarded.split(",")[0]?.trim();
+  return (
+    firstForwarded ||
+    req.headers.get("cf-connecting-ip") ||
+    req.headers.get("x-real-ip") ||
+    "unknown"
+  );
+}
+
+async function getUsageCounts(
+  serviceClient: ReturnType<typeof createServiceClient>,
+  userId: string,
+  ipAddress: string,
+): Promise<{ dailyUser: number; dailyIp: number; monthlyUser: number; monthlyIp: number }> {
+  const now = new Date();
+  const dailySince = new Date(now);
+  dailySince.setUTCHours(0, 0, 0, 0);
+  const monthlySince = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
+
+  const [dailyUserRes, dailyIpRes, monthlyUserRes, monthlyIpRes] = await Promise.all([
+    serviceClient
+      .from("agent_usage_events")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", userId)
+      .gte("created_at", dailySince.toISOString()),
+    serviceClient
+      .from("agent_usage_events")
+      .select("id", { count: "exact", head: true })
+      .eq("ip_address", ipAddress)
+      .gte("created_at", dailySince.toISOString()),
+    serviceClient
+      .from("agent_usage_events")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", userId)
+      .gte("created_at", monthlySince.toISOString()),
+    serviceClient
+      .from("agent_usage_events")
+      .select("id", { count: "exact", head: true })
+      .eq("ip_address", ipAddress)
+      .gte("created_at", monthlySince.toISOString()),
+  ]);
+
+  if (dailyUserRes.error || dailyIpRes.error || monthlyUserRes.error || monthlyIpRes.error) {
+    throw new Error("Failed to read usage limits");
+  }
+
+  return {
+    dailyUser: dailyUserRes.count ?? 0,
+    dailyIp: dailyIpRes.count ?? 0,
+    monthlyUser: monthlyUserRes.count ?? 0,
+    monthlyIp: monthlyIpRes.count ?? 0,
+  };
+}
+
+async function recordUsage(
+  serviceClient: ReturnType<typeof createServiceClient>,
+  userId: string,
+  ipAddress: string,
+): Promise<void> {
+  const { error } = await serviceClient.from("agent_usage_events").insert({
+    user_id: userId,
+    ip_address: ipAddress,
+  });
+  if (error) {
+    throw new Error(`Failed to record usage: ${error.message}`);
+  }
+}
 
 Deno.serve(async (req) => {
   const origin = req.headers.get("origin");
@@ -72,6 +146,7 @@ Deno.serve(async (req) => {
     });
   }
 
+  const ipAddress = getClientIp(req);
   let conversationId = "";
   let assistantText = "";
 
@@ -85,6 +160,20 @@ Deno.serve(async (req) => {
       } as WritableStreamDefaultWriter<Uint8Array>;
 
       try {
+        const usage = await getUsageCounts(serviceClient, user.id, ipAddress);
+        if (usage.dailyUser >= DAILY_LIMIT || usage.dailyIp >= DAILY_LIMIT) {
+          assistantText = "daily limit reached (25 requests). try again tomorrow.";
+          await streamFallback(writer, assistantText);
+          return;
+        }
+        if (usage.monthlyUser >= MONTHLY_LIMIT || usage.monthlyIp >= MONTHLY_LIMIT) {
+          assistantText = "monthly cap reached (750 requests). try again next month.";
+          await streamFallback(writer, assistantText);
+          return;
+        }
+
+        await recordUsage(serviceClient, user.id, ipAddress);
+
         const conversation = await resolveConversation(
           serviceClient,
           user.id,
@@ -98,6 +187,12 @@ Deno.serve(async (req) => {
             `data: ${JSON.stringify({ type: "metadata", conversation_id: conversationId })}\n\n`,
           ),
         );
+
+        if (!LOL_TOPIC_HINTS.test(message)) {
+          assistantText = "i cant help with that.";
+          await streamFallback(writer, assistantText);
+          return;
+        }
 
         const plan = await classifyIntent(openrouterApiKey, message, conversation.history);
 

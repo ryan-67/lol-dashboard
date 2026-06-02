@@ -5,7 +5,7 @@ const FAQ_ITEMS = [
   {
     question: 'what is nucky.gg?',
     answer:
-      'nucky.gg is a league of legends analytics dashboard focused on lck data, matchup context, and decision support for fast reads.',
+      'nucky.gg is a league of legends analytics dashboard focused on tier1 lolesports data, matchup context, and pro play insights.',
   },
   {
     question: 'how do i use the dashboard?',

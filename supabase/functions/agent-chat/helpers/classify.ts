@@ -102,6 +102,6 @@ export async function classifyIntent(
 
 export function pickFinalModel(plan: IntentPlan): string {
   return plan.complexity === "complex"
-    ? "anthropic/claude-sonnet-4"
+    ? "google/gemini-2.5-flash"
     : "google/gemini-1.5-flash";
 }

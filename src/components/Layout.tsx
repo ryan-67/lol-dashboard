@@ -33,7 +33,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
       }
       const { data: profileData } = await supabase
         .from('profiles')
-        .select('is_subscribed, plan')
+        .select('is_subscribed')
         .eq('id', user.id)
         .maybeSingle()
 
@@ -45,8 +45,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
         .limit(1)
 
       const hasActiveSub = Array.isArray(subData) && subData.length > 0
-      const isProProfile = Boolean(profileData?.is_subscribed) || String(profileData?.plan ?? '') === 'pro'
-      if (mounted) setIsSubscribed(isProProfile || hasActiveSub)
+      if (mounted) setIsSubscribed(Boolean(profileData?.is_subscribed) || hasActiveSub)
     }
     void loadSubscription()
     return () => {
@@ -71,7 +70,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
             <nav className="flex flex-wrap gap-1">
               {nav.map((item) => {
                 const isNuckyAi = item.to === '/nuckyai'
-                const blocked = isNuckyAi && !isSubscribed
+                const blocked = isNuckyAi && (!user || !isSubscribed)
                 return (
                   <div key={item.to} className="relative group">
                     <NavLink
@@ -140,9 +139,16 @@ export default function Layout({ children }: { children: React.ReactNode }) {
 
       <footer className="app-footer">
         <div className="app-footer-inner flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-          <span>Data from Oracle&apos;s Elixir. Dashboard auto-refreshes daily.</span>
+          <div className="flex flex-col gap-1">
+            <span>Data from Oracle&apos;s Elixir. Dashboard auto-refreshes daily.</span>
+            <span className="text-[10px] italic text-[var(--text-tertiary)] opacity-80">
+              nucky.gg is not endorsed by Riot Games. League of Legends and Riot Games are
+              trademarks or registered trademarks of Riot Games, Inc. League of Legends © Riot
+              Games, Inc.
+            </span>
+          </div>
           <div className="text-[11px] text-[var(--text-tertiary)]">
-            c 2026 nucky -{' '}
+            © 2026 nucky -{' '}
             <Link className="text-[var(--accent)] hover:underline" to="/private-policy">
               Private Policy
             </Link>
