@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useGSAP } from '@gsap/react'
 import { useSearchParams } from 'react-router-dom'
+import { startStripeCheckout } from '../../lib/billing'
 import { supabase } from '../../lib/supabaseClient'
 import { scrollEntrance } from '../../theme/animations'
 import { useAuth } from '../../context/AuthContext'
@@ -190,28 +191,8 @@ export default function NuckyAIContainer() {
     if (!user) return
     setCheckoutLoading(true)
     try {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession()
-      const functionBase = (import.meta.env.VITE_SUPABASE_URL ?? '').trim().replace(/\/$/, '')
-      const priceId = (import.meta.env.VITE_STRIPE_PRICE_ID ?? '').trim()
-      if (!priceId) {
-        throw new Error('missing VITE_STRIPE_PRICE_ID')
-      }
-      const response = await fetch(`${functionBase}/functions/v1/stripe-checkout`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}),
-        },
-        body: JSON.stringify({ price_id: priceId }),
-      })
-      if (!response.ok) {
-        throw new Error(`checkout failed (${response.status})`)
-      }
-      const payload = (await response.json()) as { url?: string }
-      if (!payload.url) throw new Error('missing checkout url')
-      window.location.assign(payload.url)
+      const url = await startStripeCheckout()
+      window.location.assign(url)
     } catch {
       setToast('checkout failed. try again.')
     } finally {

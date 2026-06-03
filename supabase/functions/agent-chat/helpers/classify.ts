@@ -1,4 +1,5 @@
 import { CLASSIFICATION_SYSTEM_PROMPT } from "./prompts.ts";
+import { MODEL_COMPLEX, MODEL_JSON, MODEL_SIMPLE } from "./models.ts";
 import { completeOnce, type OpenRouterChatMessage } from "./openrouter.ts";
 
 export interface IntentPlan {
@@ -71,7 +72,7 @@ export async function classifyIntent(
   }
 
   try {
-    const model = "google/gemini-1.5-flash";
+    const model = MODEL_JSON;
     const prompt: OpenRouterChatMessage[] = [
       { role: "system", content: CLASSIFICATION_SYSTEM_PROMPT },
       { role: "user", content: message },
@@ -101,7 +102,5 @@ export async function classifyIntent(
 }
 
 export function pickFinalModel(plan: IntentPlan): string {
-  return plan.complexity === "complex"
-    ? "google/gemini-2.5-flash"
-    : "google/gemini-1.5-flash";
+  return plan.complexity === "complex" ? MODEL_COMPLEX : MODEL_SIMPLE;
 }

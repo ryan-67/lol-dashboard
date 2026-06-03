@@ -8,15 +8,13 @@ import {
 } from 'react'
 import type { User } from '@supabase/supabase-js'
 import { supabase } from '../lib/supabaseClient'
-
-const OAUTH_REDIRECT_TO = 'https://nucky.gg/auth/callback'
-const RESET_PASSWORD_REDIRECT_TO = 'https://nucky.gg/auth/reset-password'
+import { getAuthRedirectUrl } from '../lib/authRedirect'
 
 interface AuthContextValue {
   user: User | null
   loading: boolean
-  signInWithGoogle: () => Promise<void>
-  signInWithDiscord: () => Promise<void>
+  signInWithGoogle: () => Promise<{ error: string | null }>
+  signInWithDiscord: () => Promise<{ error: string | null }>
   signInWithEmail: (email: string, password: string) => Promise<{ error: string | null }>
   signUpWithEmail: (
     email: string,
@@ -50,17 +48,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const signInWithGoogle = useCallback(async () => {
-    await supabase.auth.signInWithOAuth({
+    const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
-      options: { redirectTo: OAUTH_REDIRECT_TO },
+      options: { redirectTo: getAuthRedirectUrl('/auth/callback') },
     })
+    return { error: error?.message ?? null }
   }, [])
 
   const signInWithDiscord = useCallback(async () => {
-    await supabase.auth.signInWithOAuth({
+    const { error } = await supabase.auth.signInWithOAuth({
       provider: 'discord',
-      options: { redirectTo: OAUTH_REDIRECT_TO },
+      options: { redirectTo: getAuthRedirectUrl('/auth/callback') },
     })
+    return { error: error?.message ?? null }
   }, [])
 
   const signInWithEmail = useCallback(async (email: string, password: string) => {
@@ -101,7 +101,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const resetPasswordForEmail = useCallback(async (email: string) => {
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: RESET_PASSWORD_REDIRECT_TO,
+      redirectTo: getAuthRedirectUrl('/auth/reset-password'),
     })
     if (!error) {
       window.alert('password reset link sent, check your email')

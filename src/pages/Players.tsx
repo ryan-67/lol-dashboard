@@ -20,7 +20,7 @@ import PlayerFormChart from '../components/players/PlayerFormChart'
 import PlayerChampionPool from '../components/players/PlayerChampionPool'
 import PlayerConsistencyStrip from '../components/players/PlayerConsistencyStrip'
 import SortableTh from '../components/ui/SortableTh'
-import { findDefaultPlayerKey, playerKey } from '../lib/playerAnalytics'
+import { playerKey, resolveDefaultPlayerKey } from '../lib/playerAnalytics'
 import { scrollEntranceStagger, refreshScrollTrigger } from '../theme/animations'
 import { supabase } from '../lib/supabaseClient'
 
@@ -58,12 +58,15 @@ export default function Players() {
   const analyticsRef = useRef<HTMLDivElement>(null)
   const [favoritePlayerName, setFavoritePlayerName] = useState<string | null>(null)
   const [favoriteTeamName, setFavoriteTeamName] = useState<string | null>(null)
+  const [favoritesLoaded, setFavoritesLoaded] = useState(false)
+  const userPickedRef = useRef(false)
 
   useEffect(() => {
     async function loadProfileDefaults() {
       if (!user) {
         setFavoritePlayerName(null)
         setFavoriteTeamName(null)
+        setFavoritesLoaded(true)
         return
       }
       const { data } = await supabase
@@ -73,26 +76,27 @@ export default function Players() {
         .maybeSingle()
       setFavoritePlayerName((data?.favorite_player as string | null) ?? null)
       setFavoriteTeamName((data?.favorite_team as string | null) ?? null)
+      setFavoritesLoaded(true)
     }
+    setFavoritesLoaded(false)
     void loadProfileDefaults()
   }, [user])
 
   useEffect(() => {
+    userPickedRef.current = false
+  }, [favoritePlayerName, favoriteTeamName])
+
+  useEffect(() => {
+    if (!favoritesLoaded || !players.length) return
+
     setSelectedPlayerKeys((prev) => {
       const valid = prev.filter((key) => players.some((p) => playerKey(p) === key))
-      if (valid.length) return valid
-      if (favoritePlayerName) {
-        const favorite = players.find((player) => {
-          if (player.name !== favoritePlayerName) return false
-          if (!favoriteTeamName) return true
-          return player.team === favoriteTeamName
-        })
-        if (favorite) return [playerKey(favorite)]
-      }
-      const defaultKey = findDefaultPlayerKey(players)
+      if (userPickedRef.current && valid.length) return valid
+
+      const defaultKey = resolveDefaultPlayerKey(players, favoritePlayerName, favoriteTeamName)
       return defaultKey ? [defaultKey] : []
     })
-  }, [favoritePlayerName, favoriteTeamName, players])
+  }, [favoritePlayerName, favoriteTeamName, favoritesLoaded, players])
 
   const selectedPlayers = useMemo(
     () =>
@@ -170,7 +174,12 @@ export default function Players() {
         <PlayerDropdown
           players={players}
           selectedKeys={selectedPlayerKeys}
-          onChange={setSelectedPlayerKeys}
+          favoritePlayerName={favoritePlayerName}
+          favoriteTeamName={favoriteTeamName}
+          onChange={(keys) => {
+            userPickedRef.current = true
+            setSelectedPlayerKeys(keys)
+          }}
         />
         {selectedPlayers.length > 0 && (
           <>

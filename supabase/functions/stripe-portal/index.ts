@@ -25,7 +25,9 @@ function corsHeaders(origin: string | null) {
 Deno.serve(async (req) => {
   const cors = corsHeaders(req.headers.get("origin"));
   if (req.method === "OPTIONS") return new Response(null, { headers: cors });
-  if (req.method !== "POST") return new Response(JSON.stringify({ error: "Method not allowed" }), { status: 405, headers: cors });
+  if (req.method !== "POST") {
+    return new Response(JSON.stringify({ error: "Method not allowed" }), { status: 405, headers: cors });
+  }
 
   try {
     if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY || !STRIPE_SECRET_KEY) {
@@ -47,43 +49,42 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: cors });
     }
 
-    const body = await req.json().catch(() => ({} as { price_id?: string }));
-    const priceId = String(body?.price_id ?? "").trim();
-    if (!priceId) {
-      return new Response(JSON.stringify({ error: "price_id is required" }), { status: 400, headers: cors });
-    }
-
-    const customers = await stripe.customers.list({
-      email: user.email,
-      limit: 1,
+    const serviceClient = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
+      auth: { persistSession: false, autoRefreshToken: false },
     });
-    let customerId = customers.data[0]?.id;
+
+    const { data: subRow } = await serviceClient
+      .from("subscriptions")
+      .select("stripe_customer_id")
+      .eq("user_id", user.id)
+      .not("stripe_customer_id", "is", null)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    let customerId = subRow?.stripe_customer_id as string | undefined;
 
     if (!customerId) {
-      const created = await stripe.customers.create({
-        email: user.email,
-        metadata: { user_id: user.id },
-      });
-      customerId = created.id;
+      const customers = await stripe.customers.list({ email: user.email, limit: 1 });
+      customerId = customers.data[0]?.id;
     }
 
-    const session = await stripe.checkout.sessions.create({
-      mode: "subscription",
+    if (!customerId) {
+      return new Response(JSON.stringify({ error: "No billing account found" }), { status: 404, headers: cors });
+    }
+
+    const body = await req.json().catch(() => ({} as { return_url?: string }));
+    const returnUrl = String(body?.return_url ?? "https://nucky.gg/profile").trim();
+
+    const portalSession = await stripe.billingPortal.sessions.create({
       customer: customerId,
-      client_reference_id: user.id,
-      line_items: [{ price: priceId, quantity: 1 }],
-      allow_promotion_codes: true,
-      success_url: "https://nucky.gg/nuckyai?checkout=success&session_id={CHECKOUT_SESSION_ID}",
-      cancel_url: "https://nucky.gg/nuckyai?checkout=cancel",
+      return_url: returnUrl,
     });
 
-    return new Response(JSON.stringify({ sessionId: session.id, url: session.url }), {
-      status: 200,
-      headers: cors,
-    });
+    return new Response(JSON.stringify({ url: portalSession.url }), { status: 200, headers: cors });
   } catch (error) {
     return new Response(
-      JSON.stringify({ error: error instanceof Error ? error.message : "Checkout creation failed" }),
+      JSON.stringify({ error: error instanceof Error ? error.message : "Portal creation failed" }),
       { status: 500, headers: cors },
     );
   }

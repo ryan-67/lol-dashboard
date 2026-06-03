@@ -51,6 +51,17 @@ export default function AuthModal({ open, onClose }: AuthModalProps) {
     onClose()
   }
 
+  const handleOAuth = async (provider: 'google' | 'discord') => {
+    setSubmitting(true)
+    setError(null)
+    const { error: oauthError } =
+      provider === 'google' ? await signInWithGoogle() : await signInWithDiscord()
+    setSubmitting(false)
+    if (oauthError) {
+      setError(oauthError)
+    }
+  }
+
   const handleSignIn = async (e: FormEvent) => {
     e.preventDefault()
     setSubmitting(true)
@@ -150,7 +161,11 @@ export default function AuthModal({ open, onClose }: AuthModalProps) {
                 forgot password?
               </button>
             </p>
-            <OAuthSection onGoogle={signInWithGoogle} onDiscord={signInWithDiscord} />
+            <OAuthSection
+              disabled={submitting}
+              onGoogle={() => handleOAuth('google')}
+              onDiscord={() => handleOAuth('discord')}
+            />
           </>
         )}
 
@@ -205,7 +220,11 @@ export default function AuthModal({ open, onClose }: AuthModalProps) {
                 sign in
               </button>
             </p>
-            <OAuthSection onGoogle={signInWithGoogle} onDiscord={signInWithDiscord} />
+            <OAuthSection
+              disabled={submitting}
+              onGoogle={() => handleOAuth('google')}
+              onDiscord={() => handleOAuth('discord')}
+            />
           </>
         )}
 
@@ -248,18 +267,20 @@ export default function AuthModal({ open, onClose }: AuthModalProps) {
 function OAuthSection({
   onGoogle,
   onDiscord,
+  disabled = false,
 }: {
   onGoogle: () => Promise<void>
   onDiscord: () => Promise<void>
+  disabled?: boolean
 }) {
   return (
     <div className="mt-6">
       <p className="text-secondary text-xs text-center mb-3">or continue with</p>
       <div className="flex gap-2">
-        <button type="button" className="btn flex-1" onClick={() => onGoogle()}>
+        <button type="button" className="btn flex-1" disabled={disabled} onClick={() => onGoogle()}>
           google
         </button>
-        <button type="button" className="btn flex-1" onClick={() => onDiscord()}>
+        <button type="button" className="btn flex-1" disabled={disabled} onClick={() => onDiscord()}>
           discord
         </button>
       </div>

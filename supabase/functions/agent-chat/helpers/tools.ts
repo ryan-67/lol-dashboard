@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { MODEL_JSON } from "./models.ts";
 import { embedText, completeOnce } from "./openrouter.ts";
 import { SQL_GENERATION_SYSTEM_PROMPT, schemaContext } from "./prompts.ts";
 
@@ -81,7 +82,7 @@ async function generateSql(
   schema: string,
 ): Promise<string> {
   const response = await completeOnce(apiKey, {
-    model: "google/gemini-1.5-flash",
+    model: MODEL_JSON,
     messages: [
       { role: "system", content: SQL_GENERATION_SYSTEM_PROMPT },
       { role: "user", content: `${schema}\n\nQuestion: ${question}` },

@@ -19,6 +19,39 @@ export function playerKey(player: Player): string {
   return `${player.name}|${player.team}|${player.league}`
 }
 
+function normalizeTeamName(value: string): string {
+  return value.toLowerCase().replace(/[^a-z0-9]/g, '')
+}
+
+function teamsMatch(playerTeam: string, favoriteTeam: string): boolean {
+  const playerNorm = normalizeTeamName(playerTeam)
+  const favoriteNorm = normalizeTeamName(favoriteTeam)
+  if (!playerNorm || !favoriteNorm) return false
+  return playerNorm === favoriteNorm || playerNorm.includes(favoriteNorm) || favoriteNorm.includes(playerNorm)
+}
+
+export function resolveDefaultPlayerKey(
+  players: Player[],
+  favoritePlayer?: string | null,
+  favoriteTeam?: string | null,
+): string | null {
+  const favoriteName = favoritePlayer?.trim()
+  if (favoriteName) {
+    const favoriteTeamName = favoriteTeam?.trim() ?? ''
+    const exact = players.find((player) => {
+      if (player.name !== favoriteName) return false
+      if (!favoriteTeamName) return true
+      return teamsMatch(player.team ?? '', favoriteTeamName)
+    })
+    if (exact) return playerKey(exact)
+
+    const byName = players.find((player) => player.name === favoriteName)
+    if (byName) return playerKey(byName)
+  }
+
+  return findDefaultPlayerKey(players)
+}
+
 export function findDefaultPlayerKey(players: Player[]): string | null {
   const canyon = players.find(
     (p) =>

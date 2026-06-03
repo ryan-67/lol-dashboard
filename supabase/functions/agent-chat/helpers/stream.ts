@@ -1,11 +1,12 @@
 import type { IntentPlan } from "./classify.ts";
+import { MODEL_COMPLEX_FALLBACK } from "./models.ts";
 import { openRouterStream } from "./openrouter.ts";
 
 function sseLine(payload: string): string {
   return `data: ${payload}\n\n`;
 }
 
-export async function streamFinalAnswer(args: {
+async function streamWithModel(args: {
   apiKey: string;
   model: string;
   messages: Array<{ role: "system" | "user" | "assistant"; content: string }>;
@@ -58,6 +59,24 @@ export async function streamFinalAnswer(args: {
 
   await args.writer.write(encoder.encode(sseLine("[DONE]")));
   return fullText;
+}
+
+export async function streamFinalAnswer(args: {
+  apiKey: string;
+  model: string;
+  messages: Array<{ role: "system" | "user" | "assistant"; content: string }>;
+  plan: IntentPlan;
+  onToken?: (token: string) => void;
+  writer: WritableStreamDefaultWriter<Uint8Array>;
+}): Promise<string> {
+  try {
+    return await streamWithModel(args, args.model);
+  } catch (err) {
+    if (args.plan.complexity === "complex" && args.model !== MODEL_COMPLEX_FALLBACK) {
+      return await streamWithModel(args, MODEL_COMPLEX_FALLBACK);
+    }
+    throw err;
+  }
 }
 
 export async function streamFallback(

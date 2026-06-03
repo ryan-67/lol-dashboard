@@ -1,14 +1,22 @@
 import { useMemo, useState } from 'react'
 import type { Player } from '../../hooks/useDashboardData'
-import { findDefaultPlayerKey, playerKey } from '../../lib/playerAnalytics'
+import { resolveDefaultPlayerKey, playerKey } from '../../lib/playerAnalytics'
 
 interface PlayerDropdownProps {
   players: Player[]
   selectedKeys: string[]
+  favoritePlayerName?: string | null
+  favoriteTeamName?: string | null
   onChange: (keys: string[]) => void
 }
 
-export default function PlayerDropdown({ players, selectedKeys, onChange }: PlayerDropdownProps) {
+export default function PlayerDropdown({
+  players,
+  selectedKeys,
+  favoritePlayerName,
+  favoriteTeamName,
+  onChange,
+}: PlayerDropdownProps) {
   const [open, setOpen] = useState(false)
 
   const options = useMemo(
@@ -65,7 +73,7 @@ export default function PlayerDropdown({ players, selectedKeys, onChange }: Play
               type="button"
               className="btn btn-ghost"
               onClick={() => {
-                const defaultKey = findDefaultPlayerKey(players)
+                const defaultKey = resolveDefaultPlayerKey(players, favoritePlayerName, favoriteTeamName)
                 onChange(defaultKey ? [defaultKey] : [])
               }}
             >
