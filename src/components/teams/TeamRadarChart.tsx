@@ -18,9 +18,10 @@ import { CHART } from '../../theme/chartTheme'
 interface TeamRadarChartProps {
   team: Team
   cohort: Team[]
+  highlighted?: boolean
 }
 
-export default function TeamRadarChart({ team, cohort }: TeamRadarChartProps) {
+export default function TeamRadarChart({ team, cohort, highlighted = false }: TeamRadarChartProps) {
   const chartRef = useRef<HTMLDivElement>(null)
   const color = leagueColor(team.league)
   const data = buildTeamRadarSeries(team, cohort)
@@ -49,7 +50,7 @@ export default function TeamRadarChart({ team, cohort }: TeamRadarChartProps) {
   )
 
   return (
-    <div className="radar-card">
+    <div className={`radar-card${highlighted ? ' radar-card-favorite' : ''}`}>
       <div className="radar-card-header">
         <h3 className="radar-card-title">{team.name}</h3>
         <p className="radar-card-subtitle">

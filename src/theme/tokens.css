@@ -963,12 +963,132 @@ b,
   margin-top: var(--component-gap);
 }
 
-.team-multi-select-wrap {
+.team-compare-picker {
+  position: relative;
   min-width: 280px;
+  flex: 1;
 }
 
-.team-multi-select {
-  min-height: 88px;
+.team-compare-picker-trigger {
+  width: 100%;
+  text-align: left;
+}
+
+.team-compare-picker-panel {
+  position: absolute;
+  z-index: 40;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  min-width: 300px;
+  max-width: min(420px, 100vw - 32px);
+  display: flex;
+  flex-direction: column;
+  max-height: min(360px, 50vh);
+  overflow: hidden;
+  padding: 12px;
+}
+
+.team-compare-picker-actions {
+  display: flex;
+  flex-shrink: 0;
+  gap: 8px;
+  margin-bottom: 12px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.team-compare-picker-scroll {
+  flex: 1;
+  min-height: 0;
+  max-height: min(280px, calc(50vh - 72px));
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+}
+
+.team-compare-picker-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.team-compare-picker-option {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 8px 4px;
+  font-size: 12px;
+  color: var(--text-primary);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.team-compare-picker-option:hover {
+  color: var(--accent);
+}
+
+.team-compare-picker-option.is-selected {
+  color: var(--accent);
+  font-weight: 500;
+}
+
+.radar-card-favorite {
+  border-color: rgba(197, 160, 89, 0.55);
+  box-shadow: 0 0 0 1px rgba(197, 160, 89, 0.28);
+  background-color: rgba(197, 160, 89, 0.05);
+}
+
+.radar-grid-favorite-center {
+  display: grid;
+  grid-template-columns: 1fr minmax(0, 1.15fr) 1fr;
+  grid-template-rows: auto auto auto;
+  gap: var(--component-gap);
+  margin-bottom: var(--section-gap);
+  align-items: stretch;
+}
+
+.radar-card-slot-top {
+  grid-column: 2;
+  grid-row: 1;
+}
+
+.radar-card-slot-left {
+  grid-column: 1;
+  grid-row: 2;
+}
+
+.radar-card-slot-center {
+  grid-column: 2;
+  grid-row: 2;
+}
+
+.radar-card-slot-right {
+  grid-column: 3;
+  grid-row: 2;
+}
+
+.radar-card-slot-bottom {
+  grid-column: 2;
+  grid-row: 3;
+}
+
+@media (max-width: 900px) {
+  .radar-grid-favorite-center {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto;
+  }
+
+  .radar-card-slot-top,
+  .radar-card-slot-left,
+  .radar-card-slot-center,
+  .radar-card-slot-right,
+  .radar-card-slot-bottom {
+    grid-column: 1;
+    grid-row: auto;
+  }
 }
 
 /* Champions tab */

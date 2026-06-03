@@ -1,4 +1,5 @@
 import type { Team } from '../hooks/useDashboardData'
+import { TIER1_LEAGUES } from './mergeSlices'
 
 export type TeamScope = 'top' | 'all'
 
@@ -232,6 +233,47 @@ export function teamsForScope(teams: Team[], scope: TeamScope): Team[] {
 
 export function defaultCompareKeys(teams: Team[], scope: TeamScope): string[] {
   return teamsForScope(teams, scope).map(teamKey)
+}
+
+export function bestTeamPerTier1League(teams: Team[]): Team[] {
+  const tier1 = teams.filter((t) => (TIER1_LEAGUES as readonly string[]).includes(t.league))
+  return bestTeamPerLeague(tier1)
+}
+
+export function findTeamByName(teams: Team[], name: string | null | undefined): Team | null {
+  const trimmed = name?.trim()
+  if (!trimmed) return null
+  return (
+    teams.find((t) => t.name === trimmed) ??
+    teams.find((t) => t.name.toLowerCase() === trimmed.toLowerCase()) ??
+    null
+  )
+}
+
+export interface FavoriteCenterLayout {
+  center: Team | null
+  surrounding: Team[]
+}
+
+export function buildFavoriteCenterLayout(
+  teams: Team[],
+  favoriteName: string | null | undefined,
+): FavoriteCenterLayout {
+  return {
+    center: findTeamByName(teams, favoriteName),
+    surrounding: bestTeamPerTier1League(teams),
+  }
+}
+
+const TIER1_SLOT_BY_LEAGUE: Record<string, 'top' | 'left' | 'right' | 'bottom'> = {
+  LCK: 'top',
+  LEC: 'left',
+  LPL: 'right',
+  LCS: 'bottom',
+}
+
+export function tier1LeagueSlot(league: string): 'top' | 'left' | 'right' | 'bottom' | null {
+  return TIER1_SLOT_BY_LEAGUE[league] ?? null
 }
 
 /** Muted comparison palette — distinct from matte gold UI chrome */

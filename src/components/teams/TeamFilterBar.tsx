@@ -1,11 +1,6 @@
-import type { ChangeEvent } from 'react'
 import type { Team } from '../../hooks/useDashboardData'
-import {
-  defaultCompareKeys,
-  teamKey,
-  type TeamScope,
-  teamsForScope,
-} from '../../lib/teamAnalytics'
+import { defaultCompareKeys, type TeamScope, teamsForScope } from '../../lib/teamAnalytics'
+import TeamComparePicker from './TeamComparePicker'
 
 interface TeamFilterBarProps {
   teams: Team[]
@@ -23,11 +18,6 @@ export default function TeamFilterBar({
   onCompareChange,
 }: TeamFilterBarProps) {
   const scopeTeams = teamsForScope(teams, scope)
-
-  const handleSelect = (e: ChangeEvent<HTMLSelectElement>) => {
-    const selected = Array.from(e.target.selectedOptions).map((o) => o.value)
-    onCompareChange(selected)
-  }
 
   const useTopDefaults = () => {
     onScopeChange('top')
@@ -56,28 +46,7 @@ export default function TeamFilterBar({
       </div>
 
       <div className="team-compare-row">
-        <label className="label-field" htmlFor="team-compare-select">
-          Compare Teams
-        </label>
-        <div className="select-wrap select-wide team-multi-select-wrap">
-          <select
-            id="team-compare-select"
-            multiple
-            value={compareKeys}
-            onChange={handleSelect}
-            className="team-multi-select"
-            aria-label="Compare teams"
-          >
-            {scopeTeams.map((t) => {
-              const key = teamKey(t)
-              return (
-                <option key={key} value={key}>
-                  {t.name} ({t.league}) — {t.winrate.toFixed(1)}% WR
-                </option>
-              )
-            })}
-          </select>
-        </div>
+        <TeamComparePicker teams={scopeTeams} selectedKeys={compareKeys} onChange={onCompareChange} />
         <button type="button" className="btn" onClick={useTopDefaults}>
           Top Per League
         </button>
@@ -86,11 +55,11 @@ export default function TeamFilterBar({
         </button>
       </div>
       <p className="card-subtitle" style={{ marginBottom: 0 }}>
-        {compareKeys.length >= 2
-          ? 'Comparison overlay active — select 2+ teams to compare on one radar.'
+        {compareKeys.length >= 1
+          ? 'Comparison overlay active — click teams in the list to add or remove.'
           : scope === 'top'
-            ? 'Showing best team per league. Select teams to compare.'
-            : 'All teams in filter. Select 2+ teams to compare on one radar.'}
+            ? 'Top team per tier-1 league around your favorite team (center).'
+            : 'All teams in filter. Click teams to compare on one radar.'}
       </p>
     </div>
   )
