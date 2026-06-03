@@ -50,7 +50,7 @@ export default function FAQ() {
       </section>
 
       <section className="card">
-        <h3 className="text-sm text-[var(--accent)] mb-2">about</h3>
+        <h3 className="text-sm text-[var(--text-primary)] mb-2">about</h3>
         <p className="text-sm text-[var(--text-secondary)] leading-6">{ABOUT_TEXT}</p>
       </section>
 
