@@ -26,6 +26,7 @@ export default function NuckyAIContainer() {
     searchParams.get('conversation_id'),
   )
   const suppressLoadRef = useRef(false)
+  const loadedConversationRef = useRef<string | null>(null)
   const { streaming, sendMessage } = useAgentChat()
 
   useGSAP(() => {
@@ -60,7 +61,7 @@ export default function NuckyAIContainer() {
   }, [user])
 
   const loadMessages = useCallback(
-    async (conversationId: string) => {
+    async (conversationId: string, opts?: { mergeLocal?: boolean }) => {
       if (!user) return
       const { data } = await supabase
         .from('messages')
@@ -68,7 +69,22 @@ export default function NuckyAIContainer() {
         .eq('user_id', user.id)
         .eq('conversation_id', conversationId)
         .order('created_at', { ascending: true })
-      setMessages((data as MessageRow[] | null) ?? [])
+      const rows = (data as MessageRow[] | null) ?? []
+
+      if (opts?.mergeLocal) {
+        setMessages((prev) => {
+          if (!prev.length) return rows
+          const localAssistant = [...prev].reverse().find((m) => m.role === 'assistant')
+          const remoteAssistant = [...rows].reverse().find((m) => m.role === 'assistant')
+          const localLen = localAssistant?.content.length ?? 0
+          const remoteLen = remoteAssistant?.content.length ?? 0
+          if (localLen >= remoteLen) return prev
+          return rows
+        })
+        return
+      }
+
+      setMessages(rows)
     },
     [user],
   )
@@ -103,13 +119,12 @@ export default function NuckyAIContainer() {
   }, [searchParams, activeConversationId])
 
   useEffect(() => {
-    if (!activeConversationId) {
-      if (!suppressLoadRef.current) setMessages([])
-      return
-    }
-    if (suppressLoadRef.current || streaming) return
+    if (!activeConversationId) return
+    if (suppressLoadRef.current) return
+    if (loadedConversationRef.current === activeConversationId) return
+    loadedConversationRef.current = activeConversationId
     void loadMessages(activeConversationId)
-  }, [activeConversationId, loadMessages, streaming])
+  }, [activeConversationId, loadMessages])
 
   const send = useCallback(
     (message: string) => {
@@ -127,6 +142,7 @@ export default function NuckyAIContainer() {
         league,
         split,
         onMetadata: (conversationId) => {
+          loadedConversationRef.current = conversationId
           setActiveConversationId(conversationId)
           const next = new URLSearchParams(searchParams)
           next.set('conversation_id', conversationId)
@@ -147,6 +163,10 @@ export default function NuckyAIContainer() {
         onDone: () => {
           suppressLoadRef.current = false
           void loadConversations()
+          const conversationId = loadedConversationRef.current
+          if (conversationId) {
+            void loadMessages(conversationId, { mergeLocal: true })
+          }
         },
         onError: (err) => {
           suppressLoadRef.current = false
@@ -181,6 +201,7 @@ export default function NuckyAIContainer() {
 
   const beginNewChat = useCallback(() => {
     suppressLoadRef.current = false
+    loadedConversationRef.current = null
     setActiveConversationId(null)
     setMessages([])
     const next = new URLSearchParams(searchParams)
@@ -295,6 +316,7 @@ export default function NuckyAIContainer() {
           activeConversationId={activeConversationId}
           onSelect={(id) => {
             suppressLoadRef.current = false
+            loadedConversationRef.current = null
             setActiveConversationId(id)
             const next = new URLSearchParams(searchParams)
             next.set('conversation_id', id)

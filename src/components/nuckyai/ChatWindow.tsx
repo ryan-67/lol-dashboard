@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useState } from 'react'
 import MessageList from './MessageList'
 import ChatInput from './ChatInput'
 import SuggestedPrompts from './SuggestedPrompts'
@@ -14,7 +14,7 @@ interface ChatWindowProps {
 
 export default function ChatWindow({ messages, streaming, onSend, onRegenerate, onRetry }: ChatWindowProps) {
   const [draft, setDraft] = useState('')
-  const isEmpty = useMemo(() => messages.length === 0, [messages.length])
+  const showConversation = messages.length > 0 || streaming
 
   const send = () => {
     if (!draft.trim()) return
@@ -24,7 +24,7 @@ export default function ChatWindow({ messages, streaming, onSend, onRegenerate, 
 
   return (
     <section className="flex-1 min-h-0 flex flex-col bg-[var(--bg-base)]">
-      {isEmpty ? (
+      {showConversation ? (
         <div className="flex-1 overflow-y-auto p-4">
           <div className="border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-4 max-w-2xl">
             <p className="text-sm text-[var(--text-primary)]">who should nuckyAI expose today?</p>

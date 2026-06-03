@@ -20,8 +20,12 @@ interface ChatRequestBody {
 const encoder = new TextEncoder();
 const DAILY_LIMIT = 25;
 const MONTHLY_LIMIT = 750;
-const LOL_TOPIC_HINTS =
-  /\b(league of legends|lol|lck|lpl|lec|lcs|msi|worlds|t1|gen\.?g|faker|chovy|zeus|baron|dragon|summoner|riot|champion|draft|patch|meta|kalshi|liquipedia|oracle'?s elixir)\b/i;
+const OFF_TOPIC_HINTS =
+  /\b(recipe|tax return|weather forecast|homework help|write (?:me )?an essay|medical advice|legal advice)\b/i;
+
+function isAllowedQuery(message: string): boolean {
+  return !OFF_TOPIC_HINTS.test(message);
+}
 
 function getClientIp(req: Request): string {
   const forwarded = req.headers.get("x-forwarded-for") ?? "";
@@ -192,7 +196,7 @@ Deno.serve(async (req) => {
           ),
         );
 
-        if (!LOL_TOPIC_HINTS.test(message)) {
+        if (!isAllowedQuery(message)) {
           assistantText = "i cant help with that.";
           await streamFallback(writer, assistantText);
           return;
