@@ -22,6 +22,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
   const { user, loading: authLoading, signOut } = useAuth()
   const [showAuth, setShowAuth] = useState(false)
   const [isSubscribed, setIsSubscribed] = useState(false)
+  const [username, setUsername] = useState<string | null>(null)
   const location = useLocation()
   const hideTopBarRoutes = new Set(['/nuckyai', '/faq', '/profile'])
   const shouldShowTopBar = !hideTopBarRoutes.has(location.pathname)
@@ -30,12 +31,15 @@ export default function Layout({ children }: { children: React.ReactNode }) {
     let mounted = true
     async function loadSubscription() {
       if (!user) {
-        if (mounted) setIsSubscribed(false)
+        if (mounted) {
+          setIsSubscribed(false)
+          setUsername(null)
+        }
         return
       }
       const { data: profileData } = await supabase
         .from('profiles')
-        .select('is_subscribed')
+        .select('is_subscribed, username')
         .eq('id', user.id)
         .maybeSingle()
 
@@ -47,7 +51,10 @@ export default function Layout({ children }: { children: React.ReactNode }) {
         .limit(1)
 
       const hasActiveSub = Array.isArray(subData) && subData.length > 0
-      if (mounted) setIsSubscribed(Boolean(profileData?.is_subscribed) || hasActiveSub)
+      if (mounted) {
+        setIsSubscribed(Boolean(profileData?.is_subscribed) || hasActiveSub)
+        setUsername((profileData?.username as string | null) ?? null)
+      }
     }
     void loadSubscription()
     return () => {
@@ -97,7 +104,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                 {user ? (
                   <>
                     <Link className="text-secondary text-xs hover:text-[var(--accent)]" to="/profile">
-                      {user.email}
+                      {username ? `@${username}` : user.email}
                     </Link>
                     <button type="button" className="btn" onClick={() => signOut()}>
                       logout
