@@ -14,6 +14,7 @@ import {
 import type { AnyChartPayload, ChartPayload, MessageRow } from './types'
 import { isRadarChartPayload } from './types'
 import NuckyRadarChart from './NuckyRadarChart'
+import { formatMessageTimestamp } from '../../lib/formatMessageTimestamp'
 import { CHART, CHART_TOOLTIP_PROPS } from '../../theme/chartTheme'
 
 interface MessageBubbleProps {
@@ -241,14 +242,7 @@ function ChartBlock({ json }: { json: string }) {
 }
 
 function relativeTime(value?: string) {
-  if (!value) return ''
-  const d = new Date(value)
-  if (Number.isNaN(d.getTime())) return ''
-  const delta = Date.now() - d.getTime()
-  if (delta < 60_000) return 'now'
-  if (delta < 3_600_000) return `${Math.floor(delta / 60_000)}m ago`
-  if (delta < 86_400_000) return `${Math.floor(delta / 3_600_000)}h ago`
-  return `${Math.floor(delta / 86_400_000)}d ago`
+  return formatMessageTimestamp(value)
 }
 
 export default function MessageBubble({ message, isAssistant, onRegenerate, onRetry }: MessageBubbleProps) {
@@ -262,7 +256,7 @@ export default function MessageBubble({ message, isAssistant, onRegenerate, onRe
   }
 
   return (
-    <div className={`w-full ${isAssistant ? '' : 'flex justify-end'}`}>
+    <div className={`w-full ${isAssistant ? '' : 'flex flex-col items-end'}`}>
       <div
         className={`border px-3 py-2 max-w-[95%] md:max-w-[85%] ${
           isAssistant
@@ -322,8 +316,12 @@ export default function MessageBubble({ message, isAssistant, onRegenerate, onRe
             )}
           </div>
         )}
-        {isAssistant && (
-          <div className="mt-1 text-[11px] text-[var(--text-tertiary)] opacity-0 group-hover:opacity-100 transition-opacity">
+        {relativeTime(message.created_at) && (
+          <div
+            className={`mt-1 text-[11px] text-[var(--text-tertiary)] ${
+              isAssistant ? 'opacity-70 group-hover:opacity-100 transition-opacity' : ''
+            }`}
+          >
             {relativeTime(message.created_at)}
           </div>
         )}

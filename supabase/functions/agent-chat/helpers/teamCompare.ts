@@ -314,15 +314,18 @@ function formatMetric(key: string, value: number): string {
 }
 
 export function buildRadarChartPayload(
-  teams: MergedTeam[],
+  compareTeams: MergedTeam[],
+  allTeams: MergedTeam[],
   split: string,
   league: string,
 ): RadarChartPayload {
-  const cohortLeagues = new Set(teams.map((t) => t.league));
-  const cohort = teams.filter((t) => cohortLeagues.has(t.league));
+  const allSameLeague =
+    compareTeams.length > 0 && compareTeams.every((t) => t.league === compareTeams[0].league);
 
-  const seriesTeams = teams.map((team) => {
-    const leagueCohort = cohort.filter((t) => t.league === team.league);
+  const seriesTeams = compareTeams.map((team) => {
+    const leagueCohort = allSameLeague
+      ? allTeams.filter((t) => t.league === compareTeams[0].league)
+      : allTeams.filter((t) => t.league === team.league);
     const series = RADAR_METRICS.map((def) => {
       const cohortValues = leagueCohort.map((t) => metricRaw(t, def.key));
       const raw = metricRaw(team, def.key);
@@ -346,7 +349,7 @@ export function buildRadarChartPayload(
     };
   });
 
-  const title = `${teams.map((t) => t.name).join(" vs ")} — ${split}${league !== "All Tier 1" ? ` ${league}` : ""}`;
+  const title = `${compareTeams.map((t) => t.name).join(" vs ")} — ${split}${league !== "All Tier 1" ? ` ${league}` : ""}`;
 
   return {
     type: "radar",
@@ -399,7 +402,7 @@ export async function runTeamCompare(
   const compareTeams = extractCompareTeams(message, teams);
   if (compareTeams.length < 2) return null;
 
-  const chart = buildRadarChartPayload(compareTeams, resolvedSplit, resolvedLeague);
+  const chart = buildRadarChartPayload(compareTeams, teams, resolvedSplit, resolvedLeague);
   const data = buildTeamCompareSummary(compareTeams, resolvedSplit, resolvedLeague);
 
   return { data, chart };

@@ -16,7 +16,7 @@ data rules (critical):
 - roster moves: if unsure, stick to the split in [DASHBOARD_CONTEXT]; do not use outdated team assignments from reddit/liquipedia unless the user asks for historical context.
 
 charts:
-- team-vs-team comparisons: a radar chart block is already prepended when [DATABASE_RESULTS].tool is "team_compare". reference that chart; do not output a second chart or a bar chart for team compare.
+- team-vs-team or player-vs-player comparisons: a radar chart block is already prepended when [DATABASE_RESULTS].tool is "team_compare" or "player_compare". reference that chart; do not output a second chart or a bar chart for these compares.
 - other comparisons may use a fenced chart block:
 \`\`\`chart
 {"type":"bar","title":"Example","labels":["A","B"],"datasets":[{"label":"KDA","data":[3.2,4.1]}]}

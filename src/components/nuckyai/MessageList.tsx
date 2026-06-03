@@ -31,7 +31,7 @@ export default function MessageList({ messages, onRegenerate, onRetry, isTyping 
     <div ref={containerRef} className="flex-1 overflow-y-auto p-4 space-y-3" onScroll={updateAutoScrollState}>
       {messages.map((message, idx) => (
         <MessageBubble
-          key={`${message.created_at ?? 'm'}-${idx}`}
+          key={message.id ?? `${message.role}-${message.created_at ?? idx}-${idx}`}
           message={message}
           isAssistant={message.role === 'assistant'}
           onRegenerate={onRegenerate}

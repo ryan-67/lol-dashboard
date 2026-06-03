@@ -7,6 +7,7 @@ import { createServiceClient, createUserClient, getEnv } from "./helpers/clients
 import { finalMessages } from "./helpers/prompts.ts";
 import { streamFallback, streamFinalAnswer } from "./helpers/stream.ts";
 import { chartMarkdownBlock, runTeamCompare } from "./helpers/teamCompare.ts";
+import { runPlayerCompare } from "./helpers/playerCompare.ts";
 import { sqlQuery, vectorSearch } from "./helpers/tools.ts";
 
 interface ChatRequestBody {
@@ -202,6 +203,7 @@ Deno.serve(async (req) => {
 
         let chartPrefix = "";
         let dbResults: unknown = null;
+        let isCompare = false;
 
         const teamCompare = await runTeamCompare(
           serviceClient,
@@ -209,9 +211,20 @@ Deno.serve(async (req) => {
           dashboardLeague,
           dashboardSplit || undefined,
         );
-        if (teamCompare) {
-          dbResults = teamCompare.data;
-          chartPrefix = `${chartMarkdownBlock(teamCompare.chart)}\n\n`;
+        const playerCompare = teamCompare
+          ? null
+          : await runPlayerCompare(
+            serviceClient,
+            message,
+            dashboardLeague,
+            dashboardSplit || undefined,
+          );
+        const compareResult = teamCompare ?? playerCompare;
+
+        if (compareResult) {
+          dbResults = compareResult.data;
+          isCompare = true;
+          chartPrefix = `${chartMarkdownBlock(compareResult.chart)}\n\n`;
           await streamFallback(writer, chartPrefix);
         }
 
@@ -219,7 +232,7 @@ Deno.serve(async (req) => {
 
         let externalContext = "";
 
-        if (plan.needs_sql && !teamCompare) {
+        if (plan.needs_sql && !compareResult) {
           const sql = await sqlQuery(serviceClient, openrouterApiKey, message);
           dbResults = sql.ok ? sql.data : { error: sql.error };
         }
@@ -237,13 +250,13 @@ Deno.serve(async (req) => {
         }
 
         const resolvedSplit =
-          (teamCompare?.data as { split?: string } | undefined)?.split ??
+          (compareResult?.data as { split?: string } | undefined)?.split ??
           (dashboardSplit || "current split");
         const finalModel = pickFinalModel(plan);
         const messages = finalMessages(conversation.history, message, dbResults, externalContext, {
           league: dashboardLeague,
           split: resolvedSplit,
-          teamCompare: Boolean(teamCompare),
+          teamCompare: isCompare,
         });
 
         const answer = await streamFinalAnswer({

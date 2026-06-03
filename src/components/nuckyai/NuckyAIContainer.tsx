@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useGSAP } from '@gsap/react'
 import { useSearchParams } from 'react-router-dom'
 import { startStripeCheckout } from '../../lib/billing'
@@ -25,6 +25,7 @@ export default function NuckyAIContainer() {
   const [activeConversationId, setActiveConversationId] = useState<string | null>(
     searchParams.get('conversation_id'),
   )
+  const suppressLoadRef = useRef(false)
   const { streaming, sendMessage } = useAgentChat()
 
   useGSAP(() => {
@@ -103,15 +104,17 @@ export default function NuckyAIContainer() {
 
   useEffect(() => {
     if (!activeConversationId) {
-      setMessages([])
+      if (!suppressLoadRef.current) setMessages([])
       return
     }
+    if (suppressLoadRef.current || streaming) return
     void loadMessages(activeConversationId)
-  }, [activeConversationId, loadMessages])
+  }, [activeConversationId, loadMessages, streaming])
 
   const send = useCallback(
     (message: string) => {
       const now = new Date().toISOString()
+      suppressLoadRef.current = true
       setMessages((prev) => [
         ...prev,
         { role: 'user', content: message, created_at: now },
@@ -142,13 +145,11 @@ export default function NuckyAIContainer() {
           })
         },
         onDone: () => {
+          suppressLoadRef.current = false
           void loadConversations()
-          const nextConversationId = activeConversationId ?? searchParams.get('conversation_id')
-          if (nextConversationId) {
-            void loadMessages(nextConversationId)
-          }
         },
         onError: (err) => {
+          suppressLoadRef.current = false
           setMessages((prev) => {
             const copy = [...prev]
             for (let i = copy.length - 1; i >= 0; i -= 1) {
@@ -179,6 +180,7 @@ export default function NuckyAIContainer() {
   }, [messages, send])
 
   const beginNewChat = useCallback(() => {
+    suppressLoadRef.current = false
     setActiveConversationId(null)
     setMessages([])
     const next = new URLSearchParams(searchParams)
@@ -292,6 +294,7 @@ export default function NuckyAIContainer() {
           loading={conversationsLoading}
           activeConversationId={activeConversationId}
           onSelect={(id) => {
+            suppressLoadRef.current = false
             setActiveConversationId(id)
             const next = new URLSearchParams(searchParams)
             next.set('conversation_id', id)

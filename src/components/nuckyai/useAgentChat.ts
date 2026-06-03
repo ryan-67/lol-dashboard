@@ -97,6 +97,13 @@ export function useAgentChat() {
         const decoder = new TextDecoder()
         let buffer = ''
 
+        let doneCalled = false
+        const finish = () => {
+          if (doneCalled) return
+          doneCalled = true
+          onDone?.()
+        }
+
         while (true) {
           const { done, value } = await reader.read()
           if (done) break
@@ -109,7 +116,7 @@ export function useAgentChat() {
             const data = parseDataLine(line.trim())
             if (!data) continue
             if (data === '[DONE]') {
-              onDone?.()
+              finish()
               continue
             }
 
@@ -129,6 +136,7 @@ export function useAgentChat() {
             }
           }
         }
+        finish()
       } catch {
         const msg = 'nuckyAI is taking a nap. try again.'
         setStreamError(msg)
