@@ -25,8 +25,8 @@ export default function NuckyAIContainer() {
   const [activeConversationId, setActiveConversationId] = useState<string | null>(
     searchParams.get('conversation_id'),
   )
-  const suppressLoadRef = useRef(false)
-  const loadedConversationRef = useRef<string | null>(null)
+  /** True while an in-flight send owns the message list — skip DB reloads that would wipe streaming state. */
+  const pendingSendRef = useRef(false)
   const { streaming, sendMessage } = useAgentChat()
 
   useGSAP(() => {
@@ -61,32 +61,35 @@ export default function NuckyAIContainer() {
   }, [user])
 
   const loadMessages = useCallback(
-    async (conversationId: string, opts?: { mergeLocal?: boolean }) => {
+    async (conversationId: string) => {
       if (!user) return
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from('messages')
         .select('id, role, content, created_at')
         .eq('user_id', user.id)
         .eq('conversation_id', conversationId)
         .order('created_at', { ascending: true })
-      const rows = (data as MessageRow[] | null) ?? []
 
-      if (opts?.mergeLocal) {
-        setMessages((prev) => {
-          if (!prev.length) return rows
-          const localAssistant = [...prev].reverse().find((m) => m.role === 'assistant')
-          const remoteAssistant = [...rows].reverse().find((m) => m.role === 'assistant')
-          const localLen = localAssistant?.content.length ?? 0
-          const remoteLen = remoteAssistant?.content.length ?? 0
-          if (localLen >= remoteLen) return prev
-          return rows
-        })
+      if (error) {
+        console.error('[nuckyAI] failed to load messages', error.message)
         return
       }
 
-      setMessages(rows)
+      setMessages((data as MessageRow[] | null) ?? [])
     },
     [user],
+  )
+
+  const selectConversation = useCallback(
+    (conversationId: string) => {
+      pendingSendRef.current = false
+      setActiveConversationId(conversationId)
+      const next = new URLSearchParams(searchParams)
+      next.set('conversation_id', conversationId)
+      setSearchParams(next, { replace: true })
+      void loadMessages(conversationId)
+    },
+    [loadMessages, searchParams, setSearchParams],
   )
 
   useEffect(() => {
@@ -111,25 +114,19 @@ export default function NuckyAIContainer() {
     }
   }, [loadProfile, searchParams, setSearchParams])
 
+  // Restore conversation from URL on mount / external navigation
   useEffect(() => {
     const fromQuery = searchParams.get('conversation_id')
-    if (fromQuery && fromQuery !== activeConversationId) {
-      setActiveConversationId(fromQuery)
-    }
-  }, [searchParams, activeConversationId])
-
-  useEffect(() => {
-    if (!activeConversationId) return
-    if (suppressLoadRef.current) return
-    if (loadedConversationRef.current === activeConversationId) return
-    loadedConversationRef.current = activeConversationId
-    void loadMessages(activeConversationId)
-  }, [activeConversationId, loadMessages])
+    if (!fromQuery || pendingSendRef.current) return
+    if (fromQuery === activeConversationId && messages.length > 0) return
+    setActiveConversationId(fromQuery)
+    void loadMessages(fromQuery)
+  }, [searchParams]) // eslint-disable-line react-hooks/exhaustive-deps -- only react to URL changes
 
   const send = useCallback(
     (message: string) => {
       const now = new Date().toISOString()
-      suppressLoadRef.current = true
+      pendingSendRef.current = true
       setMessages((prev) => [
         ...prev,
         { role: 'user', content: message, created_at: now },
@@ -142,7 +139,6 @@ export default function NuckyAIContainer() {
         league,
         split,
         onMetadata: (conversationId) => {
-          loadedConversationRef.current = conversationId
           setActiveConversationId(conversationId)
           const next = new URLSearchParams(searchParams)
           next.set('conversation_id', conversationId)
@@ -161,15 +157,11 @@ export default function NuckyAIContainer() {
           })
         },
         onDone: () => {
-          suppressLoadRef.current = false
+          pendingSendRef.current = false
           void loadConversations()
-          const conversationId = loadedConversationRef.current
-          if (conversationId) {
-            void loadMessages(conversationId, { mergeLocal: true })
-          }
         },
         onError: (err) => {
-          suppressLoadRef.current = false
+          pendingSendRef.current = false
           setMessages((prev) => {
             const copy = [...prev]
             for (let i = copy.length - 1; i >= 0; i -= 1) {
@@ -190,7 +182,7 @@ export default function NuckyAIContainer() {
         },
       })
     },
-    [activeConversationId, league, loadConversations, loadMessages, searchParams, sendMessage, setSearchParams, split],
+    [activeConversationId, league, loadConversations, searchParams, sendMessage, setSearchParams, split],
   )
 
   const regenerate = useCallback(() => {
@@ -200,8 +192,7 @@ export default function NuckyAIContainer() {
   }, [messages, send])
 
   const beginNewChat = useCallback(() => {
-    suppressLoadRef.current = false
-    loadedConversationRef.current = null
+    pendingSendRef.current = false
     setActiveConversationId(null)
     setMessages([])
     const next = new URLSearchParams(searchParams)
@@ -314,14 +305,7 @@ export default function NuckyAIContainer() {
           conversations={conversations}
           loading={conversationsLoading}
           activeConversationId={activeConversationId}
-          onSelect={(id) => {
-            suppressLoadRef.current = false
-            loadedConversationRef.current = null
-            setActiveConversationId(id)
-            const next = new URLSearchParams(searchParams)
-            next.set('conversation_id', id)
-            setSearchParams(next, { replace: true })
-          }}
+          onSelect={selectConversation}
           onNewChat={beginNewChat}
           onDelete={(id) => void deleteConversation(id)}
           mobileOpen={mobileSidebarOpen}
