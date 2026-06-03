@@ -238,8 +238,7 @@ Deno.serve(async (req) => {
 
         const resolvedSplit =
           (teamCompare?.data as { split?: string } | undefined)?.split ??
-          dashboardSplit ||
-          "current split";
+          (dashboardSplit || "current split");
         const finalModel = pickFinalModel(plan);
         const messages = finalMessages(conversation.history, message, dbResults, externalContext, {
           league: dashboardLeague,
