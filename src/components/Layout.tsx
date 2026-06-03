@@ -5,7 +5,8 @@ import AuthModal from './AuthModal'
 import { useDashboard } from '../context/DashboardContext'
 import { useAuth } from '../context/AuthContext'
 import { supabase } from '../lib/supabaseClient'
-import { Link, NavLink, useLocation } from 'react-router-dom'
+import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom'
+import { navSearchForPath, stripNuckyAiSearchParams } from '../lib/navSearchParams'
 
 const nav = [
   { to: '/', label: 'Overview' },
@@ -24,8 +25,17 @@ export default function Layout({ children }: { children: React.ReactNode }) {
   const [isSubscribed, setIsSubscribed] = useState(false)
   const [username, setUsername] = useState<string | null>(null)
   const location = useLocation()
+  const navigate = useNavigate()
   const hideTopBarRoutes = new Set(['/nuckyai', '/faq', '/profile'])
   const shouldShowTopBar = !hideTopBarRoutes.has(location.pathname)
+
+  useEffect(() => {
+    if (location.pathname === '/nuckyai') return
+    const cleaned = stripNuckyAiSearchParams(location.search)
+    if (cleaned !== location.search) {
+      navigate({ pathname: location.pathname, search: cleaned }, { replace: true })
+    }
+  }, [location.pathname, location.search, navigate])
 
   useEffect(() => {
     let mounted = true
@@ -83,7 +93,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                 return (
                   <div key={item.to} className="relative group">
                     <NavLink
-                      to={item.to + location.search}
+                      to={item.to + navSearchForPath(item.to, location.search)}
                       className={({ isActive }) =>
                         `nav-tab${isActive ? ' active' : ''}${blocked ? ' opacity-50' : ''}`
                       }

@@ -7,15 +7,21 @@ if a draft is sus, point it out. you can joke, meme, and be sarcastic when appro
 back up spicy takes with numbers when you have them, but never bury the opinion.
 cite sources casually: "liquipedia says...", "reddit was losing it over...", "patch 26.11 gutted...".
 concise by default. one or two sentences unless the user asks for detail.
-if presenting comparative data that should be charted, include a chart block exactly like:
-\
-\
-\
-chart
+
+data rules (critical):
+- assume [DASHBOARD_CONTEXT] split/league for all stats unless the user explicitly names another split or year.
+- only cite player/team numbers that appear in [DATABASE_RESULTS]. never invent win rates, lane matchups, or head-to-head records.
+- never say "database error" or apologize for backend failures—use whatever is in [DATABASE_RESULTS] or give a short qualitative take without fake numbers.
+- do not claim two players "lane against" each other unless roles in the data support it (adc vs adc, mid vs mid). mid and adc are different lanes.
+- roster moves: if unsure, stick to the split in [DASHBOARD_CONTEXT]; do not use outdated team assignments from reddit/liquipedia unless the user asks for historical context.
+
+charts:
+- team-vs-team comparisons: a radar chart block is already prepended when [DATABASE_RESULTS].tool is "team_compare". reference that chart; do not output a second chart or a bar chart for team compare.
+- other comparisons may use a fenced chart block:
+\`\`\`chart
 {"type":"bar","title":"Example","labels":["A","B"],"datasets":[{"label":"KDA","data":[3.2,4.1]}]}
-\
-\
-\
+\`\`\`
+- team compare radar shape: {"type":"radar","title":"...","teams":[...]} — do not regenerate this; it is injected server-side.
 `;
 
 export const SQL_GENERATION_SYSTEM_PROMPT = `you are a sql generator for supabase postgres.
@@ -87,8 +93,19 @@ export function finalMessages(
   userMessage: string,
   dbResults?: unknown,
   externalContext?: string,
+  dashboard?: { league: string; split: string; teamCompare?: boolean },
 ): OpenRouterChatMessage[] {
   const contextBlocks: string[] = [];
+  if (dashboard) {
+    contextBlocks.push(
+      `[DASHBOARD_CONTEXT]\nleague filter: ${dashboard.league}\nsplit: ${dashboard.split}\nassume this split for stats unless the user names another.`,
+    );
+    if (dashboard.teamCompare) {
+      contextBlocks.push(
+        `[TEAM_COMPARE]\nradar chart already streamed above. analyze using DATABASE_RESULTS teams only.`,
+      );
+    }
+  }
   if (dbResults) {
     contextBlocks.push(`[DATABASE_RESULTS]\n${JSON.stringify(dbResults)}`);
   }

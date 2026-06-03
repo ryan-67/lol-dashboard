@@ -5,6 +5,8 @@ import type { MessageRow } from './types'
 interface SendMessageArgs {
   message: string
   conversationId?: string
+  league?: string
+  split?: string
   onMetadata?: (conversationId: string) => void
   onChunk?: (chunk: string) => void
   onDone?: () => void
@@ -48,6 +50,8 @@ export function useAgentChat() {
     async ({
       message,
       conversationId,
+      league,
+      split,
       onMetadata,
       onChunk,
       onDone,
@@ -79,6 +83,8 @@ export function useAgentChat() {
           body: JSON.stringify({
             message,
             conversation_id: conversationId,
+            league,
+            split,
           }),
           signal: controller.signal,
         })

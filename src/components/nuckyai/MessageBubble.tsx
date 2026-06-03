@@ -11,7 +11,9 @@ import {
   XAxis,
   YAxis,
 } from 'recharts'
-import type { ChartPayload, MessageRow } from './types'
+import type { AnyChartPayload, ChartPayload, MessageRow } from './types'
+import { isRadarChartPayload } from './types'
+import NuckyRadarChart from './NuckyRadarChart'
 import { CHART, CHART_TOOLTIP_PROPS } from '../../theme/chartTheme'
 
 interface MessageBubbleProps {
@@ -26,6 +28,28 @@ interface TextBlock {
   content: string
 }
 
+function splitBareCharts(text: string): TextBlock[] {
+  const blocks: TextBlock[] = []
+  const bareChart = /(?:^|\n)chart\s*\n(\{[\s\S]*?\})(?=\n\n|\n(?![\s"{\[])|$)/gi
+  let last = 0
+  let match: RegExpExecArray | null
+
+  while ((match = bareChart.exec(text)) !== null) {
+    const start = match.index + (match[0].startsWith('\n') ? 1 : 0)
+    if (start > last) {
+      blocks.push({ type: 'text', content: text.slice(last, start) })
+    }
+    blocks.push({ type: 'chart', content: match[1].trim() })
+    last = match.index + match[0].length
+  }
+
+  if (last < text.length) {
+    blocks.push({ type: 'text', content: text.slice(last) })
+  }
+
+  return blocks.length ? blocks : [{ type: 'text', content: text }]
+}
+
 function parseBlocks(content: string): TextBlock[] {
   const blocks: TextBlock[] = []
   const chartOrCode = /```(chart|[\w-]+)?\n([\s\S]*?)```/g
@@ -34,7 +58,9 @@ function parseBlocks(content: string): TextBlock[] {
 
   while ((match = chartOrCode.exec(content)) !== null) {
     if (match.index > last) {
-      blocks.push({ type: 'text', content: content.slice(last, match.index) })
+      for (const split of splitBareCharts(content.slice(last, match.index))) {
+        blocks.push(split)
+      }
     }
     const lang = (match[1] ?? '').toLowerCase()
     if (lang === 'chart') {
@@ -46,7 +72,9 @@ function parseBlocks(content: string): TextBlock[] {
   }
 
   if (last < content.length) {
-    blocks.push({ type: 'text', content: content.slice(last) })
+    for (const split of splitBareCharts(content.slice(last))) {
+      blocks.push(split)
+    }
   }
 
   return blocks.filter((b) => b.content.trim().length > 0)
@@ -116,13 +144,13 @@ function renderText(content: string) {
 function ChartBlock({ json }: { json: string }) {
   const payload = useMemo(() => {
     try {
-      return JSON.parse(json) as ChartPayload
+      return JSON.parse(json) as AnyChartPayload
     } catch {
       return null
     }
   }, [json])
 
-  if (!payload || !payload.labels?.length || !payload.datasets?.length) {
+  if (!payload) {
     return (
       <pre className="border border-[var(--border-subtle)] bg-[var(--bg-base)] p-3 text-xs text-[var(--text-secondary)] overflow-x-auto whitespace-pre-wrap">
         {json}
@@ -130,9 +158,22 @@ function ChartBlock({ json }: { json: string }) {
     )
   }
 
-  const data = payload.labels.map((label, idx) => {
+  if (isRadarChartPayload(payload)) {
+    return <NuckyRadarChart payload={payload} />
+  }
+
+  const barPayload = payload as ChartPayload
+  if (!barPayload.labels?.length || !barPayload.datasets?.length) {
+    return (
+      <pre className="border border-[var(--border-subtle)] bg-[var(--bg-base)] p-3 text-xs text-[var(--text-secondary)] overflow-x-auto whitespace-pre-wrap">
+        {json}
+      </pre>
+    )
+  }
+
+  const data = barPayload.labels.map((label, idx) => {
     const row: Record<string, string | number> = { label }
-    payload.datasets.forEach((set) => {
+    barPayload.datasets.forEach((set) => {
       row[set.label] = Number(set.data[idx] ?? 0)
     })
     return row
@@ -142,10 +183,10 @@ function ChartBlock({ json }: { json: string }) {
 
   return (
     <div className="border border-[var(--border-subtle)] bg-[var(--bg-base)] p-3 my-2">
-      <div className="text-xs text-[var(--text-secondary)] mb-2">{payload.title}</div>
+      <div className="text-xs text-[var(--text-secondary)] mb-2">{barPayload.title}</div>
       <div className="h-64">
         <ResponsiveContainer width="100%" height="100%">
-          {payload.type === 'line' ? (
+          {barPayload.type === 'line' ? (
             <LineChart data={data} margin={{ top: 8, right: 12, left: 0, bottom: 8 }}>
               <CartesianGrid stroke={CHART.grid} strokeDasharray="3 3" />
               <XAxis
@@ -159,7 +200,7 @@ function ChartBlock({ json }: { json: string }) {
               />
               <Tooltip {...CHART_TOOLTIP_PROPS} />
               <Legend />
-              {payload.datasets.map((set, idx) => (
+              {barPayload.datasets.map((set, idx) => (
                 <Line
                   key={set.label}
                   type="monotone"
@@ -183,7 +224,7 @@ function ChartBlock({ json }: { json: string }) {
               />
               <Tooltip {...CHART_TOOLTIP_PROPS} />
               <Legend />
-              {payload.datasets.map((set, idx) => (
+              {barPayload.datasets.map((set, idx) => (
                 <Bar
                   key={set.label}
                   dataKey={set.label}

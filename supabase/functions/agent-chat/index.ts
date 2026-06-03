@@ -6,11 +6,14 @@ import { corsHeaders } from "./helpers/cors.ts";
 import { createServiceClient, createUserClient, getEnv } from "./helpers/clients.ts";
 import { finalMessages } from "./helpers/prompts.ts";
 import { streamFallback, streamFinalAnswer } from "./helpers/stream.ts";
+import { chartMarkdownBlock, runTeamCompare } from "./helpers/teamCompare.ts";
 import { sqlQuery, vectorSearch } from "./helpers/tools.ts";
 
 interface ChatRequestBody {
   message?: string;
   conversation_id?: string;
+  league?: string;
+  split?: string;
 }
 
 const encoder = new TextEncoder();
@@ -194,12 +197,29 @@ Deno.serve(async (req) => {
           return;
         }
 
+        const dashboardLeague = String(body.league ?? "All Tier 1").trim() || "All Tier 1";
+        const dashboardSplit = String(body.split ?? "").trim();
+
+        let chartPrefix = "";
+        let dbResults: unknown = null;
+
+        const teamCompare = await runTeamCompare(
+          serviceClient,
+          message,
+          dashboardLeague,
+          dashboardSplit || undefined,
+        );
+        if (teamCompare) {
+          dbResults = teamCompare.data;
+          chartPrefix = `${chartMarkdownBlock(teamCompare.chart)}\n\n`;
+          await streamFallback(writer, chartPrefix);
+        }
+
         const plan = await classifyIntent(openrouterApiKey, message, conversation.history);
 
-        let dbResults: unknown = null;
         let externalContext = "";
 
-        if (plan.needs_sql) {
+        if (plan.needs_sql && !teamCompare) {
           const sql = await sqlQuery(serviceClient, openrouterApiKey, message);
           dbResults = sql.ok ? sql.data : { error: sql.error };
         }
@@ -216,16 +236,26 @@ Deno.serve(async (req) => {
           }
         }
 
+        const resolvedSplit =
+          (teamCompare?.data as { split?: string } | undefined)?.split ??
+          dashboardSplit ||
+          "current split";
         const finalModel = pickFinalModel(plan);
-        const messages = finalMessages(conversation.history, message, dbResults, externalContext);
+        const messages = finalMessages(conversation.history, message, dbResults, externalContext, {
+          league: dashboardLeague,
+          split: resolvedSplit,
+          teamCompare: Boolean(teamCompare),
+        });
 
-        assistantText = await streamFinalAnswer({
+        const answer = await streamFinalAnswer({
           apiKey: openrouterApiKey,
           model: finalModel,
           messages,
           plan,
           writer,
         });
+
+        assistantText = chartPrefix + answer;
 
         if (!assistantText.trim()) {
           assistantText = "couldn't stream a clean response rn, but i'm still here. try again in a sec.";

@@ -32,3 +32,31 @@ export interface ChartPayload {
   labels: string[]
   datasets: ChartDataset[]
 }
+
+export interface RadarChartTeamSeries {
+  metric: string
+  valueNorm: number
+  avgNorm: number
+  formatted: string
+  formattedAvg: string
+}
+
+export interface RadarChartPayload {
+  type: 'radar'
+  title: string
+  split?: string
+  league?: string
+  teams: Array<{
+    name: string
+    league: string
+    winrate?: number
+    games?: number
+    series: RadarChartTeamSeries[]
+  }>
+}
+
+export type AnyChartPayload = ChartPayload | RadarChartPayload
+
+export function isRadarChartPayload(payload: AnyChartPayload): payload is RadarChartPayload {
+  return payload.type === 'radar' && Array.isArray((payload as RadarChartPayload).teams)
+}

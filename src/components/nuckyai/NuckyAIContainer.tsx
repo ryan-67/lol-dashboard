@@ -5,6 +5,7 @@ import { startStripeCheckout } from '../../lib/billing'
 import { supabase } from '../../lib/supabaseClient'
 import { scrollEntrance } from '../../theme/animations'
 import { useAuth } from '../../context/AuthContext'
+import { useDashboard } from '../../context/DashboardContext'
 import ChatSidebar from './ChatSidebar'
 import ChatWindow from './ChatWindow'
 import { useAgentChat } from './useAgentChat'
@@ -12,6 +13,7 @@ import type { ConversationRow, MessageRow, ProfileRow } from './types'
 
 export default function NuckyAIContainer() {
   const { user } = useAuth()
+  const { league, split } = useDashboard()
   const [profile, setProfile] = useState<ProfileRow | null>(null)
   const [conversations, setConversations] = useState<ConversationRow[]>([])
   const [conversationsLoading, setConversationsLoading] = useState(false)
@@ -119,6 +121,8 @@ export default function NuckyAIContainer() {
       void sendMessage({
         message,
         conversationId: activeConversationId ?? undefined,
+        league,
+        split,
         onMetadata: (conversationId) => {
           setActiveConversationId(conversationId)
           const next = new URLSearchParams(searchParams)
@@ -165,7 +169,7 @@ export default function NuckyAIContainer() {
         },
       })
     },
-    [activeConversationId, loadConversations, loadMessages, searchParams, sendMessage, setSearchParams],
+    [activeConversationId, league, loadConversations, loadMessages, searchParams, sendMessage, setSearchParams, split],
   )
 
   const regenerate = useCallback(() => {
