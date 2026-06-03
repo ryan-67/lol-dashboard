@@ -22,12 +22,10 @@ const FAQ_ITEMS = [
     answer:
       'subscription helps cover model and infrastructure cost while keeping response quality and update frequency stable.',
   },
-  {
-    question: 'who can i contact for support?',
-    answer:
-      'email nuckyaigg@gmail.com for account help, access issues, bug reports, or feedback.',
-  },
 ]
+
+const ABOUT_TEXT =
+  "hi i'm geonbu, lolesports fan and solo developer. you can probably tell im a GENG fan by the design of nucky.gg. i made nucky.gg because i wanted a place where i could have cleaner, visual access to lolesports metrics and stats that's actually pro play relevant. i also created nuckyAI because i wanted an AI agent tool that had real context and understanding about pro play to be able to give me key insights and analysis, leveraging it to make predictions and bets on pro play games."
 
 export default function FAQ() {
   useGSAP(() => {
@@ -49,6 +47,11 @@ export default function FAQ() {
             <p className="text-sm text-[var(--text-secondary)] leading-6">{item.answer}</p>
           </article>
         ))}
+      </section>
+
+      <section className="card">
+        <h3 className="text-sm text-[var(--accent)] mb-2">about</h3>
+        <p className="text-sm text-[var(--text-secondary)] leading-6">{ABOUT_TEXT}</p>
       </section>
 
       <section className="card">

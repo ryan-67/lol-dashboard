@@ -182,6 +182,31 @@ export default function NuckyAIContainer() {
     setSearchParams(next, { replace: true })
   }, [searchParams, setSearchParams])
 
+  const deleteConversation = useCallback(
+    async (conversationId: string) => {
+      if (!user) return
+      await supabase
+        .from('messages')
+        .delete()
+        .eq('conversation_id', conversationId)
+        .eq('user_id', user.id)
+      const { error } = await supabase
+        .from('conversations')
+        .delete()
+        .eq('id', conversationId)
+        .eq('user_id', user.id)
+      if (error) {
+        setToast('could not delete chat. try again.')
+        return
+      }
+      if (activeConversationId === conversationId) {
+        beginNewChat()
+      }
+      setConversations((prev) => prev.filter((c) => c.id !== conversationId))
+    },
+    [activeConversationId, beginNewChat, user],
+  )
+
   const heading = useMemo(() => {
     if (!profile) return 'nuckyAI'
     return profile.username ? `nuckyAI — @${profile.username}` : 'nuckyAI'
@@ -262,8 +287,14 @@ export default function NuckyAIContainer() {
           conversations={conversations}
           loading={conversationsLoading}
           activeConversationId={activeConversationId}
-          onSelect={setActiveConversationId}
+          onSelect={(id) => {
+            setActiveConversationId(id)
+            const next = new URLSearchParams(searchParams)
+            next.set('conversation_id', id)
+            setSearchParams(next, { replace: true })
+          }}
           onNewChat={beginNewChat}
+          onDelete={(id) => void deleteConversation(id)}
           mobileOpen={mobileSidebarOpen}
           onCloseMobile={() => setMobileSidebarOpen(false)}
         />

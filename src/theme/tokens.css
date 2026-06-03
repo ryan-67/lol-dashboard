@@ -1091,6 +1091,27 @@ b,
   }
 }
 
+/* nuckyAI chat sidebar */
+.chat-delete-btn {
+  border: none;
+  background: transparent;
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.chat-delete-confirm {
+  position: absolute;
+  left: 8px;
+  right: 8px;
+  bottom: 8px;
+  z-index: 10;
+  padding: 12px;
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-elevated);
+}
+
 /* Champions tab */
 .ring-center-label {
   position: absolute;

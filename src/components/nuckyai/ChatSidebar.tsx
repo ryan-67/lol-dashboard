@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import type { ConversationRow } from './types'
 
 interface ChatSidebarProps {
@@ -6,6 +7,7 @@ interface ChatSidebarProps {
   activeConversationId: string | null
   onSelect: (id: string) => void
   onNewChat: () => void
+  onDelete: (id: string) => void
   mobileOpen: boolean
   onCloseMobile: () => void
 }
@@ -27,17 +29,21 @@ export default function ChatSidebar({
   activeConversationId,
   onSelect,
   onNewChat,
+  onDelete,
   mobileOpen,
   onCloseMobile,
 }: ChatSidebarProps) {
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
+  const pendingConversation = conversations.find((c) => c.id === confirmDeleteId)
+
   const panel = (
-    <aside className="w-[280px] border-r border-[var(--border-subtle)] bg-[var(--bg-surface)] flex flex-col h-full">
+    <aside className="w-[280px] border-r border-[var(--border-subtle)] bg-[var(--bg-surface)] flex flex-col h-full relative">
       <div className="p-3 border-b border-[var(--border-subtle)]">
         <button type="button" className="btn w-full" onClick={onNewChat}>
           new chat
         </button>
       </div>
-      <div className="overflow-y-auto p-2">
+      <div className="overflow-y-auto p-2 flex-1 min-h-0">
         {loading && (
           <div className="space-y-2">
             {Array.from({ length: 4 }).map((_, idx) => (
@@ -56,30 +62,76 @@ export default function ChatSidebar({
             no conversations yet. start one above
           </div>
         )}
-        {!loading && conversations.map((conversation) => {
-          const active = conversation.id === activeConversationId
-          return (
-            <button
-              key={conversation.id}
-              type="button"
-              onClick={() => {
-                onSelect(conversation.id)
-                onCloseMobile()
-              }}
-              className={`w-full text-left border px-3 py-2 mb-2 transition-colors ${
-                active
-                  ? 'border-[var(--accent)] bg-[var(--accent-bg)]'
-                  : 'border-[var(--border-subtle)] hover:border-[var(--border-focus)]'
-              }`}
-            >
-              <div className="text-sm text-[var(--text-primary)] truncate">{conversation.title}</div>
-              <div className="text-[11px] text-[var(--text-tertiary)] mt-1">
-                {relativeDate(conversation.updated_at || conversation.created_at)}
+        {!loading &&
+          conversations.map((conversation) => {
+            const active = conversation.id === activeConversationId
+            return (
+              <div
+                key={conversation.id}
+                className={`flex items-stretch mb-2 border transition-colors ${
+                  active
+                    ? 'border-[var(--accent)] bg-[var(--accent-bg)]'
+                    : 'border-[var(--border-subtle)] hover:border-[var(--border-focus)]'
+                }`}
+              >
+                <button
+                  type="button"
+                  onClick={() => {
+                    onSelect(conversation.id)
+                    onCloseMobile()
+                  }}
+                  className="flex-1 min-w-0 text-left px-3 py-2"
+                >
+                  <div className="text-sm text-[var(--text-primary)] truncate">
+                    {conversation.title}
+                  </div>
+                  <div className="text-[11px] text-[var(--text-tertiary)] mt-1">
+                    {relativeDate(conversation.updated_at || conversation.created_at)}
+                  </div>
+                </button>
+                <button
+                  type="button"
+                  className="chat-delete-btn shrink-0 px-2 text-[var(--text-tertiary)] hover:text-[var(--text-primary)]"
+                  aria-label={`Delete ${conversation.title}`}
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    setConfirmDeleteId(conversation.id)
+                  }}
+                >
+                  ×
+                </button>
               </div>
-            </button>
-          )
-        })}
+            )
+          })}
       </div>
+
+      {confirmDeleteId && (
+        <div className="chat-delete-confirm" role="dialog" aria-modal="true" aria-labelledby="chat-delete-title">
+          <p id="chat-delete-title" className="text-sm text-[var(--text-primary)] mb-3">
+            are you sure you want to delete this chat?
+          </p>
+          {pendingConversation && (
+            <p className="text-xs text-[var(--text-secondary)] mb-3 truncate">
+              {pendingConversation.title}
+            </p>
+          )}
+          <div className="flex gap-2">
+            <button type="button" className="btn flex-1" onClick={() => setConfirmDeleteId(null)}>
+              cancel
+            </button>
+            <button
+              type="button"
+              className="btn flex-1"
+              onClick={() => {
+                onDelete(confirmDeleteId)
+                setConfirmDeleteId(null)
+              }}
+            >
+              delete
+            </button>
+          </div>
+        </div>
+      )}
     </aside>
   )
 
