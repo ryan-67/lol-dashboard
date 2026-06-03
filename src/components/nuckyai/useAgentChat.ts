@@ -66,10 +66,12 @@ export function useAgentChat() {
           data: { session },
         } = await supabase.auth.getSession()
 
+        const anonKey = (import.meta.env.VITE_SUPABASE_ANON_KEY ?? '').trim()
         const response = await fetch(getFunctionUrl(), {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
+            ...(anonKey ? { apikey: anonKey } : {}),
             ...(session?.access_token
               ? { Authorization: `Bearer ${session.access_token}` }
               : {}),
