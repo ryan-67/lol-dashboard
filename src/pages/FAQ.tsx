@@ -60,6 +60,21 @@ export default function FAQ() {
       </section>
 
       <section className="card">
+        <h3 className="text-sm text-[var(--text-primary)] mb-2">support nucky.gg</h3>
+        <p className="text-sm text-[var(--text-secondary)] leading-6">
+          nucky.gg is a solo project — if it helps your drafts, bets, or watch parties, consider buying me a coffee.{' '}
+          <a
+            href="https://buymeacoffee.com/geonbu"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-[var(--accent)] underline underline-offset-2"
+          >
+            buymeacoffee.com/geonbu
+          </a>
+        </p>
+      </section>
+
+      <section className="card">
         <h3 className="text-sm text-[var(--text-primary)] mb-2">contact</h3>
         <p className="text-sm text-[var(--text-secondary)]">
           nuckyaigg@gmail.com
