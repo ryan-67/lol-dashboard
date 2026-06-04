@@ -7,3 +7,38 @@ public/data/
 **/.env.*
 !.env.example
 !**/.env.example
+
+# Local / generated artifacts
+dist/
+node_modules/
+lol/
+.vscode/
+scripts/__pycache__/
+chunk2_generator.py
+
+# Supabase local CLI state
+supabase/.env
+supabase/.temp/
+supabase/.branches/
+supabase/config.toml
+
+# --- Proprietary SaaS backend (kept locally, not published) ---
+# See docs/PRIVATE_COMPONENTS.md
+
+supabase/functions/agent-chat/**
+!supabase/functions/agent-chat/README.md
+
+supabase/functions/stripe-checkout/**
+!supabase/functions/stripe-checkout/README.md
+supabase/functions/stripe-webhook/**
+!supabase/functions/stripe-webhook/README.md
+supabase/functions/stripe-portal/**
+!supabase/functions/stripe-portal/README.md
+
+supabase/functions/analyst-chat/
+
+supabase/migrations/**
+!supabase/migrations/README.md
+
+scripts/rag-indexer/src/
+scripts/rag-indexer/tsconfig.json
