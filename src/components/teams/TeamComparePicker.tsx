@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import type { Team } from '../../hooks/useDashboardData'
 import { teamKey } from '../../lib/teamAnalytics'
 
@@ -10,6 +10,20 @@ interface TeamComparePickerProps {
 
 export default function TeamComparePicker({ teams, selectedKeys, onChange }: TeamComparePickerProps) {
   const [open, setOpen] = useState(false)
+  const containerRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (!open) return
+
+    const onPointerDown = (event: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+        setOpen(false)
+      }
+    }
+
+    document.addEventListener('mousedown', onPointerDown)
+    return () => document.removeEventListener('mousedown', onPointerDown)
+  }, [open])
 
   const options = useMemo(
     () =>
@@ -38,7 +52,7 @@ export default function TeamComparePicker({ teams, selectedKeys, onChange }: Tea
         : `${selectedKeys.length} teams selected`
 
   return (
-    <div className="team-compare-picker">
+    <div className="team-compare-picker" ref={containerRef}>
       <label className="label-field">Compare Teams</label>
       <button
         type="button"

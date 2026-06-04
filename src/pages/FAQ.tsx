@@ -20,7 +20,7 @@ const FAQ_ITEMS = [
   {
     question: 'what makes nuckyAI different from things like chatgpt, claude, etc?',
     answer:
-      'generic chatbots answer from training data alone — nuckyAI is grounded in live pro-play data. every response pulls from oracle\'s elixir stats in supabase, deterministic analyst tools (matchups, rankings, form, schedules), and a pgvector RAG index over liquipedia, patch notes, reddit, and kalshi that refreshes weekly. that means numbers, rosters, and meta context are tied to actual tier-1 esports sources, not solo queue sites or stale model memory.',
+      'generic LLM chatbots answer from training data alone — nuckyAI is grounded in live pro-play data. every response pulls from oracle\'s elixir stats, deterministic analyst tools (matchups, rankings, form, schedules), and a pgvector RAG index over liquipedia, patch notes, reddit, and other sources that refreshes weekly. that means numbers, rosters, and meta context are tied to actual tier-1 esports sources, so nuckyAI has the context and understanding of lolesports without the hallunication potential of standard AI models.',
   },
   {
     question: 'why is nuckyAI subscription gated?',
