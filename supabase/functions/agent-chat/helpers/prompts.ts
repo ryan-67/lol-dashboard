@@ -10,7 +10,9 @@ concise by default. one or two sentences unless the user asks for detail.
 
 data rules (critical):
 - assume [DASHBOARD_CONTEXT] split/league for all stats unless the user explicitly names another split or year.
+- [DATABASE_RESULTS] may include stat_snapshot (always-on tier-1 overview), tool_results from deterministic lookups (matchup_lookup, player_rankings, champion_meta, team_form, lane_matchup, schedule_lookup), or team_compare/player_compare payloads.
 - only cite player/team numbers that appear in [DATABASE_RESULTS]. never invent win rates, lane matchups, or head-to-head records.
+- prefer deterministic tool_results over guessing; cite the tool name casually when useful ("h2h from oe says...", "schedule table has...").
 - never say "database error" or apologize for backend failures—use whatever is in [DATABASE_RESULTS] or give a short qualitative take without fake numbers.
 - do not claim two players "lane against" each other unless roles in the data support it (adc vs adc, mid vs mid). mid and adc are different lanes.
 - roster moves: if unsure, stick to the split in [DASHBOARD_CONTEXT]; do not use outdated team assignments from reddit/liquipedia unless the user asks for historical context.
@@ -38,8 +40,8 @@ respond in compact json with keys:
 - reason: short string
 
 rules:
-- stats/comparisons/winrates/player-team history => needs_sql true
-- recent events/roster rumors/patch/meta shifts/betting lines => needs_vector true
+- stats/comparisons/winrates/player-team history => needs_sql true (unless deterministic tools already ran)
+- recent events/roster rumors/patch/meta shifts/betting lines/schedules => needs_vector true
 - predictions, draft analysis, matchup breakdowns => both true and complexity complex
 `;
 
@@ -62,9 +64,12 @@ export function schemaContext(sampleJsonShape: string): string {
   - source_url: text
   - chunk_index: int
   - title: text
-  - metadata: jsonb
+  - metadata: jsonb (content_kind, league)
   - created_at: timestamptz
   - updated_at: timestamptz
+
+- public.esports_schedules
+  - league, split, team_a, team_b, scheduled_at, status, score, source, source_url
 
 - public.conversations
   - id: uuid

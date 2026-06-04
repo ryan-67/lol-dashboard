@@ -239,6 +239,7 @@ export async function scrapeRedditPostMatch(): Promise<ScrapedPage[]> {
       text: formatThreadPage(post, comments),
       contextHeader: `Reddit post-match: ${post.title}`,
       scrapedAt: new Date().toISOString(),
+      contentKind: 'reddit',
     })
     await sleep(1200)
   }

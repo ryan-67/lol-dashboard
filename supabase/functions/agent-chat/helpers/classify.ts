@@ -12,7 +12,7 @@ export interface IntentPlan {
 const SQL_HINTS =
   /\b(winrate|kda|cs|gold|stats?|compare|rank|record|kills?|deaths?|assists?|mvp|damage|history|h2h|head.?to.?head|gd@?15|xpd@?15|overrated|underrated|split|player|team|most|best|worst|who('s| is))\b/;
 const VECTOR_HINTS =
-  /\b(patch|meta|roster|rumou?r|reddit|kalshi|odds|betting|recent|news|draft|tournament|liquipedia|injury|upcoming)\b/;
+  /\b(patch|meta|roster|rumou?r|reddit|kalshi|odds|betting|recent|news|draft|tournament|liquipedia|injury|upcoming|schedule|bracket|playoffs)\b/;
 const COMPLEX_HINTS = /\b(predict|prediction|who wins|breakdown|edge|favou?red|favorite)\b/;
 
 function heuristic(question: string, needsSqlOverride = false, needsVectorOverride = false): IntentPlan {

@@ -18,6 +18,11 @@ const FAQ_ITEMS = [
       'nuckyAI is the analyst chat layer. it combines live database stats with external context (patch/meta/news) to answer questions and generate takes quickly.',
   },
   {
+    question: 'what makes nuckyAI different from things like chatgpt, claude, etc?',
+    answer:
+      'generic chatbots answer from training data alone — nuckyAI is grounded in live pro-play data. every response pulls from oracle\'s elixir stats in supabase, deterministic analyst tools (matchups, rankings, form, schedules), and a pgvector RAG index over liquipedia, patch notes, reddit, and kalshi that refreshes weekly. that means numbers, rosters, and meta context are tied to actual tier-1 esports sources, not solo queue sites or stale model memory.',
+  },
+  {
     question: 'why is nuckyAI subscription gated?',
     answer:
       'subscription helps cover model and infrastructure cost while keeping response quality and update frequency stable.',

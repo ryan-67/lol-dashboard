@@ -12,6 +12,8 @@ export interface VectorChunk {
   content: string;
   source: string;
   metadata: unknown;
+  title?: string;
+  source_url?: string;
   similarity: number;
 }
 
@@ -46,29 +48,41 @@ async function inferOeDataShape(service: SupabaseClient): Promise<string> {
   return keys.length ? keys.join(", ") : "unknown";
 }
 
+export interface VectorSearchOptions {
+  filterSource?: string | null;
+  filterKind?: string | null;
+  matchCount?: number;
+}
+
 export async function vectorSearch(
   service: SupabaseClient,
   apiKey: string,
   query: string,
+  options: VectorSearchOptions = {},
 ): Promise<ToolResult> {
   try {
     const embedding = await embedText(apiKey, query);
     const { data, error } = await service.rpc("match_documents", {
       query_embedding: embedding,
-      match_count: 5,
-      filter_source: null,
+      match_count: options.matchCount ?? 10,
+      filter_source: options.filterSource ?? null,
+      filter_kind: options.filterKind ?? null,
     });
 
     if (error) {
       return { ok: false, error: `vector search rpc failed: ${error.message}` };
     }
 
-    const chunks = (data ?? []).map((row: any) => ({
-      content: row.content,
-      source: row.source,
-      metadata: row.metadata,
-      similarity: row.similarity,
-    })) as VectorChunk[];
+    const chunks = (data ?? [])
+      .map((row: Record<string, unknown>) => ({
+        content: row.content,
+        source: row.source,
+        metadata: row.metadata,
+        title: row.title,
+        source_url: row.source_url,
+        similarity: row.similarity,
+      }))
+      .filter((row: { similarity: number }) => Number(row.similarity) >= 0.25) as VectorChunk[];
 
     return { ok: true, data: chunks };
   } catch (err) {

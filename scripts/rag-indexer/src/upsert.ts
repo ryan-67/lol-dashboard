@@ -22,6 +22,8 @@ function toUpsertRow(chunk: TextChunk, embedding: number[]): DocumentUpsertRow {
       title: chunk.title,
       scraped_at: chunk.scrapedAt,
       chunk_index: chunk.chunkIndex,
+      ...(chunk.contentKind ? { content_kind: chunk.contentKind } : {}),
+      ...(chunk.league ? { league: chunk.league } : {}),
     },
   }
 }

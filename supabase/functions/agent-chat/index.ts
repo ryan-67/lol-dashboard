@@ -8,6 +8,8 @@ import { finalMessages } from "./helpers/prompts.ts";
 import { streamFallback, streamFinalAnswer } from "./helpers/stream.ts";
 import { chartMarkdownBlock, runTeamCompare } from "./helpers/teamCompare.ts";
 import { runPlayerCompare } from "./helpers/playerCompare.ts";
+import { buildAnalystContext, mergeToolResults } from "./helpers/analystTools.ts";
+import { routeTools } from "./helpers/toolRouter.ts";
 import { sqlQuery, vectorSearch } from "./helpers/tools.ts";
 
 interface ChatRequestBody {
@@ -205,8 +207,19 @@ Deno.serve(async (req) => {
         const dashboardLeague = String(body.league ?? "All Tier 1").trim() || "All Tier 1";
         const dashboardSplit = String(body.split ?? "").trim();
 
+        const analystCtx = await buildAnalystContext(
+          serviceClient,
+          message,
+          dashboardLeague,
+          dashboardSplit || undefined,
+        );
+        const route = routeTools(
+          message,
+          analystCtx.tools.map((t) => t.tool).concat(["stat_snapshot"]),
+        );
+
         let chartPrefix = "";
-        let dbResults: unknown = null;
+        let dbResults: unknown = mergeToolResults(analystCtx);
         let isCompare = false;
 
         const teamCompare = await runTeamCompare(
@@ -226,7 +239,10 @@ Deno.serve(async (req) => {
         const compareResult = teamCompare ?? playerCompare;
 
         if (compareResult) {
-          dbResults = compareResult.data;
+          dbResults = {
+            ...(dbResults as Record<string, unknown>),
+            compare: compareResult.data,
+          };
           isCompare = true;
           chartPrefix = `${chartMarkdownBlock(compareResult.chart)}\n\n`;
           await streamFallback(writer, chartPrefix);
@@ -236,17 +252,26 @@ Deno.serve(async (req) => {
 
         let externalContext = "";
 
-        if (plan.needs_sql && !compareResult) {
+        if (plan.needs_sql && !compareResult && !route.skipSql) {
           const sql = await sqlQuery(serviceClient, openrouterApiKey, message);
-          dbResults = sql.ok ? sql.data : { error: sql.error };
+          dbResults = {
+            ...(dbResults as Record<string, unknown>),
+            sql_query: sql.ok ? sql.data : { error: sql.error },
+          };
         }
 
         if (plan.needs_vector) {
-          const vec = await vectorSearch(serviceClient, openrouterApiKey, message);
+          const vec = await vectorSearch(serviceClient, openrouterApiKey, message, route.vector);
           if (vec.ok) {
-            const chunks = (vec.data as Array<{ content: string; source: string; similarity: number }> | undefined) ?? [];
+            const chunks =
+              (vec.data as Array<{ content: string; source: string; title?: string; similarity: number; metadata?: unknown }> | undefined) ?? [];
             externalContext = chunks
-              .map((c) => `[${c.source} ${Number(c.similarity).toFixed(3)}] ${c.content}`)
+              .map((c) => {
+                const kind = (c.metadata as { content_kind?: string } | undefined)?.content_kind;
+                const tag = kind ? `${c.source}/${kind}` : c.source;
+                const title = c.title ? ` ${c.title}` : "";
+                return `[${tag}${title} ${Number(c.similarity).toFixed(3)}] ${c.content}`;
+              })
               .join("\n\n");
           } else {
             externalContext = `vectorSearch error: ${vec.error}`;
@@ -255,7 +280,7 @@ Deno.serve(async (req) => {
 
         const resolvedSplit =
           (compareResult?.data as { split?: string } | undefined)?.split ??
-          (dashboardSplit || "current split");
+          String((analystCtx.snapshot as { split?: string }).split ?? (dashboardSplit || "current split"));
         const finalModel = pickFinalModel(plan);
         const messages = finalMessages(conversation.history, message, dbResults, externalContext, {
           league: dashboardLeague,

@@ -42,6 +42,8 @@ export function chunkPage(page: ScrapedPage): TextChunk[] {
       chunkIndex,
       content: buildChunkContent(page.contextHeader, body),
       scrapedAt: page.scrapedAt,
+      contentKind: page.contentKind,
+      league: page.league,
     })
     chunkIndex += 1
     buffer = takeTail(body, CHUNK_OVERLAP)

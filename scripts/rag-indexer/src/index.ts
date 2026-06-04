@@ -4,6 +4,7 @@ import { scrapeLiquipedia } from './scrapers/liquipedia.js'
 import { scrapeKalshiOdds } from './scrapers/kalshi.js'
 import { scrapePatchNotes } from './scrapers/patch-notes.js'
 import { scrapeRedditPostMatch } from './scrapers/reddit.js'
+import { scrapeAndUpsertSchedules } from './scrapers/schedules.js'
 import { dedupePages } from './utils/url.js'
 import type { ScrapedPage, TextChunk } from './types.js'
 import { pruneStaleChunks, upsertChunks } from './upsert.js'
@@ -46,6 +47,9 @@ function summarizePages(label: string, pages: ScrapedPage[]): void {
 async function main(): Promise<void> {
   console.log(`nucky RAG indexer ${DRY_RUN ? '(dry-run)' : ''}`)
   console.log(`Started at ${new Date().toISOString()}`)
+
+  const scheduleRows = await scrapeAndUpsertSchedules()
+  console.log(`Schedules upserted: ${scheduleRows} row(s)`)
 
   const liquipediaPages = await scrapeLiquipedia()
   const patchPages = await scrapePatchNotes()

@@ -154,6 +154,7 @@ async function fetchPatchArticle(url: string): Promise<ScrapedPage | null> {
     text,
     contextHeader: `Patch: ${patchLabel}`,
     scrapedAt: new Date().toISOString(),
+    contentKind: 'patch',
   }
 }
 

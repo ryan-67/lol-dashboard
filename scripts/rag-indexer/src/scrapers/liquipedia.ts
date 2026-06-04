@@ -57,6 +57,25 @@ function pageUrl(page: string): string {
   return `${LIQUIPEDIA_BASE}/${page.replace(/ /g, '_')}`
 }
 
+function inferLeague(page: string): string | undefined {
+  if (page.startsWith('LCK') || page === 'T1' || page.includes('Gen.G')) return 'LCK'
+  if (page.startsWith('LPL') || page.includes('Bilibili') || page.includes('Top_Esports')) return 'LPL'
+  if (page.startsWith('LEC') || page.includes('G2_Esports') || page.includes('Fnatic')) return 'LEC'
+  if (page.startsWith('LCS') || page.includes('Team_Liquid') || page.includes('Cloud9')) return 'LCS'
+  for (const league of ['LCK', 'LPL', 'LEC', 'LCS']) {
+    if (page.includes(`${league}/`)) return league
+  }
+  return undefined
+}
+
+function inferContentKind(page: string): ScrapedPage['contentKind'] {
+  if (page.includes('_vs_') || page.includes('/vs_')) return 'match'
+  if (TIER1_PLAYER_PAGES.some((p) => p === page)) return 'player'
+  if (TIER1_TEAM_PAGES.some((p) => p === page)) return 'team'
+  if (page.includes('Season') || page.includes('Split')) return 'tournament'
+  return 'news'
+}
+
 function contextForPage(page: string, title: string): string {
   const clean = title.replace(/_/g, ' ')
   if (page.includes('_vs_') || page.includes('/vs_')) {
@@ -152,6 +171,8 @@ async function fetchLiquipediaPage(page: string): Promise<ScrapedPage | null> {
     text,
     contextHeader: contextForPage(page, title),
     scrapedAt: new Date().toISOString(),
+    contentKind: inferContentKind(page),
+    league: inferLeague(page),
   }
 }
 

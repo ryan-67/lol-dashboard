@@ -140,6 +140,7 @@ export async function scrapeKalshiOdds(): Promise<ScrapedPage[]> {
       text: formatEventOdds(eventTicker, markets),
       contextHeader: `Kalshi odds: ${title.replace(/\?$/, '')}`,
       scrapedAt,
+      contentKind: 'kalshi',
     })
   }
 
