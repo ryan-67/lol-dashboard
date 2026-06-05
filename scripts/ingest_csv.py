@@ -29,7 +29,12 @@ ROOT = SCRIPTS_DIR.parent
 if str(SCRIPTS_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPTS_DIR))
 
-from oe_csv_io import discover_local_csv_files  # noqa: E402
+from oe_csv_io import (  # noqa: E402
+    REGIONAL_SPLIT_MARKERS,
+    TIER1_LEAGUES,
+    discover_local_csv_files,
+    normalize_oe_row,
+)
 
 LOL_DIR = ROOT / "lol"
 OUT_DIR = ROOT / "public" / "data"
@@ -597,7 +602,27 @@ def resolve_bucket_key(
     return None
 
 
+def log_tier1_coverage(slices: dict[str, dict]) -> None:
+    by_split: dict[str, set[str]] = defaultdict(set)
+    for key in slices:
+        split, league = key.rsplit("|", 1)
+        by_split[split].add(league)
+
+    for split in sorted(by_split.keys(), key=split_sort_key):
+        if not any(marker in split for marker in REGIONAL_SPLIT_MARKERS):
+            continue
+        leagues = sorted(by_split[split])
+        missing = [league for league in TIER1_LEAGUES if league not in by_split[split]]
+        print(f"  Tier-1 coverage {split}: {', '.join(leagues)}")
+        if missing:
+            print(
+                f"  WARNING: missing tier-1 leagues for {split}: {', '.join(missing)}",
+                file=sys.stderr,
+            )
+
+
 def process_row(row, buckets: dict, team_to_league: dict[str, str]):
+    row = normalize_oe_row(row)
     league = row.get("league", "")
     if league not in ALLOWED_LEAGUES:
         return
@@ -861,6 +886,7 @@ def ingest():
     print(f"Wrote manifest {OUT_PATH} ({size_kb:.1f} KB)")
     print(f"  Splits: {len(meta['splits'])}")
     print(f"  Slice keys: {len(slices)}")
+    log_tier1_coverage(slices)
     if UNMAPPED_WARNINGS:
         print(f"  Unmapped split warnings: {len(UNMAPPED_WARNINGS)}", file=sys.stderr)
 

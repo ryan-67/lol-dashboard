@@ -18,8 +18,11 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 MANIFEST = ROOT / "public" / "data" / "oe_slices.json"
 
-TIER1_LEAGUES = ("LCK", "LPL", "LEC", "LCS")
-REGIONAL_SPLIT_MARKERS = ("Winter", "Spring", "Summer")
+SCRIPTS_DIR = Path(__file__).resolve().parent
+if str(SCRIPTS_DIR) not in sys.path:
+    sys.path.insert(0, str(SCRIPTS_DIR))
+
+from oe_csv_io import REGIONAL_SPLIT_MARKERS, TIER1_LEAGUES  # noqa: E402
 
 
 def load_env() -> None:

@@ -14,6 +14,9 @@ import re
 from datetime import datetime, timezone
 from pathlib import Path
 
+TIER1_LEAGUES = ("LCK", "LPL", "LEC", "LCS")
+REGIONAL_SPLIT_MARKERS = ("Winter", "Spring", "Summer")
+
 # Official Oracle's Elixir public Drive bundle (OE Public Match Data).
 DEFAULT_OE_DRIVE_FOLDER_ID = "1gLSw0RLjBbtaNy0dgnGQDAZOHIgCe-HH"
 
@@ -67,6 +70,44 @@ def filter_remote_files_by_years(files: list[dict], years: set[str] | None) -> l
     if years is None:
         return matched
     return [f for f in matched if extract_csv_year(f.get("name", "")) in years]
+
+
+def normalize_oe_row(row: dict) -> dict:
+    """
+    Normalize Oracle's Elixir row fields before ingest.
+
+    LPL rows are often datacompleteness=partial with a populated url column and the same
+    schema as other leagues; this helper strips whitespace and fills sparse identifiers.
+    """
+    out = dict(row)
+    for key in (
+        "league",
+        "teamname",
+        "playername",
+        "name",
+        "position",
+        "split",
+        "datacompleteness",
+        "gameid",
+    ):
+        value = out.get(key)
+        if isinstance(value, str):
+            out[key] = value.strip()
+
+    if not out.get("playername") and not out.get("name"):
+        player_id = (out.get("playerid") or "").strip()
+        if player_id:
+            suffix = player_id.split(":")[-1] if ":" in player_id else player_id
+            out["playername"] = f"player:{suffix[:16]}"
+
+    # LPL regular split rows occasionally carry playoffs=1 without a playoff split label.
+    league = out.get("league", "")
+    split = out.get("split", "")
+    if league == "LPL" and str(out.get("playoffs")) == "1":
+        if re.search(r"split\s*[12]\b", split, re.I) and not re.search(r"playoff", split, re.I):
+            out["playoffs"] = "0"
+
+    return out
 
 
 def discover_local_csv_files(lol_dir: Path) -> list[Path]:

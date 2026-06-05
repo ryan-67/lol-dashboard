@@ -151,7 +151,14 @@ def main() -> None:
             count = upsert_batches(client, rows)
             slices_upserted += count
             files_processed += 1
-            logger.info("%s: upserted %d slice(s)", path.name, count)
+            leagues_by_split: dict[str, list[str]] = {}
+            for row in rows:
+                leagues_by_split.setdefault(row["split"], []).append(row["league"])
+            summary = ", ".join(
+                f"{split}=[{', '.join(sorted(set(leagues)))}]"
+                for split, leagues in sorted(leagues_by_split.items())
+            )
+            logger.info("%s: upserted %d slice(s) — %s", path.name, count, summary)
         except Exception:
             errors += 1
             logger.exception("Failed processing %s", path.name)
