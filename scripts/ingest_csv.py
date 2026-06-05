@@ -6,7 +6,8 @@ Usage:
     python scripts/ingest_csv.py
 
 Reads:
-    lol/*_oracle_elixir.csv
+    lol/*_LoL_esports_match_data_from_OraclesElixir.csv
+    lol/*_oracle_elixir.csv (legacy mirror naming)
 
 Writes:
     public/data/oe_slices.json (manifest with year_files; not read by the frontend)
@@ -23,11 +24,16 @@ from collections import defaultdict
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[1]
+SCRIPTS_DIR = Path(__file__).resolve().parent
+ROOT = SCRIPTS_DIR.parent
+if str(SCRIPTS_DIR) not in sys.path:
+    sys.path.insert(0, str(SCRIPTS_DIR))
+
+from oe_csv_io import discover_local_csv_files  # noqa: E402
+
 LOL_DIR = ROOT / "lol"
 OUT_DIR = ROOT / "public" / "data"
 OUT_PATH = OUT_DIR / "oe_slices.json"
-CSV_FILES = sorted(LOL_DIR.glob("*_oracle_elixir.csv"))
 
 TARGET_LEAGUES = {"LCK", "LPL", "LEC", "LCS"}
 INTERNATIONAL_LEAGUES = {"MSI", "WLDs", "FST"}
@@ -761,16 +767,17 @@ def process_row(row, buckets: dict, team_to_league: dict[str, str]):
 
 
 def ingest():
-    if not CSV_FILES:
+    csv_files = discover_local_csv_files(LOL_DIR)
+    if not csv_files:
         if OUT_PATH.exists():
-            print("WARNING: No *_oracle_elixir.csv files found; keeping existing data store.", file=sys.stderr)
+            print("WARNING: No OE CSV files found in lol/; keeping existing data store.", file=sys.stderr)
             print(f"Using existing {OUT_PATH}", file=sys.stderr)
             return
         print("ERROR: No Oracle's Elixir CSV files found and no existing data store:", file=sys.stderr)
         print("Place Oracle's Elixir CSV files in lol/ or run from project root.", file=sys.stderr)
         sys.exit(1)
 
-    missing = [str(p) for p in CSV_FILES if not p.exists()]
+    missing = [str(p) for p in csv_files if not p.exists()]
     if missing:
         if OUT_PATH.exists():
             print("WARNING: Missing CSV files; keeping existing data store:", file=sys.stderr)
@@ -788,7 +795,7 @@ def ingest():
     team_to_league: dict[str, str] = {}
 
     # Pass 1: build team → home league map from regional tier-1 rows.
-    for csv_path in CSV_FILES:
+    for csv_path in csv_files:
         with csv_path.open("r", encoding="utf-8") as f:
             reader = csv.DictReader(f)
             for row in reader:
@@ -802,7 +809,7 @@ def ingest():
                     team_to_league[team_name] = league
 
     # Pass 2: aggregate into canonical split/league buckets.
-    for csv_path in CSV_FILES:
+    for csv_path in csv_files:
         print(f"Reading {csv_path.name}...")
         with csv_path.open("r", encoding="utf-8") as f:
             reader = csv.DictReader(f)
@@ -821,7 +828,7 @@ def ingest():
         "leagues": sorted(TARGET_LEAGUES),
         "splits": sorted(split_set, key=split_sort_key),
         "schema_version": "2.1",
-        "csv_files": [p.name for p in CSV_FILES],
+        "csv_files": [p.name for p in csv_files],
     }
 
     OUT_DIR.mkdir(parents=True, exist_ok=True)

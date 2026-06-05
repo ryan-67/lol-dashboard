@@ -1,16 +1,24 @@
-# Refresh Oracle's Elixir data: Drive → ingest → Supabase → commit JSON backup.
+# Refresh Oracle's Elixir data: Drive → ingest → Supabase.
 #
-# Schedule: daily 22:00 UTC — picks up Oracle's Elixir CSV updates as they land.
-# OE files often refresh after weekend leagues; daily runs avoid stale multi-day gaps.
-# Use workflow_dispatch for manual runs.
+# Daily (22:00 UTC): download current-year OE CSV only, ingest, upsert Supabase.
+# Manual "all" run: download every year (initial backfill or full rebuild).
 #
 # Secrets: SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, GOOGLE_SERVICE_ACCOUNT_KEY
-# Optional: OE_DRIVE_FOLDER_ID (defaults to community OE CSV Drive folder)
+# Optional: OE_DRIVE_FOLDER_ID (OE Public Match Data folder shared with service account)
 
 name: Refresh Dashboard Data
 
 on:
   workflow_dispatch:
+    inputs:
+      download_scope:
+        description: CSV years to download from Drive
+        required: true
+        default: current
+        type: choice
+        options:
+          - current
+          - all
   schedule:
     - cron: '0 22 * * *'
 
@@ -55,6 +63,7 @@ jobs:
         env:
           GOOGLE_SERVICE_ACCOUNT_KEY: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_KEY }}
           OE_DRIVE_FOLDER_ID: ${{ secrets.OE_DRIVE_FOLDER_ID }}
+          OE_DOWNLOAD_YEARS: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.download_scope || 'current' }}
         run: python scripts/download_oe_csv.py
 
       - name: Ingest CSVs into slice JSON shards
@@ -71,10 +80,3 @@ jobs:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
         run: python scripts/verify_supabase_seed.py
-
-      - name: Commit and push JSON backup
-        uses: stefanzweifel/git-auto-commit-action@v5
-        with:
-          commit_message: 'chore(data): refresh oe_slices from Oracle Elixir (${{ github.run_number }})'
-          file_pattern: public/data/oe_slices*.json
-          branch: ${{ github.ref_name }}
