@@ -1,535 +1,662 @@
-import { useMemo, useRef, useState } from 'react'
+import { useMemo, useRef } from 'react'
 import { useGSAP } from '@gsap/react'
 import { useDashboard } from '../context/DashboardContext'
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  Tooltip,
-  ResponsiveContainer,
-  Cell,
-  ScatterChart,
-  Scatter,
-  CartesianGrid,
-  ZAxis,
-  LabelList,
-} from 'recharts'
-import { makeChartTooltipContent } from '../components/ui/ChartTooltip'
-import RoleToggleLegend from '../components/ui/RoleToggleLegend'
-import { scrollEntranceStagger } from '../theme/animations'
+import type { Champion, Player, PlayerGameLog } from '../hooks/useDashboardData'
 import {
   ROLES,
-  championHasRole,
-  roleColor,
-  roleLabel,
-  scatterPresence,
-  scatterWinRate,
-  totalGamesInCohort,
+  computeOpScores,
+  type RoleKey,
 } from '../lib/championAnalytics'
-import { computeAggregateScore, normalizePosition, playersForRole, type RoleKey } from '../lib/playerRadar'
-import { CHART, roleColor as playerRoleColor } from '../theme/chartTheme'
-import AnimatedCounter from '../components/ui/AnimatedCounter'
+import {
+  ROLE_METRICS,
+  buildRadarSeries,
+  computeGameScore,
+  normalizePosition,
+  playersForRole,
+  type RadarMetricKey,
+} from '../lib/playerRadar'
+import { CHART } from '../theme/chartTheme'
+import {
+  scrollEntranceStagger,
+  refreshScrollTrigger,
+} from '../theme/animations'
+import { formatNum, formatPct } from '../lib/format'
+import {
+  PolarAngleAxis,
+  PolarGrid,
+  PolarRadiusAxis,
+  Radar,
+  RadarChart,
+  ResponsiveContainer,
+  Tooltip,
+} from 'recharts'
+import { makeChartTooltipContent } from '../components/ui/ChartTooltip'
 
-const ROLE_POSITIONS = ['top', 'jungle', 'mid', 'adc', 'support'] as const
-
-const PLAYER_ROLE_LEGEND = ROLE_POSITIONS.map((position) => ({
-  key: position,
-  label: position.toUpperCase(),
-  color: playerRoleColor(position),
-}))
-
-const CHAMPION_ROLE_LEGEND = ROLES.map((role) => ({
-  key: role,
-  label: roleLabel(role),
-  color: roleColor(role),
-}))
-
-const AXIS_LABEL_STYLE = {
-  fill: CHART.tick,
-  fontSize: CHART.fontSize,
-  fontFamily: CHART.fontFamily,
+interface WeeklyWindow {
+  start: Date
+  end: Date
+  key: string
+  label: string
 }
 
-const teamBarTooltip = makeChartTooltipContent(
-  (props) => (props.payload?.[0]?.payload as { name?: string })?.name,
-  (props) => {
-    const row = props.payload?.[0]?.payload as { winrate?: number }
-    if (row?.winrate === undefined) return []
-    return [{ label: 'Winrate', value: `${row.winrate.toFixed(1)}%` }]
-  },
-)
+interface WeeklyPlayer {
+  base: Player
+  role: RoleKey
+  weekly: Player
+  weeklyGames: PlayerGameLog[]
+  scoreAvg: number
+}
 
-const playerScatterTooltip = makeChartTooltipContent(
-  (props) => (props.payload?.[0]?.payload as { name?: string })?.name,
-  (props) => {
-    const row = props.payload?.[0]?.payload as { gd15?: number; kda?: number; games?: number }
-    if (!row) return []
-    const rows = []
-    if (typeof row.gd15 === 'number') {
-      rows.push({
-        label: 'GD@15',
-        value: `${row.gd15 > 0 ? '+' : ''}${row.gd15.toFixed(1)}`,
-      })
-    }
-    if (typeof row.kda === 'number') {
-      rows.push({ label: 'KDA', value: row.kda.toFixed(2) })
-    }
-    if (typeof row.games === 'number') {
-      rows.push({ label: 'Games', value: String(row.games) })
-    }
-    return rows
-  },
-)
+interface OpponentLane {
+  team: string
+  player: string
+  champion: string
+}
 
-const championScatterTooltip = makeChartTooltipContent(
-  (props) => (props.payload?.[0]?.payload as { name?: string })?.name,
-  (props) => {
-    const row = props.payload?.[0]?.payload as { x?: number; y?: number; picks?: number }
-    if (!row) return []
-    const rows = []
-    if (typeof row.x === 'number') {
-      rows.push({ label: 'Presence', value: `${row.x.toFixed(1)}%` })
+interface TeamWeekStats {
+  team: string
+  weeklyWins: number
+  weeklyGames: number
+  weeklyWinrate: number
+  weeklyAvgKda: number
+  weeklyAvgGd15: number
+  weeklyObjControl: number
+  avgOpponentSplitWinrate: number
+  upsetWins: number
+  impressiveness: number
+}
+
+const METRIC_LABELS: Partial<Record<RadarMetricKey, string>> = {
+  csd15: 'CS@15',
+  gd15: 'GD@15',
+  xpd15: 'XP@15',
+  dpm: 'DPM',
+  kda: 'KDA',
+  dmgShare: 'DMG%',
+  firstBloodRate: 'FB%',
+  kp: 'KP',
+  objControl: 'OBJ CTRL',
+  goldShare: 'GOLD%',
+  visionScore: 'VISION',
+}
+
+function parseDate(value: string): Date | null {
+  if (!value) return null
+  const parsed = new Date(value)
+  if (Number.isNaN(parsed.getTime())) return null
+  return parsed
+}
+
+function mondayStart(date: Date): Date {
+  const out = new Date(date)
+  out.setHours(0, 0, 0, 0)
+  const day = out.getDay()
+  const diff = day === 0 ? -6 : 1 - day
+  out.setDate(out.getDate() + diff)
+  return out
+}
+
+function isoDate(date: Date): string {
+  return date.toISOString().slice(0, 10)
+}
+
+function weekLabel(start: Date, end: Date): string {
+  return `${start.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })} - ${end.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}`
+}
+
+function getWeeklyWindow(players: Player[]): WeeklyWindow | null {
+  const dates = players
+    .flatMap((p) => p.gameLog ?? [])
+    .map((g) => parseDate(g.date))
+    .filter((d): d is Date => d !== null)
+  if (!dates.length) return null
+  dates.sort((a, b) => a.getTime() - b.getTime())
+  const end = dates[dates.length - 1]
+  const start = mondayStart(end)
+  const weekEnd = new Date(start)
+  weekEnd.setDate(start.getDate() + 6)
+  return {
+    start,
+    end: weekEnd,
+    key: isoDate(start),
+    label: weekLabel(start, weekEnd),
+  }
+}
+
+function inWindow(log: PlayerGameLog, window: WeeklyWindow): boolean {
+  const d = parseDate(log.date)
+  if (!d) return false
+  return d >= window.start && d <= window.end
+}
+
+function avg(values: number[]): number {
+  if (!values.length) return 0
+  return values.reduce((sum, n) => sum + n, 0) / values.length
+}
+
+function createWeeklyPlayerSnapshot(base: Player, logs: PlayerGameLog[]): Player {
+  return {
+    ...base,
+    games: logs.length,
+    kda: avg(logs.map((g) => g.kda)),
+    kp: avg(logs.map((g) => g.kp)),
+    dmgShare: avg(logs.map((g) => g.dmgShare)),
+    gd15: avg(logs.map((g) => g.gd15)),
+    csd15: avg(logs.map((g) => g.csd15)),
+    xpd15: avg(logs.map((g) => g.xpd15)),
+    dpm: avg(logs.map((g) => g.dpm)),
+    visionScore: avg(logs.map((g) => g.visionScore ?? 0)),
+    goldShare: avg(logs.map((g) => g.goldShare ?? 0)),
+    firstBloodRate: avg(logs.map((g) => g.firstBloodRate ?? 0)),
+    objControl: avg(logs.map((g) => g.objControl ?? 0)),
+    gameLog: logs,
+  }
+}
+
+function getWeeklyPlayers(
+  players: Player[],
+  window: WeeklyWindow,
+): WeeklyPlayer[] {
+  const groupedByRole = new Map<RoleKey, WeeklyPlayer[]>()
+  for (const role of ROLES) groupedByRole.set(role, [])
+
+  for (const player of players) {
+    const role = normalizePosition(player.position)
+    if (!role) continue
+    const logs = (player.gameLog ?? []).filter((g) => inWindow(g, window))
+    if (!logs.length) continue
+    const weekly = createWeeklyPlayerSnapshot(player, logs)
+    const cohort = playersForRole(players, role)
+    const scoreAvg = avg(
+      logs.map((g) => computeGameScore(g, role, cohort)) as number[],
+    )
+    groupedByRole.get(role)?.push({
+      base: player,
+      role,
+      weekly,
+      weeklyGames: logs,
+      scoreAvg,
+    })
+  }
+
+  const out: WeeklyPlayer[] = []
+  for (const role of ROLES) {
+    const row = groupedByRole.get(role) ?? []
+    out.push(...row)
+  }
+  return out
+}
+
+function opponentLaneInfo(
+  allPlayers: Player[],
+  role: RoleKey,
+  log: PlayerGameLog,
+): OpponentLane {
+  const team = log.opponent ?? 'N/A'
+  if (!team || team === 'N/A') {
+    return { team: 'N/A', player: 'N/A', champion: 'N/A' }
+  }
+  const candidates = allPlayers.filter(
+    (p) => p.team === team && normalizePosition(p.position) === role,
+  )
+  for (const candidate of candidates) {
+    const hit = (candidate.gameLog ?? []).find((g) => g.date === log.date)
+    if (hit) {
+      return { team, player: candidate.name, champion: hit.champion || 'N/A' }
     }
-    if (typeof row.y === 'number') {
-      rows.push({ label: 'Winrate', value: `${row.y.toFixed(1)}%` })
+  }
+  return { team, player: 'N/A', champion: 'N/A' }
+}
+
+function highestDeltaStat(
+  player: WeeklyPlayer,
+  roleCohort: Player[],
+): { stat: string; value: number; delta: number } {
+  const defs = ROLE_METRICS[player.role]
+  let best = { stat: 'KDA', value: player.weekly.kda, delta: 0 }
+  for (const def of defs) {
+    const cohortAvg =
+      avg(roleCohort.map((c) => Number(c[def.key] ?? 0))) || 0
+    const val = Number(player.weekly[def.key] ?? 0)
+    const delta = val - cohortAvg
+    if (delta > best.delta) {
+      best = {
+        stat: METRIC_LABELS[def.key] ?? def.label,
+        value: val,
+        delta,
+      }
     }
-    if (typeof row.picks === 'number') {
-      rows.push({ label: 'Picks', value: String(row.picks) })
+  }
+  return best
+}
+
+function minMaxNorm(value: number, all: number[]): number {
+  const min = Math.min(...all)
+  const max = Math.max(...all)
+  if (max === min) return 50
+  return ((value - min) / (max - min)) * 100
+}
+
+function calculateHottestTeams(
+  weeklyPlayers: WeeklyPlayer[],
+  splitTeams: { name: string; winrate: number }[],
+): TeamWeekStats[] {
+  const splitWinrate = new Map(splitTeams.map((t) => [t.name, t.winrate]))
+  const teamMap = new Map<string, TeamWeekStats>()
+
+  for (const wp of weeklyPlayers) {
+    const t = wp.base.team
+    const entry = teamMap.get(t) ?? {
+      team: t,
+      weeklyWins: 0,
+      weeklyGames: 0,
+      weeklyWinrate: 0,
+      weeklyAvgKda: 0,
+      weeklyAvgGd15: 0,
+      weeklyObjControl: 0,
+      avgOpponentSplitWinrate: 0,
+      upsetWins: 0,
+      impressiveness: 0,
     }
-    return rows
-  },
-)
+
+    const unique = new Map<string, PlayerGameLog>()
+    for (const g of wp.weeklyGames) {
+      const key = `${g.date}|${g.opponent}|${g.result}`
+      if (!unique.has(key)) unique.set(key, g)
+    }
+    const matches = [...unique.values()]
+
+    const wins = matches.filter((m) => m.result === 1).length
+    entry.weeklyWins += wins
+    entry.weeklyGames += matches.length
+    entry.weeklyAvgKda += avg(matches.map((m) => m.kda))
+    entry.weeklyAvgGd15 += avg(matches.map((m) => m.gd15))
+    entry.weeklyObjControl += avg(matches.map((m) => m.objControl ?? 0))
+
+    const teamSplit = splitWinrate.get(t) ?? 50
+    const oppWrs: number[] = []
+    for (const m of matches) {
+      const opp = m.opponent ?? ''
+      const wr = splitWinrate.get(opp) ?? 50
+      oppWrs.push(wr)
+      if (m.result === 1 && wr > teamSplit) entry.upsetWins += 1
+    }
+    entry.avgOpponentSplitWinrate += avg(oppWrs)
+    teamMap.set(t, entry)
+  }
+
+  const rows = [...teamMap.values()]
+    .filter((t) => t.weeklyGames > 0)
+    .map((t) => {
+      const div = 5
+      return {
+        ...t,
+        weeklyWinrate: (t.weeklyWins / Math.max(t.weeklyGames, 1)) * 100,
+        weeklyAvgKda: t.weeklyAvgKda / div,
+        weeklyAvgGd15: t.weeklyAvgGd15 / div,
+        weeklyObjControl: t.weeklyObjControl / div,
+        avgOpponentSplitWinrate: t.avgOpponentSplitWinrate / div,
+      }
+    })
+
+  if (!rows.length) return []
+
+  const wrs = rows.map((r) => r.weeklyWinrate)
+  const kdas = rows.map((r) => r.weeklyAvgKda)
+  const gds = rows.map((r) => r.weeklyAvgGd15)
+  const objs = rows.map((r) => r.weeklyObjControl)
+  const sos = rows.map((r) => r.avgOpponentSplitWinrate)
+
+  return rows
+    .map((r) => {
+      const score =
+        minMaxNorm(r.weeklyWinrate, wrs) * 0.42 +
+        minMaxNorm(r.weeklyAvgGd15, gds) * 0.18 +
+        minMaxNorm(r.weeklyAvgKda, kdas) * 0.14 +
+        minMaxNorm(r.weeklyObjControl, objs) * 0.12 +
+        minMaxNorm(r.avgOpponentSplitWinrate, sos) * 0.1 +
+        r.upsetWins * 1.5
+      return { ...r, impressiveness: score }
+    })
+    .sort((a, b) => b.impressiveness - a.impressiveness)
+}
+
+function championOfWeekFromLogs(
+  weeklyPlayers: WeeklyPlayer[],
+  allChamps: Champion[],
+  weekKey: string,
+): Champion[] {
+  const src = new Map(allChamps.map((c) => [c.name, c]))
+  const map = new Map<string, Champion>()
+
+  const uniqueMatches = new Set<string>()
+  for (const wp of weeklyPlayers) {
+    for (const g of wp.weeklyGames) {
+      uniqueMatches.add(`${wp.base.team}|${g.date}|${g.opponent}`)
+      const k = g.champion
+      if (!k) continue
+      const base = src.get(k)
+      const ex =
+        map.get(k) ??
+        ({
+          name: k,
+          positions: base?.positions ?? [wp.role],
+          picks: 0,
+          bans: 0,
+          presence: 0,
+          pickRate: 0,
+          banRate: 0,
+          winrate: 0,
+          avgKda: 0,
+          games: 0,
+          wins: 0,
+        } as Champion)
+      ex.picks += 1
+      ex.games = ex.picks
+      ex.avgKda += g.kda
+      ex.wins = (ex.wins ?? 0) + (g.result === 1 ? 1 : 0)
+      map.set(k, ex)
+    }
+  }
+
+  const totalGames = Math.max(uniqueMatches.size / 2, 1)
+  return [...map.values()]
+    .map((c) => {
+      const base = src.get(c.name)
+      const weekly = base?.weeklyStats?.find((w) => w.weekStart === weekKey)
+      const picks = c.picks
+      const bans = weekly?.bans ?? 0
+      const pickRate = (picks / totalGames) * 100
+      const banRate = (bans / totalGames) * 100
+      return {
+        ...c,
+        bans,
+        pickRate,
+        banRate,
+        presence: pickRate + banRate,
+        avgKda: c.avgKda / Math.max(picks, 1),
+        winrate: ((c.wins ?? 0) / Math.max(picks, 1)) * 100,
+      }
+    })
+    .filter((c) => c.picks >= 2)
+}
+
+function WeeklyRadar({
+  player,
+  role,
+  cohort,
+  compact = false,
+}: {
+  player: Player
+  role: RoleKey
+  cohort: Player[]
+  compact?: boolean
+}) {
+  const data = buildRadarSeries(player, role, cohort)
+  const color = role === 'adc' ? '#c5a059' : '#9e8c7a'
+  const tooltipContent = makeChartTooltipContent(
+    () => player.name,
+    (props) => {
+      const point = props.payload?.[0]?.payload as {
+        metric?: string
+        formattedPlayer?: string
+        formattedAvg?: string
+      }
+      if (!point?.metric) return []
+      return [
+        { label: point.metric, value: point.formattedPlayer ?? '—' },
+        { label: 'Role avg', value: point.formattedAvg ?? '—' },
+      ]
+    },
+  )
+  return (
+    <div className="overview-weekly-radar">
+      <ResponsiveContainer width="100%" height={compact ? 200 : 270}>
+        <RadarChart data={data} cx="50%" cy="50%" outerRadius={compact ? '68%' : '72%'}>
+          <PolarGrid stroke={CHART.grid} />
+          <PolarAngleAxis
+            dataKey="metric"
+            tick={{ fill: CHART.tick, fontSize: 10, fontFamily: CHART.fontFamily }}
+          />
+          <PolarRadiusAxis angle={90} domain={[0, 100]} tick={false} axisLine={false} />
+          <Tooltip content={tooltipContent} />
+          <Radar
+            name="Role average"
+            dataKey="avgNorm"
+            stroke="rgba(240, 236, 226, 0.35)"
+            fill="transparent"
+            strokeWidth={1.5}
+            strokeDasharray="4 4"
+            dot={false}
+          />
+          <Radar
+            name={player.name}
+            dataKey="playerNorm"
+            stroke={color}
+            fill={color}
+            fillOpacity={0.12}
+            strokeWidth={2}
+            dot={{ r: 3, fill: color, strokeWidth: 0 }}
+          />
+        </RadarChart>
+      </ResponsiveContainer>
+    </div>
+  )
+}
 
 export default function Overview() {
-  const { filteredTeams, filteredPlayers, filteredChampions, loading, league, split } =
-    useDashboard()
-  const [hiddenRoles, setHiddenRoles] = useState<Set<string>>(() => new Set())
-  const [hiddenChampionRoles, setHiddenChampionRoles] = useState<Set<string>>(() => new Set())
+  const { filteredPlayers, filteredTeams, filteredChampions, loading, league, split } = useDashboard()
+  const rootRef = useRef<HTMLDivElement>(null)
 
-  const chartsGridRef = useRef<HTMLDivElement>(null)
-  const snapshotGridRef = useRef<HTMLDivElement>(null)
-  const tableRef = useRef<HTMLDivElement>(null)
+  const weeklyWindow = useMemo(() => getWeeklyWindow(filteredPlayers), [filteredPlayers])
+  const weeklyPlayers = useMemo(
+    () => (weeklyWindow ? getWeeklyPlayers(filteredPlayers, weeklyWindow) : []),
+    [filteredPlayers, weeklyWindow],
+  )
+
+  const playerOfWeek = useMemo(
+    () => [...weeklyPlayers].sort((a, b) => b.scoreAvg - a.scoreAvg)[0] ?? null,
+    [weeklyPlayers],
+  )
+
+  const teamOfWeek = useMemo(() => {
+    return ROLES.map((role) => {
+      const best = [...weeklyPlayers]
+        .filter((p) => p.role === role)
+        .sort((a, b) => b.scoreAvg - a.scoreAvg)[0]
+      return best ?? null
+    }).filter((p): p is WeeklyPlayer => p !== null)
+  }, [weeklyPlayers])
+
+  const hottestTeams = useMemo(
+    () => calculateHottestTeams(weeklyPlayers, filteredTeams.map((t) => ({ name: t.name, winrate: t.winrate }))),
+    [weeklyPlayers, filteredTeams],
+  )
+  const hottestTeam = hottestTeams[0] ?? null
+
+  const championsOfWeek = useMemo(
+    () =>
+      weeklyWindow
+        ? championOfWeekFromLogs(weeklyPlayers, filteredChampions, weeklyWindow.key)
+        : [],
+    [weeklyPlayers, filteredChampions, weeklyWindow],
+  )
+  const opResult = useMemo(() => computeOpScores(championsOfWeek), [championsOfWeek])
 
   useGSAP(
     () => {
-      scrollEntranceStagger(chartsGridRef.current, '.card')
-      scrollEntranceStagger(snapshotGridRef.current, '.card')
-      scrollEntranceStagger(tableRef.current, '.card')
+      scrollEntranceStagger(rootRef.current, '.overview-hub-card')
+      refreshScrollTrigger()
     },
-    { dependencies: [loading, league, split, hiddenRoles.size, hiddenChampionRoles.size] },
+    { dependencies: [loading, league, split, weeklyPlayers.length] },
   )
-
-  const totalGames = useMemo(() => totalGamesInCohort(filteredTeams), [filteredTeams])
-
-  const topTeamsByWinrate = useMemo(
-    () =>
-      [...filteredTeams]
-        .sort((a, b) => b.winrate - a.winrate)
-        .slice(0, 8)
-        .map((team) => ({
-          ...team,
-          shortName: team.name.length > 14 ? `${team.name.slice(0, 14)}...` : team.name,
-        })),
-    [filteredTeams],
-  )
-
-  const playersByPosition = useMemo(
-    () =>
-      ROLE_POSITIONS.map((position) => ({
-        position,
-        color: playerRoleColor(position),
-        data: filteredPlayers
-          .filter((p) => (p.position?.toLowerCase() ?? '') === position)
-          .map((p) => ({
-            ...p,
-            x: p.gd15,
-            y: p.kda,
-            z: p.games,
-            label: '',
-          })),
-      })),
-    [filteredPlayers],
-  )
-
-  const visibleGroups = useMemo(
-    () => playersByPosition.filter((g) => !hiddenRoles.has(g.position)),
-    [playersByPosition, hiddenRoles],
-  )
-
-  const labelPlayerNames = useMemo(() => {
-    const all = visibleGroups.flatMap((g) => g.data)
-    return new Set(
-      [...all]
-        .sort((a, b) => b.games - a.games)
-        .slice(0, 12)
-        .map((p) => p.name),
-    )
-  }, [visibleGroups])
-
-  const scatterGroups = useMemo(
-    () =>
-      visibleGroups.map((group) => ({
-        ...group,
-        data: group.data.map((p) => ({
-          ...p,
-          label: labelPlayerNames.has(p.name) ? p.name : '',
-        })),
-      })),
-    [visibleGroups, labelPlayerNames],
-  )
-
-  const championsByRole = useMemo(
-    () =>
-      ROLES.map((role) => ({
-        role,
-        color: roleColor(role),
-        data: filteredChampions
-          .filter((c) => championHasRole(c, role))
-          .map((c) => ({
-            ...c,
-            x: scatterPresence(c, totalGames),
-            y: scatterWinRate(c),
-            z: c.picks,
-            label: '',
-          })),
-      })),
-    [filteredChampions, totalGames],
-  )
-
-  const visibleChampionGroups = useMemo(
-    () => championsByRole.filter((g) => !hiddenChampionRoles.has(g.role)),
-    [championsByRole, hiddenChampionRoles],
-  )
-
-  const top10ChampionLabels = useMemo(
-    () =>
-      new Set(
-        [...filteredChampions]
-          .map((c) => ({ name: c.name, presence: scatterPresence(c, totalGames) }))
-          .sort((a, b) => b.presence - a.presence)
-          .slice(0, 10)
-          .map((c) => c.name),
-      ),
-    [filteredChampions, totalGames],
-  )
-
-  const championChartGroups = useMemo(
-    () =>
-      visibleChampionGroups.map((group) => ({
-        ...group,
-        data: group.data.map((c) => ({
-          ...c,
-          label: top10ChampionLabels.has(c.name) ? c.name : '',
-        })),
-      })),
-    [visibleChampionGroups, top10ChampionLabels],
-  )
-
-  const playerPerformanceRows = useMemo(() => {
-    return filteredPlayers
-      .map((player) => {
-        const role = (normalizePosition(player.position) ?? 'mid') as RoleKey
-        const cohort = playersForRole(filteredPlayers, role)
-        const score = computeAggregateScore(player, role, cohort) * 100
-        return { ...player, role, performanceScore: score }
-      })
-      .sort((a, b) => b.performanceScore - a.performanceScore)
-  }, [filteredPlayers])
-
-  const hottestPlayers = useMemo(() => playerPerformanceRows.slice(0, 10), [playerPerformanceRows])
-
-  const topChampionByPresence = useMemo(() => {
-    const ranked = [...filteredChampions]
-      .map((c) => ({ ...c, presence: scatterPresence(c, totalGames) }))
-      .sort((a, b) => b.presence - a.presence)
-    return ranked[0]
-  }, [filteredChampions, totalGames])
-
-  const togglePlayerRole = (position: string) => {
-    setHiddenRoles((prev) => {
-      const next = new Set(prev)
-      if (next.has(position)) next.delete(position)
-      else next.add(position)
-      return next
-    })
-  }
-
-  const toggleChampionRole = (role: string) => {
-    setHiddenChampionRoles((prev) => {
-      const next = new Set(prev)
-      if (next.has(role)) next.delete(role)
-      else next.add(role)
-      return next
-    })
-  }
 
   if (loading) {
     return <div className="card h-80" />
   }
 
   return (
-    <div>
-      <div ref={chartsGridRef} className="overview-section overview-grid overview-grid-2">
-        <div className="card">
-          <h2 className="card-title">Top Teams by Winrate</h2>
-          <p className="card-subtitle">Top 8 teams in current filter by winrate.</p>
-          <div className="h-80">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart
-                data={topTeamsByWinrate}
-                layout="vertical"
-                margin={{ top: 8, right: 16, left: 28, bottom: 8 }}
+    <div ref={rootRef} className="overview-hub">
+      <section className="card overview-hub-card">
+        <h2 className="card-title">Weekly Tier-1 Hub</h2>
+        <p className="card-subtitle">
+          League: <span className="text-accent">{league}</span> · Split:{' '}
+          <span className="text-accent">{split}</span>
+          {weeklyWindow ? ` · Week: ${weeklyWindow.label}` : ''}
+        </p>
+      </section>
+
+      <section className="card overview-hub-card">
+        <h2 className="card-title">Player of the Week</h2>
+        {!playerOfWeek ? (
+          <p className="text-secondary">No weekly game log data for this filter.</p>
+        ) : (
+          <>
+            <div className="overview-weekly-head">
+              <div>
+                <div className="overview-weekly-name">{playerOfWeek.base.name}</div>
+                <div className="overview-weekly-meta">
+                  {playerOfWeek.base.team} · {playerOfWeek.role.toUpperCase()} ·{' '}
+                  {formatNum(playerOfWeek.scoreAvg * 100, 1)} avg performance score
+                </div>
+              </div>
+              <div className="overview-weekly-highlight">
+                {(() => {
+                  const roleCohort = weeklyPlayers
+                    .filter((p) => p.role === playerOfWeek.role)
+                    .map((p) => p.weekly)
+                  const hs = highestDeltaStat(playerOfWeek, roleCohort)
+                  return (
+                    <>
+                      <span className="overview-pill-label">Highlight Stat</span>
+                      <span className="overview-pill-value">
+                        {hs.stat}: {formatNum(hs.value, 1)} ({hs.delta >= 0 ? '+' : ''}
+                        {formatNum(hs.delta, 1)} vs role avg)
+                      </span>
+                    </>
+                  )
+                })()}
+              </div>
+            </div>
+            <WeeklyRadar
+              player={playerOfWeek.weekly}
+              role={playerOfWeek.role}
+              cohort={weeklyPlayers.filter((p) => p.role === playerOfWeek.role).map((p) => p.weekly)}
+            />
+            <div className="overview-best-games">
+              <h3 className="card-title">Top 3 games this week (by KDA)</h3>
+              <ul>
+                {[...playerOfWeek.weeklyGames]
+                  .sort((a, b) => b.kda - a.kda)
+                  .slice(0, 3)
+                  .map((g, idx) => {
+                    const opp = opponentLaneInfo(filteredPlayers, playerOfWeek.role, g)
+                    return (
+                      <li key={`${g.date}-${idx}`} className="overview-best-game-row">
+                        <span className="text-accent">
+                          #{idx + 1} · {g.date}
+                        </span>
+                        <span>
+                          {g.champion} · {formatNum(g.kda, 2)} KDA
+                        </span>
+                        <span className="text-secondary">
+                          vs {opp.team} / {opp.player} / {opp.champion}
+                        </span>
+                      </li>
+                    )
+                  })}
+              </ul>
+            </div>
+          </>
+        )}
+      </section>
+
+      <section className="card overview-hub-card">
+        <h2 className="card-title">Team of the Week (Best 5 by role)</h2>
+        <div className="overview-totw-grid">
+          {teamOfWeek.map((p) => {
+            const best = [...p.weeklyGames].sort((a, b) => b.kda - a.kda)[0]
+            const opp = best ? opponentLaneInfo(filteredPlayers, p.role, best) : null
+            return (
+              <article key={`${p.base.name}-${p.role}`} className="overview-totw-card">
+                <div className="overview-weekly-name">{p.base.name}</div>
+                <div className="overview-weekly-meta">
+                  {p.base.team} · {p.role.toUpperCase()}
+                </div>
+                <WeeklyRadar
+                  player={p.weekly}
+                  role={p.role}
+                  cohort={weeklyPlayers.filter((row) => row.role === p.role).map((row) => row.weekly)}
+                  compact
+                />
+                {best && (
+                  <div className="overview-mini-meta text-secondary">
+                    Best game: {best.champion} · {formatNum(best.kda, 2)} KDA · vs {opp?.team ?? 'N/A'} /{' '}
+                    {opp?.player ?? 'N/A'} / {opp?.champion ?? 'N/A'}
+                  </div>
+                )}
+              </article>
+            )
+          })}
+        </div>
+      </section>
+
+      <section className="card overview-hub-card">
+        <h2 className="card-title">Hottest Team 🔥</h2>
+        {!hottestTeam ? (
+          <p className="text-secondary">Not enough weekly team data.</p>
+        ) : (
+          <div className="overview-hottest-grid">
+            <div className="overview-weekly-name">{hottestTeam.team}</div>
+            <div className="overview-weekly-meta">
+              Impressiveness score: <span className="text-accent">{formatNum(hottestTeam.impressiveness, 1)}</span>
+            </div>
+            <div className="overview-hottest-stats">
+              <div>Weekly WR: {formatPct(hottestTeam.weeklyWinrate, 1)}</div>
+              <div>Weekly avg KDA: {formatNum(hottestTeam.weeklyAvgKda, 2)}</div>
+              <div>Weekly avg GD@15: {formatNum(hottestTeam.weeklyAvgGd15, 1)}</div>
+              <div>Weekly avg Obj Control: {formatNum(hottestTeam.weeklyObjControl, 2)}</div>
+              <div>Opponent split WR avg: {formatPct(hottestTeam.avgOpponentSplitWinrate, 1)}</div>
+              <div>Upset wins bonus: {hottestTeam.upsetWins}</div>
+            </div>
+            <p className="text-secondary overview-method-note">
+              Method blends team weekly performance (winrate, KDA, GD@15, objective control) with
+              strength-of-schedule (average opponent split winrate) plus upset-win bonus.
+            </p>
+          </div>
+        )}
+      </section>
+
+      <section className="card overview-hub-card">
+        <h2 className="card-title">Champion of the Week</h2>
+        {!opResult.top ? (
+          <p className="text-secondary">No champion weekly sample for this filter.</p>
+        ) : (
+          <div className="overview-champion-week">
+            <div className="overview-weekly-name">{opResult.top.champion.name}</div>
+            <div className="overview-weekly-meta">
+              Role: {opResult.top.role.toUpperCase()} · Presence:{' '}
+              {formatPct(opResult.top.champion.presence, 1)} · Winrate:{' '}
+              {formatPct(opResult.top.champion.winrate, 1)}
+            </div>
+            <div className="overview-opscore-row">
+              <span
+                className="overview-opscore-label"
+                title="OP Score = average z-score across presence, winrate, ban rate, and average KDA within role."
               >
-                <CartesianGrid stroke={CHART.grid} strokeDasharray="3 3" />
-                <XAxis
-                  type="number"
-                  domain={[0, 100]}
-                  stroke={CHART.axis}
-                  tick={{ fill: CHART.tick, fontSize: CHART.fontSize, fontFamily: CHART.fontFamily }}
-                  tickFormatter={(value) => `${value}%`}
-                />
-                <YAxis
-                  dataKey="shortName"
-                  type="category"
-                  width={112}
-                  stroke={CHART.axis}
-                  tick={{ fill: CHART.tick, fontSize: CHART.fontSize, fontFamily: CHART.fontFamily }}
-                />
-                <Tooltip content={teamBarTooltip} />
-                <Bar dataKey="winrate">
-                  {topTeamsByWinrate.map((t) => (
-                    <Cell key={t.name} fill={CHART.accent} />
-                  ))}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-
-        <div className="card">
-          <h2 className="card-title">Player Performance Scatter</h2>
-          <p className="card-subtitle">
-            X = GD@15, Y = KDA, bubble size = games. Click legend roles to filter.
-          </p>
-          <div className="h-80">
-            <ResponsiveContainer width="100%" height="100%">
-              <ScatterChart margin={{ top: 8, right: 24, left: 8, bottom: 8 }}>
-                <CartesianGrid stroke={CHART.grid} strokeDasharray="3 3" />
-                <XAxis
-                  type="number"
-                  dataKey="x"
-                  name="GD@15"
-                  stroke={CHART.axis}
-                  tick={{ fill: CHART.tick, fontSize: CHART.fontSize, fontFamily: CHART.fontFamily }}
-                  tickFormatter={(v) => `${v > 0 ? '+' : ''}${v}`}
-                />
-                <YAxis
-                  type="number"
-                  dataKey="y"
-                  name="KDA"
-                  stroke={CHART.axis}
-                  tick={{ fill: CHART.tick, fontSize: CHART.fontSize, fontFamily: CHART.fontFamily }}
-                />
-                <ZAxis type="number" dataKey="z" name="Games" range={[70, 420]} />
-                <Tooltip
-                  content={playerScatterTooltip}
-                  cursor={{ strokeDasharray: '3 3', stroke: CHART.grid }}
-                />
-                {scatterGroups.map((group) => (
-                  <Scatter
-                    key={group.position}
-                    name={group.position}
-                    data={group.data}
-                    fill={group.color}
-                    fillOpacity={1}
-                  >
-                    <LabelList
-                      dataKey="label"
-                      position="top"
-                      fill={CHART.tooltip.color}
-                      fontSize={9}
-                      fontFamily={CHART.fontFamily}
-                    />
-                  </Scatter>
-                ))}
-              </ScatterChart>
-            </ResponsiveContainer>
-          </div>
-          <RoleToggleLegend
-            items={PLAYER_ROLE_LEGEND}
-            hiddenKeys={hiddenRoles}
-            onToggle={togglePlayerRole}
-            onReset={() => setHiddenRoles(new Set())}
-            resetLabel="Show All"
-          />
-        </div>
-      </div>
-
-      <div ref={snapshotGridRef} className="overview-section overview-grid overview-grid-2">
-        <div className="card">
-          <h2 className="card-title">Champion Presence vs Winrate</h2>
-          <p className="card-subtitle">
-            Bubble size = picks. Labels show top 10 by presence. Click legend to filter roles.
-          </p>
-          <div className="h-80">
-            <ResponsiveContainer width="100%" height="100%">
-              <ScatterChart margin={{ top: 8, right: 24, left: 8, bottom: 24 }}>
-                <CartesianGrid stroke={CHART.grid} strokeDasharray="3 3" />
-                <XAxis
-                  type="number"
-                  dataKey="x"
-                  name="Presence"
-                  domain={[0, 100]}
-                  tickFormatter={(v) => `${v}%`}
-                  stroke={CHART.axis}
-                  tick={{ fill: CHART.tick, fontSize: CHART.fontSize, fontFamily: CHART.fontFamily }}
-                  label={{
-                    value: 'Presence (%)',
-                    position: 'insideBottom',
-                    offset: -8,
-                    ...AXIS_LABEL_STYLE,
-                  }}
-                />
-                <YAxis
-                  type="number"
-                  dataKey="y"
-                  name="Winrate"
-                  domain={[0, 100]}
-                  tickFormatter={(v) => `${v}%`}
-                  stroke={CHART.axis}
-                  tick={{ fill: CHART.tick, fontSize: CHART.fontSize, fontFamily: CHART.fontFamily }}
-                  label={{
-                    value: 'Winrate (%)',
-                    angle: -90,
-                    position: 'insideLeft',
-                    ...AXIS_LABEL_STYLE,
-                  }}
-                />
-                <ZAxis type="number" dataKey="z" name="Picks" range={[70, 420]} />
-                <Tooltip
-                  content={championScatterTooltip}
-                  cursor={{ strokeDasharray: '3 3', stroke: CHART.grid }}
-                />
-                {championChartGroups.map((group) => (
-                  <Scatter
-                    key={group.role}
-                    name={group.role}
-                    data={group.data}
-                    fill={group.color}
-                    fillOpacity={1}
-                  >
-                    <LabelList
-                      dataKey="label"
-                      position="top"
-                      fill={CHART.tooltip.color}
-                      fontSize={10}
-                      fontFamily={CHART.fontFamily}
-                    />
-                  </Scatter>
-                ))}
-              </ScatterChart>
-            </ResponsiveContainer>
-          </div>
-          <RoleToggleLegend
-            items={CHAMPION_ROLE_LEGEND}
-            hiddenKeys={hiddenChampionRoles}
-            onToggle={toggleChampionRole}
-            onReset={() => setHiddenChampionRoles(new Set())}
-          />
-        </div>
-
-        <div className="card">
-          <h2 className="card-title">Current Filter Snapshot</h2>
-          <p className="card-subtitle">
-            League: <span className="text-primary">{league}</span> · Split:{' '}
-            <span className="text-primary">{split}</span>
-          </p>
-          <div className="h-80 grid grid-cols-1 gap-3">
-            <div className="stat-tile">
-              <div className="stat-label">Highest Winrate Team</div>
-              <div className="stat-value">{topTeamsByWinrate[0]?.name ?? 'N/A'}</div>
-              <div className="stat-meta">
-                {topTeamsByWinrate[0] ? (
-                  <AnimatedCounter
-                    value={topTeamsByWinrate[0].winrate}
-                    suffix="% winrate"
-                    className="text-accent"
-                  />
-                ) : (
-                  ''
-                )}
-              </div>
+                OP Score ⓘ
+              </span>
+              <span className="overview-opscore-value">{formatNum(opResult.top.opScore, 2)}</span>
             </div>
-            <div className="stat-tile">
-              <div className="stat-label">Best Performing Player</div>
-              <div className="stat-value">{hottestPlayers[0]?.name ?? 'N/A'}</div>
-              <div className="stat-meta">
-                {hottestPlayers[0] ? (
-                  <>
-                    <AnimatedCounter
-                      value={hottestPlayers[0].performanceScore}
-                      decimals={1}
-                      suffix=" score"
-                    />{' '}
-                    ·{' '}
-                    {hottestPlayers[0].team}
-                  </>
-                ) : (
-                  ''
-                )}
-              </div>
-            </div>
-            <div className="stat-tile">
-              <div className="stat-label">Most Present Champion</div>
-              <div className="stat-value">{topChampionByPresence?.name ?? 'N/A'}</div>
-              <div className="stat-meta">
-                {topChampionByPresence ? (
-                  <AnimatedCounter
-                    value={topChampionByPresence.presence}
-                    suffix="% presence"
-                    className="text-accent"
-                  />
-                ) : (
-                  ''
-                )}
-              </div>
+            <div className="overview-hottest-stats">
+              <div>Presence: {formatPct(opResult.top.champion.presence, 1)}</div>
+              <div>Winrate: {formatPct(opResult.top.champion.winrate, 1)}</div>
+              <div>Ban rate: {formatPct(opResult.top.champion.banRate, 1)}</div>
+              <div>Avg KDA: {formatNum(opResult.top.champion.avgKda, 2)}</div>
             </div>
           </div>
-        </div>
-      </div>
-
-      <div ref={tableRef} className="overview-section">
-        <div className="card">
-          <h2 className="card-title mb-4">Hottest Players This Split</h2>
-          <div className="table-wrap">
-            <table className="data-table">
-              <thead>
-                <tr>
-                  <th>Rank</th>
-                  <th>Player</th>
-                  <th>Team</th>
-                  <th>Position</th>
-                  <th>Performance Score</th>
-                  <th>Games</th>
-                </tr>
-              </thead>
-              <tbody>
-                {hottestPlayers.map((player, index) => (
-                  <tr key={player.name}>
-                    <td className="text-tertiary font-medium">#{index + 1}</td>
-                    <td className="font-medium">{player.name}</td>
-                    <td className="text-secondary">{player.team}</td>
-                    <td className="text-secondary uppercase">{player.position}</td>
-                    <td className="text-accent font-medium">{player.performanceScore.toFixed(1)}</td>
-                    <td className="text-secondary">{player.games}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </div>
+        )}
+      </section>
     </div>
   )
 }

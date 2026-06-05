@@ -325,6 +325,156 @@ b,
   }
 }
 
+/* Overview hub */
+.overview-hub {
+  display: flex;
+  flex-direction: column;
+  gap: var(--component-gap);
+}
+
+.overview-weekly-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+
+.overview-weekly-name {
+  font-size: 20px;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.overview-weekly-meta {
+  margin-top: 4px;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.overview-weekly-highlight {
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-elevated);
+  padding: 10px 12px;
+  min-width: 260px;
+}
+
+.overview-pill-label {
+  display: block;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-secondary);
+}
+
+.overview-pill-value {
+  display: block;
+  margin-top: 4px;
+  font-size: 12px;
+  color: var(--accent);
+}
+
+.overview-weekly-radar {
+  width: 100%;
+  min-height: 240px;
+}
+
+.overview-best-games ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.overview-best-game-row {
+  display: grid;
+  grid-template-columns: 130px 1fr 1.2fr;
+  gap: 8px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border-subtle);
+  font-size: 12px;
+}
+
+.overview-best-game-row:last-child {
+  border-bottom: none;
+}
+
+.overview-totw-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+}
+
+@media (min-width: 1100px) {
+  .overview-totw-grid {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
+}
+
+.overview-totw-card {
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-elevated);
+  padding: 12px;
+}
+
+.overview-mini-meta {
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.overview-hottest-grid {
+  display: grid;
+  gap: 10px;
+}
+
+.overview-hottest-stats {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 8px;
+  font-size: 12px;
+}
+
+@media (min-width: 900px) {
+  .overview-hottest-stats {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.overview-method-note {
+  margin: 0;
+  font-size: 11px;
+}
+
+.overview-champion-week {
+  display: grid;
+  gap: 10px;
+}
+
+.overview-opscore-row {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+}
+
+.overview-opscore-label {
+  font-size: 11px;
+  letter-spacing: 0.05em;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  cursor: help;
+}
+
+.overview-opscore-value {
+  font-size: 28px;
+  line-height: 1;
+  color: var(--accent);
+}
+
+@media (max-width: 900px) {
+  .overview-best-game-row {
+    grid-template-columns: 1fr;
+  }
+}
+
 .stat-tile {
   background-color: var(--bg-elevated);
   border: 1px solid var(--border-subtle);
