@@ -421,6 +421,22 @@ b,
   line-height: 1.4;
 }
 
+.overview-hottest-layout {
+  display: grid;
+  gap: 16px;
+}
+
+@media (min-width: 900px) {
+  .overview-hottest-layout {
+    grid-template-columns: 1fr minmax(280px, 360px);
+    align-items: start;
+  }
+}
+
+.overview-hottest-radar .radar-card {
+  margin: 0;
+}
+
 .overview-hottest-grid {
   display: grid;
   gap: 10px;

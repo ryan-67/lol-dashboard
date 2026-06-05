@@ -1,7 +1,8 @@
 # Refresh Oracle's Elixir data: Drive → ingest → Supabase → commit JSON backup.
 #
-# Schedule: Sunday 22:00 UTC — after typical LCK weekend games and OE weekly CSV drops
-# (Monday/Tuesday). Use workflow_dispatch for manual runs.
+# Schedule: daily 22:00 UTC — picks up Oracle's Elixir CSV updates as they land.
+# OE files often refresh after weekend leagues; daily runs avoid stale multi-day gaps.
+# Use workflow_dispatch for manual runs.
 #
 # Secrets: SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, GOOGLE_SERVICE_ACCOUNT_KEY
 # Optional: OE_DRIVE_FOLDER_ID (defaults to community OE CSV Drive folder)
@@ -11,7 +12,7 @@ name: Refresh Dashboard Data
 on:
   workflow_dispatch:
   schedule:
-    - cron: '0 22 * * 0'
+    - cron: '0 22 * * *'
 
 permissions:
   contents: write

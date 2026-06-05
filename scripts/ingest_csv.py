@@ -312,6 +312,22 @@ def slice_store():
     }
 
 
+def backfill_game_log_opponents(players_dict, game_teams):
+    """Resolve opponent team names after all rows are processed (player rows may precede team rows)."""
+    for p in players_dict.values():
+        team_name = p.get("team") or ""
+        for g in p["gameLog"]:
+            game_id = g.pop("_gameId", "")
+            if g.get("opponent") or not game_id:
+                continue
+            sides = game_teams.get(game_id) or []
+            for side in sides:
+                opp_team = side.get("team") or ""
+                if opp_team and opp_team != team_name:
+                    g["opponent"] = opp_team
+                    break
+
+
 def compile_players(players_dict):
     out = []
     for name, p in players_dict.items():
@@ -533,6 +549,7 @@ def compile_team_champions(team_champions):
 
 
 def compile_slice(store):
+    backfill_game_log_opponents(store["players"], store["game_teams"])
     return {
         "players": compile_players(store["players"]),
         "teams": compile_teams(store["teams"]),
@@ -686,8 +703,7 @@ def process_row(row, buckets: dict, team_to_league: dict[str, str]):
         kills_g = safe_int(row.get("kills", 0))
         assists_g = safe_int(row.get("assists", 0))
         date_only = str(row.get("date", "")).strip()[:10] if row.get("date") else ""
-        p["gameLog"].append(
-            {
+        entry = {
                 "date": date_only,
                 "result": 1 if result == "1" else 0,
                 "champion": champion or "",
@@ -704,7 +720,9 @@ def process_row(row, buckets: dict, team_to_league: dict[str, str]):
                 "firstBloodRate": 100.0 if fb_involved else 0.0,
                 "objControl": float(obj_total),
             }
-        )
+        if game_id:
+            entry["_gameId"] = game_id
+        p["gameLog"].append(entry)
         if champion:
             cp = p["champions"][champion]
             cp["picks"] += 1

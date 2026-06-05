@@ -1,13 +1,14 @@
 import { useMemo, useRef } from 'react'
 import { useGSAP } from '@gsap/react'
-import { useDashboard } from '../context/DashboardContext'
-import type { Champion, Player, PlayerGameLog } from '../hooks/useDashboardData'
+import { DEFAULT_YEAR, useDashboard } from '../context/DashboardContext'
+import { DEFAULT_SPLIT, type Champion, type Player, type PlayerGameLog } from '../hooks/useDashboardData'
 import {
   ROLES,
   computeOpScores,
   type RoleKey,
 } from '../lib/championAnalytics'
 import {
+  PLAYERS_ROLE_COLORS,
   ROLE_METRICS,
   buildRadarSeries,
   computeGameScore,
@@ -15,6 +16,8 @@ import {
   playersForRole,
   type RadarMetricKey,
 } from '../lib/playerRadar'
+import { findTeamByName } from '../lib/teamAnalytics'
+import TeamRadarChart from '../components/teams/TeamRadarChart'
 import { CHART } from '../theme/chartTheme'
 import {
   scrollEntranceStagger,
@@ -37,6 +40,8 @@ interface WeeklyWindow {
   end: Date
   key: string
   label: string
+  latestDataDate: Date | null
+  dataStale: boolean
 }
 
 interface WeeklyPlayer {
@@ -87,12 +92,15 @@ function parseDate(value: string): Date | null {
   return parsed
 }
 
-function mondayStart(date: Date): Date {
+function startOfDay(date: Date): Date {
   const out = new Date(date)
   out.setHours(0, 0, 0, 0)
-  const day = out.getDay()
-  const diff = day === 0 ? -6 : 1 - day
-  out.setDate(out.getDate() + diff)
+  return out
+}
+
+function endOfDay(date: Date): Date {
+  const out = new Date(date)
+  out.setHours(23, 59, 59, 999)
   return out
 }
 
@@ -101,25 +109,35 @@ function isoDate(date: Date): string {
 }
 
 function weekLabel(start: Date, end: Date): string {
-  return `${start.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })} - ${end.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}`
+  return `${start.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })} – ${end.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}`
 }
 
-function getWeeklyWindow(players: Player[]): WeeklyWindow | null {
+/** Rolling 7-day window ending today for the active split; last 7 days of data for historical splits. */
+function getWeeklyWindow(players: Player[], year: string, split: string): WeeklyWindow | null {
   const dates = players
     .flatMap((p) => p.gameLog ?? [])
     .map((g) => parseDate(g.date))
     .filter((d): d is Date => d !== null)
   if (!dates.length) return null
   dates.sort((a, b) => a.getTime() - b.getTime())
-  const end = dates[dates.length - 1]
-  const start = mondayStart(end)
-  const weekEnd = new Date(start)
-  weekEnd.setDate(start.getDate() + 6)
+  const latestDataDate = dates[dates.length - 1]
+  const today = startOfDay(new Date())
+  const isCurrentContext = year === DEFAULT_YEAR && split === DEFAULT_SPLIT
+
+  const anchorEnd = isCurrentContext ? endOfDay(today) : endOfDay(latestDataDate)
+  const start = startOfDay(new Date(anchorEnd))
+  start.setDate(start.getDate() - 6)
+
+  const dataStale =
+    isCurrentContext && startOfDay(latestDataDate).getTime() < today.getTime()
+
   return {
     start,
-    end: weekEnd,
+    end: anchorEnd,
     key: isoDate(start),
-    label: weekLabel(start, weekEnd),
+    label: weekLabel(start, anchorEnd),
+    latestDataDate,
+    dataStale,
   }
 }
 
@@ -189,13 +207,43 @@ function getWeeklyPlayers(
 
 function opponentLaneInfo(
   allPlayers: Player[],
+  playerTeam: string,
   role: RoleKey,
   log: PlayerGameLog,
 ): OpponentLane {
-  const team = log.opponent ?? 'N/A'
-  if (!team || team === 'N/A') {
+  let team = log.opponent?.trim() ?? ''
+
+  if (!team) {
+    const sameDatePeers = allPlayers.filter((p) => {
+      if (p.team === playerTeam) return false
+      if (normalizePosition(p.position) !== role) return false
+      return (p.gameLog ?? []).some((g) => g.date === log.date)
+    })
+
+    for (const peer of sameDatePeers) {
+      const peerGame = (peer.gameLog ?? []).find((g) => g.date === log.date)
+      if (peerGame && peerGame.result !== log.result) {
+        return {
+          team: peer.team,
+          player: peer.name,
+          champion: peerGame.champion || 'N/A',
+        }
+      }
+    }
+
+    const fallback = sameDatePeers[0]
+    if (fallback) {
+      const peerGame = (fallback.gameLog ?? []).find((g) => g.date === log.date)
+      return {
+        team: fallback.team,
+        player: fallback.name,
+        champion: peerGame?.champion || 'N/A',
+      }
+    }
+
     return { team: 'N/A', player: 'N/A', champion: 'N/A' }
   }
+
   const candidates = allPlayers.filter(
     (p) => p.team === team && normalizePosition(p.position) === role,
   )
@@ -393,7 +441,7 @@ function WeeklyRadar({
   compact?: boolean
 }) {
   const data = buildRadarSeries(player, role, cohort)
-  const color = role === 'adc' ? '#c5a059' : '#9e8c7a'
+  const color = PLAYERS_ROLE_COLORS[role]
   const tooltipContent = makeChartTooltipContent(
     () => player.name,
     (props) => {
@@ -445,10 +493,22 @@ function WeeklyRadar({
 }
 
 export default function Overview() {
-  const { filteredPlayers, filteredTeams, filteredChampions, loading, league, split } = useDashboard()
+  const {
+    filteredPlayers,
+    filteredTeams,
+    filteredChampions,
+    loading,
+    league,
+    split,
+    year,
+    lastUpdated,
+  } = useDashboard()
   const rootRef = useRef<HTMLDivElement>(null)
 
-  const weeklyWindow = useMemo(() => getWeeklyWindow(filteredPlayers), [filteredPlayers])
+  const weeklyWindow = useMemo(
+    () => getWeeklyWindow(filteredPlayers, year, split),
+    [filteredPlayers, year, split],
+  )
   const weeklyPlayers = useMemo(
     () => (weeklyWindow ? getWeeklyPlayers(filteredPlayers, weeklyWindow) : []),
     [filteredPlayers, weeklyWindow],
@@ -473,6 +533,10 @@ export default function Overview() {
     [weeklyPlayers, filteredTeams],
   )
   const hottestTeam = hottestTeams[0] ?? null
+  const hottestTeamEntity = useMemo(
+    () => (hottestTeam ? findTeamByName(filteredTeams, hottestTeam.team) : null),
+    [hottestTeam, filteredTeams],
+  )
 
   const championsOfWeek = useMemo(
     () =>
@@ -502,7 +566,13 @@ export default function Overview() {
         <p className="card-subtitle">
           League: <span className="text-accent">{league}</span> · Split:{' '}
           <span className="text-accent">{split}</span>
-          {weeklyWindow ? ` · Week: ${weeklyWindow.label}` : ''}
+          {weeklyWindow ? ` · Past 7 days: ${weeklyWindow.label}` : ''}
+          {weeklyWindow?.dataStale && weeklyWindow.latestDataDate
+            ? ` · Data through ${weeklyWindow.latestDataDate.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}`
+            : ''}
+          {lastUpdated
+            ? ` · Refreshed ${lastUpdated.toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}`
+            : ''}
         </p>
       </section>
 
@@ -550,7 +620,12 @@ export default function Overview() {
                   .sort((a, b) => b.kda - a.kda)
                   .slice(0, 3)
                   .map((g, idx) => {
-                    const opp = opponentLaneInfo(filteredPlayers, playerOfWeek.role, g)
+                    const opp = opponentLaneInfo(
+                      filteredPlayers,
+                      playerOfWeek.base.team,
+                      playerOfWeek.role,
+                      g,
+                    )
                     return (
                       <li key={`${g.date}-${idx}`} className="overview-best-game-row">
                         <span className="text-accent">
@@ -576,7 +651,9 @@ export default function Overview() {
         <div className="overview-totw-grid">
           {teamOfWeek.map((p) => {
             const best = [...p.weeklyGames].sort((a, b) => b.kda - a.kda)[0]
-            const opp = best ? opponentLaneInfo(filteredPlayers, p.role, best) : null
+            const opp = best
+              ? opponentLaneInfo(filteredPlayers, p.base.team, p.role, best)
+              : null
             return (
               <article key={`${p.base.name}-${p.role}`} className="overview-totw-card">
                 <div className="overview-weekly-name">{p.base.name}</div>
@@ -606,23 +683,31 @@ export default function Overview() {
         {!hottestTeam ? (
           <p className="text-secondary">Not enough weekly team data.</p>
         ) : (
-          <div className="overview-hottest-grid">
-            <div className="overview-weekly-name">{hottestTeam.team}</div>
-            <div className="overview-weekly-meta">
-              Impressiveness score: <span className="text-accent">{formatNum(hottestTeam.impressiveness, 1)}</span>
+          <div className="overview-hottest-layout">
+            <div className="overview-hottest-grid">
+              <div className="overview-weekly-name">{hottestTeam.team}</div>
+              <div className="overview-weekly-meta">
+                Team Score:{' '}
+                <span className="text-accent">{formatNum(hottestTeam.impressiveness, 1)}</span>
+              </div>
+              <div className="overview-hottest-stats">
+                <div>Weekly WR: {formatPct(hottestTeam.weeklyWinrate, 1)}</div>
+                <div>Weekly avg KDA: {formatNum(hottestTeam.weeklyAvgKda, 2)}</div>
+                <div>Weekly avg GD@15: {formatNum(hottestTeam.weeklyAvgGd15, 1)}</div>
+                <div>Weekly avg Obj Control: {formatNum(hottestTeam.weeklyObjControl, 2)}</div>
+                <div>Opponent split WR avg: {formatPct(hottestTeam.avgOpponentSplitWinrate, 1)}</div>
+                <div>Upset wins bonus: {hottestTeam.upsetWins}</div>
+              </div>
+              <p className="text-secondary overview-method-note">
+                Method blends team weekly performance (winrate, KDA, GD@15, objective control) with
+                strength-of-schedule (average opponent split winrate) plus upset-win bonus.
+              </p>
             </div>
-            <div className="overview-hottest-stats">
-              <div>Weekly WR: {formatPct(hottestTeam.weeklyWinrate, 1)}</div>
-              <div>Weekly avg KDA: {formatNum(hottestTeam.weeklyAvgKda, 2)}</div>
-              <div>Weekly avg GD@15: {formatNum(hottestTeam.weeklyAvgGd15, 1)}</div>
-              <div>Weekly avg Obj Control: {formatNum(hottestTeam.weeklyObjControl, 2)}</div>
-              <div>Opponent split WR avg: {formatPct(hottestTeam.avgOpponentSplitWinrate, 1)}</div>
-              <div>Upset wins bonus: {hottestTeam.upsetWins}</div>
-            </div>
-            <p className="text-secondary overview-method-note">
-              Method blends team weekly performance (winrate, KDA, GD@15, objective control) with
-              strength-of-schedule (average opponent split winrate) plus upset-win bonus.
-            </p>
+            {hottestTeamEntity && (
+              <div className="overview-hottest-radar">
+                <TeamRadarChart team={hottestTeamEntity} cohort={filteredTeams} highlighted />
+              </div>
+            )}
           </div>
         )}
       </section>
