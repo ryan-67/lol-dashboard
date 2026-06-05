@@ -167,6 +167,10 @@ def main() -> None:
     if errors:
         sys.exit(1)
 
+    if slices_upserted <= 0:
+        logger.error("No slices upserted to %s; aborting.", TABLE)
+        sys.exit(1)
+
 
 if __name__ == "__main__":
     main()
