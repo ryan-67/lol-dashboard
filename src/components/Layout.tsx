@@ -77,13 +77,19 @@ export default function Layout({ children }: { children: React.ReactNode }) {
       <header className="app-header">
         <div className="app-header-inner py-4 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div className="flex items-center gap-3">
-            <div
-              className="w-8 h-8 flex items-center justify-center border border-accent"
-              style={{ backgroundColor: 'var(--accent-bg)' }}
+            <Link
+              to="/"
+              className="flex items-center gap-3 no-underline text-inherit hover:opacity-90 transition-opacity"
+              aria-label="nucky.gg home — Overview"
             >
-              <span className="text-accent font-bold text-sm">N</span>
-            </div>
-            <h1 className="text-base font-medium text-primary tracking-tight">nucky</h1>
+              <div
+                className="w-8 h-8 flex items-center justify-center border border-accent"
+                style={{ backgroundColor: 'var(--accent-bg)' }}
+              >
+                <span className="text-accent font-bold text-sm">N</span>
+              </div>
+              <h1 className="text-base font-medium text-primary tracking-tight">nucky</h1>
+            </Link>
           </div>
           <div className="flex flex-wrap items-center gap-3">
             <nav className="flex flex-wrap gap-1">

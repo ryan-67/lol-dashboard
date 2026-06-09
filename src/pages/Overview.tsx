@@ -446,13 +446,13 @@ function WeeklyRadar({
     () => player.name,
     (props) => {
       const point = props.payload?.[0]?.payload as {
-        metric?: string
+        label?: string
         formattedPlayer?: string
         formattedAvg?: string
       }
-      if (!point?.metric) return []
+      if (!point?.label) return []
       return [
-        { label: point.metric, value: point.formattedPlayer ?? '—' },
+        { label: point.label, value: point.formattedPlayer ?? '—' },
         { label: 'Role avg', value: point.formattedAvg ?? '—' },
       ]
     },

@@ -23,8 +23,8 @@ import { CHART } from '../../theme/chartTheme'
 
 const comparisonRadarTooltip = makeChartTooltipContent(
   (props) => {
-    const point = props.payload?.[0]?.payload as { metric?: string }
-    return point?.metric ?? (typeof props.label === 'string' ? props.label : undefined)
+    const point = props.payload?.[0]?.payload as { label?: string; metric?: string }
+    return point?.label ?? point?.metric ?? (typeof props.label === 'string' ? props.label : undefined)
   },
   (props) => {
     if (!props.payload?.length) return []

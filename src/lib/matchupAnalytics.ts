@@ -1,15 +1,35 @@
-import type { Champion, Player, TeamChampion } from '../hooks/useDashboardData'
+import type { Champion, Player, Team, TeamChampion } from '../hooks/useDashboardData'
 import { roleColor as championRoleColor, roleForChampion } from './championAnalytics'
 import { getMetricValue, normalizePosition, type RoleKey } from './playerRadar'
 
 export const MATCHUP_POSITIONS: RoleKey[] = ['top', 'jungle', 'mid', 'adc', 'support']
 
 export const MINI_RADAR_METRICS = [
-  { key: 'kda' as const, label: 'KDA', format: (v: number) => v.toFixed(2) },
-  { key: 'gd15' as const, label: 'GD@15', format: (v: number) => `${v > 0 ? '+' : ''}${v.toFixed(1)}` },
-  { key: 'dpm' as const, label: 'DPM', format: (v: number) => v.toFixed(0) },
-  { key: 'csd15' as const, label: 'CS@15', format: (v: number) => `${v > 0 ? '+' : ''}${v.toFixed(1)}` },
+  { key: 'kda' as const, label: 'KDA', shortLabel: 'KDA', format: (v: number) => v.toFixed(2) },
+  {
+    key: 'gd15' as const,
+    label: 'Gold Diff@15',
+    shortLabel: 'GD@15',
+    format: (v: number) => `${v > 0 ? '+' : ''}${v.toFixed(1)}`,
+  },
+  { key: 'dpm' as const, label: 'DPM', shortLabel: 'DPM', format: (v: number) => v.toFixed(0) },
+  {
+    key: 'csd15' as const,
+    label: 'CS Diff@15',
+    shortLabel: 'CS@15',
+    format: (v: number) => `${v > 0 ? '+' : ''}${v.toFixed(1)}`,
+  },
 ]
+
+export interface PriorityChampionEntry {
+  champion: string
+  role: RoleKey | null
+  picks: number
+  pickRate: number
+  avgPickOrder: number | null
+  priorityScore: number
+  winrate: number
+}
 
 export interface UniqueChampionEntry {
   champion: string
@@ -26,6 +46,7 @@ export interface PositionalMatchup {
 
 export interface MiniRadarPoint {
   metric: string
+  label: string
   playerANorm: number
   playerBNorm: number
   playerARaw: number
@@ -71,7 +92,8 @@ export function buildMiniRadarSeries(
     const playerBRaw = getMetricValue(playerB, def.key)
     const { aNorm, bNorm } = normalizePair(playerARaw, playerBRaw)
     return {
-      metric: def.label,
+      metric: def.shortLabel,
+      label: def.label,
       playerANorm: aNorm,
       playerBNorm: bNorm,
       playerARaw,
@@ -118,6 +140,60 @@ export function computeUniqueChampions(
     .sort((a, b) => b.games - a.games)
 
   return { teamAUnique, teamBUnique }
+}
+
+function teamTotalGames(teams: Team[], teamName: string): number {
+  const team = teams.find((t) => t.name === teamName)
+  if (!team) return 1
+  return Math.max(team.wins + team.losses, 1)
+}
+
+function computePriorityScore(
+  row: TeamChampion,
+  teamGames: number,
+): Omit<PriorityChampionEntry, 'champion' | 'role'> {
+  const pickRate = (row.picks / teamGames) * 100
+  const avgPickOrder = row.avgPickOrder ?? null
+  const orderScore = avgPickOrder != null ? ((6 - avgPickOrder) / 5) * 100 : 50
+  const priorityScore = pickRate * 0.65 + orderScore * 0.35
+  return {
+    picks: row.picks,
+    pickRate,
+    avgPickOrder,
+    priorityScore,
+    winrate: row.winrate,
+  }
+}
+
+export function computeHighestPriorityChamps(
+  teamChampions: TeamChampion[],
+  teams: Team[],
+  teamA: string,
+  teamB: string,
+  championsByName: Map<string, Champion>,
+  limit = 10,
+): { teamA: PriorityChampionEntry[]; teamB: PriorityChampionEntry[] } {
+  const buildForTeam = (teamName: string): PriorityChampionEntry[] => {
+    const teamGames = teamTotalGames(teams, teamName)
+    return teamChampions
+      .filter((row) => row.team === teamName && row.picks >= 2)
+      .map((row) => {
+        const champ = championsByName.get(row.champion)
+        const role = champ ? roleForChampion(champ) : null
+        return {
+          champion: row.champion,
+          role,
+          ...computePriorityScore(row, teamGames),
+        }
+      })
+      .sort((a, b) => b.priorityScore - a.priorityScore)
+      .slice(0, limit)
+  }
+
+  return {
+    teamA: buildForTeam(teamA),
+    teamB: buildForTeam(teamB),
+  }
 }
 
 export function championRoleBadgeColor(role: RoleKey | null): string {

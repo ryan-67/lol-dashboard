@@ -140,6 +140,7 @@ export interface TeamChampion {
   champion: string
   picks: number
   winrate: number
+  avgPickOrder?: number | null
 }
 
 export interface DashboardData {

@@ -35,6 +35,7 @@ export interface ChartPayload {
 
 export interface RadarChartTeamSeries {
   metric: string
+  label?: string
   valueNorm: number
   avgNorm: number
   formatted: string

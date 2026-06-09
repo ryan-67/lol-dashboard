@@ -5,7 +5,7 @@ import AnimatedCounter from '../components/ui/AnimatedCounter'
 import {
   PlayerMatchupGrid,
   TeamRadarComparison,
-  UniqueChampions,
+  HighestPriorityChamps,
 } from '../components/matchups'
 
 export default function Matchups() {
@@ -138,14 +138,15 @@ export default function Matchups() {
 
           <TeamRadarComparison teamA={teamAData} teamB={teamBData} cohort={filteredTeams} />
 
-          <UniqueChampions
+          <PlayerMatchupGrid players={filteredPlayers} teamA={teamA} teamB={teamB} />
+
+          <HighestPriorityChamps
             teamChampions={data?.teamChampions ?? []}
+            teams={filteredTeams}
             champions={filteredChampions}
             teamAName={teamAData.name}
             teamBName={teamBData.name}
           />
-
-          <PlayerMatchupGrid players={filteredPlayers} teamA={teamA} teamB={teamB} />
         </>
       )}
     </div>

@@ -15,8 +15,8 @@ import { CHART } from '../../theme/chartTheme'
 
 const radarTooltip = makeChartTooltipContent(
   (props) => {
-    const point = props.payload?.[0]?.payload as { metric?: string }
-    return point?.metric ?? (typeof props.label === 'string' ? props.label : undefined)
+    const point = props.payload?.[0]?.payload as { label?: string; metric?: string }
+    return point?.label ?? point?.metric ?? (typeof props.label === 'string' ? props.label : undefined)
   },
   (props) => {
     if (!props.payload?.length) return []
@@ -39,10 +39,12 @@ const radarTooltip = makeChartTooltipContent(
 
 function buildRadarRows(payload: RadarChartPayload) {
   const metrics = payload.teams[0]?.series.map((s) => s.metric) ?? []
+  const labels = payload.teams[0]?.series.map((s) => s.label ?? s.metric) ?? []
   return metrics.map((metric, metricIndex) => {
     const firstSeries = payload.teams[0]?.series[metricIndex]
     const row: Record<string, string | number> = {
       metric,
+      label: labels[metricIndex] ?? metric,
       avgNorm: firstSeries?.avgNorm ?? 50,
       formattedAvg: firstSeries?.formattedAvg ?? '',
     }

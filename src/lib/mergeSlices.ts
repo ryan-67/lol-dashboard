@@ -487,7 +487,10 @@ function mergeMatchups(slices: DashboardSlice[]): Matchup[] {
 }
 
 function mergeTeamChampions(slices: DashboardSlice[]): TeamChampion[] {
-  const acc = new Map<string, { team: string; champion: string; picks: number; wins: number }>()
+  const acc = new Map<
+    string,
+    { team: string; champion: string; picks: number; wins: number; pickSlotSum: number; pickSlotCount: number }
+  >()
 
   for (const slice of slices) {
     for (const row of slice.teamChampions ?? []) {
@@ -497,22 +500,34 @@ function mergeTeamChampions(slices: DashboardSlice[]): TeamChampion[] {
         champion: row.champion,
         picks: 0,
         wins: 0,
+        pickSlotSum: 0,
+        pickSlotCount: 0,
       }
       const picks = row.picks ?? 0
       existing.picks += picks
       existing.wins += Math.round(((row.winrate ?? 0) / 100) * picks)
+      if (row.avgPickOrder != null && picks > 0) {
+        existing.pickSlotSum += row.avgPickOrder * picks
+        existing.pickSlotCount += picks
+      }
       acc.set(key, existing)
     }
   }
 
   return [...acc.values()]
     .filter((row) => row.picks >= 1)
-    .map((row) => ({
-      team: row.team,
-      champion: row.champion,
-      picks: row.picks,
-      winrate: round(row.wins / Math.max(row.picks, 1) * 100, 1),
-    }))
+    .map((row) => {
+      const result: TeamChampion = {
+        team: row.team,
+        champion: row.champion,
+        picks: row.picks,
+        winrate: round(row.wins / Math.max(row.picks, 1) * 100, 1),
+      }
+      if (row.pickSlotCount > 0) {
+        result.avgPickOrder = round(row.pickSlotSum / row.pickSlotCount, 2)
+      }
+      return result
+    })
 }
 
 export function mergeSlices(store: OEStore, league: string, split: string): DashboardData {

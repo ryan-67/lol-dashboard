@@ -717,8 +717,42 @@ b,
 }
 
 .unique-champs-row-meta {
-  font-size: 12px;
+  font-size: var(--text-xs);
   margin-top: 4px;
+}
+
+.priority-champs-table-wrap {
+  overflow-x: auto;
+}
+
+.priority-champs-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--text-sm);
+}
+
+.priority-champs-table th,
+.priority-champs-table td {
+  padding: 8px 6px;
+  text-align: left;
+  border-bottom: 1px solid var(--border-subtle);
+  vertical-align: middle;
+}
+
+.priority-champs-table th {
+  color: var(--text-secondary);
+  font-weight: 500;
+  font-size: var(--text-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.priority-champs-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.priority-champs-table td:nth-child(n + 3) {
+  white-space: nowrap;
 }
 
 /* Chart tooltips */

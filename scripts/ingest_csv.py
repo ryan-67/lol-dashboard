@@ -316,7 +316,7 @@ def slice_store():
         "players": defaultdict(player_bucket),
         "teams": defaultdict(team_bucket),
         "champions": defaultdict(champ_bucket),
-        "team_champions": defaultdict(lambda: {"picks": 0, "wins": 0}),
+        "team_champions": defaultdict(lambda: {"picks": 0, "wins": 0, "pick_slots": []}),
         "game_teams": defaultdict(list),
         "team_games": 0,
         "weekly_team_games": defaultdict(int),
@@ -548,14 +548,19 @@ def compile_team_champions(team_champions):
         picks = stats["picks"]
         if picks < 1:
             continue
-        out.append(
-            {
-                "team": team,
-                "champion": champion,
-                "picks": picks,
-                "winrate": round(stats["wins"] / picks * 100, 1) if picks else 0,
-            }
-        )
+        pick_slots = stats.get("pick_slots") or []
+        avg_pick_order = None
+        if pick_slots:
+            avg_pick_order = round(sum(pick_slots) / len(pick_slots), 2)
+        row = {
+            "team": team,
+            "champion": champion,
+            "picks": picks,
+            "winrate": round(stats["wins"] / picks * 100, 1) if picks else 0,
+        }
+        if avg_pick_order is not None:
+            row["avgPickOrder"] = avg_pick_order
+        out.append(row)
     return out
 
 
@@ -685,6 +690,11 @@ def process_row(row, buckets: dict, team_to_league: dict[str, str]):
                 bucket["champions"][ban]["bans"] += 1
                 if week_key:
                     bucket["champions"][ban]["weekly"][week_key]["bans"] += 1
+        for i in range(1, 6):
+            pick = row.get(f"pick{i}", "")
+            if pick and team_name:
+                tc = bucket["team_champions"][(team_name, pick)]
+                tc["pick_slots"].append(i)
         return
 
     pos = normalize_position(position)

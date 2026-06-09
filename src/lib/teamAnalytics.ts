@@ -4,11 +4,11 @@ import { TIER1_LEAGUES } from './mergeSlices'
 export type TeamScope = 'top' | 'all'
 
 export const TEAM_RADAR_METRICS = [
-  { key: 'earlyGame', label: 'Early Game' },
-  { key: 'objControl', label: 'Objective Control' },
-  { key: 'economy', label: 'Economy' },
-  { key: 'vision', label: 'Vision' },
-  { key: 'combat', label: 'Combat' },
+  { key: 'earlyGame', label: 'Early Game', shortLabel: 'EG' },
+  { key: 'objControl', label: 'Objective Control', shortLabel: 'Obj' },
+  { key: 'economy', label: 'Economy', shortLabel: 'Econ' },
+  { key: 'vision', label: 'Vision', shortLabel: 'Vis' },
+  { key: 'combat', label: 'Combat', shortLabel: 'KDA' },
 ] as const
 
 export type TeamRadarMetricKey = (typeof TEAM_RADAR_METRICS)[number]['key']
@@ -145,7 +145,7 @@ export function buildTeamRadarSeries(
       ? cohortValues.reduce((a, b) => a + b, 0) / cohortValues.length
       : 0
     return {
-      metric: def.label,
+      metric: def.shortLabel,
       label: def.label,
       valueNorm: normalizeInCohort(raw, cohortValues),
       avgNorm: normalizeInCohort(avgRaw, cohortValues),
@@ -167,7 +167,7 @@ export function buildComparisonRadarData(
       ? cohortValues.reduce((a, b) => a + b, 0) / cohortValues.length
       : 0
     const base: TeamRadarSeriesPoint = {
-      metric: def.label,
+      metric: def.shortLabel,
       label: def.label,
       valueNorm: 0,
       avgNorm: normalizeInCohort(avgRaw, cohortValues),

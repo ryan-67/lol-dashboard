@@ -30,13 +30,13 @@ export default function TeamRadarChart({ team, cohort, highlighted = false }: Te
     () => team.name,
     (props) => {
       const point = props.payload?.[0]?.payload as {
-        metric?: string
+        label?: string
         formatted?: string
         formattedAvg?: string
       }
-      if (!point?.metric) return []
+      if (!point?.label) return []
       return [
-        { label: point.metric, value: point.formatted ?? '—' },
+        { label: point.label, value: point.formatted ?? '—' },
         { label: 'Cohort avg', value: point.formattedAvg ?? '—' },
       ]
     },
