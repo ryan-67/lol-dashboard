@@ -50,7 +50,7 @@ export const ROLE_METRICS: Record<RoleKey, RadarMetricDef[]> = {
     { key: 'xpd15', label: 'XP Diff@15', shortLabel: 'XPD@15', format: (v) => `${v > 0 ? '+' : ''}${v.toFixed(1)}` },
     { key: 'dpm', label: 'DPM', shortLabel: 'DPM', format: (v) => v.toFixed(0) },
     { key: 'kda', label: 'KDA', shortLabel: 'KDA', format: (v) => v.toFixed(2) },
-    { key: 'dmgShare', label: 'Damage %', shortLabel: 'dmg%', format: (v) => `${v.toFixed(1)}%` },
+    { key: 'dmgShare', label: 'Damage %', shortLabel: 'DMG%', format: (v) => `${v.toFixed(1)}%` },
   ],
   jungle: [
     { key: 'csd15', label: 'CS Diff@15', shortLabel: 'CS@15', format: (v) => `${v > 0 ? '+' : ''}${v.toFixed(1)}` },
@@ -66,14 +66,14 @@ export const ROLE_METRICS: Record<RoleKey, RadarMetricDef[]> = {
     { key: 'gd15', label: 'Gold Diff@15', shortLabel: 'GD@15', format: (v) => `${v > 0 ? '+' : ''}${v.toFixed(1)}` },
     { key: 'xpd15', label: 'XP Diff@15', shortLabel: 'XPD@15', format: (v) => `${v > 0 ? '+' : ''}${v.toFixed(1)}` },
     { key: 'dpm', label: 'DPM', shortLabel: 'DPM', format: (v) => v.toFixed(0) },
-    { key: 'dmgShare', label: 'Damage %', shortLabel: 'dmg%', format: (v) => `${v.toFixed(1)}%` },
+    { key: 'dmgShare', label: 'Damage %', shortLabel: 'DMG%', format: (v) => `${v.toFixed(1)}%` },
     { key: 'kda', label: 'KDA', shortLabel: 'KDA', format: (v) => v.toFixed(2) },
   ],
   adc: [
     { key: 'csd15', label: 'CS Diff@15', shortLabel: 'CS@15', format: (v) => `${v > 0 ? '+' : ''}${v.toFixed(1)}` },
     { key: 'gd15', label: 'Gold Diff@15', shortLabel: 'GD@15', format: (v) => `${v > 0 ? '+' : ''}${v.toFixed(1)}` },
     { key: 'dpm', label: 'DPM', shortLabel: 'DPM', format: (v) => v.toFixed(0) },
-    { key: 'dmgShare', label: 'Damage %', shortLabel: 'dmg%', format: (v) => `${v.toFixed(1)}%` },
+    { key: 'dmgShare', label: 'Damage %', shortLabel: 'DMG%', format: (v) => `${v.toFixed(1)}%` },
     { key: 'goldShare', label: 'Gold %', shortLabel: 'gold%', format: (v) => `${v.toFixed(1)}%` },
     { key: 'kda', label: 'KDA', shortLabel: 'KDA', format: (v) => v.toFixed(2) },
   ],
@@ -83,7 +83,7 @@ export const ROLE_METRICS: Record<RoleKey, RadarMetricDef[]> = {
     { key: 'kp', label: 'Kill Participation', shortLabel: 'KP', format: (v) => `${v.toFixed(1)}%` },
     { key: 'visionScore', label: 'Vision Score', shortLabel: 'VS', format: (v) => v.toFixed(1) },
     { key: 'kda', label: 'KDA', shortLabel: 'KDA', format: (v) => v.toFixed(2) },
-    { key: 'dmgShare', label: 'Damage %', shortLabel: 'dmg%', format: (v) => `${v.toFixed(1)}%` },
+    { key: 'dmgShare', label: 'Damage %', shortLabel: 'DMG%', format: (v) => `${v.toFixed(1)}%` },
   ],
 }
 
