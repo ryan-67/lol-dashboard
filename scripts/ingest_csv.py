@@ -761,6 +761,9 @@ def process_row(row, buckets: dict, team_to_league: dict[str, str]):
                 "firstBloodRate": 100.0 if fb_involved else 0.0,
                 "objControl": float(obj_total),
             }
+        side_val = str(row.get("side", "")).strip()
+        if side_val:
+            entry["side"] = side_val
         if game_id:
             entry["_gameId"] = game_id
         p["gameLog"].append(entry)

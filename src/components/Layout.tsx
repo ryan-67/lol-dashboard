@@ -7,6 +7,7 @@ import { useAuth } from '../context/AuthContext'
 import { supabase } from '../lib/supabaseClient'
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom'
 import { navSearchForPath, stripNuckyAiSearchParams } from '../lib/navSearchParams'
+import { GlobalSearch } from './entities'
 
 const nav = [
   { to: '/', label: 'Overview' },
@@ -27,7 +28,11 @@ export default function Layout({ children }: { children: React.ReactNode }) {
   const location = useLocation()
   const navigate = useNavigate()
   const hideTopBarRoutes = new Set(['/nuckyai', '/faq', '/profile'])
-  const shouldShowTopBar = !hideTopBarRoutes.has(location.pathname)
+  const isEntityPage =
+    /^\/players\/[^/]+/.test(location.pathname) ||
+    /^\/teams\/[^/]+/.test(location.pathname) ||
+    /^\/champions\/[^/]+/.test(location.pathname)
+  const shouldShowTopBar = !hideTopBarRoutes.has(location.pathname) && !isEntityPage
 
   useEffect(() => {
     if (location.pathname === '/nuckyai') return
@@ -91,7 +96,8 @@ export default function Layout({ children }: { children: React.ReactNode }) {
               <h1 className="text-base font-medium text-primary tracking-tight">nucky</h1>
             </Link>
           </div>
-          <div className="flex flex-wrap items-center gap-3">
+          <div className="flex flex-wrap items-center gap-3 flex-1 justify-end">
+            <GlobalSearch />
             <nav className="flex flex-wrap gap-1">
               {nav.map((item) => {
                 const isNuckyAi = item.to === '/nuckyai'

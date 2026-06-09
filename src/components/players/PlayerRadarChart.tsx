@@ -11,6 +11,7 @@ import {
 } from 'recharts'
 import type { Player } from '../../hooks/useDashboardData'
 import { makeChartTooltipContent } from '../ui/ChartTooltip'
+import { EntityLink } from '../entities'
 import {
   PLAYERS_ROLE_COLORS,
   buildRadarSeries,
@@ -63,9 +64,12 @@ export default function PlayerRadarChart({
   return (
     <div className={compact ? 'radar-card radar-card-compact' : 'radar-card'}>
       <div className="radar-card-header">
-        <h3 className="radar-card-title">{player.name}</h3>
+        <h3 className="radar-card-title">
+          <EntityLink type="player" name={player.name} player={player} showIcon={false} />
+        </h3>
         <p className="radar-card-subtitle">
-          {player.team} · <span style={{ color }}>{role.toUpperCase()}</span>
+          <EntityLink type="team" name={player.team} showIcon={false} /> ·{' '}
+          <span style={{ color }}>{role.toUpperCase()}</span>
         </p>
       </div>
       <div ref={chartRef} className="radar-chart-wrap">

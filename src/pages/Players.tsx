@@ -20,6 +20,7 @@ import PlayerFormChart from '../components/players/PlayerFormChart'
 import PlayerChampionPool from '../components/players/PlayerChampionPool'
 import PlayerConsistencyStrip from '../components/players/PlayerConsistencyStrip'
 import SortableTh from '../components/ui/SortableTh'
+import { EntityLink } from '../components/entities'
 import { playerKey, resolveDefaultPlayerKey } from '../lib/playerAnalytics'
 import { scrollEntranceStagger, refreshScrollTrigger } from '../theme/animations'
 import { supabase } from '../lib/supabaseClient'
@@ -236,8 +237,12 @@ export default function Players() {
                 ) : (
                   sorted.map((p) => (
                     <tr key={`${p.name}-${p.team}-${p.league}`}>
-                      <td className="font-medium">{p.name}</td>
-                      <td className="text-secondary">{p.team ?? '—'}</td>
+                      <td className="font-medium">
+                        <EntityLink type="player" name={p.name} player={p} allPlayers={players} showIcon={false} />
+                      </td>
+                      <td className="text-secondary">
+                        <EntityLink type="team" name={p.team ?? '—'} showIcon={false} />
+                      </td>
                       <td className="text-secondary">{p.league ?? '—'}</td>
                       <td className="text-secondary uppercase">{p.position ?? '—'}</td>
                       <td className="text-secondary">{p.games ?? '—'}</td>

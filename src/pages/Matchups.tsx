@@ -1,4 +1,5 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useState, useEffect } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { useDashboard } from '../context/DashboardContext'
 import Select from '../components/ui/Select'
 import AnimatedCounter from '../components/ui/AnimatedCounter'
@@ -10,8 +11,16 @@ import {
 
 export default function Matchups() {
   const { data, loading, filteredTeams, filteredPlayers, filteredChampions } = useDashboard()
+  const [searchParams] = useSearchParams()
   const [teamA, setTeamA] = useState('')
   const [teamB, setTeamB] = useState('')
+
+  useEffect(() => {
+    const a = searchParams.get('teamA')
+    const b = searchParams.get('teamB')
+    if (a) setTeamA(a)
+    if (b) setTeamB(b)
+  }, [searchParams])
 
   const teams = useMemo(
     () => [...filteredTeams].sort((a, b) => a.name.localeCompare(b.name)),

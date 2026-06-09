@@ -18,6 +18,7 @@ import {
 } from '../lib/playerRadar'
 import { findTeamByName } from '../lib/teamAnalytics'
 import TeamRadarChart from '../components/teams/TeamRadarChart'
+import { EntityLink, ChampionIcon } from '../components/entities'
 import { CHART } from '../theme/chartTheme'
 import {
   scrollEntranceStagger,
@@ -584,9 +585,11 @@ export default function Overview() {
           <>
             <div className="overview-weekly-head">
               <div>
-                <div className="overview-weekly-name">{playerOfWeek.base.name}</div>
+                <div className="overview-weekly-name">
+                  <EntityLink type="player" name={playerOfWeek.base.name} player={playerOfWeek.base} allPlayers={filteredPlayers} showIcon={false} />
+                </div>
                 <div className="overview-weekly-meta">
-                  {playerOfWeek.base.team} · {playerOfWeek.role.toUpperCase()} ·{' '}
+                  <EntityLink type="team" name={playerOfWeek.base.team} showIcon={false} /> · {playerOfWeek.role.toUpperCase()} ·{' '}
                   {formatNum(playerOfWeek.scoreAvg * 100, 1)} avg performance score
                 </div>
               </div>
@@ -631,11 +634,15 @@ export default function Overview() {
                         <span className="text-accent">
                           #{idx + 1} · {g.date}
                         </span>
-                        <span>
-                          {g.champion} · {formatNum(g.kda, 2)} KDA
+                        <span className="entity-table-champ">
+                          <ChampionIcon name={g.champion} size={16} />
+                          <EntityLink type="champion" name={g.champion} />
+                          {' · '}{formatNum(g.kda, 2)} KDA
                         </span>
                         <span className="text-secondary">
-                          vs {opp.team} / {opp.player} / {opp.champion}
+                          vs <EntityLink type="team" name={opp.team} showIcon={false} /> /{' '}
+                          <EntityLink type="player" name={opp.player} allPlayers={filteredPlayers} showIcon={false} /> /{' '}
+                          <EntityLink type="champion" name={opp.champion} />
                         </span>
                       </li>
                     )
@@ -656,9 +663,11 @@ export default function Overview() {
               : null
             return (
               <article key={`${p.base.name}-${p.role}`} className="overview-totw-card">
-                <div className="overview-weekly-name">{p.base.name}</div>
+                <div className="overview-weekly-name">
+                  <EntityLink type="player" name={p.base.name} player={p.base} allPlayers={filteredPlayers} showIcon={false} />
+                </div>
                 <div className="overview-weekly-meta">
-                  {p.base.team} · {p.role.toUpperCase()}
+                  <EntityLink type="team" name={p.base.team} showIcon={false} /> · {p.role.toUpperCase()}
                 </div>
                 <WeeklyRadar
                   player={p.weekly}
@@ -668,8 +677,10 @@ export default function Overview() {
                 />
                 {best && (
                   <div className="overview-mini-meta text-secondary">
-                    Best game: {best.champion} · {formatNum(best.kda, 2)} KDA · vs {opp?.team ?? 'N/A'} /{' '}
-                    {opp?.player ?? 'N/A'} / {opp?.champion ?? 'N/A'}
+                    Best game: <EntityLink type="champion" name={best.champion} /> · {formatNum(best.kda, 2)} KDA · vs{' '}
+                    <EntityLink type="team" name={opp?.team ?? 'N/A'} showIcon={false} /> /{' '}
+                    <EntityLink type="player" name={opp?.player ?? 'N/A'} allPlayers={filteredPlayers} showIcon={false} /> /{' '}
+                    <EntityLink type="champion" name={opp?.champion ?? 'N/A'} />
                   </div>
                 )}
               </article>
@@ -685,7 +696,9 @@ export default function Overview() {
         ) : (
           <div className="overview-hottest-layout">
             <div className="overview-hottest-grid">
-              <div className="overview-weekly-name">{hottestTeam.team}</div>
+              <div className="overview-weekly-name">
+                <EntityLink type="team" name={hottestTeam.team} />
+              </div>
               <div className="overview-weekly-meta">
                 Team Score:{' '}
                 <span className="text-accent">{formatNum(hottestTeam.impressiveness, 1)}</span>
@@ -718,7 +731,9 @@ export default function Overview() {
           <p className="text-secondary">No champion weekly sample for this filter.</p>
         ) : (
           <div className="overview-champion-week">
-            <div className="overview-weekly-name">{opResult.top.champion.name}</div>
+            <div className="overview-weekly-name">
+              <EntityLink type="champion" name={opResult.top.champion.name} />
+            </div>
             <div className="overview-weekly-meta">
               Role: {opResult.top.role.toUpperCase()} · Presence:{' '}
               {formatPct(opResult.top.champion.presence, 1)} · Winrate:{' '}

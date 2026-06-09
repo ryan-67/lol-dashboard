@@ -17,6 +17,7 @@ import {
   TeamScatterPlot,
 } from '../components/teams'
 import SortableTh from '../components/ui/SortableTh'
+import { EntityLink } from '../components/entities'
 import { scrollEntranceStagger, refreshScrollTrigger } from '../theme/animations'
 import { supabase } from '../lib/supabaseClient'
 
@@ -176,7 +177,9 @@ export default function Teams() {
                 ) : (
                   sorted.map((t) => (
                     <tr key={teamKey(t)}>
-                      <td className="font-medium">{t.name}</td>
+                      <td className="font-medium">
+                        <EntityLink type="team" name={t.name} />
+                      </td>
                       <td className="text-secondary">{t.league}</td>
                       <td className="text-secondary">{t.wins}</td>
                       <td className="text-tertiary">{t.losses}</td>

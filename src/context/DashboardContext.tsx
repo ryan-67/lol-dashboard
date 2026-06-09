@@ -9,10 +9,11 @@ import {
   leagueLabelToLeagues,
   leaguesToLeagueLabel,
 } from '../hooks/useDashboardData'
-import { mergeSlices, TIER1_LEAGUES } from '../lib/mergeSlices'
+import { mergeSlices, TIER1_LEAGUES, type OEStoreMeta } from '../lib/mergeSlices'
 
 interface DashboardContextValue {
   data: DashboardData | null
+  catalog: OEStoreMeta | null
   loading: boolean
   error: string | null
   lastUpdated: Date | null
@@ -121,6 +122,7 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
     <DashboardContext.Provider
       value={{
         data,
+        catalog: meta,
         loading,
         error,
         lastUpdated,

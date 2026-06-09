@@ -18,6 +18,7 @@ import {
   TopPerformerCards,
 } from '../components/champions'
 import SortableTh from '../components/ui/SortableTh'
+import { EntityLink } from '../components/entities'
 import { refreshScrollTrigger } from '../theme/animations'
 
 export default function Champions() {
@@ -128,7 +129,9 @@ export default function Champions() {
                 ) : (
                   sorted.map((c) => (
                     <tr key={c.name}>
-                      <td className="font-medium">{c.name}</td>
+                      <td className="font-medium">
+                        <EntityLink type="champion" name={c.name} />
+                      </td>
                       <td className="text-secondary uppercase">
                         {(c.positions ?? []).join(', ') || '—'}
                       </td>

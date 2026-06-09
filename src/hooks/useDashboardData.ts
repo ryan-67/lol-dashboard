@@ -33,6 +33,7 @@ export interface PlayerGameLog {
   goldShare?: number
   firstBloodRate?: number
   objControl?: number
+  side?: string
 }
 
 export interface PlayerChampionPoolEntry {
