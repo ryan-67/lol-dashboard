@@ -48,7 +48,14 @@ export default function TopBar() {
 
         {lastUpdated && (
           <span className="text-xs text-tertiary">
-            updated {lastUpdated.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+            updated{' '}
+            {lastUpdated.toLocaleString(undefined, {
+              month: 'short',
+              day: 'numeric',
+              year: 'numeric',
+              hour: '2-digit',
+              minute: '2-digit',
+            })}
           </span>
         )}
       </div>
