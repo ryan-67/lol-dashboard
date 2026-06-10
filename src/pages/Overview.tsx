@@ -18,7 +18,7 @@ import {
 } from '../lib/playerRadar'
 import { findTeamByName } from '../lib/teamAnalytics'
 import TeamRadarChart from '../components/teams/TeamRadarChart'
-import { EntityLink, ChampionIcon } from '../components/entities'
+import { EntityLink } from '../components/entities'
 import { CHART } from '../theme/chartTheme'
 import {
   scrollEntranceStagger,
@@ -635,7 +635,6 @@ export default function Overview() {
                           #{idx + 1} · {g.date}
                         </span>
                         <span className="entity-table-champ">
-                          <ChampionIcon name={g.champion} size={16} />
                           <EntityLink type="champion" name={g.champion} />
                           {' · '}{formatNum(g.kda, 2)} KDA
                         </span>

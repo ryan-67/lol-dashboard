@@ -7,6 +7,7 @@ import {
   computeSideWinrates,
   buildTeamTrend,
   priorityChampsByRole,
+  playerChampionIcons,
   teamHasData,
   teamMatchesCanonical,
 } from '../../lib/entities'
@@ -23,6 +24,7 @@ import {
   TeamTrendChart,
   ChampionIcon,
 } from '../../components/entities'
+import TeamObjectiveProfile from '../../components/entities/TeamObjectiveProfile'
 import { roleLabel } from '../../lib/championAnalytics'
 import type { RoleKey } from '../../lib/playerRadar'
 
@@ -47,6 +49,9 @@ export default function TeamPage() {
     fallbackNotice,
   } = useEntityPageData(hasData)
 
+  const filterLeague = filters.league === 'All Tier 1' ? undefined : filters.league
+  const filterSplit = filters.split || undefined
+
   const teams = useMemo(() => (data?.teams ?? []).filter(isDisplayableTeam), [data])
   const team = useMemo(() => mergeTeamsByCanonical(teams, slug), [teams, slug])
   const players = useMemo(() => (data?.players ?? []).filter(isDisplayablePlayer), [data])
@@ -57,17 +62,23 @@ export default function TeamPage() {
   }, [players, team, slug])
 
   const matchHistory = useMemo(
-    () => (team ? buildTeamMatchHistory(players, slug, 10) : []),
-    [players, team, slug],
+    () =>
+      team
+        ? buildTeamMatchHistory(players, slug, 10, filterLeague, filterSplit)
+        : [],
+    [players, team, slug, filterLeague, filterSplit],
   )
   const sides = useMemo(() => computeSideWinrates(players, slug), [players, slug])
-  const trend = useMemo(() => buildTeamTrend(players, slug, 15), [players, slug])
+  const trend = useMemo(
+    () => buildTeamTrend(players, slug, 15, filterLeague, filterSplit),
+    [players, slug, filterLeague, filterSplit],
+  )
   const priorityByRole = useMemo(
     () =>
       team && data
-        ? priorityChampsByRole(data.teamChampions ?? [], teams, team.name, data.champions ?? [])
+        ? priorityChampsByRole(data.teamChampions ?? [], teams, team.name, players)
         : null,
-    [team, data, teams],
+    [team, data, teams, players],
   )
 
   const topOpponents = useMemo(() => {
@@ -142,6 +153,8 @@ export default function TeamPage() {
 
       <TeamRadarChart team={team} cohort={teams} highlighted />
 
+      <TeamObjectiveProfile team={team} />
+
       <div className="overview-grid overview-grid-2">
         <TeamSideWinrates sides={sides} />
         <TeamTrendChart points={trend} />
@@ -156,7 +169,10 @@ export default function TeamPage() {
               <li key={opp}>
                 <EntityLink type="team" name={opp} />
                 <span className="text-secondary">{n} recent games</span>
-                <Link to={`/matchups?teamA=${encodeURIComponent(team.name)}&teamB=${encodeURIComponent(opp)}`} className="entity-inline-link">
+                <Link
+                  to={`/matchups?teamA=${encodeURIComponent(team.name)}&teamB=${encodeURIComponent(opp)}`}
+                  className="entity-inline-link"
+                >
                   Compare →
                 </Link>
               </li>
@@ -181,7 +197,7 @@ export default function TeamPage() {
                 <th>Date</th>
                 <th>Opponent</th>
                 <th>Result</th>
-                <th>Side</th>
+                <th>Tournament</th>
               </tr>
             </thead>
             <tbody>
@@ -192,7 +208,7 @@ export default function TeamPage() {
                     <EntityLink type="team" name={m.opponent} />
                   </td>
                   <td className={m.result === 'W' ? 'text-accent' : 'text-secondary'}>{m.result}</td>
-                  <td>{m.side ?? '—'}</td>
+                  <td>{m.tournament}</td>
                 </tr>
               ))}
             </tbody>
@@ -211,18 +227,35 @@ export default function TeamPage() {
                 <th>Games</th>
                 <th>KDA</th>
                 <th>GD@15</th>
+                <th>Champ Pool</th>
               </tr>
             </thead>
             <tbody>
               {roster.map((p) => (
                 <tr key={playerKey(p)}>
                   <td>
-                    <EntityLink type="player" name={p.name} player={p} allPlayers={players} showIcon={false} />
+                    <EntityLink
+                      type="player"
+                      name={p.name}
+                      player={p}
+                      allPlayers={players}
+                      showIcon={false}
+                    />
                   </td>
                   <td>{p.position.toUpperCase()}</td>
                   <td>{p.games}</td>
                   <td>{formatNum(p.kda, 2)}</td>
-                  <td>{p.gd15 > 0 ? '+' : ''}{formatNum(p.gd15, 1)}</td>
+                  <td>
+                    {p.gd15 > 0 ? '+' : ''}
+                    {formatNum(p.gd15, 1)}
+                  </td>
+                  <td>
+                    <div className="entity-champ-pool">
+                      {playerChampionIcons(p).map((champ) => (
+                        <ChampionIcon key={champ} name={champ} size={20} />
+                      ))}
+                    </div>
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -240,7 +273,6 @@ export default function TeamPage() {
                 <ul className="entity-priority-list">
                   {(priorityByRole[role] ?? []).map((entry) => (
                     <li key={entry.champion}>
-                      <ChampionIcon name={entry.champion} size={18} />
                       <EntityLink type="champion" name={entry.champion} />
                       <span className="text-accent">{entry.priorityScore.toFixed(1)}</span>
                     </li>

@@ -284,6 +284,7 @@ def team_bucket():
         "dragons": 0,
         "barons": 0,
         "heralds": 0,
+        "void_grubs": 0,
         "gd15": [],
         "gamelength": [],
         "totalgold": [],
@@ -324,19 +325,26 @@ def slice_store():
 
 
 def backfill_game_log_opponents(players_dict, game_teams):
-    """Resolve opponent team names after all rows are processed (player rows may precede team rows)."""
+    """Resolve opponent team names and side after all rows are processed."""
     for p in players_dict.values():
         team_name = p.get("team") or ""
         for g in p["gameLog"]:
             game_id = g.pop("_gameId", "")
-            if g.get("opponent") or not game_id:
-                continue
-            sides = game_teams.get(game_id) or []
-            for side in sides:
-                opp_team = side.get("team") or ""
-                if opp_team and opp_team != team_name:
-                    g["opponent"] = opp_team
-                    break
+            if not g.get("opponent") and game_id:
+                sides = game_teams.get(game_id) or []
+                for side in sides:
+                    opp_team = side.get("team") or ""
+                    if opp_team and opp_team != team_name:
+                        g["opponent"] = opp_team
+                        break
+            if not g.get("side") and game_id:
+                sides = game_teams.get(game_id) or []
+                for side in sides:
+                    if side.get("team") == team_name and side.get("side"):
+                        g["side"] = side["side"]
+                        break
+            if g.get("side"):
+                g["side"] = str(g["side"]).strip().lower()
 
 
 def compile_players(players_dict):
@@ -414,10 +422,14 @@ def compile_teams(teams_dict):
                 "dragons": t["dragons"],
                 "barons": t["barons"],
                 "heralds": t["heralds"],
+                "voidGrubs": t["void_grubs"],
                 "dragonsPerGame": round(t["dragons"] / games, 2),
                 "baronsPerGame": round(t["barons"] / games, 2),
                 "towersPerGame": round(t["towers"] / games, 2),
                 "heraldsPerGame": round(t["heralds"] / games, 2),
+                "voidGrubsPerGame": round(t["void_grubs"] / games, 2),
+                "killsPerGame": round(t["kills"] / games, 2),
+                "deathsPerGame": round(t["deaths"] / games, 2),
                 "objPerGame": round((t["dragons"] + t["barons"] + t["heralds"]) / games, 2),
                 "avgGameLength": round(sum(t["gamelength"]) / len(t["gamelength"]), 0)
                 if t["gamelength"]
@@ -667,6 +679,7 @@ def process_row(row, buckets: dict, team_to_league: dict[str, str]):
         t["dragons"] += safe_int(row.get("dragons", 0))
         t["barons"] += safe_int(row.get("barons", 0))
         t["heralds"] += safe_int(row.get("heralds", 0))
+        t["void_grubs"] += safe_int(row.get("void_grubs", 0))
         t["kills"] += safe_int(row.get("kills", 0))
         t["deaths"] += safe_int(row.get("deaths", 0))
         t["assists"] += safe_int(row.get("assists", 0))
@@ -681,8 +694,9 @@ def process_row(row, buckets: dict, team_to_league: dict[str, str]):
         if week_key:
             bucket["weekly_team_games"][week_key] += 1
         if game_id:
+            side_val = str(row.get("side", "")).strip().lower()
             bucket["game_teams"][game_id].append(
-                {"team": team_name, "result": result, "league": bucket_league}
+                {"team": team_name, "result": result, "league": bucket_league, "side": side_val}
             )
         for i in range(1, 6):
             ban = row.get(f"ban{i}", "")
@@ -749,6 +763,8 @@ def process_row(row, buckets: dict, team_to_league: dict[str, str]):
                 "result": 1 if result == "1" else 0,
                 "champion": champion or "",
                 "opponent": opponent,
+                "split": sk,
+                "league": bucket_league,
                 "kda": round((kills_g + assists_g) / deaths_g, 2),
                 "kp": round(kp_val, 1),
                 "dmgShare": round(safe_float(row.get("damageshare", 0)) * 100, 1),
@@ -761,7 +777,7 @@ def process_row(row, buckets: dict, team_to_league: dict[str, str]):
                 "firstBloodRate": 100.0 if fb_involved else 0.0,
                 "objControl": float(obj_total),
             }
-        side_val = str(row.get("side", "")).strip()
+        side_val = str(row.get("side", "")).strip().lower()
         if side_val:
             entry["side"] = side_val
         if game_id:

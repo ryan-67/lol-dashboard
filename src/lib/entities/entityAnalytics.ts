@@ -1,6 +1,6 @@
 import type { Champion, Player, Team, TeamChampion } from '../../hooks/useDashboardData'
-import { computeHighestPriorityChamps } from '../matchupAnalytics'
 import type { RoleKey } from '../championAnalytics'
+import { normalizePosition } from '../playerRadar'
 import { teamMatchesCanonical } from './slugs'
 
 export interface ChampionWinrateEntry {
@@ -8,31 +8,84 @@ export interface ChampionWinrateEntry {
   games: number
   wins: number
   winrate: number
+  kda: number
+}
+
+function championStatsFromLog(player: Player): ChampionWinrateEntry[] {
+  const map = new Map<string, { games: number; wins: number; kdaSum: number }>()
+
+  for (const g of player.gameLog ?? []) {
+    if (!g.champion) continue
+    const cur = map.get(g.champion) ?? { games: 0, wins: 0, kdaSum: 0 }
+    cur.games += 1
+    if (g.result === 1) cur.wins += 1
+    cur.kdaSum += g.kda ?? 0
+    map.set(g.champion, cur)
+  }
+
+  if (map.size === 0) {
+    for (const c of player.championPool ?? []) {
+      map.set(c.champion, { games: c.games, wins: c.wins, kdaSum: 0 })
+    }
+  }
+
+  return [...map.entries()].map(([champion, s]) => ({
+    champion,
+    games: s.games,
+    wins: s.wins,
+    winrate: s.games ? (s.wins / s.games) * 100 : 0,
+    kda: s.games && s.kdaSum ? s.kdaSum / s.games : 0,
+  }))
 }
 
 export function bestWorstChampions(
   player: Player,
-  minGames: number,
+  minGames = 1,
 ): { best: ChampionWinrateEntry[]; worst: ChampionWinrateEntry[] } {
-  const eligible = (player.championPool ?? []).filter((c) => c.games >= minGames)
-  const sorted = [...eligible].sort((a, b) => b.winrate - a.winrate)
-  return {
-    best: sorted.slice(0, 5),
-    worst: [...sorted].reverse().slice(0, 5),
-  }
+  const eligible = championStatsFromLog(player).filter((c) => c.games >= minGames)
+  const best = [...eligible]
+    .sort((a, b) => b.winrate - a.winrate || b.kda - a.kda)
+    .slice(0, 5)
+  const worst = [...eligible]
+    .sort((a, b) => a.winrate - b.winrate || a.kda - b.kda)
+    .slice(0, 5)
+  return { best, worst }
+}
+
+function normalizeSide(raw?: string): 'blue' | 'red' | null {
+  const s = (raw ?? '').toLowerCase()
+  if (s.includes('blue')) return 'blue'
+  if (s.includes('red')) return 'red'
+  return null
+}
+
+export function formatTournamentLabel(
+  league?: string,
+  split?: string,
+  fallbackLeague?: string,
+  fallbackSplit?: string,
+): string {
+  const lg = league || fallbackLeague
+  const sp = split || fallbackSplit
+  if (lg && sp) return `${lg} ${sp}`
+  if (lg) return lg
+  if (sp) return sp
+  return '—'
 }
 
 export interface TeamMatchRow {
   date: string
   opponent: string
   result: 'W' | 'L'
-  side?: string
+  tournament: string
 }
 
 export function buildTeamMatchHistory(
   players: Player[],
   teamSlugOrName: string,
   limit = 10,
+  fallbackLeague?: string,
+  fallbackSplit?: string,
 ): TeamMatchRow[] {
   const rows: TeamMatchRow[] = []
   const seen = new Set<string>()
@@ -47,7 +100,7 @@ export function buildTeamMatchHistory(
         date: game.date,
         opponent: game.opponent ?? 'Unknown',
         result: game.result === 1 ? 'W' : 'L',
-        side: game.side,
+        tournament: formatTournamentLabel(game.league, game.split, fallbackLeague, fallbackSplit),
       })
     }
   }
@@ -73,13 +126,13 @@ export function computeSideWinrates(
   for (const player of players) {
     if (!teamMatchesCanonical(player.team, teamSlugOrName)) continue
     for (const game of player.gameLog ?? []) {
-      const side = (game.side ?? '').toLowerCase()
-      if (side !== 'blue' && side !== 'red') continue
+      const side = normalizeSide(game.side)
+      if (!side) continue
       const key = `${game.date}|${game.opponent}|${side}`
       if (seen.has(key)) continue
       seen.add(key)
-      acc[side as 'blue' | 'red'].games += 1
-      if (game.result === 1) acc[side as 'blue' | 'red'].wins += 1
+      acc[side].games += 1
+      if (game.result === 1) acc[side].wins += 1
     }
   }
 
@@ -106,8 +159,16 @@ export function buildTeamTrend(
   players: Player[],
   teamSlugOrName: string,
   limit = 20,
+  fallbackLeague?: string,
+  fallbackSplit?: string,
 ): TeamTrendPoint[] {
-  const games = buildTeamMatchHistory(players, teamSlugOrName, limit).reverse()
+  const games = buildTeamMatchHistory(
+    players,
+    teamSlugOrName,
+    limit,
+    fallbackLeague,
+    fallbackSplit,
+  ).reverse()
   let wins = 0
   return games.map((g, i) => {
     if (g.result === 'W') wins += 1
@@ -126,39 +187,125 @@ export function buildTeamTrend(
     return {
       game: i + 1,
       date: g.date,
-      winrate: ((wins / (i + 1)) * 100),
+      winrate: (wins / (i + 1)) * 100,
       gd15: gdCount ? gdSum / gdCount : 0,
     }
   })
+}
+
+function teamTotalGames(teams: Team[], teamName: string): number {
+  const team = teams.find((t) => t.name === teamName)
+  if (!team) return 1
+  return Math.max(team.wins + team.losses, 1)
+}
+
+function computePriorityScore(row: TeamChampion, teamGames: number) {
+  const pickRate = (row.picks / teamGames) * 100
+  const avgPickOrder = row.avgPickOrder ?? null
+  const orderScore = avgPickOrder != null ? ((6 - avgPickOrder) / 5) * 100 : 50
+  const priorityScore = pickRate * 0.65 + orderScore * 0.35
+  return { picks: row.picks, pickRate, avgPickOrder, priorityScore, winrate: row.winrate }
+}
+
+export type PriorityChampionEntry = {
+  champion: string
+  role: RoleKey | null
+  picks: number
+  pickRate: number
+  avgPickOrder: number | null
+  priorityScore: number
+  winrate: number
+}
+
+export function primaryRoleForChampionOnTeam(
+  players: Player[],
+  teamName: string,
+  champion: string,
+): RoleKey | null {
+  const counts = new Map<RoleKey, number>()
+  for (const p of players) {
+    if (!teamMatchesCanonical(p.team, teamName)) continue
+    const role = normalizePosition(p.position)
+    if (!role) continue
+    const games = (p.gameLog ?? []).filter((g) => g.champion === champion).length
+    if (games <= 0) continue
+    counts.set(role, (counts.get(role) ?? 0) + games)
+  }
+  let best: RoleKey | null = null
+  let max = 0
+  for (const [role, n] of counts) {
+    if (n > max) {
+      max = n
+      best = role
+    }
+  }
+  return best
+}
+
+export function rolesForChampionFromPlayers(
+  players: Player[],
+  championName: string,
+): RoleKey[] {
+  const counts = new Map<RoleKey, number>()
+  for (const p of players) {
+    const role = normalizePosition(p.position)
+    if (!role) continue
+    const games = (p.gameLog ?? []).filter((g) => g.champion === championName).length
+    if (games <= 0) continue
+    counts.set(role, (counts.get(role) ?? 0) + games)
+  }
+  return [...counts.entries()]
+    .sort((a, b) => b[1] - a[1])
+    .map(([role]) => role)
 }
 
 export function priorityChampsByRole(
   teamChampions: TeamChampion[],
   teams: Team[],
   teamName: string,
-  champions: Champion[],
-): Record<RoleKey, ReturnType<typeof computeHighestPriorityChamps>['teamA']> {
-  const championsByName = new Map(champions.map((c) => [c.name, c]))
-  const { teamA } = computeHighestPriorityChamps(
-    teamChampions,
-    teams,
-    teamName,
-    teamName,
-    championsByName,
-    20,
-  )
-  const byRole: Record<RoleKey, typeof teamA> = {
+  players: Player[],
+): Record<RoleKey, PriorityChampionEntry[]> {
+  const teamGames = teamTotalGames(teams, teamName)
+  const entries = teamChampions
+    .filter((row) => row.team === teamName && row.picks >= 1)
+    .map((row) => ({
+      champion: row.champion,
+      role: primaryRoleForChampionOnTeam(players, teamName, row.champion),
+      ...computePriorityScore(row, teamGames),
+    }))
+    .filter((e): e is PriorityChampionEntry & { role: RoleKey } => Boolean(e.role))
+    .sort((a, b) => b.priorityScore - a.priorityScore)
+
+  const byRole: Record<RoleKey, PriorityChampionEntry[]> = {
     top: [],
     jungle: [],
     mid: [],
     adc: [],
     support: [],
   }
-  for (const entry of teamA) {
-    const role = entry.role ?? 'mid'
+  for (const entry of entries) {
+    const role = entry.role!
     if (byRole[role].length < 5) byRole[role].push(entry)
   }
   return byRole
+}
+
+export function computeChampionPriorityScore(
+  championName: string,
+  teamChampions: TeamChampion[],
+  teams: Team[],
+): number | null {
+  const rows = teamChampions.filter((row) => row.champion === championName)
+  if (!rows.length) return null
+  let totalPicks = 0
+  let weighted = 0
+  for (const row of rows) {
+    const teamGames = teamTotalGames(teams, row.team)
+    const { priorityScore } = computePriorityScore(row, teamGames)
+    weighted += priorityScore * row.picks
+    totalPicks += row.picks
+  }
+  return totalPicks ? weighted / totalPicks : null
 }
 
 export function topPlayersOnChampion(
@@ -188,4 +335,21 @@ export function championWeeklyTrend(champion: Champion) {
       picks: w.picks,
       bans: w.bans,
     }))
+}
+
+export function playerChampionIcons(player: Player, limit = 12): string[] {
+  const fromPool = (player.championPool ?? [])
+    .slice()
+    .sort((a, b) => b.games - a.games)
+    .map((c) => c.champion)
+  if (fromPool.length) return fromPool.slice(0, limit)
+  const counts = new Map<string, number>()
+  for (const g of player.gameLog ?? []) {
+    if (!g.champion) continue
+    counts.set(g.champion, (counts.get(g.champion) ?? 0) + 1)
+  }
+  return [...counts.entries()]
+    .sort((a, b) => b[1] - a[1])
+    .map(([champ]) => champ)
+    .slice(0, limit)
 }

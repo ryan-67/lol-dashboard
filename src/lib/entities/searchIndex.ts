@@ -1,5 +1,5 @@
 import type { OEStoreMeta } from '../mergeSlices'
-import { TIER1_LEAGUES } from '../mergeSlices'
+import { TIER1_LEAGUES, splitSortKey } from '../mergeSlices'
 import { buildStoreFromSliceRows, fetchOESlices } from '../loadOEStore'
 import { mergeSlices } from '../mergeSlices'
 import { buildPlayerSearchSlug } from './resolvers'
@@ -23,25 +23,33 @@ function normalizeSearch(value: string): string {
   return value.toLowerCase().replace(/[^a-z0-9]/g, '')
 }
 
+function splitsNewestFirst(splits: string[]): string[] {
+  return [...splits].sort((a, b) => {
+    const ka = splitSortKey(a)
+    const kb = splitSortKey(b)
+    if (ka[0] !== kb[0]) return kb[0] - ka[0]
+    if (ka[1] !== kb[1]) return kb[1] - ka[1]
+    return kb[2].localeCompare(ka[2])
+  })
+}
+
 export async function buildEntitySearchIndex(catalog: OEStoreMeta): Promise<EntitySearchEntry[]> {
   if (cachedIndex) return cachedIndex
   if (cachePromise) return cachePromise
 
   cachePromise = (async () => {
-    const entries: EntitySearchEntry[] = []
-    const seen = new Set<string>()
+    const playerMap = new Map<string, EntitySearchEntry>()
+    const teamMap = new Map<string, EntitySearchEntry>()
+    const championMap = new Map<string, EntitySearchEntry>()
 
-    for (const split of catalog.splits) {
+    for (const split of splitsNewestFirst(catalog.splits)) {
       const rows = await fetchOESlices({ split, leagues: [...TIER1_LEAGUES] })
       const store = buildStoreFromSliceRows(catalog, rows)
       const data = mergeSlices(store, 'All Tier 1', split)
 
       for (const player of data.players) {
         const slug = buildPlayerSearchSlug(player, data.players)
-        const key = `player|${slug}`
-        if (seen.has(key)) continue
-        seen.add(key)
-        entries.push({
+        playerMap.set(slug, {
           type: 'player',
           slug,
           label: player.name,
@@ -52,10 +60,7 @@ export async function buildEntitySearchIndex(catalog: OEStoreMeta): Promise<Enti
 
       for (const team of data.teams) {
         const slug = teamSlugFromName(team.name)
-        const key = `team|${slug}`
-        if (seen.has(key)) continue
-        seen.add(key)
-        entries.push({
+        teamMap.set(slug, {
           type: 'team',
           slug,
           label: team.name,
@@ -66,17 +71,18 @@ export async function buildEntitySearchIndex(catalog: OEStoreMeta): Promise<Enti
 
       for (const champ of data.champions) {
         const slug = championSlug(champ.name)
-        const key = `champion|${slug}`
-        if (seen.has(key)) continue
-        seen.add(key)
-        entries.push({
-          type: 'champion',
-          slug,
-          label: champ.name,
-          searchText: normalizeSearch(champ.name),
-        })
+        if (!championMap.has(slug)) {
+          championMap.set(slug, {
+            type: 'champion',
+            slug,
+            label: champ.name,
+            searchText: normalizeSearch(champ.name),
+          })
+        }
       }
     }
+
+    const entries = [...playerMap.values(), ...teamMap.values(), ...championMap.values()]
 
     for (const team of TEAM_ENTITIES) {
       const existing = entries.find((e) => e.type === 'team' && e.slug === team.slug)

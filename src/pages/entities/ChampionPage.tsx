@@ -5,13 +5,14 @@ import {
   findChampionBySlug,
   championHasData,
   topPlayersOnChampion,
+  computeChampionPriorityScore,
+  rolesForChampionFromPlayers,
 } from '../../lib/entities'
 import {
   getBanRate,
   getPickRate,
   getPresence,
   isDisplayableChampion,
-  roleForChampion,
   roleLabel,
   totalGamesInCohort,
 } from '../../lib/championAnalytics'
@@ -23,7 +24,6 @@ import {
   ChampionIcon,
   ChampionTrendCharts,
 } from '../../components/entities'
-import { PresenceBarChart } from '../../components/champions'
 
 export default function ChampionPage() {
   const { slug = '' } = useParams<{ slug: string }>()
@@ -55,10 +55,20 @@ export default function ChampionPage() {
   const totalGames = useMemo(() => totalGamesInCohort(teams), [teams])
 
   const champion = useMemo(() => findChampionBySlug(champions, slug), [champions, slug])
-  const role = champion ? roleForChampion(champion) : 'mid'
+  const roles = useMemo(
+    () => (champion ? rolesForChampionFromPlayers(players, champion.name) : []),
+    [champion, players],
+  )
   const topPlayers = useMemo(
     () => (champion ? topPlayersOnChampion(players, champion.name) : []),
     [champion, players],
+  )
+  const priorityScore = useMemo(
+    () =>
+      champion && data
+        ? computeChampionPriorityScore(champion.name, data.teamChampions ?? [], teams)
+        : null,
+    [champion, data, teams],
   )
 
   if (loading) return <div className="empty-state">Loading champion…</div>
@@ -77,6 +87,8 @@ export default function ChampionPage() {
   const pickRate = getPickRate(champion, totalGames)
   const banRate = getBanRate(champion, totalGames)
   const presence = getPresence(champion, totalGames)
+  const roleSubtitle =
+    roles.length > 0 ? roles.map((r) => roleLabel(r)).join(' · ') : roleLabel('mid')
 
   return (
     <div className="page-section entity-page">
@@ -103,7 +115,7 @@ export default function ChampionPage() {
             <ChampionIcon name={champion.name} size={40} />
             {champion.name}
           </h1>
-          <p className="entity-subtitle">{roleLabel(role)}</p>
+          <p className="entity-subtitle">{roleSubtitle}</p>
         </div>
         <div className="entity-stat-row">
           <div className="stat-tile">
@@ -119,6 +131,12 @@ export default function ChampionPage() {
             <div className="stat-label">Ban Rate</div>
           </div>
           <div className="stat-tile">
+            <div className="stat-value">
+              {priorityScore != null ? priorityScore.toFixed(1) : '—'}
+            </div>
+            <div className="stat-label">Priority Score</div>
+          </div>
+          <div className="stat-tile">
             <div className="stat-value">{formatPct(champion.winrate, 1)}</div>
             <div className="stat-label">Winrate</div>
           </div>
@@ -126,8 +144,6 @@ export default function ChampionPage() {
       </header>
 
       <ChampionTrendCharts champion={champion} totalGames={totalGames} />
-
-      <PresenceBarChart champions={[champion]} />
 
       <div className="card page-section">
         <h3 className="card-title">Best Players on {champion.name}</h3>
@@ -145,7 +161,13 @@ export default function ChampionPage() {
               {topPlayers.map(({ player, games, winrate }) => (
                 <tr key={`${player.name}|${player.team}`}>
                   <td>
-                    <EntityLink type="player" name={player.name} player={player} allPlayers={players} showIcon={false} />
+                    <EntityLink
+                      type="player"
+                      name={player.name}
+                      player={player}
+                      allPlayers={players}
+                      showIcon={false}
+                    />
                   </td>
                   <td>
                     <EntityLink type="team" name={player.team} />

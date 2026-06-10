@@ -11,7 +11,6 @@ import {
   EntityFilterBar,
   EntityLink,
   TeamLogo,
-  ChampionIcon,
   ChampionWinrateBars,
   PlayerChampionPie,
 } from '../../components/entities'
@@ -55,10 +54,9 @@ export default function PlayerPage() {
   const role = player ? getPlayerRole(player) : 'mid'
   const cohort = useMemo(() => playersForRole(players, role), [players, role])
 
-  const minChampGames = Math.max(2, Math.ceil((player?.games ?? 0) * 0.1))
   const champExtremes = useMemo(
-    () => (player ? bestWorstChampions(player, minChampGames) : { best: [], worst: [] }),
-    [player, minChampGames],
+    () => (player ? bestWorstChampions(player, 1) : { best: [], worst: [] }),
+    [player],
   )
 
   if (loading) {
@@ -164,10 +162,7 @@ export default function PlayerPage() {
                   <tr key={`${g.date}-${i}`}>
                     <td>{g.date}</td>
                     <td>
-                      <span className="entity-table-champ">
-                        <ChampionIcon name={g.champion} size={18} />
-                        <EntityLink type="champion" name={g.champion} />
-                      </span>
+                      <EntityLink type="champion" name={g.champion} />
                     </td>
                     <td>
                       <EntityLink type="team" name={g.opponent ?? 'Unknown'} />

@@ -5,7 +5,7 @@ import type { ChampionWinrateEntry } from '../../lib/entities/entityAnalytics'
 import { makeChartTooltipContent } from '../ui/ChartTooltip'
 import { scrollEntrance } from '../../theme/animations'
 import { CHART } from '../../theme/chartTheme'
-import ChampionIcon from './ChampionIcon'
+import EntityLink from './EntityLink'
 
 const tooltip = makeChartTooltipContent(
   (props) => {
@@ -18,6 +18,7 @@ const tooltip = makeChartTooltipContent(
     return [
       { label: 'Games', value: String(row.games) },
       { label: 'Winrate', value: `${row.winrate.toFixed(1)}%` },
+      { label: 'KDA', value: row.kda ? row.kda.toFixed(2) : '—' },
     ]
   },
 )
@@ -71,9 +72,10 @@ export default function ChampionWinrateBars({
       <ul className="entity-champ-win-list">
         {entries.map((e) => (
           <li key={e.champion}>
-            <ChampionIcon name={e.champion} size={18} />
-            <span>{e.champion}</span>
-            <span className="text-secondary">{e.games}G · {e.winrate.toFixed(1)}%</span>
+            <EntityLink type="champion" name={e.champion} />
+            <span className="text-secondary">
+              {e.games}G · {e.winrate.toFixed(1)}% · {e.kda ? e.kda.toFixed(2) : '—'} KDA
+            </span>
           </li>
         ))}
       </ul>

@@ -34,6 +34,8 @@ export interface PlayerGameLog {
   firstBloodRate?: number
   objControl?: number
   side?: string
+  split?: string
+  league?: string
 }
 
 export interface PlayerChampionPoolEntry {
@@ -81,10 +83,14 @@ export interface Team {
   dragons: number
   barons: number
   heralds: number
+  voidGrubs?: number
   dragonsPerGame?: number
   baronsPerGame?: number
   towersPerGame?: number
   heraldsPerGame?: number
+  voidGrubsPerGame?: number
+  killsPerGame?: number
+  deathsPerGame?: number
   objPerGame?: number
   avgGameLength?: number
   goldPerMin?: number
