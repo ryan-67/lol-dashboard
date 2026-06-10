@@ -18,7 +18,7 @@ import {
 } from '../lib/playerRadar'
 import { findTeamByName } from '../lib/teamAnalytics'
 import TeamRadarChart from '../components/teams/TeamRadarChart'
-import { EntityLink } from '../components/entities'
+import { EntityLink, ChampionEntityInline } from '../components/entities'
 import { CHART } from '../theme/chartTheme'
 import {
   scrollEntranceStagger,
@@ -635,13 +635,13 @@ export default function Overview() {
                           #{idx + 1} · {g.date}
                         </span>
                         <span className="entity-table-champ">
-                          <EntityLink type="champion" name={g.champion} />
+                          <ChampionEntityInline name={g.champion} iconSize={16} />
                           {' · '}{formatNum(g.kda, 2)} KDA
                         </span>
-                        <span className="text-secondary">
+                        <span className="text-secondary entity-inline-row">
                           vs <EntityLink type="team" name={opp.team} showIcon={false} /> /{' '}
                           <EntityLink type="player" name={opp.player} allPlayers={filteredPlayers} showIcon={false} /> /{' '}
-                          <EntityLink type="champion" name={opp.champion} />
+                          <ChampionEntityInline name={opp.champion} iconSize={16} />
                         </span>
                       </li>
                     )
@@ -676,10 +676,10 @@ export default function Overview() {
                 />
                 {best && (
                   <div className="overview-mini-meta text-secondary">
-                    Best game: <EntityLink type="champion" name={best.champion} /> · {formatNum(best.kda, 2)} KDA · vs{' '}
+                    Best game: <ChampionEntityInline name={best.champion} iconSize={16} /> · {formatNum(best.kda, 2)} KDA · vs{' '}
                     <EntityLink type="team" name={opp?.team ?? 'N/A'} showIcon={false} /> /{' '}
                     <EntityLink type="player" name={opp?.player ?? 'N/A'} allPlayers={filteredPlayers} showIcon={false} /> /{' '}
-                    <EntityLink type="champion" name={opp?.champion ?? 'N/A'} />
+                    <ChampionEntityInline name={opp?.champion ?? 'N/A'} iconSize={16} />
                   </div>
                 )}
               </article>

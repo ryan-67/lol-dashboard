@@ -108,6 +108,29 @@ b,
   padding-inline: var(--padding-x);
 }
 
+.app-header-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.app-header-nav-cluster {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  flex-wrap: wrap;
+  min-width: 0;
+  margin-left: auto;
+}
+
+.app-header-nav-cluster .global-search {
+  flex: 0 1 280px;
+  min-width: 160px;
+  max-width: 320px;
+}
+
 .app-main {
   flex: 1;
   padding-block: var(--component-gap);
@@ -393,6 +416,14 @@ b,
   border-bottom: 1px solid var(--border-subtle);
   font-size: 12px;
   align-items: center;
+}
+
+.entity-inline-row {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px;
+  line-height: 1;
 }
 
 .overview-best-game-row:last-child {
@@ -858,13 +889,26 @@ b,
 .entity-table-champ {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
+}
+
+.entity-champ-inline {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  vertical-align: middle;
+  line-height: 1;
+}
+
+.entity-champ-inline .entity-link {
+  line-height: 1;
 }
 
 .entity-link {
   display: inline-flex;
   align-items: center;
   gap: 6px;
+  line-height: 1;
   color: var(--text-primary);
   text-decoration: none;
   border-bottom: 1px solid transparent;

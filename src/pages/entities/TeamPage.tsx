@@ -23,6 +23,7 @@ import {
   TeamSideWinrates,
   TeamTrendChart,
   ChampionIcon,
+  ChampionEntityInline,
 } from '../../components/entities'
 import TeamObjectiveProfile from '../../components/entities/TeamObjectiveProfile'
 import { roleLabel } from '../../lib/championAnalytics'
@@ -273,7 +274,7 @@ export default function TeamPage() {
                 <ul className="entity-priority-list">
                   {(priorityByRole[role] ?? []).map((entry) => (
                     <li key={entry.champion}>
-                      <EntityLink type="champion" name={entry.champion} />
+                      <ChampionEntityInline name={entry.champion} iconSize={18} />
                       <span className="text-accent">{entry.priorityScore.toFixed(1)}</span>
                     </li>
                   ))}

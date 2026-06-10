@@ -60,7 +60,12 @@ type PlayerRow = Player & {
   gameLog?: PlayerGameLog[]
   championPool?: PlayerChampionPoolEntry[]
 }
-type TeamRow = Team & { kills?: number; deaths?: number; assists?: number }
+type TeamRow = Team & {
+  kills?: number
+  deaths?: number
+  assists?: number
+  voidGrubs?: number
+}
 type ChampionRow = Champion
 
 function round(value: number, digits: number): number {
@@ -71,7 +76,7 @@ function round(value: number, digits: number): number {
 function dedupeGameLog(log: PlayerGameLog[]): PlayerGameLog[] {
   const seen = new Set<string>()
   return log.filter((game) => {
-    const id = `${game.date}|${game.champion}|${game.result}`
+    const id = `${game.date}|${game.champion}|${game.result}|${game.opponent ?? ''}|${game.kda}`
     if (seen.has(id)) return false
     seen.add(id)
     return true
@@ -238,6 +243,7 @@ function mergeTeams(slices: DashboardSlice[]): Team[] {
       dragons: number
       barons: number
       heralds: number
+      voidGrubs: number
       gd15: Array<{ value: number; weight: number }>
       goldPerMin: Array<{ value: number; weight: number }>
       wardsPerMin: Array<{ value: number; weight: number }>
@@ -264,6 +270,7 @@ function mergeTeams(slices: DashboardSlice[]): Team[] {
         dragons: 0,
         barons: 0,
         heralds: 0,
+        voidGrubs: 0,
         gd15: [],
         goldPerMin: [],
         wardsPerMin: [],
@@ -281,6 +288,7 @@ function mergeTeams(slices: DashboardSlice[]): Team[] {
       existing.dragons += t.dragons ?? 0
       existing.barons += t.barons ?? 0
       existing.heralds += t.heralds ?? 0
+      existing.voidGrubs += t.voidGrubs ?? 0
       if (games > 0 && typeof t.avgGd15 === 'number') {
         existing.gd15.push({ value: t.avgGd15, weight: games })
       }
@@ -317,11 +325,15 @@ function mergeTeams(slices: DashboardSlice[]): Team[] {
         dragons: t.dragons,
         barons: t.barons,
         heralds: t.heralds,
+        voidGrubs: t.voidGrubs,
         dragonsPerGame: round(t.dragons / games, 2),
         baronsPerGame: round(t.barons / games, 2),
         towersPerGame: round(t.towers / games, 2),
         heraldsPerGame: round(t.heralds / games, 2),
-        objPerGame: round((t.dragons + t.barons + t.heralds) / games, 2),
+        voidGrubsPerGame: round(t.voidGrubs / games, 2),
+        killsPerGame: round(t.kills / games, 2),
+        deathsPerGame: round(t.deaths / games, 2),
+        objPerGame: round((t.dragons + t.barons + t.heralds + t.voidGrubs) / games, 2),
         avgGameLength: round(avgWeighted(t.avgGameLength), 0),
         goldPerMin: round(avgWeighted(t.goldPerMin), 1),
         wardsPerMin: round(avgWeighted(t.wardsPerMin), 2),

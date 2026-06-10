@@ -11,6 +11,7 @@ import {
   EntityFilterBar,
   EntityLink,
   TeamLogo,
+  ChampionEntityInline,
   ChampionWinrateBars,
   PlayerChampionPie,
 } from '../../components/entities'
@@ -162,7 +163,7 @@ export default function PlayerPage() {
                   <tr key={`${g.date}-${i}`}>
                     <td>{g.date}</td>
                     <td>
-                      <EntityLink type="champion" name={g.champion} />
+                      <ChampionEntityInline name={g.champion} />
                     </td>
                     <td>
                       <EntityLink type="team" name={g.opponent ?? 'Unknown'} />

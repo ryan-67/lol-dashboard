@@ -1,6 +1,7 @@
 export { default as EntityFilterBar } from './EntityFilterBar'
 export { default as EntityLink } from './EntityLink'
 export { default as ChampionIcon } from './ChampionIcon'
+export { default as ChampionEntityInline } from './ChampionEntityInline'
 export { default as TeamLogo } from './TeamLogo'
 export { default as GlobalSearch } from './GlobalSearch'
 export { default as PlayerChampionPie } from './PlayerChampionPie'

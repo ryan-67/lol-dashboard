@@ -123,7 +123,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
   return (
     <div className="app-shell">
       <header className="app-header">
-        <div className="app-header-inner py-3 flex items-center gap-3">
+        <div className="app-header-inner app-header-bar py-3">
           <Link
             to="/"
             className="flex items-center gap-3 no-underline text-inherit hover:opacity-90 transition-opacity shrink-0"
@@ -138,15 +138,14 @@ export default function Layout({ children }: { children: React.ReactNode }) {
             <h1 className="text-base font-medium text-primary tracking-tight hidden sm:block">nucky</h1>
           </Link>
 
-          <nav className="flex items-center gap-1 shrink-0">
-            {primaryNav.map((item) => renderNavItem(item))}
-          </nav>
+          <div className="app-header-nav-cluster">
+            <nav className="flex items-center gap-1 shrink-0">
+              {primaryNav.map((item) => renderNavItem(item))}
+            </nav>
 
-          <div className="flex-1 min-w-0 flex justify-center px-2">
             <GlobalSearch />
-          </div>
 
-          <div className="flex items-center gap-2 shrink-0">
+            <div className="flex items-center gap-2 shrink-0">
             {!authLoading && (
               <>
                 {user ? (
@@ -183,6 +182,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                   {menuNav.map((item) => renderNavItem(item, () => setMenuOpen(false)))}
                 </nav>
               )}
+            </div>
             </div>
           </div>
         </div>

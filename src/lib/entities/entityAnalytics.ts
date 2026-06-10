@@ -93,7 +93,7 @@ export function buildTeamMatchHistory(
   for (const player of players) {
     if (!teamMatchesCanonical(player.team, teamSlugOrName)) continue
     for (const game of player.gameLog ?? []) {
-      const key = `${game.date}|${game.opponent ?? ''}|${game.result}`
+      const key = `${game.date}|${game.opponent ?? ''}|${game.result}|${game.kda}`
       if (seen.has(key)) continue
       seen.add(key)
       rows.push({
