@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { teamLogoAbbreviation, teamLogoUrlFromSlug, teamSlugFromName } from '../../lib/entities'
+import { teamLogoAbbreviation, teamLogoUrlsFromName } from '../../lib/entities'
 
 interface TeamLogoProps {
   name: string
@@ -8,10 +8,12 @@ interface TeamLogoProps {
 }
 
 export default function TeamLogo({ name, size = 20, className = '' }: TeamLogoProps) {
-  const slug = teamSlugFromName(name)
-  const src = teamLogoUrlFromSlug(slug)
+  const candidates = teamLogoUrlsFromName(name)
   const abbr = teamLogoAbbreviation(name)
-  const [failed, setFailed] = useState(!src)
+  const [urlIndex, setUrlIndex] = useState(0)
+  const [failed, setFailed] = useState(candidates.length === 0)
+
+  const src = candidates[urlIndex] ?? null
 
   if (failed || !src) {
     return (
@@ -33,7 +35,13 @@ export default function TeamLogo({ name, size = 20, className = '' }: TeamLogoPr
       height={size}
       className={`team-logo ${className}`.trim()}
       loading="lazy"
-      onError={() => setFailed(true)}
+      onError={() => {
+        if (urlIndex + 1 < candidates.length) {
+          setUrlIndex((i) => i + 1)
+        } else {
+          setFailed(true)
+        }
+      }}
     />
   )
 }

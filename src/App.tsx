@@ -1,5 +1,5 @@
-import { useEffect } from 'react'
-import { Routes, Route } from 'react-router-dom'
+import { useEffect, useRef } from 'react'
+import { Routes, Route, useLocation } from 'react-router-dom'
 import Lenis from 'lenis'
 import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
@@ -24,12 +24,16 @@ import ResetPassword from './pages/ResetPassword'
 gsap.registerPlugin(ScrollTrigger)
 
 function SmoothScroll({ children }: { children: React.ReactNode }) {
+  const location = useLocation()
+  const lenisRef = useRef<Lenis | null>(null)
+
   useEffect(() => {
     const lenis = new Lenis({
       lerp: 0.1,
       duration: 1.2,
       smoothWheel: true,
     })
+    lenisRef.current = lenis
 
     lenis.on('scroll', ScrollTrigger.update)
 
@@ -62,8 +66,19 @@ function SmoothScroll({ children }: { children: React.ReactNode }) {
       gsap.ticker.remove(raf)
       ScrollTrigger.scrollerProxy(document.documentElement, {})
       lenis.destroy()
+      lenisRef.current = null
     }
   }, [])
+
+  useEffect(() => {
+    const lenis = lenisRef.current
+    if (lenis) {
+      lenis.scrollTo(0, { immediate: true })
+    } else {
+      window.scrollTo(0, 0)
+    }
+    ScrollTrigger.refresh()
+  }, [location.pathname])
 
   return <>{children}</>
 }

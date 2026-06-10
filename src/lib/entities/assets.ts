@@ -1,6 +1,13 @@
 import { CHAMPION_DDRAGON, TEAM_ENTITIES, teamSearchAbbreviation } from './entityMap'
-import { teamSlugFromName } from './slugs'
 import esportsLogos from '../../data/esports-logos.json'
+
+function slugify(value: string): string {
+  return value
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+}
 
 /** Riot Data Dragon — official champion square icons */
 const DDRAGON_VERSION = '14.24.1'
@@ -8,8 +15,10 @@ const DDRAGON_VERSION = '14.24.1'
 type EsportsLogoManifest = {
   leagues: Record<string, string>
   teamsByEsportsSlug: Record<string, string>
+  teamsAltByEsportsSlug?: Record<string, string>
   teamsByCode?: Record<string, string>
   teamsByName?: Record<string, string>
+  nameToEsportsSlug?: Record<string, string>
   teamSlugAliases: Record<string, string>
   teamColors?: Record<string, string>
 }
@@ -20,12 +29,31 @@ function normalizeName(value: string): string {
   return value.toLowerCase().replace(/[^a-z0-9]+/g, '')
 }
 
-function resolveEsportsTeamSlug(slug: string): string {
-  return manifest.teamSlugAliases[slug] ?? slug
+export function resolveEsportsTeamSlug(nameOrSlug: string): string {
+  const slug = slugify(nameOrSlug)
+  const norm = normalizeName(nameOrSlug)
+
+  const mapped = TEAM_ENTITIES.find(
+    (t) =>
+      t.slug === slug ||
+      t.canonicalName.toLowerCase() === nameOrSlug.toLowerCase() ||
+      t.oeNames.some((n) => n.toLowerCase() === nameOrSlug.toLowerCase()),
+  )
+  if (mapped?.esportsSlug) return mapped.esportsSlug
+
+  return (
+    manifest.teamSlugAliases[slug] ??
+    manifest.nameToEsportsSlug?.[norm] ??
+    manifest.nameToEsportsSlug?.[slug] ??
+    (manifest.teamsByEsportsSlug[slug] ? slug : slug)
+  )
 }
 
-function teamLogoFromEsportsSlug(esportsSlug: string): string | null {
-  return manifest.teamsByEsportsSlug[esportsSlug] ?? null
+function logoForEsportsSlug(esportsSlug: string): { primary: string | null; alt: string | null } {
+  return {
+    primary: manifest.teamsByEsportsSlug[esportsSlug] ?? null,
+    alt: manifest.teamsAltByEsportsSlug?.[esportsSlug] ?? null,
+  }
 }
 
 export function ddragonChampionKey(name: string): string {
@@ -37,33 +65,30 @@ export function championIconUrl(ddragonKey: string): string {
   return `https://ddragon.leagueoflegends.com/cdn/${DDRAGON_VERSION}/img/champion/${ddragonKey}.png`
 }
 
+export function teamLogoUrlsFromName(name: string): string[] {
+  const esportsSlug = resolveEsportsTeamSlug(name)
+  const fromSlug = logoForEsportsSlug(esportsSlug)
+  const urls: string[] = []
+  if (fromSlug.primary) urls.push(fromSlug.primary)
+  if (fromSlug.alt && fromSlug.alt !== fromSlug.primary) urls.push(fromSlug.alt)
+
+  const code = teamSearchAbbreviation(name).toUpperCase()
+  const fromCode = manifest.teamsByCode?.[code]
+  if (fromCode && !urls.includes(fromCode)) urls.push(fromCode)
+
+  const nameKey = normalizeName(name)
+  const fromName = manifest.teamsByName?.[nameKey]
+  if (fromName && !urls.includes(fromName)) urls.push(fromName)
+
+  return urls
+}
+
 export function teamLogoUrlFromSlug(slug: string): string | null {
-  if (!slug) return null
-
-  const mapped = TEAM_ENTITIES.find((t) => t.slug === slug)
-  if (mapped?.logoUrl) return mapped.logoUrl
-
-  const esportsSlug = mapped?.esportsSlug ?? resolveEsportsTeamSlug(slug)
-  return (
-    teamLogoFromEsportsSlug(esportsSlug) ??
-    teamLogoFromEsportsSlug(slug) ??
-    manifest.teamsByCode?.[slug.toUpperCase()] ??
-    null
-  )
+  return teamLogoUrlsFromName(slug)[0] ?? null
 }
 
 export function teamLogoUrlFromName(name: string): string | null {
-  const slug = teamSlugFromName(name)
-  const fromSlug = teamLogoUrlFromSlug(slug)
-  if (fromSlug) return fromSlug
-
-  const code = teamSearchAbbreviation(name).toUpperCase()
-  if (manifest.teamsByCode?.[code]) return manifest.teamsByCode[code]!
-
-  const nameKey = normalizeName(name)
-  if (manifest.teamsByName?.[nameKey]) return manifest.teamsByName[nameKey]!
-
-  return null
+  return teamLogoUrlsFromName(name)[0] ?? null
 }
 
 export function teamLogoAbbreviation(name: string): string {
@@ -71,14 +96,16 @@ export function teamLogoAbbreviation(name: string): string {
 }
 
 export function teamBrandColorFromName(teamName: string): string | null {
-  const slug = teamSlugFromName(teamName)
-  const esportsSlug = resolveEsportsTeamSlug(
-    TEAM_ENTITIES.find((t) => t.slug === slug)?.esportsSlug ?? slug,
-  )
-  return manifest.teamColors?.[esportsSlug] ?? manifest.teamColors?.[slug] ?? null
+  const esportsSlug = resolveEsportsTeamSlug(teamName)
+  return manifest.teamColors?.[esportsSlug] ?? null
 }
 
 export function leagueLogoUrl(league: string): string | null {
   if (!league || league === 'All Tier 1') return null
   return manifest.leagues[league] ?? null
+}
+
+/** Whether two team labels refer to the same LoL Esports org. */
+export function teamsShareEsportsSlug(a: string, b: string): boolean {
+  return resolveEsportsTeamSlug(a) === resolveEsportsTeamSlug(b)
 }

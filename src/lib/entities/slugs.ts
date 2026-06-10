@@ -1,4 +1,5 @@
 import { TEAM_ENTITIES } from './entityMap'
+import { resolveEsportsTeamSlug, teamsShareEsportsSlug } from './assets'
 
 export function slugify(value: string): string {
   return value
@@ -53,11 +54,18 @@ export function oeNamesForTeamSlug(slug: string): string[] {
 }
 
 export function teamMatchesCanonical(oeTeamName: string, canonicalOrSlug: string): boolean {
+  if (teamsShareEsportsSlug(oeTeamName, canonicalOrSlug)) return true
+
   const slug = slugify(canonicalOrSlug)
   const names = oeNamesForTeamSlug(slug)
   if (names.length) {
     return names.some((n) => n.toLowerCase() === oeTeamName.toLowerCase())
   }
+
+  const targetEsports = resolveEsportsTeamSlug(canonicalOrSlug)
+  const oeEsports = resolveEsportsTeamSlug(oeTeamName)
+  if (targetEsports && oeEsports && targetEsports === oeEsports) return true
+
   return slugify(oeTeamName) === slug || oeTeamName.toLowerCase() === canonicalOrSlug.toLowerCase()
 }
 

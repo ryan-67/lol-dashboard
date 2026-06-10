@@ -1,4 +1,4 @@
-import type { Champion, Player, PlayerGameLog, Team, TeamChampion } from '../../hooks/useDashboardData'
+import type { Champion, Player, Team, TeamChampion } from '../../hooks/useDashboardData'
 import type { RoleKey } from '../championAnalytics'
 import { normalizePosition, computeGameScore, playersForRole } from '../playerRadar'
 import { teamMatchesCanonical } from './slugs'
@@ -81,11 +81,6 @@ export interface TeamMatchRow {
   tournament: string
 }
 
-function teamGameKey(game: PlayerGameLog): string {
-  if (game.gameId) return game.gameId
-  return `${game.date}|${game.opponent ?? ''}`
-}
-
 export function buildTeamMatchHistory(
   players: Player[],
   teamSlugOrName: string,
@@ -93,23 +88,21 @@ export function buildTeamMatchHistory(
   fallbackLeague?: string,
   fallbackSplit?: string,
 ): TeamMatchRow[] {
-  const byGame = new Map<string, TeamMatchRow>()
+  const roster = players.filter((p) => teamMatchesCanonical(p.team, teamSlugOrName))
+  if (!roster.length) return []
 
-  for (const player of players) {
-    if (!teamMatchesCanonical(player.team, teamSlugOrName)) continue
-    for (const game of player.gameLog ?? []) {
-      const key = teamGameKey(game)
-      if (byGame.has(key)) continue
-      byGame.set(key, {
-        date: game.date,
-        opponent: game.opponent ?? 'Unknown',
-        result: game.result === 1 ? 'W' : 'L',
-        tournament: formatTournamentLabel(game.league, game.split, fallbackLeague, fallbackSplit),
-      })
-    }
-  }
+  // One player row per game — use the roster member with the most games as anchor.
+  const anchor = roster.reduce((best, p) => ((p.games ?? 0) > (best.games ?? 0) ? p : best), roster[0]!)
 
-  return [...byGame.values()].sort((a, b) => b.date.localeCompare(a.date)).slice(0, limit)
+  return [...(anchor.gameLog ?? [])]
+    .map((game) => ({
+      date: game.date,
+      opponent: game.opponent ?? 'Unknown',
+      result: (game.result === 1 ? 'W' : 'L') as 'W' | 'L',
+      tournament: formatTournamentLabel(game.league, game.split, fallbackLeague, fallbackSplit),
+    }))
+    .sort((a, b) => b.date.localeCompare(a.date))
+    .slice(0, limit)
 }
 
 export interface SideWinrates {
