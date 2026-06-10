@@ -1,10 +1,11 @@
+import type { Player } from '../../hooks/useDashboardData'
 import type { OEStoreMeta } from '../mergeSlices'
 import { TIER1_LEAGUES, splitSortKey } from '../mergeSlices'
 import { buildStoreFromSliceRows, fetchOESlices } from '../loadOEStore'
 import { mergeSlices } from '../mergeSlices'
 import { buildPlayerSearchSlug } from './resolvers'
-import { championSlug, teamSlugFromName } from './slugs'
-import { TEAM_ENTITIES } from './entityMap'
+import { championSlug, resolveTeamCanonicalName, teamSlugFromName } from './slugs'
+import { TEAM_ENTITIES, teamSearchAbbreviation } from './entityMap'
 
 export type EntitySearchType = 'player' | 'team' | 'champion'
 
@@ -17,6 +18,7 @@ export interface EntitySearchEntry {
 }
 
 let cachedIndex: EntitySearchEntry[] | null = null
+let cacheCatalogStamp: string | null = null
 let cachePromise: Promise<EntitySearchEntry[]> | null = null
 
 function normalizeSearch(value: string): string {
@@ -33,13 +35,51 @@ function splitsNewestFirst(splits: string[]): string[] {
   })
 }
 
+function latestGameDate(player: Player): string {
+  const dates = (player.gameLog ?? []).map((g) => g.date).filter(Boolean)
+  if (!dates.length) return ''
+  return dates.reduce((max, d) => (d > max ? d : max))
+}
+
+function compareSplitRecency(a: string, b: string): number {
+  const ka = splitSortKey(a)
+  const kb = splitSortKey(b)
+  if (ka[0] !== kb[0]) return ka[0] - kb[0]
+  if (ka[1] !== kb[1]) return ka[1] - kb[1]
+  return ka[2].localeCompare(kb[2])
+}
+
+function isMoreRecentPlayer(
+  candidate: { latestDate: string; split: string },
+  current: { latestDate: string; split: string },
+): boolean {
+  if (candidate.latestDate !== current.latestDate) {
+    return candidate.latestDate > current.latestDate
+  }
+  return compareSplitRecency(candidate.split, current.split) > 0
+}
+
+function playerMeta(player: Player): string {
+  const abbr = teamSearchAbbreviation(player.team)
+  return `${abbr} ${player.league}`
+}
+
+function playerSearchText(player: Player): string {
+  const abbr = teamSearchAbbreviation(player.team)
+  const canonical = resolveTeamCanonicalName(player.team)
+  return normalizeSearch(`${player.name} ${player.team} ${canonical} ${abbr} ${player.league}`)
+}
+
 export async function buildEntitySearchIndex(catalog: OEStoreMeta): Promise<EntitySearchEntry[]> {
-  if (cachedIndex) return cachedIndex
-  if (cachePromise) return cachePromise
+  if (cachedIndex && cacheCatalogStamp === catalog.generated_at) return cachedIndex
+  if (cachePromise && cacheCatalogStamp === catalog.generated_at) return cachePromise
+
+  cacheCatalogStamp = catalog.generated_at
+  cachedIndex = null
 
   cachePromise = (async () => {
-    const playerMap = new Map<string, EntitySearchEntry>()
-    const teamMap = new Map<string, EntitySearchEntry>()
+    const playerBest = new Map<string, { player: Player; split: string; latestDate: string }>()
+    const teamBest = new Map<string, { entry: EntitySearchEntry; split: string }>()
     const championMap = new Map<string, EntitySearchEntry>()
 
     for (const split of splitsNewestFirst(catalog.splits)) {
@@ -48,25 +88,28 @@ export async function buildEntitySearchIndex(catalog: OEStoreMeta): Promise<Enti
       const data = mergeSlices(store, 'All Tier 1', split)
 
       for (const player of data.players) {
-        const slug = buildPlayerSearchSlug(player, data.players)
-        playerMap.set(slug, {
-          type: 'player',
-          slug,
-          label: player.name,
-          searchText: normalizeSearch(`${player.name} ${player.team} ${player.league}`),
-          meta: `${player.team} · ${player.league}`,
-        })
+        const latestDate = latestGameDate(player)
+        const candidate = { player, split, latestDate }
+        const existing = playerBest.get(player.name)
+        if (!existing || isMoreRecentPlayer(candidate, existing)) {
+          playerBest.set(player.name, candidate)
+        }
       }
 
       for (const team of data.teams) {
         const slug = teamSlugFromName(team.name)
-        teamMap.set(slug, {
+        const existing = teamBest.get(slug)
+        const abbr = teamSearchAbbreviation(team.name)
+        const entry: EntitySearchEntry = {
           type: 'team',
           slug,
-          label: team.name,
-          searchText: normalizeSearch(`${team.name} ${team.league}`),
+          label: resolveTeamCanonicalName(team.name),
+          searchText: normalizeSearch(`${team.name} ${abbr} ${team.league}`),
           meta: team.league,
-        })
+        }
+        if (!existing || compareSplitRecency(split, existing.split) > 0) {
+          teamBest.set(slug, { entry, split })
+        }
       }
 
       for (const champ of data.champions) {
@@ -82,7 +125,22 @@ export async function buildEntitySearchIndex(catalog: OEStoreMeta): Promise<Enti
       }
     }
 
-    const entries = [...playerMap.values(), ...teamMap.values(), ...championMap.values()]
+    const currentPlayers = [...playerBest.values()].map((v) => v.player)
+    const playerEntries: EntitySearchEntry[] = []
+    for (const { player } of playerBest.values()) {
+      const slug = buildPlayerSearchSlug(player, currentPlayers)
+      playerEntries.push({
+        type: 'player',
+        slug,
+        label: player.name,
+        searchText: playerSearchText(player),
+        meta: playerMeta(player),
+      })
+    }
+
+    const teamEntries = [...teamBest.values()].map((v) => v.entry)
+
+    const entries = [...playerEntries, ...teamEntries, ...championMap.values()]
 
     for (const team of TEAM_ENTITIES) {
       const existing = entries.find((e) => e.type === 'team' && e.slug === team.slug)
@@ -120,7 +178,10 @@ export function searchEntities(index: EntitySearchEntry[], query: string, limit 
   const deduped: EntitySearchEntry[] = []
   const seen = new Set<string>()
   for (const { entry } of scored) {
-    const key = `${entry.type}|${entry.slug}`
+    const key =
+      entry.type === 'player'
+        ? `player|${normalizeSearch(entry.label)}`
+        : `${entry.type}|${entry.slug}`
     if (seen.has(key)) continue
     seen.add(key)
     deduped.push(entry)
@@ -135,5 +196,6 @@ export function entityPath(entry: EntitySearchEntry): string {
 
 export function clearEntitySearchCache() {
   cachedIndex = null
+  cacheCatalogStamp = null
   cachePromise = null
 }

@@ -85,6 +85,27 @@ export const TEAM_ENTITIES: TeamEntityDef[] = [
 ]
 
 /** OE display name → DDragon champion id */
+/** Short team tag for search meta (e.g. JD Gaming → JDG). */
+export function teamSearchAbbreviation(oeTeamName: string): string {
+  if (!oeTeamName) return ''
+  const lower = oeTeamName.toLowerCase()
+  for (const team of TEAM_ENTITIES) {
+    if (
+      team.canonicalName.toLowerCase() === lower ||
+      team.oeNames.some((n) => n.toLowerCase() === lower) ||
+      team.abbreviations.some((a) => a.toLowerCase() === lower)
+    ) {
+      return team.abbreviations[0] ?? team.canonicalName
+    }
+  }
+  if (!oeTeamName.includes(' ') && oeTeamName.length <= 6) return oeTeamName
+  const words = oeTeamName.replace(/'/g, '').split(/\s+/).filter(Boolean)
+  if (words.length > 1) {
+    return words.map((w) => w[0]?.toUpperCase() ?? '').join('')
+  }
+  return oeTeamName
+}
+
 export const CHAMPION_DDRAGON: Record<string, string> = {
   Wukong: 'MonkeyKing',
   'Renata Glasc': 'Renata',
