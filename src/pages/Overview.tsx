@@ -113,7 +113,7 @@ function weekLabel(start: Date, end: Date): string {
   return `${start.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })} – ${end.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}`
 }
 
-/** Rolling 7-day window for the active split; anchors to latest OE data when CSV lags behind today. */
+/** Rolling 7-day window ending today for the active split; last 7 days of data for historical splits. */
 function getWeeklyWindow(players: Player[], year: string, split: string): WeeklyWindow | null {
   const dates = players
     .flatMap((p) => p.gameLog ?? [])
@@ -124,14 +124,13 @@ function getWeeklyWindow(players: Player[], year: string, split: string): Weekly
   const latestDataDate = dates[dates.length - 1]
   const today = startOfDay(new Date())
   const isCurrentContext = year === DEFAULT_YEAR && split === DEFAULT_SPLIT
-  const dataStale =
-    isCurrentContext && startOfDay(latestDataDate).getTime() < today.getTime()
 
-  const anchorEnd = isCurrentContext
-    ? endOfDay(dataStale ? latestDataDate : today)
-    : endOfDay(latestDataDate)
+  const anchorEnd = isCurrentContext ? endOfDay(today) : endOfDay(latestDataDate)
   const start = startOfDay(new Date(anchorEnd))
   start.setDate(start.getDate() - 6)
+
+  const dataStale =
+    isCurrentContext && startOfDay(latestDataDate).getTime() < today.getTime()
 
   return {
     start,
