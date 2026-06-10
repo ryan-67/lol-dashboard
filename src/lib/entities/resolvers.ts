@@ -166,7 +166,8 @@ export function mergeDataForFilters(
   store: OEStore,
   filters: EntityFilterState,
 ): DashboardData {
-  return mergeSlices(store, filters.league, filters.split)
+  const split = filters.split === 'ALL' ? 'all' : filters.split
+  return mergeSlices(store, filters.league, split, filters.year)
 }
 
 export function playerHasData(data: DashboardData, playerName: string): boolean {

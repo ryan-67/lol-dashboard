@@ -1107,6 +1107,170 @@ b,
   align-items: center;
 }
 
+.entity-subnav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0;
+  border-bottom: 1px solid var(--border-subtle);
+  margin: calc(-1 * var(--section-gap) + var(--component-gap)) 0 0;
+}
+
+.entity-subnav-tab {
+  padding: 10px 20px;
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+  transition: color 0.15s ease, border-color 0.15s ease;
+}
+
+.entity-subnav-tab:hover {
+  color: var(--text-primary);
+}
+
+.entity-subnav-tab-active {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+}
+
+.entity-best-champ-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.entity-best-champ-row {
+  display: grid;
+  grid-template-columns: 72px 1fr auto auto auto auto;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.entity-best-champ-row:last-child {
+  border-bottom: none;
+}
+
+.entity-best-champ-role {
+  font-size: 11px;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.entity-best-champ-stat {
+  font-size: 12px;
+  color: var(--text-primary);
+  white-space: nowrap;
+}
+
+.entity-gold-graph-head {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.entity-gold-graph-controls {
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+}
+
+.entity-gold-graph-control {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.entity-gold-graph-layout {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--component-gap);
+}
+
+@media (min-width: 1024px) {
+  .entity-gold-graph-layout {
+    grid-template-columns: 1fr 220px;
+  }
+}
+
+.entity-gold-graph-chart {
+  min-width: 0;
+}
+
+.entity-gold-graph-legend {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 360px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.entity-gold-legend-item {
+  display: grid;
+  grid-template-columns: 12px 1fr auto;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-primary);
+  text-align: left;
+  background: transparent;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: border-color 0.15s ease, opacity 0.15s ease;
+}
+
+.entity-gold-legend-item:hover {
+  border-color: var(--border-subtle);
+}
+
+.entity-gold-legend-item-off {
+  opacity: 0.35;
+}
+
+.entity-gold-legend-swatch {
+  width: 12px;
+  height: 12px;
+  flex-shrink: 0;
+}
+
+.entity-gold-legend-swatch-avg {
+  background-color: var(--accent);
+}
+
+.entity-gold-legend-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.radar-card-compact .radar-chart-wrap {
+  min-height: 200px;
+}
+
+@media (max-width: 767px) {
+  .entity-best-champ-row {
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+  }
+
+  .entity-best-champ-role {
+    grid-column: 1 / -1;
+  }
+}
+
 .global-search {
   position: relative;
   min-width: 200px;

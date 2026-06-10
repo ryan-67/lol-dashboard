@@ -319,6 +319,7 @@ def slice_store():
         "champions": defaultdict(champ_bucket),
         "team_champions": defaultdict(lambda: {"picks": 0, "wins": 0, "pick_slots": []}),
         "game_teams": defaultdict(list),
+        "game_team_gold": defaultdict(dict),
         "team_games": 0,
         "weekly_team_games": defaultdict(int),
     }
@@ -689,6 +690,17 @@ def process_row(row, buckets: dict, team_to_league: dict[str, str]):
             t["gamelength"].append(gl)
             t["totalgold"].append(safe_float(row.get("totalgold", 0)))
             t["wardsplaced"].append(safe_float(row.get("wardsplaced", 0)))
+        if game_id:
+            timeline = []
+            for minute in (10, 15, 20, 25, 30):
+                raw = row.get(f"golddiffat{minute}")
+                if raw not in (None, ""):
+                    timeline.append({"minute": minute, "goldDiff": round(safe_float(raw), 1)})
+            if timeline:
+                bucket["game_team_gold"][game_id][team_name] = {
+                    "timeline": timeline,
+                    "gameLength": round(gl / 60, 1) if gl > 0 else None,
+                }
         t["firstbloodgames"].append(1 if safe_int(row.get("firstblood", 0)) else 0)
         week_key = week_start_key(row.get("date", ""))
         if week_key:
@@ -782,6 +794,11 @@ def process_row(row, buckets: dict, team_to_league: dict[str, str]):
             entry["side"] = side_val
         if game_id:
             entry["gameId"] = game_id
+            gold_meta = bucket["game_team_gold"].get(game_id, {}).get(team_name)
+            if gold_meta:
+                entry["goldTimeline"] = gold_meta.get("timeline") or []
+                if gold_meta.get("gameLength"):
+                    entry["gameLength"] = gold_meta["gameLength"]
         p["gameLog"].append(entry)
         if champion:
             cp = p["champions"][champion]

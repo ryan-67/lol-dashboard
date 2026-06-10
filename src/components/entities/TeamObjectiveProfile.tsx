@@ -25,11 +25,59 @@ const tooltip = makeChartTooltipContent(
   },
 )
 
-export default function TeamObjectiveProfile({ team }: { team: Team }) {
+interface TeamObjectiveProfileProps {
+  team: Team
+  section?: 'both' | 'profile' | 'objectives'
+}
+
+export function TeamProfileCard({ team }: { team: Team }) {
   const ref = useRef<HTMLDivElement>(null)
   const games = Math.max(team.wins + team.losses, 1)
   const killsPg = team.killsPerGame ?? (team.kills ?? 0) / games
   const deathsPg = team.deathsPerGame ?? (team.deaths ?? 0) / games
+  const dragonsPg = team.dragonsPerGame ?? 0
+
+  useGSAP(() => scrollEntrance(ref.current), { scope: ref, dependencies: [team.name] })
+
+  return (
+    <div ref={ref} className="card">
+      <h3 className="card-title">Team Profile</h3>
+      <div className="entity-stat-row entity-stat-row-wrap">
+        <div className="stat-tile">
+          <div className="stat-value">{formatNum(team.avgGd15, 1)}</div>
+          <div className="stat-label">GD@15</div>
+        </div>
+        <div className="stat-tile">
+          <div className="stat-value">{formatNum(team.avgKda, 2)}</div>
+          <div className="stat-label">KDA</div>
+        </div>
+        <div className="stat-tile">
+          <div className="stat-value">{formatGameLength(team.avgGameLength)}</div>
+          <div className="stat-label">Avg Duration</div>
+        </div>
+        <div className="stat-tile">
+          <div className="stat-value">{formatNum(killsPg, 1)}</div>
+          <div className="stat-label">Kills / Game</div>
+        </div>
+        <div className="stat-tile">
+          <div className="stat-value">{formatNum(deathsPg, 1)}</div>
+          <div className="stat-label">Deaths / Game</div>
+        </div>
+        <div className="stat-tile">
+          <div className="stat-value">{formatPct(team.firstBloodRate ?? 0, 1)}</div>
+          <div className="stat-label">First Blood %</div>
+        </div>
+        <div className="stat-tile">
+          <div className="stat-value">{formatNum(dragonsPg, 2)}</div>
+          <div className="stat-label">Dragons / Game</div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+export function TeamObjectiveChart({ team }: { team: Team }) {
+  const ref = useRef<HTMLDivElement>(null)
   const voidGrubsPg = team.voidGrubsPerGame ?? 0
   const dragonsPg = team.dragonsPerGame ?? 0
 
@@ -43,53 +91,37 @@ export default function TeamObjectiveProfile({ team }: { team: Team }) {
   useGSAP(() => scrollEntrance(ref.current), { scope: ref, dependencies: [team.name] })
 
   return (
-    <div ref={ref} className="overview-grid overview-grid-2">
-      <div className="card">
-        <h3 className="card-title">Team Profile</h3>
-        <div className="entity-stat-row entity-stat-row-wrap">
-          <div className="stat-tile">
-            <div className="stat-value">{formatGameLength(team.avgGameLength)}</div>
-            <div className="stat-label">Avg Duration</div>
-          </div>
-          <div className="stat-tile">
-            <div className="stat-value">{formatNum(killsPg, 1)}</div>
-            <div className="stat-label">Kills / Game</div>
-          </div>
-          <div className="stat-tile">
-            <div className="stat-value">{formatNum(deathsPg, 1)}</div>
-            <div className="stat-label">Deaths / Game</div>
-          </div>
-          <div className="stat-tile">
-            <div className="stat-value">{formatPct(team.firstBloodRate ?? 0, 1)}</div>
-            <div className="stat-label">First Blood %</div>
-          </div>
-          <div className="stat-tile">
-            <div className="stat-value">{formatNum(dragonsPg, 2)}</div>
-            <div className="stat-label">Dragons / Game</div>
-          </div>
-        </div>
+    <div ref={ref} className="card">
+      <h3 className="card-title">Objective Priority</h3>
+      <p className="card-subtitle">Void grubs vs dragons vs other objectives (per game)</p>
+      <div className="entity-chart-body entity-chart-body-sm">
+        <ResponsiveContainer width="100%" height={220}>
+          <BarChart data={objectiveChart} layout="vertical" margin={{ left: 8, right: 16 }}>
+            <CartesianGrid stroke={CHART.grid} strokeDasharray="3 3" horizontal={false} />
+            <XAxis type="number" tick={{ fill: CHART.tick, fontSize: 10 }} />
+            <YAxis
+              type="category"
+              dataKey="label"
+              width={120}
+              tick={{ fill: CHART.tick, fontSize: 10, fontFamily: CHART.fontFamily }}
+            />
+            <Tooltip content={tooltip} />
+            <Bar dataKey="value" fill="var(--accent)" radius={0} />
+          </BarChart>
+        </ResponsiveContainer>
       </div>
+    </div>
+  )
+}
 
-      <div className="card">
-        <h3 className="card-title">Objective Priority</h3>
-        <p className="card-subtitle">Void grubs vs dragons vs other objectives (per game)</p>
-        <div className="entity-chart-body entity-chart-body-sm">
-          <ResponsiveContainer width="100%" height={220}>
-            <BarChart data={objectiveChart} layout="vertical" margin={{ left: 8, right: 16 }}>
-              <CartesianGrid stroke={CHART.grid} strokeDasharray="3 3" horizontal={false} />
-              <XAxis type="number" tick={{ fill: CHART.tick, fontSize: 10 }} />
-              <YAxis
-                type="category"
-                dataKey="label"
-                width={120}
-                tick={{ fill: CHART.tick, fontSize: 10, fontFamily: CHART.fontFamily }}
-              />
-              <Tooltip content={tooltip} />
-              <Bar dataKey="value" fill="var(--accent)" radius={0} />
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
-      </div>
+export default function TeamObjectiveProfile({ team, section = 'both' }: TeamObjectiveProfileProps) {
+  if (section === 'profile') return <TeamProfileCard team={team} />
+  if (section === 'objectives') return <TeamObjectiveChart team={team} />
+
+  return (
+    <div className="overview-grid overview-grid-2">
+      <TeamProfileCard team={team} />
+      <TeamObjectiveChart team={team} />
     </div>
   )
 }

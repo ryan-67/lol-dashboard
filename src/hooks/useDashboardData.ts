@@ -17,6 +17,11 @@ export interface DashboardMeta {
   csv_files?: string[]
 }
 
+export interface GoldTimelinePoint {
+  minute: number
+  goldDiff: number
+}
+
 export interface PlayerGameLog {
   date: string
   result: number
@@ -37,6 +42,8 @@ export interface PlayerGameLog {
   side?: string
   split?: string
   league?: string
+  goldTimeline?: GoldTimelinePoint[]
+  gameLength?: number
 }
 
 export interface PlayerChampionPoolEntry {

@@ -1,6 +1,6 @@
-import type { Champion, Player, Team, TeamChampion } from '../../hooks/useDashboardData'
+import type { Champion, GoldTimelinePoint, Player, Team, TeamChampion } from '../../hooks/useDashboardData'
 import type { RoleKey } from '../championAnalytics'
-import { normalizePosition, computeGameScore, playersForRole } from '../playerRadar'
+import { ROLES, normalizePosition, computeGameScore, playersForRole } from '../playerRadar'
 import { teamMatchesCanonical } from './slugs'
 
 export interface ChampionWinrateEntry {
@@ -374,4 +374,153 @@ export function playerChampionIcons(player: Player, limit = 12): string[] {
     .sort((a, b) => b[1] - a[1])
     .map(([champ]) => champ)
     .slice(0, limit)
+}
+
+export interface BestChampionByRoleEntry {
+  champion: string
+  role: RoleKey
+  games: number
+  winrate: number
+  kda: number
+  perfScore: number
+  score: number
+}
+
+export function bestChampionsByRole(
+  players: Player[],
+  teamSlugOrName: string,
+  limit = 3,
+): Record<RoleKey, BestChampionByRoleEntry[]> {
+  const roster = players.filter((p) => teamMatchesCanonical(p.team, teamSlugOrName))
+  const byRole: Record<RoleKey, BestChampionByRoleEntry[]> = {
+    top: [],
+    jungle: [],
+    mid: [],
+    adc: [],
+    support: [],
+  }
+
+  for (const role of ROLES) {
+    const rolePlayers = roster.filter((p) => normalizePosition(p.position) === role)
+    const cohort = playersForRole(players, role)
+    const champAcc = new Map<
+      string,
+      { games: number; wins: number; kdaSum: number; perfSum: number }
+    >()
+
+    for (const player of rolePlayers) {
+      for (const game of player.gameLog ?? []) {
+        if (!game.champion) continue
+        const cur = champAcc.get(game.champion) ?? { games: 0, wins: 0, kdaSum: 0, perfSum: 0 }
+        cur.games += 1
+        if (game.result === 1) cur.wins += 1
+        cur.kdaSum += game.kda ?? 0
+        cur.perfSum += computeGameScore(game, role, cohort)
+        champAcc.set(game.champion, cur)
+      }
+    }
+
+    byRole[role] = [...champAcc.entries()]
+      .filter(([, s]) => s.games >= 2)
+      .map(([champion, s]) => {
+        const winrate = (s.wins / s.games) * 100
+        const kda = s.kdaSum / s.games
+        const perfScore = s.perfSum / s.games
+        const score = perfScore * 0.45 + (winrate / 100) * 0.35 + Math.min(kda / 5, 1) * 0.2
+        return { champion, role, games: s.games, winrate, kda, perfScore, score }
+      })
+      .sort(
+        (a, b) =>
+          b.score - a.score ||
+          b.perfScore - a.perfScore ||
+          b.winrate - a.winrate ||
+          b.games - a.games,
+      )
+      .slice(0, limit)
+  }
+
+  return byRole
+}
+
+const DEFAULT_GOLD_MINUTES = [0, 10, 15, 20, 25, 30] as const
+
+export function synthesizeGoldTimeline(gd15: number, maxMinute = 30): GoldTimelinePoint[] {
+  return DEFAULT_GOLD_MINUTES.filter((m) => m <= maxMinute).map((minute) => {
+    if (minute <= 15) {
+      return { minute, goldDiff: (gd15 * minute) / 15 }
+    }
+    const postSlope = gd15 * 0.25
+    return { minute, goldDiff: gd15 + (postSlope * (minute - 15)) / 15 }
+  })
+}
+
+export function resolveGameGoldTimeline(
+  game: NonNullable<Player['gameLog']>[number],
+  maxMinute = 30,
+): GoldTimelinePoint[] {
+  if (game.goldTimeline?.length) {
+    return game.goldTimeline.filter((p) => p.minute <= maxMinute)
+  }
+  return synthesizeGoldTimeline(game.gd15 ?? 0, maxMinute)
+}
+
+export interface TeamGoldGameSeries {
+  id: string
+  label: string
+  opponent: string
+  date: string
+  result: 'W' | 'L'
+  points: GoldTimelinePoint[]
+}
+
+export function buildTeamGoldGraph(
+  players: Player[],
+  teamSlugOrName: string,
+  maxMinute = 30,
+): TeamGoldGameSeries[] {
+  const roster = players.filter((p) => teamMatchesCanonical(p.team, teamSlugOrName))
+  if (!roster.length) return []
+
+  const anchor = roster.reduce((best, p) => ((p.games ?? 0) > (best.games ?? 0) ? p : best), roster[0]!)
+  const seen = new Set<string>()
+  const series: TeamGoldGameSeries[] = []
+
+  for (const game of anchor.gameLog ?? []) {
+    const id = game.gameId ?? `${game.date}|${game.opponent ?? ''}|${game.result}`
+    if (seen.has(id)) continue
+    seen.add(id)
+
+    const opponent = game.opponent ?? 'Unknown'
+    const result = game.result === 1 ? 'W' : 'L'
+    series.push({
+      id,
+      label: `${opponent} · ${game.date}`,
+      opponent,
+      date: game.date,
+      result,
+      points: resolveGameGoldTimeline(game, maxMinute),
+    })
+  }
+
+  return series.sort((a, b) => b.date.localeCompare(a.date))
+}
+
+export function averageGoldTimeline(
+  games: TeamGoldGameSeries[],
+  maxMinute = 30,
+): GoldTimelinePoint[] {
+  if (!games.length) return []
+  const minutes = DEFAULT_GOLD_MINUTES.filter((m) => m <= maxMinute)
+  return minutes.map((minute) => {
+    let sum = 0
+    let count = 0
+    for (const game of games) {
+      const point = game.points.find((p) => p.minute === minute)
+      if (point) {
+        sum += point.goldDiff
+        count += 1
+      }
+    }
+    return { minute, goldDiff: count ? sum / count : 0 }
+  })
 }

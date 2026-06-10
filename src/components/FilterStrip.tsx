@@ -11,6 +11,7 @@ export interface FilterStripValues {
   onLeagueChange: (v: string) => void
   onYearChange: (v: string) => void
   onSplitChange: (v: string) => void
+  showAllSplit?: boolean
 }
 
 function splitLabel(value: string): string {
@@ -27,6 +28,7 @@ export function FilterStripControls({
   onLeagueChange,
   onYearChange,
   onSplitChange,
+  showAllSplit = false,
 }: FilterStripValues) {
   return (
     <div className="flex flex-col sm:flex-row sm:items-center gap-4">
@@ -54,6 +56,11 @@ export function FilterStripControls({
       <div className="flex items-center gap-2">
         <span className="label-field">Split</span>
         <Select label="Split" value={split} onChange={(e) => onSplitChange(e.target.value)}>
+          {showAllSplit ? (
+            <option key="ALL" value="ALL">
+              ALL
+            </option>
+          ) : null}
           {splits.map((s) => (
             <option key={s} value={s}>
               {splitLabel(s)}

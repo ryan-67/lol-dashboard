@@ -102,6 +102,8 @@ export function useEntityPageData(hasDataForSplit: (data: DashboardData) => bool
       const rows = await fetchOESlices({
         split: filters.split,
         leagues: leagueLabelToLeagues(filters.league),
+        year: filters.year,
+        catalogSplits: catalog.splits,
       })
       if (cancelled) return
       setStore(buildStoreFromSliceRows(catalog, rows))
@@ -129,7 +131,12 @@ export function useEntityPageData(hasDataForSplit: (data: DashboardData) => bool
       setFilters((f) => ({
         ...f,
         year,
-        split: nextSplits.includes(spring) ? spring : (nextSplits[0] ?? f.split),
+        split:
+          f.split === 'ALL'
+            ? 'ALL'
+            : nextSplits.includes(spring)
+              ? spring
+              : (nextSplits[0] ?? f.split),
       }))
       setFallbackNotice(null)
     },
@@ -137,8 +144,12 @@ export function useEntityPageData(hasDataForSplit: (data: DashboardData) => bool
   )
 
   const setSplit = useCallback((split: string) => {
-    const year = split.split(' ', 1)[0] ?? DEFAULT_YEAR
-    setFilters((f) => ({ ...f, split, year }))
+    if (split === 'ALL') {
+      setFilters((f) => ({ ...f, split: 'ALL' }))
+    } else {
+      const year = split.split(' ', 1)[0] ?? DEFAULT_YEAR
+      setFilters((f) => ({ ...f, split, year }))
+    }
     setFallbackNotice(null)
   }, [])
 

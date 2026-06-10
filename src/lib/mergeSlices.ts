@@ -93,8 +93,16 @@ export function sliceKey(split: string, league: string): string {
   return `${split}|${league}`
 }
 
-export function selectSliceKeys(store: OEStore, league: string, split: string): string[] {
-  const splits = split === 'all' ? store.meta.splits : [split]
+export function selectSliceKeys(
+  store: OEStore,
+  league: string,
+  split: string,
+  year?: string,
+): string[] {
+  const isAll = split === 'all' || split === 'ALL'
+  const splits = isAll
+    ? store.meta.splits.filter((s) => !year || s.startsWith(`${year} `))
+    : [split]
   const leagues =
     league === 'All Tier 1' ? [...TIER1_LEAGUES] : [league]
 
@@ -545,8 +553,13 @@ function mergeTeamChampions(slices: DashboardSlice[]): TeamChampion[] {
     })
 }
 
-export function mergeSlices(store: OEStore, league: string, split: string): DashboardData {
-  const keys = selectSliceKeys(store, league, split)
+export function mergeSlices(
+  store: OEStore,
+  league: string,
+  split: string,
+  year?: string,
+): DashboardData {
+  const keys = selectSliceKeys(store, league, split, year)
   const slices = keys.map((key) => store.slices[key]).filter(Boolean)
 
   if (slices.length === 0) {

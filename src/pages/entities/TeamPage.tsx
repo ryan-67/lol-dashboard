@@ -1,4 +1,4 @@
-import { useCallback, useMemo } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { useEntityPageData } from '../../hooks/useEntityPageData'
 import {
@@ -10,6 +10,8 @@ import {
   playerChampionIcons,
   teamHasData,
   teamMatchesCanonical,
+  bestChampionsByRole,
+  buildTeamGoldGraph,
 } from '../../lib/entities'
 import { isDisplayableTeam } from '../../lib/teamAnalytics'
 import { isDisplayablePlayer, normalizePosition, ROLES } from '../../lib/playerRadar'
@@ -26,12 +28,16 @@ import {
   ChampionIcon,
   ChampionEntityInline,
 } from '../../components/entities'
-import TeamObjectiveProfile from '../../components/entities/TeamObjectiveProfile'
+import TeamSubnav, { type TeamPageTab } from '../../components/entities/TeamSubnav'
+import { TeamProfileCard, TeamObjectiveChart } from '../../components/entities/TeamObjectiveProfile'
+import TeamBestChampionsByRole from '../../components/entities/TeamBestChampionsByRole'
+import TeamGoldGraph from '../../components/entities/TeamGoldGraph'
 import { roleLabel } from '../../lib/championAnalytics'
 import type { RoleKey } from '../../lib/playerRadar'
 
 export default function TeamPage() {
   const { slug = '' } = useParams<{ slug: string }>()
+  const [activeTab, setActiveTab] = useState<TeamPageTab>('stats')
 
   const hasData = useCallback(
     (data: Parameters<typeof teamHasData>[0]) => teamHasData(data, slug),
@@ -52,7 +58,7 @@ export default function TeamPage() {
   } = useEntityPageData(hasData)
 
   const filterLeague = filters.league === 'All Tier 1' ? undefined : filters.league
-  const filterSplit = filters.split || undefined
+  const filterSplit = filters.split === 'ALL' ? undefined : filters.split || undefined
 
   const teams = useMemo(() => (data?.teams ?? []).filter(isDisplayableTeam), [data])
   const team = useMemo(() => mergeTeamsByCanonical(teams, slug), [teams, slug])
@@ -89,6 +95,14 @@ export default function TeamPage() {
         ? priorityChampsByRole(data.teamChampions ?? [], teams, team.name, players)
         : null,
     [team, data, teams, players],
+  )
+  const bestByRole = useMemo(
+    () => (team ? bestChampionsByRole(players, slug) : null),
+    [players, team, slug],
+  )
+  const goldGraphGames = useMemo(
+    () => (team ? buildTeamGoldGraph(players, slug) : []),
+    [players, team, slug],
   )
 
   const topOpponents = useMemo(() => {
@@ -139,6 +153,8 @@ export default function TeamPage() {
     <div className="page-section entity-page">
       {filterBar}
 
+      <TeamSubnav active={activeTab} onChange={setActiveTab} />
+
       <Link to="/teams" className="entity-back-link">
         ← Teams
       </Link>
@@ -165,81 +181,8 @@ export default function TeamPage() {
             </div>
             <div className="stat-label">Record</div>
           </div>
-          <div className="stat-tile">
-            <div className="stat-value">{formatNum(team.avgGd15, 1)}</div>
-            <div className="stat-label">GD@15</div>
-          </div>
-          <div className="stat-tile">
-            <div className="stat-value">{formatNum(team.avgKda, 2)}</div>
-            <div className="stat-label">KDA</div>
-          </div>
         </div>
       </header>
-
-      <TeamRadarChart team={team} cohort={teams} highlighted />
-
-      <TeamObjectiveProfile team={team} />
-
-      <div className="overview-grid overview-grid-2">
-        <TeamSideWinrates sides={sides} />
-        <TeamTrendChart points={trend} />
-      </div>
-
-      {topOpponents.length > 0 && (
-        <div className="card page-section">
-          <h3 className="card-title">Head-to-Head</h3>
-          <p className="card-subtitle">Recent opponents · open Matchups to compare</p>
-          <ul className="entity-h2h-list">
-            {topOpponents.map(([opp, n]) => (
-              <li key={opp}>
-                <EntityLink type="team" name={opp} />
-                <span className="text-secondary">{n} recent games</span>
-                <Link
-                  to={`/matchups?teamA=${encodeURIComponent(team.name)}&teamB=${encodeURIComponent(opp)}`}
-                  className="entity-inline-link"
-                >
-                  Compare →
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
-
-      <div className="card page-section">
-        <h3 className="card-title">Upcoming Schedule</h3>
-        <p className="text-secondary text-sm">
-          Schedule integration coming soon — check back after esports_schedules sync.
-        </p>
-      </div>
-
-      <div className="card page-section">
-        <h3 className="card-title">Match History</h3>
-        <div className="entity-table-wrap">
-          <table className="entity-table">
-            <thead>
-              <tr>
-                <th>Date</th>
-                <th>Opponent</th>
-                <th>Result</th>
-                <th>Tournament</th>
-              </tr>
-            </thead>
-            <tbody>
-              {matchHistory.map((m, i) => (
-                <tr key={`${m.date}-${i}`}>
-                  <td>{m.date}</td>
-                  <td>
-                    <EntityLink type="team" name={m.opponent} />
-                  </td>
-                  <td className={m.result === 'W' ? 'text-accent' : 'text-secondary'}>{m.result}</td>
-                  <td>{m.tournament}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
 
       <div className="card page-section">
         <h3 className="card-title">Roster</h3>
@@ -288,26 +231,109 @@ export default function TeamPage() {
         </div>
       </div>
 
-      {priorityByRole && (
-        <div className="page-section">
-          <h2 className="card-title">Highest Priority Champions by Role</h2>
-          <div className="overview-grid overview-grid-2">
-            {(['top', 'jungle', 'mid', 'adc', 'support'] as RoleKey[]).map((role) => (
-              <div key={role} className="card" style={{ padding: 'var(--component-gap)' }}>
-                <h3 className="card-title">{roleLabel(role)}</h3>
-                <ul className="entity-priority-list">
-                  {(priorityByRole[role] ?? []).map((entry) => (
-                    <li key={entry.champion}>
-                      <ChampionEntityInline name={entry.champion} iconSize={18} />
-                      <span className="text-accent">{entry.priorityScore.toFixed(1)}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            ))}
+      {activeTab === 'stats' && (
+        <>
+          <div className="overview-grid overview-grid-2 page-section">
+            <TeamRadarChart team={team} cohort={teams} highlighted compact />
+            <TeamProfileCard team={team} />
           </div>
-        </div>
+
+          <div className="overview-grid overview-grid-2 page-section">
+            {bestByRole ? <TeamBestChampionsByRole byRole={bestByRole} /> : null}
+            <TeamObjectiveChart team={team} />
+          </div>
+
+          <div className="overview-grid overview-grid-2 page-section">
+            <TeamSideWinrates sides={sides} />
+            <TeamTrendChart points={trend} />
+          </div>
+
+          {topOpponents.length > 0 && (
+            <div className="card page-section">
+              <h3 className="card-title">Head-to-Head</h3>
+              <p className="card-subtitle">Recent opponents · open Matchups to compare</p>
+              <ul className="entity-h2h-list">
+                {topOpponents.map(([opp, n]) => (
+                  <li key={opp}>
+                    <EntityLink type="team" name={opp} />
+                    <span className="text-secondary">{n} recent games</span>
+                    <Link
+                      to={`/matchups?teamA=${encodeURIComponent(team.name)}&teamB=${encodeURIComponent(opp)}`}
+                      className="entity-inline-link"
+                    >
+                      Compare →
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {priorityByRole && (
+            <div className="page-section">
+              <h2 className="card-title">Highest Priority Champions by Role</h2>
+              <div className="overview-grid overview-grid-2">
+                {(['top', 'jungle', 'mid', 'adc', 'support'] as RoleKey[]).map((role) => (
+                  <div key={role} className="card" style={{ padding: 'var(--component-gap)' }}>
+                    <h3 className="card-title">{roleLabel(role)}</h3>
+                    <ul className="entity-priority-list">
+                      {(priorityByRole[role] ?? []).map((entry) => (
+                        <li key={entry.champion}>
+                          <ChampionEntityInline name={entry.champion} iconSize={18} />
+                          <span className="text-accent">{entry.priorityScore.toFixed(1)}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </>
       )}
+
+      {activeTab === 'schedule' && (
+        <>
+          <div className="card page-section">
+            <h3 className="card-title">Upcoming Schedule</h3>
+            <p className="text-secondary text-sm">
+              Schedule integration coming soon — check back after esports_schedules sync.
+            </p>
+          </div>
+
+          <div className="card page-section">
+            <h3 className="card-title">Match History</h3>
+            <div className="entity-table-wrap">
+              <table className="entity-table">
+                <thead>
+                  <tr>
+                    <th>Date</th>
+                    <th>Opponent</th>
+                    <th>Result</th>
+                    <th>Tournament</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {matchHistory.map((m, i) => (
+                    <tr key={`${m.date}-${i}`}>
+                      <td>{m.date}</td>
+                      <td>
+                        <EntityLink type="team" name={m.opponent} />
+                      </td>
+                      <td className={m.result === 'W' ? 'text-accent' : 'text-secondary'}>
+                        {m.result}
+                      </td>
+                      <td>{m.tournament}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </>
+      )}
+
+      {activeTab === 'gold' && <TeamGoldGraph games={goldGraphGames} />}
     </div>
   )
 }

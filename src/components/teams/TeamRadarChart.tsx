@@ -22,9 +22,15 @@ interface TeamRadarChartProps {
   team: Team
   cohort: Team[]
   highlighted?: boolean
+  compact?: boolean
 }
 
-export default function TeamRadarChart({ team, cohort, highlighted = false }: TeamRadarChartProps) {
+export default function TeamRadarChart({
+  team,
+  cohort,
+  highlighted = false,
+  compact = false,
+}: TeamRadarChartProps) {
   const chartRef = useRef<HTMLDivElement>(null)
   const color = teamBrandColor(team.name, team.league)
   const data = buildTeamRadarSeries(team, cohort)
@@ -53,20 +59,26 @@ export default function TeamRadarChart({ team, cohort, highlighted = false }: Te
   )
 
   return (
-    <div className={`radar-card${highlighted ? ' radar-card-favorite' : ''}`}>
-      <div className="radar-card-header">
-        <h3 className="radar-card-title entity-title-row">
-          <TeamLogo name={team.name} size={24} />
-          <EntityLink type="team" name={team.name} showIcon={false} />
-        </h3>
-        <p className="radar-card-subtitle entity-subtitle">
-          <LeagueLogo league={team.league} size={16} />
-          <span style={{ color }}>{team.league}</span> · {team.winrate.toFixed(1)}% WR · {team.wins}W-
-          {team.losses}L
-        </p>
-      </div>
+    <div
+      className={`radar-card${highlighted ? ' radar-card-favorite' : ''}${compact ? ' radar-card-compact' : ''}`}
+    >
+      {!compact ? (
+        <div className="radar-card-header">
+          <h3 className="radar-card-title entity-title-row">
+            <TeamLogo name={team.name} size={24} />
+            <EntityLink type="team" name={team.name} showIcon={false} />
+          </h3>
+          <p className="radar-card-subtitle entity-subtitle">
+            <LeagueLogo league={team.league} size={16} />
+            <span style={{ color }}>{team.league}</span> · {team.winrate.toFixed(1)}% WR · {team.wins}W-
+            {team.losses}L
+          </p>
+        </div>
+      ) : (
+        <h3 className="card-title">Team Radar</h3>
+      )}
       <div ref={chartRef} className="radar-chart-wrap">
-        <ResponsiveContainer width="100%" height={260}>
+        <ResponsiveContainer width="100%" height={compact ? 200 : 260}>
           <RadarChart data={data} cx="50%" cy="50%" outerRadius="72%">
             <PolarGrid stroke={CHART.grid} />
             <PolarAngleAxis

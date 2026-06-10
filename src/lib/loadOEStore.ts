@@ -14,6 +14,8 @@ export interface OESliceRow {
 export interface FetchOESlicesParams {
   split: string
   leagues: string[]
+  year?: string
+  catalogSplits?: string[]
 }
 
 function buildMetaFromCatalogRows(
@@ -79,6 +81,8 @@ export async function fetchOESliceCatalog(): Promise<OEStoreMeta> {
 export async function fetchOESlices({
   split,
   leagues,
+  year,
+  catalogSplits,
 }: FetchOESlicesParams): Promise<OESliceRow[]> {
   if (!isSupabaseConfigured) {
     throw new Error(
@@ -86,7 +90,31 @@ export async function fetchOESlices({
     )
   }
 
-  if (!split || !leagues.length) {
+  if (!leagues.length) {
+    return []
+  }
+
+  if (split === 'ALL') {
+    if (!year || !catalogSplits?.length) return []
+    const yearSplits = catalogSplits.filter((s) => s.startsWith(`${year} `))
+    if (!yearSplits.length) return []
+
+    const { data, error } = await supabase
+      .from(TABLE)
+      .select('split, league, data, updated_at')
+      .in('split', yearSplits)
+      .in('league', leagues)
+
+    if (error) {
+      throw new Error(error.message)
+    }
+
+    return ((data ?? []) as OESliceRow[]).sort(
+      (a, b) => a.split.localeCompare(b.split) || a.league.localeCompare(b.league),
+    )
+  }
+
+  if (!split) {
     return []
   }
 

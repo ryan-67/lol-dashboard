@@ -4,10 +4,12 @@ import { FilterStripControls, FilterStripShell, type FilterStripValues } from '.
 
 interface EntityFilterBarProps extends FilterStripValues {
   fallbackNotice?: string | null
+  showAllSplit?: boolean
 }
 
 export default function EntityFilterBar({
   fallbackNotice,
+  showAllSplit = true,
   ...controls
 }: EntityFilterBarProps) {
   const [slot, setSlot] = useState<HTMLElement | null>(null)
@@ -24,7 +26,7 @@ export default function EntityFilterBar({
         ) : undefined
       }
     >
-      <FilterStripControls {...controls} />
+      <FilterStripControls {...controls} showAllSplit={showAllSplit} />
     </FilterStripShell>
   )
 
