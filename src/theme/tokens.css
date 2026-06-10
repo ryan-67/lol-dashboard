@@ -117,18 +117,41 @@ b,
 
 .app-header-nav-cluster {
   display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
   align-items: center;
   justify-content: flex-end;
   gap: 8px;
-  flex-wrap: wrap;
   min-width: 0;
+  flex: 1;
   margin-left: auto;
 }
 
+.app-header-nav-cluster > .relative {
+  flex-shrink: 0;
+}
+
 .app-header-nav-cluster .global-search {
-  flex: 0 1 280px;
-  min-width: 160px;
-  max-width: 320px;
+  flex: 0 0 clamp(120px, 16vw, 220px);
+  min-width: 120px;
+  max-width: 220px;
+}
+
+.header-profile-link {
+  flex-shrink: 0;
+  white-space: nowrap;
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+  text-decoration: none;
+}
+
+.header-profile-link:hover {
+  color: var(--accent);
+}
+
+.app-header-nav-cluster .btn {
+  flex-shrink: 0;
+  white-space: nowrap;
 }
 
 .app-main {
@@ -1004,6 +1027,7 @@ b,
 
 .header-menu-wrap {
   position: relative;
+  flex-shrink: 0;
 }
 
 .header-menu-btn {

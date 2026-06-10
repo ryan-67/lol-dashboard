@@ -139,31 +139,26 @@ export default function Layout({ children }: { children: React.ReactNode }) {
           </Link>
 
           <div className="app-header-nav-cluster">
-            <nav className="flex items-center gap-1 shrink-0">
-              {primaryNav.map((item) => renderNavItem(item))}
-            </nav>
+            {primaryNav.map((item) => renderNavItem(item))}
 
             <GlobalSearch />
 
-            <div className="flex items-center gap-2 shrink-0">
-            {!authLoading && (
+            {!authLoading && user ? (
               <>
-                {user ? (
-                  <>
-                    <Link className="text-secondary text-xs hover:text-[var(--accent)] hidden sm:inline" to="/profile">
-                      {username ? `@${username}` : user.email}
-                    </Link>
-                    <button type="button" className="btn" onClick={() => signOut()}>
-                      logout
-                    </button>
-                  </>
-                ) : (
-                  <button type="button" className="btn" onClick={() => setShowAuth(true)}>
-                    login
-                  </button>
-                )}
+                <Link className="header-profile-link" to="/profile">
+                  {username ? `@${username}` : user.email}
+                </Link>
+                <button type="button" className="btn" onClick={() => signOut()}>
+                  logout
+                </button>
               </>
-            )}
+            ) : null}
+
+            {!authLoading && !user ? (
+              <button type="button" className="btn" onClick={() => setShowAuth(true)}>
+                login
+              </button>
+            ) : null}
 
             <div className="header-menu-wrap" ref={menuRef}>
               <button
@@ -182,7 +177,6 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                   {menuNav.map((item) => renderNavItem(item, () => setMenuOpen(false)))}
                 </nav>
               )}
-            </div>
             </div>
           </div>
         </div>
