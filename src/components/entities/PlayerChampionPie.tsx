@@ -2,9 +2,9 @@ import { useMemo, useRef } from 'react'
 import { useGSAP } from '@gsap/react'
 import { Cell, Legend, Pie, PieChart, ResponsiveContainer, Tooltip } from 'recharts'
 import type { Player } from '../../hooks/useDashboardData'
+import { championPieColors } from '../../lib/championColors'
 import { makeChartTooltipContent } from '../ui/ChartTooltip'
 import { scrollEntrance } from '../../theme/animations'
-import { PLAYER_CHART_COLORS } from '../../lib/playerAnalytics'
 import { CHART } from '../../theme/chartTheme'
 
 const pieTooltip = makeChartTooltipContent(
@@ -24,20 +24,19 @@ const pieTooltip = makeChartTooltipContent(
 
 export default function PlayerChampionPie({ player }: { player: Player }) {
   const ref = useRef<HTMLDivElement>(null)
-  const data = useMemo(
-    () =>
-      (player.championPool ?? [])
-        .slice()
-        .sort((a, b) => b.games - a.games)
-        .slice(0, 8)
-        .map((c, i) => ({
-          champion: c.champion,
-          games: c.games,
-          winrate: c.winrate,
-          fill: PLAYER_CHART_COLORS[i % PLAYER_CHART_COLORS.length],
-        })),
-    [player.championPool],
-  )
+  const data = useMemo(() => {
+    const entries = (player.championPool ?? [])
+      .slice()
+      .sort((a, b) => b.games - a.games)
+      .slice(0, 8)
+    const colors = championPieColors(entries.map((c) => c.champion))
+    return entries.map((c) => ({
+      champion: c.champion,
+      games: c.games,
+      winrate: c.winrate,
+      fill: colors[c.champion] ?? '#c5a059',
+    }))
+  }, [player.championPool])
 
   useGSAP(() => scrollEntrance(ref.current), { scope: ref, dependencies: [data.length] })
 

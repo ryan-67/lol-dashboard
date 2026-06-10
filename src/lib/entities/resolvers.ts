@@ -77,6 +77,18 @@ export function mergePlayersByName(players: Player[], name: string): Player | nu
   const latestRow = rows.find((p) => p.gameLog?.some((g) => g.date === latest?.date)) ?? rows[rows.length - 1]
 
   const deaths = Math.max(merged.deaths, 1)
+  const kdaFromKda =
+    merged.kills > 0 || merged.assists > 0
+      ? round((merged.kills + merged.assists) / deaths, 2)
+      : (() => {
+          const weighted = rows
+            .filter((p) => (p.games ?? 0) > 0 && typeof p.kda === 'number')
+            .map((p) => ({ value: p.kda, weight: p.games }))
+          if (weighted.length) return round(avgWeighted(weighted), 2)
+          const log = sortedLog.filter((g) => typeof g.kda === 'number')
+          if (log.length) return round(log.reduce((s, g) => s + g.kda, 0) / log.length, 2)
+          return 0
+        })()
   return {
     name,
     team: latestRow?.team ?? merged.team,
@@ -86,7 +98,7 @@ export function mergePlayersByName(players: Player[], name: string): Player | nu
     kills: merged.kills,
     deaths: merged.deaths,
     assists: merged.assists,
-    kda: round((merged.kills + merged.assists) / deaths, 2),
+    kda: kdaFromKda,
     kp: round(avgWeighted(merged.kp), 1),
     dmgShare: round(avgWeighted(merged.dmgShare), 1),
     gd15: round(avgWeighted(merged.gd15), 1),

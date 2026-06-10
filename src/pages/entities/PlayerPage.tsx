@@ -42,6 +42,21 @@ export default function PlayerPage() {
     fallbackNotice,
   } = useEntityPageData(hasData)
 
+  const filterBar = (
+    <EntityFilterBar
+      league={filters.league}
+      year={filters.year}
+      split={filters.split}
+      leagues={leagues}
+      years={years}
+      splits={splits}
+      onLeagueChange={setLeague}
+      onYearChange={setYear}
+      onSplitChange={setSplit}
+      fallbackNotice={fallbackNotice}
+    />
+  )
+
   const players = useMemo(
     () => (data?.players ?? []).filter(isDisplayablePlayer),
     [data],
@@ -61,16 +76,22 @@ export default function PlayerPage() {
     [player],
   )
 
-  if (loading) {
-    return <div className="empty-state">Loading player…</div>
+  if (loading && !data) {
+    return (
+      <div className="page-section entity-page">
+        {filterBar}
+        <div className="empty-state">Loading player…</div>
+      </div>
+    )
   }
 
   if (!player) {
     return (
-      <div className="page-section">
+      <div className="page-section entity-page">
+        {filterBar}
         <div className="empty-state">Player not found for this filter.</div>
         <Link to="/players" className="entity-back-link">
-          ← Back to Players
+          ← Players
         </Link>
       </div>
     )
@@ -81,18 +102,7 @@ export default function PlayerPage() {
 
   return (
     <div className="page-section entity-page">
-      <EntityFilterBar
-        league={filters.league}
-        year={filters.year}
-        split={filters.split}
-        leagues={leagues}
-        years={years}
-        splits={splits}
-        onLeagueChange={setLeague}
-        onYearChange={setYear}
-        onSplitChange={setSplit}
-        fallbackNotice={fallbackNotice}
-      />
+      {filterBar}
 
       <Link to="/players" className="entity-back-link">
         ← Players

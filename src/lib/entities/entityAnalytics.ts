@@ -1,4 +1,4 @@
-import type { Champion, Player, Team, TeamChampion } from '../../hooks/useDashboardData'
+import type { Champion, Player, PlayerGameLog, Team, TeamChampion } from '../../hooks/useDashboardData'
 import type { RoleKey } from '../championAnalytics'
 import { normalizePosition, computeGameScore, playersForRole } from '../playerRadar'
 import { teamMatchesCanonical } from './slugs'
@@ -81,6 +81,11 @@ export interface TeamMatchRow {
   tournament: string
 }
 
+function teamGameKey(game: PlayerGameLog): string {
+  if (game.gameId) return game.gameId
+  return `${game.date}|${game.opponent ?? ''}`
+}
+
 export function buildTeamMatchHistory(
   players: Player[],
   teamSlugOrName: string,
@@ -88,16 +93,14 @@ export function buildTeamMatchHistory(
   fallbackLeague?: string,
   fallbackSplit?: string,
 ): TeamMatchRow[] {
-  const rows: TeamMatchRow[] = []
-  const seen = new Set<string>()
+  const byGame = new Map<string, TeamMatchRow>()
 
   for (const player of players) {
     if (!teamMatchesCanonical(player.team, teamSlugOrName)) continue
     for (const game of player.gameLog ?? []) {
-      const key = `${game.date}|${game.opponent ?? ''}|${game.result}|${game.kda}`
-      if (seen.has(key)) continue
-      seen.add(key)
-      rows.push({
+      const key = teamGameKey(game)
+      if (byGame.has(key)) continue
+      byGame.set(key, {
         date: game.date,
         opponent: game.opponent ?? 'Unknown',
         result: game.result === 1 ? 'W' : 'L',
@@ -106,7 +109,7 @@ export function buildTeamMatchHistory(
     }
   }
 
-  return rows.sort((a, b) => b.date.localeCompare(a.date)).slice(0, limit)
+  return [...byGame.values()].sort((a, b) => b.date.localeCompare(a.date)).slice(0, limit)
 }
 
 export interface SideWinrates {

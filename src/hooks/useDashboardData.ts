@@ -22,6 +22,7 @@ export interface PlayerGameLog {
   result: number
   champion: string
   opponent?: string
+  gameId?: string
   kda: number
   kp: number
   dmgShare: number

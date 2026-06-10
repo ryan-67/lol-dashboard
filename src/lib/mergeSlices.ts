@@ -76,7 +76,7 @@ function round(value: number, digits: number): number {
 function dedupeGameLog(log: PlayerGameLog[]): PlayerGameLog[] {
   const seen = new Set<string>()
   return log.filter((game) => {
-    const id = `${game.date}|${game.champion}|${game.result}|${game.opponent ?? ''}|${game.kda}`
+    const id = game.gameId ?? `${game.date}|${game.champion}|${game.result}|${game.opponent ?? ''}|${game.kda}`
     if (seen.has(id)) return false
     seen.add(id)
     return true
@@ -208,6 +208,9 @@ function mergePlayers(slices: DashboardSlice[]): Player[] {
         league: p.league,
         position: p.position,
         games: p.games,
+        kills: p.kills,
+        deaths: p.deaths,
+        assists: p.assists,
         kda: round((p.kills + p.assists) / deaths, 2),
         kp: round(avgWeighted(p.kp), 1),
         dmgShare: round(avgWeighted(p.dmgShare), 1),

@@ -10,7 +10,8 @@ import {
   Tooltip,
 } from 'recharts'
 import type { Team } from '../../hooks/useDashboardData'
-import { buildTeamRadarSeries, leagueColor } from '../../lib/teamAnalytics'
+import { buildTeamRadarSeries } from '../../lib/teamAnalytics'
+import { teamBrandColor } from '../../lib/entities/teamBrandColor'
 import { makeChartTooltipContent } from '../ui/ChartTooltip'
 import { animateRadarDraw } from '../../theme/animations'
 import { CHART } from '../../theme/chartTheme'
@@ -25,7 +26,7 @@ interface TeamRadarChartProps {
 
 export default function TeamRadarChart({ team, cohort, highlighted = false }: TeamRadarChartProps) {
   const chartRef = useRef<HTMLDivElement>(null)
-  const color = leagueColor(team.league)
+  const color = teamBrandColor(team.name, team.league)
   const data = buildTeamRadarSeries(team, cohort)
 
   const tooltipContent = makeChartTooltipContent(

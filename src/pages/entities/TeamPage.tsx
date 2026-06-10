@@ -91,14 +91,37 @@ export default function TeamPage() {
     return [...counts.entries()].sort((a, b) => b[1] - a[1]).slice(0, 5)
   }, [matchHistory])
 
-  if (loading) return <div className="empty-state">Loading team…</div>
+  const filterBar = (
+    <EntityFilterBar
+      league={filters.league}
+      year={filters.year}
+      split={filters.split}
+      leagues={leagues}
+      years={years}
+      splits={splits}
+      onLeagueChange={setLeague}
+      onYearChange={setYear}
+      onSplitChange={setSplit}
+      fallbackNotice={fallbackNotice}
+    />
+  )
+
+  if (loading && !data) {
+    return (
+      <div className="page-section entity-page">
+        {filterBar}
+        <div className="empty-state">Loading team…</div>
+      </div>
+    )
+  }
 
   if (!team) {
     return (
-      <div className="page-section">
+      <div className="page-section entity-page">
+        {filterBar}
         <div className="empty-state">Team not found for this filter.</div>
         <Link to="/teams" className="entity-back-link">
-          ← Back to Teams
+          ← Teams
         </Link>
       </div>
     )
@@ -106,18 +129,7 @@ export default function TeamPage() {
 
   return (
     <div className="page-section entity-page">
-      <EntityFilterBar
-        league={filters.league}
-        year={filters.year}
-        split={filters.split}
-        leagues={leagues}
-        years={years}
-        splits={splits}
-        onLeagueChange={setLeague}
-        onYearChange={setYear}
-        onSplitChange={setSplit}
-        fallbackNotice={fallbackNotice}
-      />
+      {filterBar}
 
       <Link to="/teams" className="entity-back-link">
         ← Teams

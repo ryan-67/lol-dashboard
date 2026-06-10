@@ -8,10 +8,17 @@ const DDRAGON_VERSION = '14.24.1'
 type EsportsLogoManifest = {
   leagues: Record<string, string>
   teamsByEsportsSlug: Record<string, string>
+  teamsByCode?: Record<string, string>
+  teamsByName?: Record<string, string>
   teamSlugAliases: Record<string, string>
+  teamColors?: Record<string, string>
 }
 
 const manifest = esportsLogos as EsportsLogoManifest
+
+function normalizeName(value: string): string {
+  return value.toLowerCase().replace(/[^a-z0-9]+/g, '')
+}
 
 function resolveEsportsTeamSlug(slug: string): string {
   return manifest.teamSlugAliases[slug] ?? slug
@@ -37,15 +44,38 @@ export function teamLogoUrlFromSlug(slug: string): string | null {
   if (mapped?.logoUrl) return mapped.logoUrl
 
   const esportsSlug = mapped?.esportsSlug ?? resolveEsportsTeamSlug(slug)
-  return teamLogoFromEsportsSlug(esportsSlug) ?? teamLogoFromEsportsSlug(slug)
+  return (
+    teamLogoFromEsportsSlug(esportsSlug) ??
+    teamLogoFromEsportsSlug(slug) ??
+    manifest.teamsByCode?.[slug.toUpperCase()] ??
+    null
+  )
 }
 
 export function teamLogoUrlFromName(name: string): string | null {
-  return teamLogoUrlFromSlug(teamSlugFromName(name))
+  const slug = teamSlugFromName(name)
+  const fromSlug = teamLogoUrlFromSlug(slug)
+  if (fromSlug) return fromSlug
+
+  const code = teamSearchAbbreviation(name).toUpperCase()
+  if (manifest.teamsByCode?.[code]) return manifest.teamsByCode[code]!
+
+  const nameKey = normalizeName(name)
+  if (manifest.teamsByName?.[nameKey]) return manifest.teamsByName[nameKey]!
+
+  return null
 }
 
 export function teamLogoAbbreviation(name: string): string {
   return teamSearchAbbreviation(name)
+}
+
+export function teamBrandColorFromName(teamName: string): string | null {
+  const slug = teamSlugFromName(teamName)
+  const esportsSlug = resolveEsportsTeamSlug(
+    TEAM_ENTITIES.find((t) => t.slug === slug)?.esportsSlug ?? slug,
+  )
+  return manifest.teamColors?.[esportsSlug] ?? manifest.teamColors?.[slug] ?? null
 }
 
 export function leagueLogoUrl(league: string): string | null {

@@ -329,7 +329,7 @@ def backfill_game_log_opponents(players_dict, game_teams):
     for p in players_dict.values():
         team_name = p.get("team") or ""
         for g in p["gameLog"]:
-            game_id = g.pop("_gameId", "")
+            game_id = g.get("gameId") or g.pop("_gameId", "")
             if not g.get("opponent") and game_id:
                 sides = game_teams.get(game_id) or []
                 for side in sides:
@@ -781,7 +781,7 @@ def process_row(row, buckets: dict, team_to_league: dict[str, str]):
         if side_val:
             entry["side"] = side_val
         if game_id:
-            entry["_gameId"] = game_id
+            entry["gameId"] = game_id
         p["gameLog"].append(entry)
         if champion:
             cp = p["champions"][champion]

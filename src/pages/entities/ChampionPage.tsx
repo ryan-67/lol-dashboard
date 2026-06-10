@@ -71,14 +71,37 @@ export default function ChampionPage() {
     [champion, data, teams],
   )
 
-  if (loading) return <div className="empty-state">Loading champion…</div>
+  const filterBar = (
+    <EntityFilterBar
+      league={filters.league}
+      year={filters.year}
+      split={filters.split}
+      leagues={leagues}
+      years={years}
+      splits={splits}
+      onLeagueChange={setLeague}
+      onYearChange={setYear}
+      onSplitChange={setSplit}
+      fallbackNotice={fallbackNotice}
+    />
+  )
+
+  if (loading && !data) {
+    return (
+      <div className="page-section entity-page">
+        {filterBar}
+        <div className="empty-state">Loading champion…</div>
+      </div>
+    )
+  }
 
   if (!champion) {
     return (
-      <div className="page-section">
+      <div className="page-section entity-page">
+        {filterBar}
         <div className="empty-state">Champion not found for this filter.</div>
         <Link to="/champions" className="entity-back-link">
-          ← Back to Champions
+          ← Champions
         </Link>
       </div>
     )
@@ -92,18 +115,7 @@ export default function ChampionPage() {
 
   return (
     <div className="page-section entity-page">
-      <EntityFilterBar
-        league={filters.league}
-        year={filters.year}
-        split={filters.split}
-        leagues={leagues}
-        years={years}
-        splits={splits}
-        onLeagueChange={setLeague}
-        onYearChange={setYear}
-        onSplitChange={setSplit}
-        fallbackNotice={fallbackNotice}
-      />
+      {filterBar}
 
       <Link to="/champions" className="entity-back-link">
         ← Champions
