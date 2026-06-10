@@ -12,7 +12,7 @@ import {
   teamMatchesCanonical,
 } from '../../lib/entities'
 import { isDisplayableTeam } from '../../lib/teamAnalytics'
-import { isDisplayablePlayer } from '../../lib/playerRadar'
+import { isDisplayablePlayer, normalizePosition, ROLES } from '../../lib/playerRadar'
 import { playerKey } from '../../lib/playerAnalytics'
 import { formatNum, formatPct } from '../../lib/format'
 import TeamRadarChart from '../../components/teams/TeamRadarChart'
@@ -60,14 +60,22 @@ export default function TeamPage() {
 
   const roster = useMemo(() => {
     if (!team) return []
-    return players.filter((p) => teamMatchesCanonical(p.team, slug))
+    const roleOrder = new Map(ROLES.map((role, index) => [role, index]))
+    return players
+      .filter((p) => teamMatchesCanonical(p.team, slug))
+      .sort((a, b) => {
+        const ra = normalizePosition(a.position)
+        const rb = normalizePosition(b.position)
+        const oa = ra !== null ? (roleOrder.get(ra) ?? 99) : 99
+        const ob = rb !== null ? (roleOrder.get(rb) ?? 99) : 99
+        if (oa !== ob) return oa - ob
+        return a.name.localeCompare(b.name)
+      })
   }, [players, team, slug])
 
   const matchHistory = useMemo(
     () =>
-      team
-        ? buildTeamMatchHistory(players, slug, 10, filterLeague, filterSplit)
-        : [],
+      team ? buildTeamMatchHistory(players, slug, undefined, filterLeague, filterSplit) : [],
     [players, team, slug, filterLeague, filterSplit],
   )
   const sides = useMemo(() => computeSideWinrates(players, slug), [players, slug])
@@ -206,7 +214,7 @@ export default function TeamPage() {
       </div>
 
       <div className="card page-section">
-        <h3 className="card-title">Last 10 Matches</h3>
+        <h3 className="card-title">Match History</h3>
         <div className="entity-table-wrap">
           <table className="entity-table">
             <thead>

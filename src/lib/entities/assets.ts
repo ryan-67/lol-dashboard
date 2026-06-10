@@ -1,5 +1,6 @@
 import { CHAMPION_DDRAGON, TEAM_ENTITIES, teamSearchAbbreviation } from './entityMap'
 import esportsLogos from '../../data/esports-logos.json'
+import ddragonChampions from '../../data/ddragon-champions.json'
 
 function slugify(value: string): string {
   return value
@@ -9,8 +10,13 @@ function slugify(value: string): string {
     .replace(/^-+|-+$/g, '')
 }
 
-/** Riot Data Dragon — official champion square icons */
-const DDRAGON_VERSION = '14.24.1'
+type DdragonChampionManifest = {
+  version: string
+  byName: Record<string, string>
+  byNormalizedName: Record<string, string>
+}
+
+const ddragonManifest = ddragonChampions as DdragonChampionManifest
 
 type EsportsLogoManifest = {
   leagues: Record<string, string>
@@ -58,11 +64,14 @@ function logoForEsportsSlug(esportsSlug: string): { primary: string | null; alt:
 
 export function ddragonChampionKey(name: string): string {
   if (CHAMPION_DDRAGON[name]) return CHAMPION_DDRAGON[name]
+  if (ddragonManifest.byName[name]) return ddragonManifest.byName[name]
+  const norm = normalizeName(name)
+  if (ddragonManifest.byNormalizedName[norm]) return ddragonManifest.byNormalizedName[norm]
   return name.replace(/[^a-zA-Z0-9]/g, '')
 }
 
 export function championIconUrl(ddragonKey: string): string {
-  return `https://ddragon.leagueoflegends.com/cdn/${DDRAGON_VERSION}/img/champion/${ddragonKey}.png`
+  return `https://ddragon.leagueoflegends.com/cdn/${ddragonManifest.version}/img/champion/${ddragonKey}.png`
 }
 
 export function teamLogoUrlsFromName(name: string): string[] {

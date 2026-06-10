@@ -1,6 +1,6 @@
-/** Champion-themed pie colors — iconic hues with collision avoidance for similar champions. */
+/** Muted pastel champion pie colors — hue from champion identity, dashboard-style saturation. */
 
-const ICONIC_COLORS: Record<string, string> = {
+const ICONIC_HUES: Record<string, string> = {
   Annie: '#e05252',
   Brand: '#e86a2f',
   'Jarvan IV': '#e07b28',
@@ -29,6 +29,10 @@ const ICONIC_COLORS: Record<string, string> = {
   Viego: '#4a9e8a',
   Hwei: '#5a6ad4',
   Aurora: '#c878d4',
+  Mel: '#9b6ad4',
+  Yunara: '#d4a85c',
+  Ambessa: '#8a5c4a',
+  Smolder: '#c87848',
 }
 
 function hashHue(name: string): number {
@@ -74,11 +78,17 @@ function hslToHex(h: number, s: number, l: number): string {
   return `#${toByte(r).toString(16).padStart(2, '0')}${toByte(g).toString(16).padStart(2, '0')}${toByte(b).toString(16).padStart(2, '0')}`
 }
 
-function baseColorForChampion(name: string): { h: number; s: number; l: number } {
-  const iconic = ICONIC_COLORS[name]
-  if (iconic) return hexToHsl(iconic)
-  const h = hashHue(name)
-  return { h, s: 0.52, l: 0.48 }
+/** Dashboard-style muted pastel from a hue source. */
+function toMutedPastel(h: number, s: number, l: number): string {
+  const mutedS = Math.min(0.4, Math.max(0.28, s * 0.5 + 0.12))
+  const mutedL = Math.min(0.7, Math.max(0.54, l * 0.45 + 0.38))
+  return hslToHex(h, mutedS, mutedL)
+}
+
+function baseHueForChampion(name: string): number {
+  const iconic = ICONIC_HUES[name]
+  if (iconic) return hexToHsl(iconic).h
+  return hashHue(name)
 }
 
 function hueDistance(a: number, b: number): number {
@@ -86,10 +96,9 @@ function hueDistance(a: number, b: number): number {
   return d > 180 ? 360 - d : d
 }
 
-/** Assign visually distinct champion colors for a pie chart slice list. */
+/** Assign visually distinct muted champion colors for a pie chart slice list. */
 export function championPieColors(championNames: string[]): Record<string, string> {
-  const bases = championNames.map((name) => ({ name, ...baseColorForChampion(name) }))
-  const hues = bases.map((b) => b.h)
+  const hues = championNames.map((name) => baseHueForChampion(name))
 
   for (let i = 1; i < hues.length; i++) {
     for (let j = 0; j < i; j++) {
@@ -102,9 +111,10 @@ export function championPieColors(championNames: string[]): Record<string, strin
 
   const out: Record<string, string> = {}
   for (let i = 0; i < championNames.length; i++) {
-    const base = bases[i]!
-    const iconic = ICONIC_COLORS[base.name]
-    out[base.name] = iconic ?? hslToHex(hues[i]!, base.s, base.l)
+    const name = championNames[i]!
+    const iconic = ICONIC_HUES[name]
+    const source = iconic ? hexToHsl(iconic) : { h: hues[i]!, s: 0.45, l: 0.5 }
+    out[name] = toMutedPastel(source.h, source.s, source.l)
   }
   return out
 }

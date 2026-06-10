@@ -84,7 +84,7 @@ export interface TeamMatchRow {
 export function buildTeamMatchHistory(
   players: Player[],
   teamSlugOrName: string,
-  limit = 10,
+  limit?: number,
   fallbackLeague?: string,
   fallbackSplit?: string,
 ): TeamMatchRow[] {
@@ -94,7 +94,7 @@ export function buildTeamMatchHistory(
   // One player row per game — use the roster member with the most games as anchor.
   const anchor = roster.reduce((best, p) => ((p.games ?? 0) > (best.games ?? 0) ? p : best), roster[0]!)
 
-  return [...(anchor.gameLog ?? [])]
+  const sorted = [...(anchor.gameLog ?? [])]
     .map((game) => ({
       date: game.date,
       opponent: game.opponent ?? 'Unknown',
@@ -102,7 +102,7 @@ export function buildTeamMatchHistory(
       tournament: formatTournamentLabel(game.league, game.split, fallbackLeague, fallbackSplit),
     }))
     .sort((a, b) => b.date.localeCompare(a.date))
-    .slice(0, limit)
+  return limit === undefined ? sorted : sorted.slice(0, limit)
 }
 
 export interface SideWinrates {
