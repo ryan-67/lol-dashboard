@@ -15,7 +15,7 @@ import { makeChartTooltipContent } from '../ui/ChartTooltip'
 import { animateRadarDraw } from '../../theme/animations'
 import { CHART } from '../../theme/chartTheme'
 
-import { EntityLink } from '../entities'
+import { EntityLink, TeamLogo, LeagueLogo } from '../entities'
 
 interface TeamRadarChartProps {
   team: Team
@@ -54,10 +54,12 @@ export default function TeamRadarChart({ team, cohort, highlighted = false }: Te
   return (
     <div className={`radar-card${highlighted ? ' radar-card-favorite' : ''}`}>
       <div className="radar-card-header">
-        <h3 className="radar-card-title">
+        <h3 className="radar-card-title entity-title-row">
+          <TeamLogo name={team.name} size={24} />
           <EntityLink type="team" name={team.name} showIcon={false} />
         </h3>
-        <p className="radar-card-subtitle">
+        <p className="radar-card-subtitle entity-subtitle">
+          <LeagueLogo league={team.league} size={16} />
           <span style={{ color }}>{team.league}</span> · {team.winrate.toFixed(1)}% WR · {team.wins}W-
           {team.losses}L
         </p>

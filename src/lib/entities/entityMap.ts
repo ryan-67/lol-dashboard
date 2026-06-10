@@ -7,6 +7,8 @@ export interface TeamEntityDef {
   slug: string
   /** Optional Riot / LoL Esports CDN logo URL */
   logoUrl?: string
+  /** lootmarket/esport-team-logos folder when it differs from slug */
+  logoFolder?: string
 }
 
 export interface ChampionEntityDef {

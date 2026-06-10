@@ -818,30 +818,27 @@ b,
 }
 
 .entity-back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  width: fit-content;
+  padding: 8px 16px;
   font-size: var(--text-sm);
-  color: var(--text-secondary);
+  font-family: var(--font-mono);
+  color: var(--text-primary);
   text-decoration: none;
+  background: var(--bg-base);
+  border: 1px solid var(--border-subtle);
+  transition: border-color 0.15s ease, color 0.15s ease;
 }
 
 .entity-back-link:hover {
+  border-color: var(--accent);
   color: var(--accent);
 }
 
-.entity-filter-bar {
-  border: 1px solid var(--border-subtle);
-  background: var(--bg-surface);
-  padding: var(--component-gap);
-}
-
-.entity-filter-controls {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 16px;
-  align-items: center;
-}
-
 .entity-filter-notice {
-  margin: 10px 0 0;
+  margin: 0;
   font-size: var(--text-xs);
   color: var(--text-secondary);
 }
@@ -1017,12 +1014,25 @@ b,
 }
 
 .champion-icon,
-.team-logo {
+.team-logo,
+.league-logo {
   flex-shrink: 0;
   display: block;
-  object-fit: cover;
+  object-fit: contain;
   border: 1px solid var(--border-subtle);
   vertical-align: middle;
+  background: var(--bg-base);
+}
+
+.team-logo-fallback {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-mono);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--accent);
+  object-fit: contain;
 }
 
 .header-menu-wrap {

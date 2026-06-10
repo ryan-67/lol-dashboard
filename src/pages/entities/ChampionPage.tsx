@@ -92,10 +92,6 @@ export default function ChampionPage() {
 
   return (
     <div className="page-section entity-page">
-      <Link to="/champions" className="entity-back-link">
-        ← Champions
-      </Link>
-
       <EntityFilterBar
         league={filters.league}
         year={filters.year}
@@ -108,6 +104,10 @@ export default function ChampionPage() {
         onSplitChange={setSplit}
         fallbackNotice={fallbackNotice}
       />
+
+      <Link to="/champions" className="entity-back-link">
+        ← Champions
+      </Link>
 
       <header className="entity-header">
         <div>
@@ -155,10 +155,11 @@ export default function ChampionPage() {
                 <th>Team</th>
                 <th>Games</th>
                 <th>Winrate</th>
+                <th>Perf Score</th>
               </tr>
             </thead>
             <tbody>
-              {topPlayers.map(({ player, games, winrate }) => (
+              {topPlayers.map(({ player, games, winrate, perfScore }) => (
                 <tr key={`${player.name}|${player.team}`}>
                   <td>
                     <EntityLink
@@ -174,6 +175,7 @@ export default function ChampionPage() {
                   </td>
                   <td>{games}</td>
                   <td>{formatPct(winrate, 1)}</td>
+                  <td>{formatNum(perfScore * 100, 1)}</td>
                 </tr>
               ))}
             </tbody>

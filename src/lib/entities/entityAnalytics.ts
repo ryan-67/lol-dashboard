@@ -1,6 +1,6 @@
 import type { Champion, Player, Team, TeamChampion } from '../../hooks/useDashboardData'
 import type { RoleKey } from '../championAnalytics'
-import { normalizePosition } from '../playerRadar'
+import { normalizePosition, computeGameScore, playersForRole } from '../playerRadar'
 import { teamMatchesCanonical } from './slugs'
 
 export interface ChampionWinrateEntry {
@@ -47,6 +47,7 @@ export function bestWorstChampions(
     .sort((a, b) => b.winrate - a.winrate || b.kda - a.kda)
     .slice(0, 5)
   const worst = [...eligible]
+    .filter((c) => c.winrate < 50)
     .sort((a, b) => a.winrate - b.winrate || a.kda - b.kda)
     .slice(0, 5)
   return { best, worst }
@@ -312,16 +313,41 @@ export function topPlayersOnChampion(
   players: Player[],
   championName: string,
   limit = 8,
-): Array<{ player: Player; games: number; winrate: number }> {
+): Array<{ player: Player; games: number; winrate: number; perfScore: number }> {
   return players
     .map((player) => {
-      const entry = (player.championPool ?? []).find((c) => c.champion === championName)
-      if (!entry || entry.games < 2) return null
-      return { player, games: entry.games, winrate: entry.winrate }
+      const gamesOnChamp = (player.gameLog ?? []).filter((g) => g.champion === championName)
+      if (gamesOnChamp.length < 2) return null
+
+      const role = normalizePosition(player.position)
+      if (!role) return null
+
+      const cohort = playersForRole(players, role)
+      const wins = gamesOnChamp.filter((g) => g.result === 1).length
+      const winrate = (wins / gamesOnChamp.length) * 100
+      const perfScore =
+        gamesOnChamp.reduce((sum, g) => sum + computeGameScore(g, role, cohort), 0) /
+        gamesOnChamp.length
+      const proficiency = perfScore * 0.65 + (winrate / 100) * 0.35
+
+      return {
+        player,
+        games: gamesOnChamp.length,
+        winrate,
+        perfScore,
+        proficiency,
+      }
     })
     .filter((x): x is NonNullable<typeof x> => Boolean(x))
-    .sort((a, b) => b.games - a.games)
+    .sort(
+      (a, b) =>
+        b.proficiency - a.proficiency ||
+        b.perfScore - a.perfScore ||
+        b.winrate - a.winrate ||
+        b.games - a.games,
+    )
     .slice(0, limit)
+    .map(({ proficiency: _p, ...rest }) => rest)
 }
 
 export function championWeeklyTrend(champion: Champion) {

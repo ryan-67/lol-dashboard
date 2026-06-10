@@ -1,67 +1,33 @@
-import Select from '../ui/Select'
+import { useEffect, useState } from 'react'
+import { createPortal } from 'react-dom'
+import { FilterStripControls, FilterStripShell, type FilterStripValues } from '../FilterStrip'
 
-interface EntityFilterBarProps {
-  league: string
-  year: string
-  split: string
-  leagues: string[]
-  years: string[]
-  splits: string[]
-  onLeagueChange: (v: string) => void
-  onYearChange: (v: string) => void
-  onSplitChange: (v: string) => void
+interface EntityFilterBarProps extends FilterStripValues {
   fallbackNotice?: string | null
 }
 
 export default function EntityFilterBar({
-  league,
-  year,
-  split,
-  leagues,
-  years,
-  splits,
-  onLeagueChange,
-  onYearChange,
-  onSplitChange,
   fallbackNotice,
+  ...controls
 }: EntityFilterBarProps) {
-  const splitLabel = (value: string) => value.replace(/^\d{4}\s+/, '')
+  const [slot, setSlot] = useState<HTMLElement | null>(null)
 
-  return (
-    <div className="entity-filter-bar">
-      <div className="entity-filter-controls">
-        <div className="flex items-center gap-2">
-          <span className="label-field">League</span>
-          <Select label="League" value={league} onChange={(e) => onLeagueChange(e.target.value)}>
-            {leagues.map((l) => (
-              <option key={l} value={l}>
-                {l}
-              </option>
-            ))}
-          </Select>
-        </div>
-        <div className="flex items-center gap-2">
-          <span className="label-field">Year</span>
-          <Select label="Year" value={year} onChange={(e) => onYearChange(e.target.value)}>
-            {years.map((y) => (
-              <option key={y} value={y}>
-                {y}
-              </option>
-            ))}
-          </Select>
-        </div>
-        <div className="flex items-center gap-2">
-          <span className="label-field">Split</span>
-          <Select label="Split" value={split} onChange={(e) => onSplitChange(e.target.value)}>
-            {splits.map((s) => (
-              <option key={s} value={s}>
-                {splitLabel(s)}
-              </option>
-            ))}
-          </Select>
-        </div>
-      </div>
-      {fallbackNotice ? <p className="entity-filter-notice">{fallbackNotice}</p> : null}
-    </div>
+  useEffect(() => {
+    setSlot(document.getElementById('entity-filter-slot'))
+  }, [])
+
+  const strip = (
+    <FilterStripShell
+      trailing={
+        fallbackNotice ? (
+          <span className="text-xs text-tertiary max-w-md lg:text-right">{fallbackNotice}</span>
+        ) : undefined
+      }
+    >
+      <FilterStripControls {...controls} />
+    </FilterStripShell>
   )
+
+  if (slot) return createPortal(strip, slot)
+  return strip
 }

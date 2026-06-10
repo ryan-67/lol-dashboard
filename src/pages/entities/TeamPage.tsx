@@ -20,6 +20,7 @@ import {
   EntityFilterBar,
   EntityLink,
   TeamLogo,
+  LeagueLogo,
   TeamSideWinrates,
   TeamTrendChart,
   ChampionIcon,
@@ -105,10 +106,6 @@ export default function TeamPage() {
 
   return (
     <div className="page-section entity-page">
-      <Link to="/teams" className="entity-back-link">
-        ← Teams
-      </Link>
-
       <EntityFilterBar
         league={filters.league}
         year={filters.year}
@@ -122,13 +119,20 @@ export default function TeamPage() {
         fallbackNotice={fallbackNotice}
       />
 
+      <Link to="/teams" className="entity-back-link">
+        ← Teams
+      </Link>
+
       <header className="entity-header">
         <div>
           <h1 className="page-title entity-title-row">
             <TeamLogo name={team.name} size={32} />
             {team.name}
           </h1>
-          <p className="entity-subtitle">{team.league}</p>
+          <p className="entity-subtitle">
+            <LeagueLogo league={team.league} size={20} />
+            {team.league}
+          </p>
         </div>
         <div className="entity-stat-row">
           <div className="stat-tile">

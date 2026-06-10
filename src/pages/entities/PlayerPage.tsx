@@ -11,6 +11,7 @@ import {
   EntityFilterBar,
   EntityLink,
   TeamLogo,
+  LeagueLogo,
   ChampionEntityInline,
   ChampionWinrateBars,
   PlayerChampionPie,
@@ -80,10 +81,6 @@ export default function PlayerPage() {
 
   return (
     <div className="page-section entity-page">
-      <Link to="/players" className="entity-back-link">
-        ← Players
-      </Link>
-
       <EntityFilterBar
         league={filters.league}
         year={filters.year}
@@ -97,12 +94,17 @@ export default function PlayerPage() {
         fallbackNotice={fallbackNotice}
       />
 
+      <Link to="/players" className="entity-back-link">
+        ← Players
+      </Link>
+
       <header className="entity-header">
         <div>
           <h1 className="page-title">{player.name}</h1>
           <p className="entity-subtitle">
             <TeamLogo name={player.team} size={22} />
-            <EntityLink type="team" name={player.team} showIcon={false} /> · {player.league} ·{' '}
+            <EntityLink type="team" name={player.team} showIcon={false} /> ·{' '}
+            <LeagueLogo league={player.league} size={18} /> {player.league} ·{' '}
             <span className="text-accent">{role.toUpperCase()}</span>
           </p>
         </div>

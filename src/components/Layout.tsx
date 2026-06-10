@@ -181,6 +181,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
           </div>
         </div>
         {shouldShowTopBar && <TopBar />}
+        {isEntityPage && <div id="entity-filter-slot" />}
       </header>
 
       <main className="app-main">
