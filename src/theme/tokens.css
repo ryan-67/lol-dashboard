@@ -1014,14 +1014,26 @@ b,
 }
 
 .champion-icon,
-.team-logo,
-.league-logo {
+.team-logo {
   flex-shrink: 0;
   display: block;
   object-fit: contain;
   border: 1px solid var(--border-subtle);
   vertical-align: middle;
   background: var(--bg-base);
+}
+
+.league-logo {
+  flex-shrink: 0;
+  display: block;
+  width: auto;
+  max-width: 72px;
+  height: auto;
+  max-height: 22px;
+  object-fit: contain;
+  vertical-align: middle;
+  background: transparent;
+  border: none;
 }
 
 .team-logo-fallback {

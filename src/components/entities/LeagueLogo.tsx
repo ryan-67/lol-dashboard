@@ -14,7 +14,7 @@ export default function LeagueLogo({ league, size = 20, className = '' }: League
     <img
       src={src}
       alt=""
-      width={size}
+      width={size * 2.8}
       height={size}
       className={`league-logo ${className}`.trim()}
       loading="lazy"

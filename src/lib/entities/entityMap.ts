@@ -9,6 +9,8 @@ export interface TeamEntityDef {
   logoUrl?: string
   /** lootmarket/esport-team-logos folder when it differs from slug */
   logoFolder?: string
+  /** LoL Esports API team slug when it differs from our slug */
+  esportsSlug?: string
 }
 
 export interface ChampionEntityDef {
@@ -23,6 +25,7 @@ export const TEAM_ENTITIES: TeamEntityDef[] = [
     oeNames: ['Gen.G', 'Gen G', 'GEN'],
     abbreviations: ['GEN', 'GENG'],
     slug: 'gen-g',
+    esportsSlug: 'geng',
   },
   {
     canonicalName: 'T1',
@@ -35,6 +38,7 @@ export const TEAM_ENTITIES: TeamEntityDef[] = [
     oeNames: ['Dplus Kia', 'Dplus KIA', 'DWG KIA', 'DK', 'Dplus Kia'],
     abbreviations: ['DK', 'DKIA'],
     slug: 'dplus-kia',
+    esportsSlug: 'dwg-kia',
   },
   {
     canonicalName: 'Hanwha Life Esports',
