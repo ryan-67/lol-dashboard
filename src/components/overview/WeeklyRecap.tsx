@@ -2,10 +2,29 @@ import { useRef } from 'react'
 import { useGSAP } from '@gsap/react'
 import type { WeeklyRecapLine } from '../../lib/weeklyRecap'
 import { scrollEntranceStagger } from '../../theme/animations'
+import TeamLogo from '../entities/TeamLogo'
 
 interface WeeklyRecapProps {
   lines: WeeklyRecapLine[]
   windowLabel: string
+}
+
+function RecapLineBody({ line }: { line: WeeklyRecapLine }) {
+  return (
+    <>
+      {line.segments.map((seg, i) => {
+        if (seg.kind === 'text') {
+          return <span key={`${line.id}-t-${i}`}>{seg.value}</span>
+        }
+        return (
+          <span key={`${line.id}-team-${i}`} className="overview-recap-team">
+            <TeamLogo name={seg.canonicalName} size={16} />
+            <span>{seg.label}</span>
+          </span>
+        )
+      })}
+    </>
+  )
 }
 
 export default function WeeklyRecap({ lines, windowLabel }: WeeklyRecapProps) {
@@ -26,7 +45,7 @@ export default function WeeklyRecap({ lines, windowLabel }: WeeklyRecapProps) {
         <ul className="overview-recap-list">
           {lines.map((line) => (
             <li key={line.id} className="overview-recap-item">
-              {line.text}
+              <RecapLineBody line={line} />
             </li>
           ))}
         </ul>

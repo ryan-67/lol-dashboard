@@ -396,6 +396,19 @@ b,
   font-family: var(--font-mono);
 }
 
+.overview-recap-team {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  vertical-align: middle;
+  margin: 0 1px;
+}
+
+.overview-recap-team .team-logo {
+  display: inline-block;
+  vertical-align: middle;
+}
+
 .entity-champ-combo-list {
   list-style: none;
   margin: 0;

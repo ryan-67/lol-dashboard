@@ -587,6 +587,10 @@ export default function Overview() {
         </p>
       </section>
 
+      {weeklyWindow && (
+        <WeeklyRecap lines={weeklyRecapLines} windowLabel={weeklyWindow.label} />
+      )}
+
       <section className="card overview-hub-card">
         <h2 className="card-title">Player of the Week</h2>
         {!playerOfWeek ? (
@@ -661,13 +665,6 @@ export default function Overview() {
           </>
         )}
       </section>
-
-      {weeklyWindow && (
-        <WeeklyRecap
-          lines={weeklyRecapLines}
-          windowLabel={weeklyWindow.label}
-        />
-      )}
 
       <section className="card overview-hub-card">
         <h2 className="card-title">Team of the Week (Best 5 by role)</h2>
