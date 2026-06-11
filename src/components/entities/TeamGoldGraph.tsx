@@ -105,7 +105,7 @@ export default function TeamGoldGraph({ games }: TeamGoldGraphProps) {
 
   if (!games.length) {
     return (
-      <div className="card page-section">
+      <div className="card">
         <h3 className="card-title">Gold Graph</h3>
         <div className="empty-state text-sm">No match data for gold timeline.</div>
       </div>
@@ -113,7 +113,7 @@ export default function TeamGoldGraph({ games }: TeamGoldGraphProps) {
   }
 
   return (
-    <div ref={ref} className="card page-section">
+    <div ref={ref} className="card">
       <div className="entity-gold-graph-head">
         <div>
           <h3 className="card-title">Gold Graph</h3>

@@ -1,8 +1,12 @@
 import type { Player, PlayerChampionPoolEntry, PlayerGameLog } from '../hooks/useDashboardData'
 import {
   computeGameScore,
+  getMetricValue,
   normalizePosition,
+  playerSnapshotFromGame,
   playersForRole,
+  ROLE_METRICS,
+  type RadarMetricKey,
   type RoleKey,
 } from './playerRadar'
 
@@ -274,4 +278,60 @@ export function mergeChampionPoolEntries(entries: PlayerChampionPoolEntry[]): Pl
       winrate: stats.picks ? round((stats.wins / stats.picks) * 100, 1) : 0,
     }))
     .sort((a, b) => b.games - a.games)
+}
+
+export interface PlayerChampionStatsRow {
+  champion: string
+  games: number
+  wins: number
+  winrate: number
+  metrics: Partial<Record<RadarMetricKey, number>>
+}
+
+export function buildPlayerChampionStats(player: Player, role: RoleKey): PlayerChampionStatsRow[] {
+  const metricKeys = ROLE_METRICS[role].map((m) => m.key)
+  const acc = new Map<
+    string,
+    { games: number; wins: number; sums: Partial<Record<RadarMetricKey, number>> }
+  >()
+
+  for (const game of player.gameLog ?? []) {
+    if (!game.champion) continue
+    const snap = playerSnapshotFromGame(game)
+    const cur = acc.get(game.champion) ?? { games: 0, wins: 0, sums: {} }
+    cur.games += 1
+    if (game.result === 1) cur.wins += 1
+    for (const key of metricKeys) {
+      cur.sums[key] = (cur.sums[key] ?? 0) + getMetricValue(snap, key)
+    }
+    acc.set(game.champion, cur)
+  }
+
+  if (!acc.size && player.championPool?.length) {
+    for (const row of player.championPool) {
+      acc.set(row.champion, {
+        games: row.games,
+        wins: row.wins,
+        sums: {},
+      })
+    }
+  }
+
+  return [...acc.entries()]
+    .map(([champion, stats]) => {
+      const metrics: Partial<Record<RadarMetricKey, number>> = {}
+      for (const key of metricKeys) {
+        if (stats.sums[key] != null && stats.games > 0) {
+          metrics[key] = stats.sums[key]! / stats.games
+        }
+      }
+      return {
+        champion,
+        games: stats.games,
+        wins: stats.wins,
+        winrate: stats.games ? (stats.wins / stats.games) * 100 : 0,
+        metrics,
+      }
+    })
+    .sort((a, b) => b.games - a.games || b.winrate - a.winrate)
 }

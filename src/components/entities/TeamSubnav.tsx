@@ -1,3 +1,6 @@
+import { useEffect, useState } from 'react'
+import { createPortal } from 'react-dom'
+
 export type TeamPageTab = 'stats' | 'schedule' | 'gold'
 
 const TABS: { id: TeamPageTab; label: string }[] = [
@@ -11,7 +14,7 @@ interface TeamSubnavProps {
   onChange: (tab: TeamPageTab) => void
 }
 
-export default function TeamSubnav({ active, onChange }: TeamSubnavProps) {
+function TeamSubnavBar({ active, onChange }: TeamSubnavProps) {
   return (
     <nav className="entity-subnav" aria-label="Team page sections">
       {TABS.map((tab) => (
@@ -26,4 +29,16 @@ export default function TeamSubnav({ active, onChange }: TeamSubnavProps) {
       ))}
     </nav>
   )
+}
+
+export default function TeamSubnav({ active, onChange }: TeamSubnavProps) {
+  const [slot, setSlot] = useState<HTMLElement | null>(null)
+
+  useEffect(() => {
+    setSlot(document.getElementById('entity-tab-slot'))
+  }, [])
+
+  const bar = <TeamSubnavBar active={active} onChange={onChange} />
+  if (slot) return createPortal(bar, slot)
+  return bar
 }

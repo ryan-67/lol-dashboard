@@ -814,7 +814,11 @@ b,
 .entity-page {
   display: flex;
   flex-direction: column;
-  gap: var(--section-gap);
+  gap: var(--component-gap);
+}
+
+.entity-page .page-section {
+  margin-bottom: 0;
 }
 
 .entity-back-link {
@@ -849,6 +853,10 @@ b,
   justify-content: space-between;
   gap: 16px;
   align-items: flex-start;
+}
+
+.entity-header .page-title {
+  margin-bottom: 4px;
 }
 
 .entity-subtitle {
@@ -904,6 +912,13 @@ b,
   letter-spacing: 0.04em;
   color: var(--text-secondary);
   font-weight: 500;
+  white-space: nowrap;
+}
+
+.entity-table-compact th,
+.entity-table-compact td {
+  padding: 8px 10px;
+  font-size: 12px;
 }
 
 .entity-table-champ {
@@ -1112,11 +1127,30 @@ b,
   flex-wrap: wrap;
   gap: 0;
   border-bottom: 1px solid var(--border-subtle);
-  margin: calc(-1 * var(--section-gap) + var(--component-gap)) 0 0;
+  padding: 12px var(--padding-x-mobile) 0;
+  background-color: var(--bg-surface);
+}
+
+@media (min-width: 768px) {
+  .entity-subnav {
+    padding-left: var(--padding-x);
+    padding-right: var(--padding-x);
+  }
+}
+
+#entity-tab-slot:not(:empty) {
+  background-color: var(--bg-surface);
+}
+
+#entity-tab-slot:not(:empty) .entity-subnav {
+  border-bottom: none;
+  max-width: var(--max-width);
+  margin: 0 auto;
+  width: 100%;
 }
 
 .entity-subnav-tab {
-  padding: 10px 20px;
+  padding: 12px 20px 14px;
   font-family: var(--font-mono);
   font-size: var(--text-sm);
   color: var(--text-secondary);

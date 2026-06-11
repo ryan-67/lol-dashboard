@@ -14,7 +14,7 @@ import {
   LeagueLogo,
   ChampionEntityInline,
   ChampionWinrateBars,
-  PlayerChampionPie,
+  PlayerChampionTable,
 } from '../../components/entities'
 import type { DashboardData } from '../../hooks/useDashboardData'
 
@@ -142,7 +142,7 @@ export default function PlayerPage() {
 
       <div className="overview-grid overview-grid-2">
         <PlayerRadarChart player={player} role={role} cohort={cohort} />
-        <PlayerChampionPie player={player} />
+        <PlayerChampionTable player={player} role={role} />
       </div>
 
       <PlayerFormChart players={[player]} cohortPlayers={cohort} />
@@ -152,7 +152,7 @@ export default function PlayerPage() {
         <ChampionWinrateBars title="Worst Champions" entries={champExtremes.worst} tone="worst" />
       </div>
 
-      <div className="card page-section">
+      <div className="card">
         <h3 className="card-title">Match History</h3>
         <div className="entity-table-wrap">
           <table className="entity-table">

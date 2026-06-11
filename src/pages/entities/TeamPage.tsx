@@ -152,7 +152,6 @@ export default function TeamPage() {
   return (
     <div className="page-section entity-page">
       {filterBar}
-
       <TeamSubnav active={activeTab} onChange={setActiveTab} />
 
       <Link to="/teams" className="entity-back-link">
@@ -184,72 +183,76 @@ export default function TeamPage() {
         </div>
       </header>
 
-      <div className="card page-section">
-        <h3 className="card-title">Roster</h3>
-        <div className="entity-table-wrap">
-          <table className="entity-table">
-            <thead>
-              <tr>
-                <th>Player</th>
-                <th>Role</th>
-                <th>Games</th>
-                <th>KDA</th>
-                <th>GD@15</th>
-                <th>Champ Pool</th>
-              </tr>
-            </thead>
-            <tbody>
-              {roster.map((p) => (
-                <tr key={playerKey(p)}>
-                  <td>
-                    <EntityLink
-                      type="player"
-                      name={p.name}
-                      player={p}
-                      allPlayers={players}
-                      showIcon={false}
-                    />
-                  </td>
-                  <td>{p.position.toUpperCase()}</td>
-                  <td>{p.games}</td>
-                  <td>{formatNum(p.kda, 2)}</td>
-                  <td>
-                    {p.gd15 > 0 ? '+' : ''}
-                    {formatNum(p.gd15, 1)}
-                  </td>
-                  <td>
-                    <div className="entity-champ-pool">
-                      {playerChampionIcons(p).map((champ) => (
-                        <ChampionIcon key={champ} name={champ} size={20} />
-                      ))}
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
       {activeTab === 'stats' && (
         <>
-          <div className="overview-grid overview-grid-2 page-section">
+          <div className="card">
+            <h3 className="card-title">Roster</h3>
+            <div className="entity-table-wrap">
+              <table className="entity-table entity-table-compact">
+                <thead>
+                  <tr>
+                    <th>Player</th>
+                    <th>Role</th>
+                    <th>KDA</th>
+                    <th>GD@15</th>
+                    <th>KP%</th>
+                    <th>DMG%</th>
+                    <th>GOLD%</th>
+                    <th>Champ Pool</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {roster.map((p) => (
+                    <tr key={playerKey(p)}>
+                      <td>
+                        <EntityLink
+                          type="player"
+                          name={p.name}
+                          player={p}
+                          allPlayers={players}
+                          showIcon={false}
+                        />
+                      </td>
+                      <td>{p.position.toUpperCase()}</td>
+                      <td>{formatNum(p.kda, 2)}</td>
+                      <td>
+                        {p.gd15 > 0 ? '+' : ''}
+                        {formatNum(p.gd15, 1)}
+                      </td>
+                      <td>{formatPct(p.kp, 1)}</td>
+                      <td>{formatPct(p.dmgShare, 1)}</td>
+                      <td>{formatPct(p.goldShare, 1)}</td>
+                      <td>
+                        <div className="entity-champ-pool">
+                          {playerChampionIcons(p).map((champ) => (
+                            <ChampionIcon key={champ} name={champ} size={20} />
+                          ))}
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div className="overview-grid overview-grid-2">
             <TeamRadarChart team={team} cohort={teams} highlighted compact />
             <TeamProfileCard team={team} />
           </div>
 
-          <div className="overview-grid overview-grid-2 page-section">
+          <div className="overview-grid overview-grid-2">
             {bestByRole ? <TeamBestChampionsByRole byRole={bestByRole} /> : null}
             <TeamObjectiveChart team={team} />
           </div>
 
-          <div className="overview-grid overview-grid-2 page-section">
+          <div className="overview-grid overview-grid-2">
             <TeamSideWinrates sides={sides} />
             <TeamTrendChart points={trend} />
           </div>
 
           {topOpponents.length > 0 && (
-            <div className="card page-section">
+            <div className="card">
               <h3 className="card-title">Head-to-Head</h3>
               <p className="card-subtitle">Recent opponents · open Matchups to compare</p>
               <ul className="entity-h2h-list">
@@ -270,7 +273,7 @@ export default function TeamPage() {
           )}
 
           {priorityByRole && (
-            <div className="page-section">
+            <div>
               <h2 className="card-title">Highest Priority Champions by Role</h2>
               <div className="overview-grid overview-grid-2">
                 {(['top', 'jungle', 'mid', 'adc', 'support'] as RoleKey[]).map((role) => (
@@ -294,14 +297,14 @@ export default function TeamPage() {
 
       {activeTab === 'schedule' && (
         <>
-          <div className="card page-section">
+          <div className="card">
             <h3 className="card-title">Upcoming Schedule</h3>
             <p className="text-secondary text-sm">
               Schedule integration coming soon — check back after esports_schedules sync.
             </p>
           </div>
 
-          <div className="card page-section">
+          <div className="card">
             <h3 className="card-title">Match History</h3>
             <div className="entity-table-wrap">
               <table className="entity-table">
