@@ -1,5 +1,6 @@
 import type { Player, PlayerGameLog, Team } from '../hooks/useDashboardData'
 import { normalizePosition, type RoleKey } from './playerRadar'
+import { resolveTeamCanonicalName } from './entities/slugs'
 import { findTeamByName } from './teamAnalytics'
 
 export interface WeeklyRecapWindow {
@@ -70,12 +71,6 @@ function inWindow(log: PlayerGameLog, window: WeeklyRecapWindow): boolean {
   return d >= window.start && d <= window.end
 }
 
-function shortTeam(name: string): string {
-  const compact = name.replace(/\s+esports$/i, '').replace(/\s+gaming$/i, '')
-  if (compact.length <= 14) return compact.toLowerCase()
-  return compact.split(/\s+/)[0]?.toLowerCase() ?? name.toLowerCase()
-}
-
 function teamLeague(teams: Team[], name: string): string {
   const t = findTeamByName(teams, name)
   return (t?.league ?? 'LCK').toLowerCase()
@@ -97,8 +92,13 @@ function segText(value: string): WeeklyRecapSegment {
   return { kind: 'text', value }
 }
 
-function segTeam(canonicalName: string, label?: string): WeeklyRecapSegment {
-  return { kind: 'team', canonicalName, label: label ?? shortTeam(canonicalName) }
+function segTeam(name: string, label?: string): WeeklyRecapSegment {
+  const canonical = resolveTeamCanonicalName(name)
+  return {
+    kind: 'team',
+    canonicalName: canonical,
+    label: label ?? canonical.toLowerCase(),
+  }
 }
 
 function collectWeeklyGames(players: Player[], window: WeeklyRecapWindow): ParsedGame[] {
