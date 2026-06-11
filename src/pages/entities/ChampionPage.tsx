@@ -7,6 +7,7 @@ import {
   topPlayersOnChampion,
   computeChampionPriorityScore,
   rolesForChampionFromPlayers,
+  bestChampionCombos,
 } from '../../lib/entities'
 import {
   getBanRate,
@@ -23,6 +24,7 @@ import {
   EntityLink,
   ChampionIcon,
   ChampionTrendCharts,
+  ChampionEntityInline,
 } from '../../components/entities'
 
 export default function ChampionPage() {
@@ -61,6 +63,10 @@ export default function ChampionPage() {
   )
   const topPlayers = useMemo(
     () => (champion ? topPlayersOnChampion(players, champion.name) : []),
+    [champion, players],
+  )
+  const bestCombos = useMemo(
+    () => (champion ? bestChampionCombos(players, champion.name) : []),
     [champion, players],
   )
   const priorityScore = useMemo(
@@ -157,7 +163,7 @@ export default function ChampionPage() {
 
       <ChampionTrendCharts champion={champion} totalGames={totalGames} />
 
-      <div className="card page-section">
+      <div className="card">
         <h3 className="card-title">Best Players on {champion.name}</h3>
         <div className="entity-table-wrap">
           <table className="entity-table">
@@ -195,7 +201,29 @@ export default function ChampionPage() {
         </div>
       </div>
 
-      <div className="card page-section">
+      {bestCombos.length > 0 && (
+        <div className="card">
+          <h3 className="card-title">Best Combos</h3>
+          <p className="card-subtitle">
+            Highest winrate draft partners with {champion.name} (min 3 games, above 50% WR)
+          </p>
+          <ul className="entity-champ-combo-list">
+            {bestCombos.map((combo) => (
+              <li key={combo.partner} className="entity-champ-combo-row">
+                <ChampionEntityInline name={champion.name} iconSize={22} />
+                <span className="text-secondary">+</span>
+                <ChampionEntityInline name={combo.partner} iconSize={22} />
+                <span className="text-accent">{formatPct(combo.winrate, 1)}</span>
+                <span className="text-secondary text-xs">
+                  {combo.wins}-{combo.games - combo.wins} · {combo.games}g
+                </span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      <div className="card">
         <h3 className="card-title">Combat Profile</h3>
         <div className="entity-stat-row">
           <div className="stat-tile">

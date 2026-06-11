@@ -185,6 +185,21 @@ export default function TeamPage() {
 
       {activeTab === 'stats' && (
         <>
+          <div className="overview-grid overview-grid-2">
+            <TeamRadarChart team={team} cohort={teams} highlighted compact />
+            <TeamProfileCard team={team} />
+          </div>
+
+          <div className="overview-grid overview-grid-2">
+            {bestByRole ? <TeamBestChampionsByRole byRole={bestByRole} /> : null}
+            <TeamObjectiveChart team={team} />
+          </div>
+
+          <div className="overview-grid overview-grid-2">
+            <TeamSideWinrates sides={sides} />
+            <TeamTrendChart points={trend} />
+          </div>
+
           <div className="card">
             <h3 className="card-title">Roster</h3>
             <div className="entity-table-wrap">
@@ -234,21 +249,6 @@ export default function TeamPage() {
                 </tbody>
               </table>
             </div>
-          </div>
-
-          <div className="overview-grid overview-grid-2">
-            <TeamRadarChart team={team} cohort={teams} highlighted compact />
-            <TeamProfileCard team={team} />
-          </div>
-
-          <div className="overview-grid overview-grid-2">
-            {bestByRole ? <TeamBestChampionsByRole byRole={bestByRole} /> : null}
-            <TeamObjectiveChart team={team} />
-          </div>
-
-          <div className="overview-grid overview-grid-2">
-            <TeamSideWinrates sides={sides} />
-            <TeamTrendChart points={trend} />
           </div>
 
           {topOpponents.length > 0 && (

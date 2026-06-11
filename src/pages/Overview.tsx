@@ -19,6 +19,8 @@ import {
 import { findTeamByName } from '../lib/teamAnalytics'
 import TeamRadarChart from '../components/teams/TeamRadarChart'
 import { EntityLink, ChampionEntityInline } from '../components/entities'
+import WeeklyRecap from '../components/overview/WeeklyRecap'
+import { buildWeeklyRecapLines } from '../lib/weeklyRecap'
 import { CHART } from '../theme/chartTheme'
 import {
   scrollEntranceStagger,
@@ -123,7 +125,7 @@ function getWeeklyWindow(players: Player[], year: string, split: string): Weekly
   dates.sort((a, b) => a.getTime() - b.getTime())
   const latestDataDate = dates[dates.length - 1]
   const today = startOfDay(new Date())
-  const isCurrentContext = year === DEFAULT_YEAR && split === DEFAULT_SPLIT
+  const isCurrentContext = year === DEFAULT_YEAR && (split === DEFAULT_SPLIT || split === 'ALL')
 
   const anchorEnd = isCurrentContext ? endOfDay(today) : endOfDay(latestDataDate)
   const start = startOfDay(new Date(anchorEnd))
@@ -548,6 +550,14 @@ export default function Overview() {
   )
   const opResult = useMemo(() => computeOpScores(championsOfWeek), [championsOfWeek])
 
+  const weeklyRecapLines = useMemo(
+    () =>
+      weeklyWindow
+        ? buildWeeklyRecapLines(filteredPlayers, filteredTeams, weeklyWindow, league)
+        : [],
+    [filteredPlayers, filteredTeams, weeklyWindow, league],
+  )
+
   useGSAP(
     () => {
       scrollEntranceStagger(rootRef.current, '.overview-hub-card')
@@ -652,6 +662,13 @@ export default function Overview() {
         )}
       </section>
 
+      {weeklyWindow && (
+        <WeeklyRecap
+          lines={weeklyRecapLines}
+          windowLabel={weeklyWindow.label}
+        />
+      )}
+
       <section className="card overview-hub-card">
         <h2 className="card-title">Team of the Week (Best 5 by role)</h2>
         <div className="overview-totw-grid">
@@ -666,7 +683,9 @@ export default function Overview() {
                   <EntityLink type="player" name={p.base.name} player={p.base} allPlayers={filteredPlayers} showIcon={false} />
                 </div>
                 <div className="overview-weekly-meta">
-                  <EntityLink type="team" name={p.base.team} showIcon={false} /> · {p.role.toUpperCase()}
+                  <EntityLink type="team" name={p.base.team} />
+                  {' · '}
+                  {p.role.toUpperCase()}
                 </div>
                 <WeeklyRadar
                   player={p.weekly}

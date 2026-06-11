@@ -524,3 +524,68 @@ export function averageGoldTimeline(
     return { minute, goldDiff: count ? sum / count : 0 }
   })
 }
+
+export interface ChampionComboEntry {
+  partner: string
+  games: number
+  wins: number
+  winrate: number
+}
+
+function gameLogKey(player: Player, game: NonNullable<Player['gameLog']>[number]): string {
+  return game.gameId ?? `${game.date}|${player.team}|${game.opponent ?? ''}|${game.result}`
+}
+
+export function bestChampionCombos(
+  players: Player[],
+  championName: string,
+  minGames = 3,
+  limit = 5,
+): ChampionComboEntry[] {
+  const teamChampsByGame = new Map<string, Map<string, string[]>>()
+
+  for (const player of players) {
+    for (const game of player.gameLog ?? []) {
+      if (!game.champion) continue
+      const key = gameLogKey(player, game)
+      let teams = teamChampsByGame.get(key)
+      if (!teams) {
+        teams = new Map()
+        teamChampsByGame.set(key, teams)
+      }
+      const list = teams.get(player.team) ?? []
+      list.push(game.champion)
+      teams.set(player.team, list)
+    }
+  }
+
+  const acc = new Map<string, { games: number; wins: number }>()
+
+  for (const player of players) {
+    for (const game of player.gameLog ?? []) {
+      if (game.champion !== championName) continue
+      const key = gameLogKey(player, game)
+      const teams = teamChampsByGame.get(key)
+      const allies = teams?.get(player.team) ?? []
+      const won = game.result === 1
+      for (const ally of allies) {
+        if (!ally || ally === championName) continue
+        const cur = acc.get(ally) ?? { games: 0, wins: 0 }
+        cur.games += 1
+        if (won) cur.wins += 1
+        acc.set(ally, cur)
+      }
+    }
+  }
+
+  return [...acc.entries()]
+    .map(([partner, stats]) => ({
+      partner,
+      games: stats.games,
+      wins: stats.wins,
+      winrate: stats.games ? (stats.wins / stats.games) * 100 : 0,
+    }))
+    .filter((row) => row.games >= minGames && row.winrate > 50)
+    .sort((a, b) => b.winrate - a.winrate || b.games - a.games)
+    .slice(0, limit)
+}

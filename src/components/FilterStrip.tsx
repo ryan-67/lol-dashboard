@@ -28,7 +28,7 @@ export function FilterStripControls({
   onLeagueChange,
   onYearChange,
   onSplitChange,
-  showAllSplit = false,
+  showAllSplit = true,
 }: FilterStripValues) {
   return (
     <div className="flex flex-col sm:flex-row sm:items-center gap-4">

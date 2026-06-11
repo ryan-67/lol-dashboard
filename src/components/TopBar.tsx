@@ -32,6 +32,7 @@ export default function TopBar() {
         onLeagueChange={setLeague}
         onYearChange={setYear}
         onSplitChange={setSplit}
+        showAllSplit
       />
     </FilterStripShell>
   )

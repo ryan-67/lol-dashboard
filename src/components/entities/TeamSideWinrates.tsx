@@ -17,14 +17,14 @@ export default function TeamSideWinrates({ sides }: { sides: SideWinrates }) {
         <div className="empty-state text-sm">Side data not available for this filter.</div>
       ) : (
         <div className="entity-side-grid">
-          <div className="entity-side-tile">
+          <div className="entity-side-tile entity-side-tile-blue">
             <div className="entity-side-label">Blue</div>
             <div className="entity-side-value">{sides.blue.winrate.toFixed(1)}%</div>
             <div className="text-secondary text-xs">
               {sides.blue.wins}W - {sides.blue.games - sides.blue.wins}L · {sides.blue.games} games
             </div>
           </div>
-          <div className="entity-side-tile">
+          <div className="entity-side-tile entity-side-tile-red">
             <div className="entity-side-label">Red</div>
             <div className="entity-side-value">{sides.red.winrate.toFixed(1)}%</div>
             <div className="text-secondary text-xs">

@@ -194,7 +194,7 @@ interface UseDashboardDataReturn {
   setSelectedLeagues: (leagues: string[]) => void
 }
 
-export function useDashboardData(): UseDashboardDataReturn {
+export function useDashboardData(selectedYear: string): UseDashboardDataReturn {
   const [catalog, setCatalog] = useState<OEStoreMeta | null>(null)
   const [store, setStore] = useState<OEStore | null>(null)
   const [loading, setLoading] = useState(true)
@@ -225,6 +225,8 @@ export function useDashboardData(): UseDashboardDataReturn {
       const rows = await fetchOESlices({
         split: selectedSplit,
         leagues: selectedLeagues,
+        year: selectedYear,
+        catalogSplits: meta.splits,
       })
       const nextStore = buildStoreFromSliceRows(meta, rows)
       setStore(nextStore)
@@ -235,7 +237,7 @@ export function useDashboardData(): UseDashboardDataReturn {
     } finally {
       setLoading(false)
     }
-  }, [catalog, selectedSplit, selectedLeagues])
+  }, [catalog, selectedSplit, selectedLeagues, selectedYear])
 
   useEffect(() => {
     void fetchData()

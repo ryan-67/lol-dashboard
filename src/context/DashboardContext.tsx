@@ -40,6 +40,8 @@ export const DEFAULT_YEAR = '2026'
 export { DEFAULT_SPLIT }
 
 export function DashboardProvider({ children }: { children: ReactNode }) {
+  const [year, setYearState] = useState(DEFAULT_YEAR)
+
   const {
     store,
     catalog,
@@ -50,7 +52,7 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
     selectedLeagues,
     setSelectedSplit,
     setSelectedLeagues,
-  } = useDashboardData()
+  } = useDashboardData(year)
 
   const meta = catalog ?? store?.meta ?? null
 
@@ -68,8 +70,6 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
     }
     return [...set].sort()
   }, [meta])
-
-  const [year, setYearState] = useState(DEFAULT_YEAR)
 
   const league = leaguesToLeagueLabel(selectedLeagues)
   const split = selectedSplit
@@ -101,6 +101,7 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
       setYearState(DEFAULT_YEAR)
       return
     }
+    if (split === 'ALL') return
     if (!splitOptionsByYear.includes(split)) {
       const spring = `${year} Spring`
       setSelectedSplit(
@@ -111,8 +112,8 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
 
   const data = useMemo(() => {
     if (!store) return null
-    return mergeSlices(store, league, split)
-  }, [store, league, split])
+    return mergeSlices(store, league, split, year)
+  }, [store, league, split, year])
 
   const filteredPlayers = data?.players ?? []
   const filteredTeams = data?.teams ?? []
