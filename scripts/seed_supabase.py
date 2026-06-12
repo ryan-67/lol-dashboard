@@ -26,8 +26,14 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 DATA_DIR = ROOT / "public" / "data"
 TABLE = "oe_slices"
-BATCH_SIZE = 50
+BATCH_SIZE = 1  # one split|league row per upsert — JSONB payloads can be multi-MB
 MANIFEST_NAME = "oe_slices.json"
+
+SCRIPTS_DIR = Path(__file__).resolve().parent
+if str(SCRIPTS_DIR) not in sys.path:
+    sys.path.insert(0, str(SCRIPTS_DIR))
+
+from oe_csv_io import parse_download_years  # noqa: E402
 
 logger = logging.getLogger(__name__)
 
@@ -60,7 +66,17 @@ def parse_slice_key(key: str) -> tuple[str, str]:
 
 def shard_files() -> list[Path]:
     paths = sorted(DATA_DIR.glob("oe_slices_*.json"))
-    return [p for p in paths if p.name != MANIFEST_NAME]
+    paths = [p for p in paths if p.name != MANIFEST_NAME]
+    scope = os.environ.get("OE_DOWNLOAD_YEARS", "").strip()
+    if scope:
+        years = parse_download_years(scope)
+        if years is not None:
+            paths = [p for p in paths if p.stem.replace("oe_slices_", "") in years]
+            if not paths:
+                logger.error(
+                    "No shard files for OE_DOWNLOAD_YEARS=%r in %s", scope, DATA_DIR
+                )
+    return paths
 
 
 def rows_from_shard(path: Path) -> list[dict]:
@@ -96,10 +112,14 @@ def clear_table(client) -> None:
 
 def upsert_batches(client, rows: list[dict]) -> int:
     total = 0
-    for i in range(0, len(rows), BATCH_SIZE):
-        batch = rows[i : i + BATCH_SIZE]
+    batch_size = max(1, int(os.environ.get("OE_SEED_BATCH_SIZE", str(BATCH_SIZE))))
+    for i in range(0, len(rows), batch_size):
+        batch = rows[i : i + batch_size]
         client.table(TABLE).upsert(batch, on_conflict="split,league").execute()
         total += len(batch)
+        if len(batch) == 1:
+            row = batch[0]
+            logger.info("  upserted %s|%s", row["split"], row["league"])
     return total
 
 

@@ -4,7 +4,7 @@ Persist Oracle's Elixir Drive CSV metadata in Supabase oe_sync_state.
 
 from __future__ import annotations
 
-import csv
+import json
 import os
 import sys
 from datetime import datetime, timezone
@@ -12,7 +12,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 TABLE = "oe_sync_state"
-LOL_DIR = ROOT / "lol"
+DATA_DIR = ROOT / "public" / "data"
 
 
 def load_env() -> None:
@@ -65,26 +65,34 @@ def remote_signature(meta: dict) -> tuple[str, str, int, str | None]:
     )
 
 
-def max_game_date_in_csv(csv_path: Path) -> str | None:
-    if not csv_path.is_file():
+def latest_game_date_from_shard(year: str) -> str | None:
+    """Read max match date from ingested JSON shard (avoids re-scanning the full CSV)."""
+    path = DATA_DIR / f"oe_slices_{year}.json"
+    if not path.is_file():
         return None
     latest: str | None = None
-    with csv_path.open("r", encoding="utf-8", newline="") as fh:
-        reader = csv.DictReader(fh)
-        for row in reader:
-            date_raw = str(row.get("date", "")).strip()[:10]
-            if len(date_raw) == 10 and (latest is None or date_raw > latest):
-                latest = date_raw
+    with path.open(encoding="utf-8") as fh:
+        payload = json.load(fh)
+    slices = payload.get("slices")
+    if not isinstance(slices, dict):
+        return None
+    for slice_data in slices.values():
+        if not isinstance(slice_data, dict):
+            continue
+        for player in slice_data.get("players") or []:
+            if not isinstance(player, dict):
+                continue
+            for game in player.get("gameLog") or []:
+                if not isinstance(game, dict):
+                    continue
+                date_raw = str(game.get("date", "")).strip()[:10]
+                if len(date_raw) == 10 and (latest is None or date_raw > latest):
+                    latest = date_raw
     return latest
 
 
 def latest_game_date_for_year(year: str) -> str | None:
-    from oe_csv_io import discover_local_csv_files
-
-    for path in discover_local_csv_files(LOL_DIR):
-        if year_from_drive_meta({"name": path.name}) == year:
-            return max_game_date_in_csv(path)
-    return None
+    return latest_game_date_from_shard(year)
 
 
 def drive_meta_changed(stored: dict | None, meta: dict) -> bool:
@@ -161,7 +169,20 @@ def save_ingested(client, meta: dict, *, latest_game_date: str | None = None) ->
     if latest_game_date is None:
         latest_game_date = latest_game_date_for_year(year)
     row = row_from_drive_meta(meta, ingested=True, latest_game_date=latest_game_date)
-    client.table(TABLE).upsert(row, on_conflict="year").execute()
+    try:
+        client.table(TABLE).upsert(row, on_conflict="year").execute()
+    except Exception as err:
+        err_text = str(err).lower()
+        if "latest_game_date" in err_text and "latest_game_date" in row:
+            print(
+                "WARNING: oe_sync_state.latest_game_date column missing — "
+                "run supabase/migrations/oe_sync_state.sql then re-save.",
+                file=sys.stderr,
+            )
+            row.pop("latest_game_date", None)
+            client.table(TABLE).upsert(row, on_conflict="year").execute()
+            return
+        raise
 
 
 def table_missing_message() -> str:
