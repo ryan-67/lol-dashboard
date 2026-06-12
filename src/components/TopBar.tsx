@@ -1,4 +1,5 @@
 import { useDashboard } from '../context/DashboardContext'
+import { formatRefreshTimestamp } from '../lib/format'
 import { FilterStripControls, FilterStripShell } from './FilterStrip'
 
 export default function TopBar() {
@@ -10,14 +11,7 @@ export default function TopBar() {
       trailing={
         lastUpdated ? (
           <span className="text-xs text-tertiary">
-            updated{' '}
-            {lastUpdated.toLocaleString(undefined, {
-              month: 'short',
-              day: 'numeric',
-              year: 'numeric',
-              hour: '2-digit',
-              minute: '2-digit',
-            })}
+            updated {formatRefreshTimestamp(lastUpdated, { includeYear: true })}
           </span>
         ) : undefined
       }

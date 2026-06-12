@@ -26,7 +26,7 @@ import {
   scrollEntranceStagger,
   refreshScrollTrigger,
 } from '../theme/animations'
-import { formatNum, formatPct } from '../lib/format'
+import { formatNum, formatPct, formatRefreshTimestamp } from '../lib/format'
 import {
   PolarAngleAxis,
   PolarGrid,
@@ -581,9 +581,7 @@ export default function Overview() {
           {weeklyWindow?.dataStale && weeklyWindow.latestDataDate
             ? ` · Data through ${weeklyWindow.latestDataDate.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}`
             : ''}
-          {lastUpdated
-            ? ` · Refreshed ${lastUpdated.toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}`
-            : ''}
+          {lastUpdated ? ` · Refreshed ${formatRefreshTimestamp(lastUpdated)}` : ''}
         </p>
       </section>
 
