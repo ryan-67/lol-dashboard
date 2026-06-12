@@ -1,5 +1,5 @@
 -- Tracks Oracle's Elixir Google Drive CSV metadata so CI can skip no-op refreshes.
--- Apply once in Supabase SQL editor (or via CLI) before the polling workflow runs.
+-- Apply in Supabase SQL editor. Safe to re-run (IF NOT EXISTS / IF NOT EXISTS column / GRANT).
 
 create table if not exists public.oe_sync_state (
   year text primary key,
@@ -14,12 +14,13 @@ create table if not exists public.oe_sync_state (
   updated_at timestamptz not null default now()
 );
 
-alter table public.oe_sync_state enable row level security;
-
 alter table public.oe_sync_state add column if not exists latest_game_date text;
 
--- Service role (used by GitHub Actions) bypasses RLS; no anon policies needed.
-grant all on table public.oe_sync_state to service_role;
+alter table public.oe_sync_state enable row level security;
+
+-- GitHub Actions uses SUPABASE_SERVICE_ROLE_KEY — must grant table access explicitly.
+grant select, insert, update, delete on table public.oe_sync_state to service_role;
+grant all on table public.oe_sync_state to postgres;
 
 comment on table public.oe_sync_state is
   'OE Drive CSV metadata for refresh polling; service role only.';
