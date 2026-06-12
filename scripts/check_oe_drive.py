@@ -77,6 +77,19 @@ def main() -> None:
             return
         name = meta.get("name", year)
         print(f"No changes for {name} (year={year}). Skipping refresh.")
+        if stored:
+            print(
+                f"  last ingested: {stored.get('last_ingested_at') or 'never'} · "
+                f"latest game date: {stored.get('latest_game_date') or 'unknown'}"
+            )
+            print(
+                f"  stored file: modified={stored.get('modified_time')} "
+                f"size={stored.get('size_bytes')} md5={stored.get('md5_checksum') or 'n/a'}"
+            )
+        print(
+            f"  remote file: modified={meta.get('modifiedTime')} size={meta.get('size')} "
+            f"md5={meta.get('md5Checksum') or 'n/a'}"
+        )
         return
 
     if args.format == "github":
@@ -87,10 +100,15 @@ def main() -> None:
     print(f"Change detected for {name} (year={year}). Refresh required.")
     if stored:
         print(
-            f"  stored: modified={stored.get('modified_time')} size={stored.get('size_bytes')}"
+            f"  last ingested: {stored.get('last_ingested_at') or 'never'} · "
+            f"latest game date: {stored.get('latest_game_date') or 'unknown'}"
+        )
+        print(
+            f"  stored file: modified={stored.get('modified_time')} "
+            f"size={stored.get('size_bytes')} md5={stored.get('md5_checksum') or 'n/a'}"
         )
     print(
-        f"  remote: modified={meta.get('modifiedTime')} size={meta.get('size')} "
+        f"  remote file: modified={meta.get('modifiedTime')} size={meta.get('size')} "
         f"md5={meta.get('md5Checksum') or 'n/a'}"
     )
 

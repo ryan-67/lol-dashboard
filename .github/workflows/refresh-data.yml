@@ -2,14 +2,13 @@
 #
 # Scheduled: every 2 hours, check OE Drive metadata first. Full download/ingest/seed
 # runs only when the current-year CSV changed (modifiedTime, size, or md5Checksum).
-# Off-days and OE lag windows cost one lightweight metadata check (~30s).
 #
-# Manual workflow_dispatch always runs the full refresh (force).
+# Manual workflow_dispatch always runs the full refresh.
 #
 # Requires oe_sync_state table — see supabase/migrations/oe_sync_state.sql
 #
 # Secrets: SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, GOOGLE_SERVICE_ACCOUNT_KEY
-# Optional: OE_DRIVE_FOLDER_ID (OE Public Match Data folder shared with service account)
+# Optional: OE_DRIVE_FOLDER_ID
 
 name: Refresh Dashboard Data
 
@@ -25,7 +24,7 @@ on:
           - current
           - all
   schedule:
-    - cron: '0 */2 * * *'  # every 2 hours — metadata check; ingest only if OE CSV changed
+    - cron: '0 */2 * * *'
 
 permissions:
   contents: read
@@ -36,11 +35,10 @@ concurrency:
 
 jobs:
   check:
-    if: github.event_name == 'schedule'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     outputs:
-      changed: ${{ steps.check.outputs.changed }}
+      changed: ${{ steps.result.outputs.changed }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -55,27 +53,30 @@ jobs:
       - name: Install Python dependencies
         run: pip install -r scripts/requirements-ingest.txt
 
-      - name: Check OE Drive for CSV changes
-        id: check
+      - name: Determine if refresh needed
+        id: result
         env:
           GOOGLE_SERVICE_ACCOUNT_KEY: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_KEY }}
           OE_DRIVE_FOLDER_ID: ${{ secrets.OE_DRIVE_FOLDER_ID }}
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
         run: |
-          changed=$(python scripts/check_oe_drive.py --format github)
-          echo "changed=$changed" >> "$GITHUB_OUTPUT"
-          if [ "$changed" = "true" ]; then
-            echo "OE CSV changed on Drive — refresh will run."
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+            echo "Manual run — forcing full refresh."
           else
-            echo "No OE CSV changes — skipping refresh."
+            changed=$(python scripts/check_oe_drive.py --format github)
+            echo "changed=$changed" >> "$GITHUB_OUTPUT"
+            if [ "$changed" = "true" ]; then
+              echo "OE CSV changed on Drive — refresh will run."
+            else
+              echo "No OE CSV changes — skipping refresh."
+            fi
           fi
 
   refresh:
     needs: check
-    if: >
-      github.event_name == 'workflow_dispatch' ||
-      (needs.check.result == 'success' && needs.check.outputs.changed == 'true')
+    if: needs.check.result == 'success' && needs.check.outputs.changed == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 120
 
