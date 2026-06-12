@@ -55,6 +55,47 @@ interface LaneGapInfo {
   gap: number
 }
 
+interface TeamGameRecord {
+  id: string
+  date: string
+  opponent: string
+  won: boolean
+}
+
+interface HistoricalSeries {
+  opponent: string
+  wins: number
+  losses: number
+  lastDate: string
+}
+
+interface LaneDuelDomination {
+  dominator: string
+  victim: string
+  role: RoleKey
+  games: number
+  avgGd15Lead: number
+  wonLaneEveryGame: boolean
+  wonDmgEveryGame: boolean
+}
+
+interface SeriesPlayerStats {
+  name: string
+  team: string
+  role: RoleKey | null
+  games: number
+  wins: number
+  avgKda: number
+  avgDmg: number
+  avgGd15: number
+  avgKp: number
+  champions: string[]
+}
+
+interface PocketPickStats extends SeriesPlayerStats {
+  pocketChamp: string
+}
+
 interface SeriesContext {
   kind: string
   priority: number
@@ -70,6 +111,7 @@ const ROLE_CHAT: Record<RoleKey, string> = {
 }
 
 const FILLER_WORDS = new Set(['esports', 'gaming', 'team', 'life', 'of', 'the'])
+const MAX_CONTEXT_CLAUSES = 3
 
 class RecapLedger {
   private families = new Set<string>()
@@ -89,6 +131,13 @@ class RecapLedger {
 function parseDate(value: string): Date | null {
   const d = new Date(value)
   return Number.isNaN(d.getTime()) ? null : d
+}
+
+function daysBetween(a: string, b: string): number {
+  const da = parseDate(a)
+  const db = parseDate(b)
+  if (!da || !db) return 999
+  return Math.abs(da.getTime() - db.getTime()) / (1000 * 60 * 60 * 24)
 }
 
 function formatRecapDate(iso: string): string {
@@ -117,6 +166,14 @@ function recapTeamTag(name: string): string {
     return significant.map((w) => w[0]?.toUpperCase() ?? '').join('')
   }
   return words.map((w) => w[0]?.toUpperCase() ?? '').join('') || canonical.toUpperCase()
+}
+
+function playerLabel(name: string): string {
+  return name.toLowerCase()
+}
+
+function champLabel(champ: string): string {
+  return champ.toLowerCase()
 }
 
 function teamLeague(teams: Team[], name: string): string {
@@ -188,6 +245,98 @@ function collectWeeklyGames(players: Player[], window: WeeklyRecapWindow): Parse
   return games.sort((a, b) => a.date.localeCompare(b.date))
 }
 
+function collectTeamGames(players: Player[], team: string): TeamGameRecord[] {
+  const seen = new Set<string>()
+  const games: TeamGameRecord[] = []
+
+  for (const player of players) {
+    if (player.team !== team) continue
+    for (const g of player.gameLog ?? []) {
+      const id = g.gameId ?? `${g.date}|${player.team}|${g.opponent ?? ''}|${g.result}`
+      if (seen.has(id)) continue
+      seen.add(id)
+      const opponent = g.opponent?.trim()
+      if (!opponent) continue
+      games.push({
+        id,
+        date: g.date,
+        opponent,
+        won: g.result === 1,
+      })
+    }
+  }
+
+  return games.sort((a, b) => a.date.localeCompare(b.date) || a.id.localeCompare(b.id))
+}
+
+function groupTeamSeriesHistory(games: TeamGameRecord[]): HistoricalSeries[] {
+  if (!games.length) return []
+  const out: HistoricalSeries[] = []
+  let bucket: TeamGameRecord[] = [games[0]!]
+
+  for (let i = 1; i < games.length; i++) {
+    const g = games[i]!
+    const last = bucket[bucket.length - 1]!
+    const sameOpp = g.opponent === last.opponent
+    const closeDates = daysBetween(last.date, g.date) <= 5
+    if (sameOpp && closeDates) {
+      bucket.push(g)
+    } else {
+      out.push(summarizeHistoricalSeries(bucket))
+      bucket = [g]
+    }
+  }
+  out.push(summarizeHistoricalSeries(bucket))
+  return out
+}
+
+function summarizeHistoricalSeries(games: TeamGameRecord[]): HistoricalSeries {
+  const wins = games.filter((g) => g.won).length
+  const losses = games.length - wins
+  return {
+    opponent: games[0]!.opponent,
+    wins,
+    losses,
+    lastDate: games[games.length - 1]!.date,
+  }
+}
+
+function countSeriesWinStreak(
+  history: HistoricalSeries[],
+  beforeDate: string,
+  excludeOpponent?: string,
+): number {
+  const prior = history.filter(
+    (s) => s.lastDate < beforeDate && (!excludeOpponent || s.opponent !== excludeOpponent),
+  )
+  let streak = 0
+  for (let i = prior.length - 1; i >= 0; i--) {
+    const s = prior[i]!
+    if (s.wins > s.losses) streak++
+    else break
+  }
+  return streak
+}
+
+function countSeriesLossStreak(history: HistoricalSeries[], beforeDate: string): number {
+  const prior = history.filter((s) => s.lastDate < beforeDate)
+  let streak = 0
+  for (let i = prior.length - 1; i >= 0; i--) {
+    const s = prior[i]!
+    if (s.losses > s.wins) streak++
+    else break
+  }
+  return streak
+}
+
+function findStarPlayer(players: Player[], team: string): Player | null {
+  return (
+    players
+      .filter((p) => p.team === team && p.games >= 8)
+      .sort((a, b) => b.games * b.kda - a.games * a.kda)[0] ?? null
+  )
+}
+
 function seriesKey(a: string, b: string): string {
   return [a, b].sort((x, y) => x.localeCompare(y)).join('|')
 }
@@ -217,6 +366,124 @@ function buildWeekChampionCounts(games: ParsedGame[]): Map<string, number> {
     }
   }
   return counts
+}
+
+function aggregateSeriesPlayerStats(bucket: SeriesBucket): SeriesPlayerStats[] {
+  const map = new Map<string, SeriesPlayerStats>()
+
+  for (const g of bucket.games) {
+    for (const p of g.players) {
+      const key = `${p.team}|${p.name}`
+      const cur = map.get(key) ?? {
+        name: p.name,
+        team: p.team,
+        role: p.role,
+        games: 0,
+        wins: 0,
+        avgKda: 0,
+        avgDmg: 0,
+        avgGd15: 0,
+        avgKp: 0,
+        champions: [],
+      }
+      cur.games++
+      if (p.won) cur.wins++
+      cur.avgKda += p.kda
+      cur.avgDmg += p.dmgShare
+      cur.avgGd15 += p.gd15
+      cur.avgKp += p.kp
+      if (p.champion && !cur.champions.includes(p.champion)) cur.champions.push(p.champion)
+      map.set(key, cur)
+    }
+  }
+
+  return [...map.values()].map((s) => ({
+    ...s,
+    avgKda: s.avgKda / s.games,
+    avgDmg: s.avgDmg / s.games,
+    avgGd15: s.avgGd15 / s.games,
+    avgKp: s.avgKp / s.games,
+  }))
+}
+
+function findLaneDuelDomination(series: SeriesBucket): LaneDuelDomination | null {
+  let best: LaneDuelDomination | null = null
+
+  for (const role of ['top', 'jungle', 'mid', 'adc', 'support'] as RoleKey[]) {
+    const perGame: { a: GamePlayer; b: GamePlayer }[] = []
+
+    for (const g of series.games) {
+      const lane = g.players.filter((p) => p.role === role)
+      if (lane.length < 2) continue
+      const teams = [...new Set(lane.map((p) => p.team))]
+      if (teams.length < 2) continue
+      const p1 = lane.find((p) => p.team === teams[0])
+      const p2 = lane.find((p) => p.team === teams[1])
+      if (!p1 || !p2 || p1.name === p2.name) continue
+      perGame.push({ a: p1, b: p2 })
+    }
+
+    if (perGame.length < 2) continue
+
+    const namesA = new Set(perGame.map((x) => x.a.name))
+    const namesB = new Set(perGame.map((x) => x.b.name))
+    if (namesA.size !== 1 || namesB.size !== 1) continue
+
+    const sample = perGame[0]!
+    let aLaneWins = 0
+    let aDmgWins = 0
+    let gdLead = 0
+
+    for (const { a, b } of perGame) {
+      if (a.gd15 > b.gd15) aLaneWins++
+      if (a.dmgShare > b.dmgShare) aDmgWins++
+      gdLead += a.gd15 - b.gd15
+    }
+
+    const bLaneWins = perGame.length - aLaneWins
+    const bDmgWins = perGame.length - aDmgWins
+
+    const candidates: LaneDuelDomination[] = []
+    if (aLaneWins === perGame.length || aDmgWins === perGame.length) {
+      candidates.push({
+        dominator: sample.a.name,
+        victim: sample.b.name,
+        role,
+        games: perGame.length,
+        avgGd15Lead: gdLead / perGame.length,
+        wonLaneEveryGame: aLaneWins === perGame.length,
+        wonDmgEveryGame: aDmgWins === perGame.length,
+      })
+    }
+    if (bLaneWins === perGame.length || bDmgWins === perGame.length) {
+      candidates.push({
+        dominator: sample.b.name,
+        victim: sample.a.name,
+        role,
+        games: perGame.length,
+        avgGd15Lead: -gdLead / perGame.length,
+        wonLaneEveryGame: bLaneWins === perGame.length,
+        wonDmgEveryGame: bDmgWins === perGame.length,
+      })
+    }
+
+    for (const c of candidates) {
+      const score =
+        (c.wonLaneEveryGame ? 40 : 0) +
+        (c.wonDmgEveryGame ? 35 : 0) +
+        c.games * 10 +
+        Math.abs(c.avgGd15Lead) / 20
+      const bestScore = best
+        ? (best.wonLaneEveryGame ? 40 : 0) +
+          (best.wonDmgEveryGame ? 35 : 0) +
+          best.games * 10 +
+          Math.abs(best.avgGd15Lead) / 20
+        : 0
+      if (!best || score > bestScore) best = c
+    }
+  }
+
+  return best
 }
 
 function findBestLaneGap(series: SeriesBucket): LaneGapInfo | null {
@@ -263,6 +530,111 @@ function avgTeamGd15(series: SeriesBucket, team: string): number {
   return vals.reduce((s, v) => s + v, 0) / vals.length
 }
 
+function buildFormPrefix(
+  dominant: string,
+  victim: string,
+  domWins: number,
+  vicWins: number,
+  flags: {
+    reverseSweep: boolean
+    blowout: boolean
+    upset: boolean
+    domSplitWr: number
+    vicSplitWr: number
+    seriesStreak: number
+    victimSlump: number
+  },
+  players: Player[],
+  region: string,
+  ledger: RecapLedger,
+  id: string,
+  salt: number,
+): WeeklyRecapSegment[] | null {
+  const { reverseSweep, blowout, domSplitWr, vicSplitWr, seriesStreak, victimSlump } = flags
+  const star = findStarPlayer(players, dominant)
+
+  if (reverseSweep && vicSplitWr >= domSplitWr + 5) {
+    return [
+      segTeam(victim),
+      segText(
+        ledger.pick(`${id}-stinker`, salt, [
+          ` with an absolute stinker, getting reverse swept by `,
+          ` in freefall — reverse swept by `,
+          ` blew a game-1 lead and got reverse swept by `,
+        ]),
+      ),
+    ]
+  }
+
+  if (seriesStreak >= 3 && blowout) {
+    return [
+      segTeam(dominant),
+      segText(
+        ledger.pick(`${id}-peak`, salt, [
+          ` are peaking, stomping `,
+          ` keep rolling — another clean `,
+          ` extend their hot streak, dismantling `,
+        ]),
+      ),
+    ]
+  }
+
+  if (seriesStreak >= 3) {
+    const ord =
+      seriesStreak === 3 ? '3rd' : seriesStreak === 4 ? '4th' : `${seriesStreak}th`
+    return [
+      segTeam(dominant),
+      segText(` riding a wave — their ${ord} straight series win, taking `),
+    ]
+  }
+
+  if (domSplitWr >= 72 && star && domWins >= vicWins) {
+    return [
+      segText(
+        ledger.pick(`${id}-goat`, salt, [
+          `${playerLabel(star.name)} reminds everyone why `,
+          `${playerLabel(star.name)} shows once again that `,
+          `${playerLabel(star.name)} keeps proving `,
+        ]),
+      ),
+      segTeam(dominant),
+      segText(
+        ledger.pick(`${id}-goat2`, salt, [
+          ` run ${region} as they beat `,
+          ` are the team to beat in ${region}, beating `,
+          ` own ${region} right now — `,
+        ]),
+      ),
+    ]
+  }
+
+  if (victimSlump >= 2 && !reverseSweep) {
+    return [
+      segTeam(victim),
+      segText(
+        ledger.pick(`${id}-slump`, salt, [
+          ` can't catch a break, dropping another to `,
+          ` stay ice cold against `,
+          ` continue to struggle vs `,
+        ]),
+      ),
+    ]
+  }
+
+  if (upsetFromWr(domSplitWr, vicSplitWr) && domSplitWr < 45) {
+    return [
+      segTeam(dominant),
+      segText(` spring the upset, knocking off `),
+    ]
+  }
+
+  return null
+}
+
+function upsetFromWr(dom: number, vic: number): boolean {
+  return dom + 8 < vic
+}
+
 function buildResultSegments(
   dominant: string,
   victim: string,
@@ -275,15 +647,44 @@ function buildResultSegments(
     upset: boolean
     domSplitWr: number
     vicSplitWr: number
+    hasPrefix: boolean
+    victimSlump: number
   },
   ledger: RecapLedger,
   id: string,
   salt: number,
 ): WeeklyRecapSegment[] {
-  const { reverseSweep, blowout, upset, domSplitWr, vicSplitWr } = flags
+  const { reverseSweep, blowout, upset, domSplitWr, vicSplitWr, hasPrefix } = flags
+
+  if (hasPrefix && reverseSweep) {
+    return [
+      segTeam(dominant),
+      segText(` ${domWins}-${vicWins}`),
+    ]
+  }
+
+  if (hasPrefix && blowout) {
+    return [
+      segTeam(victim),
+      segText(` ${domWins}-0`),
+    ]
+  }
+
+  if (hasPrefix && domSplitWr >= 72) {
+    return [
+      segTeam(victim),
+      segText(` ${domWins}-${vicWins}`),
+    ]
+  }
+
+  if (hasPrefix && flags.victimSlump >= 2) {
+    return [
+      segTeam(dominant),
+      segText(` ${domWins}-${vicWins}`),
+    ]
+  }
 
   if (reverseSweep && domWins >= 2) {
-    const family = ledger.claim('reverse') ? 'reverse' : 'result'
     const templates = [
       () => [
         segTeam(dominant),
@@ -293,18 +694,12 @@ function buildResultSegments(
       ],
       () => [
         segTeam(dominant),
-        segText(` dropped game 1 then took `),
+        segText(` dropped game 1 then closed `),
         segTeam(victim),
         segText(` ${domWins}-${vicWins}`),
       ],
-      () => [
-        segTeam(victim),
-        segText(` stole game 1 but `),
-        segTeam(dominant),
-        segText(` closed ${domWins}-${vicWins} in ${region}`),
-      ],
     ]
-    return ledger.pick(`${id}-${family}`, salt, templates)()
+    return ledger.pick(`${id}-rev`, salt, templates)()
   }
 
   if (blowout && domWins >= 3) {
@@ -321,30 +716,17 @@ function buildResultSegments(
         segTeam(victim),
         segText(` (${region})`),
       ],
-      () => [
-        segTeam(victim),
-        segText(` went winless (${domWins}-0) vs `),
-        segTeam(dominant),
-      ],
     ]
     return ledger.pick(`${id}-blowout`, salt + 1, templates)()
   }
 
   if (blowout) {
-    const templates = [
-      () => [
-        segTeam(dominant),
-        segText(` swept the week ${domWins}-0 against `),
-        segTeam(victim),
-      ],
-      () => [
-        segTeam(dominant),
-        segText(` won every game vs `),
-        segTeam(victim),
-        segText(` (${domWins}-0, ${region})`),
-      ],
+    return [
+      segTeam(dominant),
+      segText(` swept `),
+      segTeam(victim),
+      segText(` ${domWins}-0 (${region})`),
     ]
-    return ledger.pick(`${id}-sweep`, salt + 2, templates)()
   }
 
   if (upset) {
@@ -359,9 +741,9 @@ function buildResultSegments(
   const templates = [
     () => [
       segTeam(dominant),
-      segText(` won the week ${domWins}-${vicWins} over `),
+      segText(` beat `),
       segTeam(victim),
-      segText(` (${region})`),
+      segText(` ${domWins}-${vicWins} (${region})`),
     ],
     () => [
       segTeam(dominant),
@@ -374,12 +756,6 @@ function buildResultSegments(
       segTeam(victim),
       segText(`: ${domWins}-${vicWins} on the week`),
     ],
-    () => [
-      segTeam(victim),
-      segText(` fell ${vicWins}-${domWins} to `),
-      segTeam(dominant),
-      segText(` in ${region}`),
-    ],
   ]
   return ledger.pick(`${id}-close`, salt + 3, templates)()
 }
@@ -387,172 +763,251 @@ function buildResultSegments(
 function buildContextInsights(
   bucket: SeriesBucket,
   dominant: string,
-  _victim: string,
+  victim: string,
   gap: LaneGapInfo | null,
+  laneDuel: LaneDuelDomination | null,
+  playerStats: SeriesPlayerStats[],
   weekCounts: Map<string, number>,
+  flags: {
+    reverseSweep: boolean
+    blowout: boolean
+    domSplitWr: number
+    vicSplitWr: number
+  },
   ledger: RecapLedger,
   id: string,
   salt: number,
 ): SeriesContext[] {
   const insights: SeriesContext[] = []
-  const players = bucket.games.flatMap((g) => g.players)
   const role = gap ? ROLE_CHAT[gap.role] : 'mid'
-  const gapper = gap?.gapper.toLowerCase() ?? ''
-  const gapped = gap?.gapped.toLowerCase() ?? ''
+  const gapper = gap?.gapper ?? ''
+  const gapped = gap?.gapped ?? ''
   const gapOnWinner = gap ? gap.gapperTeam === dominant : false
   const avgGd = avgTeamGd15(bucket, dominant)
+  const winPlayers = playerStats.filter((p) => p.team === dominant && p.wins > 0)
+  const losePlayers = playerStats.filter((p) => p.team === victim)
 
-  if (gap && gap.gap >= 75) {
-    if (!gapOnWinner) {
+  if (laneDuel && (laneDuel.wonLaneEveryGame || laneDuel.wonDmgEveryGame)) {
+    const r = ROLE_CHAT[laneDuel.role]
+    const dom = playerLabel(laneDuel.dominator)
+    const vic = playerLabel(laneDuel.victim)
+    const onWinnerSide = playerStats.some(
+      (p) => p.name === laneDuel.dominator && p.team === dominant,
+    )
+
+    if (laneDuel.wonLaneEveryGame && laneDuel.wonDmgEveryGame) {
       insights.push({
-        kind: 'lane_comeback',
-        priority: 90 + gap.gap / 100,
+        kind: 'lane_sweep',
+        priority: 95,
         segments: [
           segText(
-            ledger.pick(`${id}-lc`, salt, [
-              ` — ${gapper} smashed ${role} vs ${gapped} but `,
-              ` — even after ${gapper} won ${role} over ${gapped}, `,
-              ` — ${gapper} owned ${gapped} at 15 yet `,
+            ledger.pick(`${id}-ls`, salt, [
+              ` — ${dom} outlaned and outdamaged ${vic} in every game`,
+              ` — ${dom} styled on ${vic} in ${r} all series (${laneDuel.games} games)`,
+              ` with ${dom} winning ${r} and damage vs ${vic} every single game`,
             ]),
           ),
         ],
       })
-    } else {
+    } else if (laneDuel.wonLaneEveryGame) {
       insights.push({
-        kind: 'lane_dom',
-        priority: 70 + gap.gap / 100,
+        kind: 'lane_sweep',
+        priority: 88,
         segments: [
           segText(
-            ledger.pick(`${id}-ld`, salt, [
-              `, ${gapper} had the ${role} matchup vs ${gapped}`,
-              ` — ${gapper} won the ${role} lane against ${gapped}`,
-              ` with ${gapper} ahead in ${role} vs ${gapped}`,
-            ]),
+            ` — ${dom} outlaned ${vic} in ${r} every game` +
+              (onWinnerSide ? '' : ` (still lost the series)`),
+          ),
+        ],
+      })
+    } else if (laneDuel.wonDmgEveryGame) {
+      insights.push({
+        kind: 'dmg_sweep',
+        priority: 82,
+        segments: [
+          segText(` — ${dom} had more damage than ${vic} in every game`),
+        ],
+      })
+    }
+  }
+
+  const carries = winPlayers
+    .filter((p) => p.wins >= 2 && p.avgDmg >= 30 && p.avgKda >= 3.5)
+    .sort((a, b) => b.avgDmg * b.avgKda - a.avgDmg * a.avgKda)
+
+  if (carries.length >= 1) {
+    const c = carries[0]!
+    const winGames = bucket.games.filter((g) => g.winner === dominant).length
+    insights.push({
+      kind: 'dmg_carry',
+      priority: 85 + c.avgDmg,
+      segments: [
+        segText(
+          ledger.pick(`${id}-dc`, salt, [
+            ` — ${playerLabel(c.name)} 1v9'd in the wins (${c.avgDmg.toFixed(0)}% dmg avg)`,
+            ` — ${playerLabel(c.name)} was unkillable when it mattered (${c.avgDmg.toFixed(0)}% dmg across ${c.wins}W)`,
+            ` with ${playerLabel(c.name)} popping off (${c.avgKda.toFixed(1)} kda, ${c.avgDmg.toFixed(0)}% dmg in ${winGames} wins)`,
+          ]),
+        ),
+      ],
+    })
+  }
+
+  const pocketPicks: PocketPickStats[] = winPlayers
+    .filter((p) => {
+      const rareChamp = p.champions.find((c) => (weekCounts.get(c) ?? 0) <= 2)
+      return rareChamp && p.avgKda >= 2.5
+    })
+    .map((p) => {
+      const champ = p.champions.find((c) => (weekCounts.get(c) ?? 0) <= 2)!
+      return { ...p, pocketChamp: champ }
+    })
+    .sort((a, b) => b.avgKda - a.avgKda)
+
+  if (pocketPicks.length) {
+    const p = pocketPicks[0]!
+    const r = p.role ? ROLE_CHAT[p.role] : ''
+    insights.push({
+      kind: 'pocket_pick',
+      priority: 78,
+      segments: [
+        segText(
+          ledger.pick(`${id}-pp`, salt, [
+            ` — ${playerLabel(p.name)} pulled out the ${champLabel(p.pocketChamp)}${r ? ` ${r}` : ''}`,
+            `, ${playerLabel(p.name)} whipped out ${champLabel(p.pocketChamp)}${r ? ` ${r}` : ''} and it worked`,
+            ` with ${playerLabel(p.name)}'s ${champLabel(p.pocketChamp)} pocket pick paying off`,
+          ]),
+        ),
+      ],
+    })
+  }
+
+  if (flags.reverseSweep && flags.vicSplitWr >= flags.domSplitWr) {
+    const tried = losePlayers
+      .filter((p) => p.avgKda >= 3.2 || p.avgDmg >= 28)
+      .sort((a, b) => b.avgKda * 0.5 + b.avgDmg * 0.5 - (a.avgKda * 0.5 + a.avgDmg * 0.5))[0]
+    const horrors = losePlayers
+      .filter((p) => p.avgKda < 2.2)
+      .sort((a, b) => a.avgKda - b.avgKda)
+      .slice(0, 2)
+
+    if (tried && horrors.length >= 2) {
+      insights.push({
+        kind: 'reverse_horror',
+        priority: 92,
+        segments: [
+          segText(
+            ` — ${playerLabel(tried.name)} tried his best but ${playerLabel(horrors[0]!.name)} and ${playerLabel(horrors[1]!.name)} had a horror series`,
+          ),
+        ],
+      })
+    } else if (horrors.length >= 2) {
+      insights.push({
+        kind: 'horror_series',
+        priority: 86,
+        segments: [
+          segText(
+            ` — ${playerLabel(horrors[0]!.name)} and ${playerLabel(horrors[1]!.name)} had a nightmare series`,
+          ),
+        ],
+      })
+    } else if (tried) {
+      insights.push({
+        kind: 'loser_effort',
+        priority: 75,
+        segments: [
+          segText(
+            ` — ${playerLabel(tried.name)} tried to 1v9 (${tried.avgKda.toFixed(1)} kda) but got no help`,
           ),
         ],
       })
     }
   }
 
-  if (avgGd >= 400 && bucket.games.length >= 2) {
+  if (gap && gap.gap >= 75 && !laneDuel?.wonLaneEveryGame) {
+    if (!gapOnWinner) {
+      insights.push({
+        kind: 'lane_comeback',
+        priority: 72 + gap.gap / 100,
+        segments: [
+          segText(
+            ` — ${playerLabel(gapper)} won ${role} vs ${playerLabel(gapped)} but the team still closed it`,
+          ),
+        ],
+      })
+    } else {
+      insights.push({
+        kind: 'lane_dom',
+        priority: 68 + gap.gap / 100,
+        segments: [
+          segText(
+            ` — ${playerLabel(gapper)} owned ${playerLabel(gapped)} in the ${role} matchup`,
+          ),
+        ],
+      })
+    }
+  }
+
+  if (avgGd >= 400 && bucket.games.length >= 2 && flags.blowout) {
     insights.push({
       kind: 'early_lead',
-      priority: 55 + avgGd / 200,
+      priority: 62,
       segments: [
-        segText(
-          ledger.pick(`${id}-gd`, salt, [
-            `, avg +${avgGd.toFixed(0)} gd@15 across the set`,
-            ` — up big at 15 every game basically`,
-            ` with early gold leads all series`,
-          ]),
-        ),
+        segText(` — up +${avgGd.toFixed(0)} gd@15 on average, never close`),
       ],
     })
   }
 
-  const carry = players
-    .filter((p) => p.won && p.team === dominant && p.kda >= 5 && p.dmgShare >= 28)
-    .sort((a, b) => b.kda * 0.55 + b.dmgShare * 0.45 - (a.kda * 0.55 + a.dmgShare * 0.45))[0]
+  const jg = winPlayers
+    .filter((p) => p.role === 'jungle' && p.avgKp >= 72)
+    .sort((a, b) => b.avgKp - a.avgKp)[0]
 
-  if (carry) {
-    insights.push({
-      kind: 'hard_carry',
-      priority: 80 + carry.kda,
-      segments: [
-        segText(
-          ledger.pick(`${id}-hc`, salt, [
-            ` — ${carry.name.toLowerCase()} hard carried on ${carry.champion.toLowerCase()} (${carry.kda.toFixed(1)} kda, ${carry.dmgShare.toFixed(0)}% dmg)`,
-            `, ${carry.name.toLowerCase()} basically solo won on ${carry.champion.toLowerCase()} (${carry.kda.toFixed(1)} kda)`,
-            ` — shoutout ${carry.name.toLowerCase()} (${carry.champion.toLowerCase()}, ${carry.kda.toFixed(1)} kda / ${carry.dmgShare.toFixed(0)}% dmg)`,
-          ]),
-        ),
-      ],
-    })
-  }
-
-  const rarePick = players
-    .filter(
-      (p) =>
-        p.won &&
-        p.team === dominant &&
-        p.champion &&
-        (weekCounts.get(p.champion) ?? 0) <= 2 &&
-        p.kda >= 2.5,
-    )
-    .sort((a, b) => b.kda - a.kda)[0]
-
-  if (rarePick) {
-    const r = rarePick.role ? ROLE_CHAT[rarePick.role] : ''
-    insights.push({
-      kind: 'pocket_pick',
-      priority: 65 + rarePick.kda,
-      segments: [
-        segText(
-          ledger.pick(`${id}-pp`, salt, [
-            ` — ${rarePick.name.toLowerCase()} whipped out ${rarePick.champion.toLowerCase()}${r ? ` ${r}` : ''} and it worked`,
-            `, ${rarePick.name.toLowerCase()}'s ${rarePick.champion.toLowerCase()}${r ? ` ${r}` : ''} pocket pick paid off`,
-            ` with a spicy ${rarePick.champion.toLowerCase()}${r ? ` ${r}` : ''} from ${rarePick.name.toLowerCase()}`,
-          ]),
-        ),
-      ],
-    })
-  }
-
-  const jgKp = players
-    .filter((p) => p.won && p.team === dominant && p.role === 'jungle' && p.kp >= 75)
-    .sort((a, b) => b.kp - a.kp)[0]
-
-  if (jgKp) {
+  if (jg) {
     insights.push({
       kind: 'jungle_kp',
-      priority: 60 + jgKp.kp / 10,
+      priority: 58,
       segments: [
-        segText(
-          ledger.pick(`${id}-jk`, salt, [
-            ` — ${jgKp.name.toLowerCase()} was everywhere (${jgKp.kp.toFixed(0)}% kp)`,
-            `, ${jgKp.name.toLowerCase()} had the map on a leash (${jgKp.kp.toFixed(0)}% kp)`,
-          ]),
-        ),
+        segText(` — ${playerLabel(jg.name)} had the map on a leash (${jg.avgKp.toFixed(0)}% kp)`),
       ],
     })
   }
 
-  const feeder = players
-    .filter((p) => !p.won && p.kda < 1.2 && p.kda > 0)
-    .sort((a, b) => a.kda - b.kda)[0]
+  const feeder = losePlayers
+    .filter((p) => p.avgKda < 1.5 && p.avgKda > 0)
+    .sort((a, b) => a.avgKda - b.avgKda)[0]
 
-  if (feeder) {
+  if (feeder && !flags.reverseSweep) {
     insights.push({
       kind: 'feed',
-      priority: 50,
+      priority: 48,
       segments: [
         segText(
-          ledger.pick(`${id}-fd`, salt, [
-            ` — ${feeder.name.toLowerCase()} had a rough one on ${feeder.champion.toLowerCase()} (${feeder.kda.toFixed(1)} kda)`,
-            `, ${feeder.name.toLowerCase()} inted out on ${feeder.champion.toLowerCase()}`,
-            ` with ${feeder.name.toLowerCase()} feeding on ${feeder.champion.toLowerCase()}`,
-          ]),
+          ` — ${playerLabel(feeder.name)} had a rough series on ${champLabel(feeder.champions[0] ?? 'their pick')} (${feeder.avgKda.toFixed(1)} kda avg)`,
         ),
       ],
     })
   }
 
-  const pop = players
-    .filter((p) => p.won && p.team === dominant && p.kda >= 4.2)
-    .sort((a, b) => b.kda - a.kda)[0]
+  const pop = winPlayers
+    .filter((p) => p.avgKda >= 4.5 && p.avgDmg < 30)
+    .sort((a, b) => b.avgKda - a.avgKda)[0]
 
-  if (pop && (!carry || pop.name !== carry.name)) {
+  if (pop && (!carries.length || pop.name !== carries[0]!.name)) {
     insights.push({
       kind: 'popoff',
-      priority: 58 + pop.kda,
+      priority: 56,
       segments: [
-        segText(
-          ledger.pick(`${id}-po`, salt, [
-            ` — ${pop.name.toLowerCase()} went off on ${pop.champion.toLowerCase()} (${pop.kda.toFixed(1)} kda)`,
-            `, ${pop.name.toLowerCase()} was the best player on the rift (${pop.champion.toLowerCase()})`,
-            ` with ${pop.name.toLowerCase()} popping on ${pop.champion.toLowerCase()}`,
-          ]),
-        ),
+        segText(` — ${playerLabel(pop.name)} went off (${pop.avgKda.toFixed(1)} kda avg)`),
+      ],
+    })
+  }
+
+  if (flags.domSplitWr >= 65 && flags.blowout) {
+    insights.push({
+      kind: 'split_form',
+      priority: 52,
+      segments: [
+        segText(` — ${flags.domSplitWr.toFixed(0)}% on the split, looking like title contenders`),
       ],
     })
   }
@@ -563,6 +1018,7 @@ function buildContextInsights(
 function summarizeSeries(
   bucket: SeriesBucket,
   teams: Team[],
+  players: Player[],
   weekCounts: Map<string, number>,
   lineIndex: number,
   ledger: RecapLedger,
@@ -586,29 +1042,95 @@ function summarizeSeries(
 
   const ordered = [...games].sort((a, b) => a.date.localeCompare(b.date))
   const latestDate = ordered[ordered.length - 1]?.date ?? games[0]!.date
+  const firstGameDate = ordered[0]!.date
   const firstLoss = vicWins > 0 ? ordered.findIndex((g) => g.winner === victim) : -1
   const reverseSweep = vicWins > 0 && domWins > vicWins && firstLoss === 0
   const blowout = domWins >= 2 && vicWins === 0
-  const upset = domSplitWr + 8 < vicSplitWr
+  const upset = upsetFromWr(domSplitWr, vicSplitWr)
+
+  const domHistory = groupTeamSeriesHistory(collectTeamGames(players, dominant))
+  const vicHistory = groupTeamSeriesHistory(collectTeamGames(players, victim))
+  const seriesStreak =
+    countSeriesWinStreak(domHistory, firstGameDate, victim) +
+    (domWins > vicWins ? 1 : 0)
+  const victimSlump = countSeriesLossStreak(vicHistory, firstGameDate)
 
   const gap = findBestLaneGap(bucket)
-  const segments = buildResultSegments(
+  const laneDuel = findLaneDuelDomination(bucket)
+  const playerStats = aggregateSeriesPlayerStats(bucket)
+
+  const formFlags = {
+    reverseSweep,
+    blowout,
+    upset,
+    domSplitWr,
+    vicSplitWr,
+    seriesStreak: domWins > vicWins ? seriesStreak : 0,
+    victimSlump: vicWins > domWins ? 0 : victimSlump,
+  }
+
+  const prefix = buildFormPrefix(
     dominant,
     victim,
     domWins,
     vicWins,
+    formFlags,
+    players,
     region,
-    { reverseSweep, blowout, upset, domSplitWr, vicSplitWr },
     ledger,
     id,
     salt,
   )
 
-  const insights = buildContextInsights(bucket, dominant, victim, gap, weekCounts, ledger, id, salt)
+  const segments: WeeklyRecapSegment[] = prefix ? [...prefix] : []
+  segments.push(
+    ...buildResultSegments(
+      dominant,
+      victim,
+      domWins,
+      vicWins,
+      region,
+      {
+        reverseSweep,
+        blowout,
+        upset,
+        domSplitWr,
+        vicSplitWr,
+        hasPrefix: Boolean(prefix),
+        victimSlump: formFlags.victimSlump,
+      },
+      ledger,
+      id,
+      salt,
+    ),
+  )
+
+  const insights = buildContextInsights(
+    bucket,
+    dominant,
+    victim,
+    gap,
+    laneDuel,
+    playerStats,
+    weekCounts,
+    { reverseSweep, blowout, domSplitWr, vicSplitWr },
+    ledger,
+    id,
+    salt,
+  )
+
+  let added = 0
   for (const insight of insights) {
+    if (added >= MAX_CONTEXT_CLAUSES) break
     if (ledger.claim(insight.kind)) {
       segments.push(...insight.segments)
-      break
+      added++
+    }
+  }
+
+  if (added === 0 && insights.length) {
+    for (const insight of insights.slice(0, MAX_CONTEXT_CLAUSES)) {
+      segments.push(...insight.segments)
     }
   }
 
@@ -638,7 +1160,7 @@ export function buildWeeklyRecapLines(
   for (let i = 0; i < series.length; i++) {
     const bucket = series[i]!
     if (bucket.games.length < 1) continue
-    const line = summarizeSeries(bucket, teams, weekCounts, i, ledger)
+    const line = summarizeSeries(bucket, teams, players, weekCounts, i, ledger)
     if (line) lines.push(line)
   }
 
