@@ -3,6 +3,7 @@
 Record successful OE ingest metadata in Supabase oe_sync_state.
 
 Run after verify_supabase_seed.py in the refresh pipeline.
+Non-fatal if oe_sync_state is not set up yet — oe_slices are already seeded.
 """
 
 from __future__ import annotations
@@ -25,11 +26,24 @@ def main() -> None:
     year = year_from_drive_meta(meta)
     latest_game_date = latest_game_date_for_year(year)
     client = supabase_client()
-    save_ingested(client, meta, latest_game_date=latest_game_date)
-    print(
-        f"Saved oe_sync_state for {year} ({meta.get('name')}). "
-        f"Drive modified={meta.get('modifiedTime')} · latest game date={latest_game_date or 'unknown'}"
-    )
+    try:
+        saved = save_ingested(client, meta, latest_game_date=latest_game_date)
+    except Exception as err:
+        print(f"ERROR: failed to save oe_sync_state: {err}", file=sys.stderr)
+        sys.exit(1)
+
+    if saved:
+        print(
+            f"Saved oe_sync_state for {year} ({meta.get('name')}). "
+            f"Drive modified={meta.get('modifiedTime')} · "
+            f"latest game date={latest_game_date or 'unknown'}"
+        )
+    else:
+        print(
+            "Skipped oe_sync_state save (table not ready). "
+            "Dashboard data was still updated in oe_slices.",
+            file=sys.stderr,
+        )
 
 
 if __name__ == "__main__":

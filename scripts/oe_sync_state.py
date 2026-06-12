@@ -164,13 +164,15 @@ def touch_checked(client, meta: dict) -> None:
     client.table(TABLE).upsert(row, on_conflict="year").execute()
 
 
-def save_ingested(client, meta: dict, *, latest_game_date: str | None = None) -> None:
+def save_ingested(client, meta: dict, *, latest_game_date: str | None = None) -> bool:
+    """Persist sync metadata. Returns False on non-fatal setup issues (e.g. missing table)."""
     year = year_from_drive_meta(meta)
     if latest_game_date is None:
         latest_game_date = latest_game_date_for_year(year)
     row = row_from_drive_meta(meta, ingested=True, latest_game_date=latest_game_date)
     try:
         client.table(TABLE).upsert(row, on_conflict="year").execute()
+        return True
     except Exception as err:
         err_text = str(err).lower()
         if "latest_game_date" in err_text and "latest_game_date" in row:
@@ -180,9 +182,31 @@ def save_ingested(client, meta: dict, *, latest_game_date: str | None = None) ->
                 file=sys.stderr,
             )
             row.pop("latest_game_date", None)
-            client.table(TABLE).upsert(row, on_conflict="year").execute()
-            return
+            try:
+                client.table(TABLE).upsert(row, on_conflict="year").execute()
+                return True
+            except Exception as retry_err:
+                err = retry_err
+                err_text = str(retry_err).lower()
+
+        if _is_missing_sync_table_error(err_text):
+            print(table_missing_message(), file=sys.stderr)
+            print(
+                "WARNING: oe_slices were seeded successfully; only sync-state bookkeeping failed.",
+                file=sys.stderr,
+            )
+            return False
         raise
+
+
+def _is_missing_sync_table_error(err_text: str) -> bool:
+    return "oe_sync_state" in err_text and (
+        "does not exist" in err_text
+        or "could not find" in err_text
+        or "404" in err_text
+        or "42p01" in err_text
+        or "pgrst205" in err_text
+    )
 
 
 def table_missing_message() -> str:

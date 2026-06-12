@@ -18,6 +18,9 @@ alter table public.oe_sync_state enable row level security;
 
 alter table public.oe_sync_state add column if not exists latest_game_date text;
 
+-- Service role (used by GitHub Actions) bypasses RLS; no anon policies needed.
+grant all on table public.oe_sync_state to service_role;
+
 comment on table public.oe_sync_state is
   'OE Drive CSV metadata for refresh polling; service role only.';
 
