@@ -3,6 +3,9 @@ import { teamSearchAbbreviation } from './entities/entityMap'
 import { resolveTeamCanonicalName } from './entities/slugs'
 import { findTeamByName } from './teamAnalytics'
 import { normalizePosition, type RoleKey } from './playerRadar'
+import { buildSeriesFacts, type SeriesFacts } from './recapFacts'
+
+export type { SeriesFacts }
 
 export interface WeeklyRecapWindow {
   start: Date
@@ -140,7 +143,7 @@ function daysBetween(a: string, b: string): number {
   return Math.abs(da.getTime() - db.getTime()) / (1000 * 60 * 60 * 24)
 }
 
-function formatRecapDate(iso: string): string {
+export function formatRecapDate(iso: string): string {
   const d = parseDate(iso)
   if (!d) return iso
   return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
@@ -1175,4 +1178,82 @@ export function recapLineToText(line: WeeklyRecapLine): string {
     .join('')
     .replace(/\s+/g, ' ')
     .trim()
+}
+
+export interface SeriesBrief {
+  seriesId: string
+  date: string
+  dateLabel: string
+  league: string
+  teamA: string
+  teamB: string
+  facts: SeriesFacts
+  templateLine: WeeklyRecapLine
+}
+
+export function stableSeriesId(teamA: string, teamB: string, latestDate: string): string {
+  return `${seriesKey(teamA, teamB)}|${latestDate}`
+}
+
+/** All series in the window with deterministic facts + template fallback line. */
+export function collectSeriesBriefs(
+  players: Player[],
+  teams: Team[],
+  window: WeeklyRecapWindow | null,
+): SeriesBrief[] {
+  if (!window) return []
+  const games = collectWeeklyGames(players, window)
+  if (!games.length) return []
+
+  const weekCounts = buildWeekChampionCounts(games)
+  const series = groupSeries(games)
+  const ledger = new RecapLedger()
+  const briefs: SeriesBrief[] = []
+
+  for (let i = 0; i < series.length; i++) {
+    const bucket = series[i]!
+    if (!bucket.games.length) continue
+
+    const winsA = bucket.games.filter((g) => g.winner === bucket.teamA).length
+    const winsB = bucket.games.length - winsA
+    const dominant = winsA >= winsB ? bucket.teamA : bucket.teamB
+    const victim = dominant === bucket.teamA ? bucket.teamB : bucket.teamA
+    const domWins = Math.max(winsA, winsB)
+    const vicWins = Math.min(winsA, winsB)
+
+    const ordered = [...bucket.games].sort((a, b) => a.date.localeCompare(b.date))
+    const latestDate = ordered[ordered.length - 1]?.date ?? bucket.games[0]!.date
+    const firstGameDate = ordered[0]!.date
+    const firstLoss = vicWins > 0 ? ordered.findIndex((g) => g.winner === victim) : -1
+    const reverseSweep = vicWins > 0 && domWins > vicWins && firstLoss === 0
+
+    const domHistory = groupTeamSeriesHistory(collectTeamGames(players, dominant))
+    const vicHistory = groupTeamSeriesHistory(collectTeamGames(players, victim))
+    const seriesStreak =
+      countSeriesWinStreak(domHistory, firstGameDate, victim) + (domWins > vicWins ? 1 : 0)
+    const victimSlump = countSeriesLossStreak(vicHistory, firstGameDate)
+
+    const facts = buildSeriesFacts(bucket, teams, weekCounts, {
+      reverseSweep,
+      blowout: domWins >= 2 && vicWins === 0,
+      seriesStreak: domWins > vicWins ? seriesStreak : 0,
+      victimSlump: vicWins > domWins ? 0 : victimSlump,
+    })
+
+    const templateLine = summarizeSeries(bucket, teams, players, weekCounts, i, ledger)
+    if (!templateLine) continue
+
+    briefs.push({
+      seriesId: stableSeriesId(bucket.teamA, bucket.teamB, latestDate),
+      date: latestDate,
+      dateLabel: formatRecapDate(latestDate),
+      league: facts.league,
+      teamA: resolveTeamCanonicalName(bucket.teamA),
+      teamB: resolveTeamCanonicalName(bucket.teamB),
+      facts,
+      templateLine,
+    })
+  }
+
+  return briefs.sort((a, b) => b.date.localeCompare(a.date) || a.seriesId.localeCompare(b.seriesId))
 }

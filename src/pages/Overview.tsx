@@ -1,7 +1,7 @@
-import { useMemo, useRef } from 'react'
+import { useMemo, useRef, useState, useEffect } from 'react'
 import { useGSAP } from '@gsap/react'
-import { DEFAULT_YEAR, useDashboard } from '../context/DashboardContext'
-import { DEFAULT_SPLIT, type Champion, type Player, type PlayerGameLog } from '../hooks/useDashboardData'
+import { useDashboard } from '../context/DashboardContext'
+import { type Champion, type Player, type PlayerGameLog } from '../hooks/useDashboardData'
 import {
   ROLES,
   computeOpScores,
@@ -21,6 +21,8 @@ import TeamRadarChart from '../components/teams/TeamRadarChart'
 import { EntityLink, ChampionEntityInline } from '../components/entities'
 import WeeklyRecap from '../components/overview/WeeklyRecap'
 import { buildWeeklyRecapLines } from '../lib/weeklyRecap'
+import { fetchCachedWeeklyRecapLines } from '../lib/loadWeeklyRecap'
+import { getWeeklyWindow, inWeeklyWindow, type WeeklyWindow } from '../lib/weeklyWindow'
 import { CHART } from '../theme/chartTheme'
 import {
   scrollEntranceStagger,
@@ -37,15 +39,6 @@ import {
   Tooltip,
 } from 'recharts'
 import { makeChartTooltipContent } from '../components/ui/ChartTooltip'
-
-interface WeeklyWindow {
-  start: Date
-  end: Date
-  key: string
-  label: string
-  latestDataDate: Date | null
-  dataStale: boolean
-}
 
 interface WeeklyPlayer {
   base: Player
@@ -88,68 +81,6 @@ const METRIC_LABELS: Partial<Record<RadarMetricKey, string>> = {
   visionScore: 'VISION',
 }
 
-function parseDate(value: string): Date | null {
-  if (!value) return null
-  const parsed = new Date(value)
-  if (Number.isNaN(parsed.getTime())) return null
-  return parsed
-}
-
-function startOfDay(date: Date): Date {
-  const out = new Date(date)
-  out.setHours(0, 0, 0, 0)
-  return out
-}
-
-function endOfDay(date: Date): Date {
-  const out = new Date(date)
-  out.setHours(23, 59, 59, 999)
-  return out
-}
-
-function isoDate(date: Date): string {
-  return date.toISOString().slice(0, 10)
-}
-
-function weekLabel(start: Date, end: Date): string {
-  return `${start.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })} – ${end.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}`
-}
-
-/** Rolling 7-day window ending today for the active split; last 7 days of data for historical splits. */
-function getWeeklyWindow(players: Player[], year: string, split: string): WeeklyWindow | null {
-  const dates = players
-    .flatMap((p) => p.gameLog ?? [])
-    .map((g) => parseDate(g.date))
-    .filter((d): d is Date => d !== null)
-  if (!dates.length) return null
-  dates.sort((a, b) => a.getTime() - b.getTime())
-  const latestDataDate = dates[dates.length - 1]
-  const today = startOfDay(new Date())
-  const isCurrentContext = year === DEFAULT_YEAR && (split === DEFAULT_SPLIT || split === 'ALL')
-
-  const anchorEnd = isCurrentContext ? endOfDay(today) : endOfDay(latestDataDate)
-  const start = startOfDay(new Date(anchorEnd))
-  start.setDate(start.getDate() - 6)
-
-  const dataStale =
-    isCurrentContext && startOfDay(latestDataDate).getTime() < today.getTime()
-
-  return {
-    start,
-    end: anchorEnd,
-    key: isoDate(start),
-    label: weekLabel(start, anchorEnd),
-    latestDataDate,
-    dataStale,
-  }
-}
-
-function inWindow(log: PlayerGameLog, window: WeeklyWindow): boolean {
-  const d = parseDate(log.date)
-  if (!d) return false
-  return d >= window.start && d <= window.end
-}
-
 function avg(values: number[]): number {
   if (!values.length) return 0
   return values.reduce((sum, n) => sum + n, 0) / values.length
@@ -184,7 +115,7 @@ function getWeeklyPlayers(
   for (const player of players) {
     const role = normalizePosition(player.position)
     if (!role) continue
-    const logs = (player.gameLog ?? []).filter((g) => inWindow(g, window))
+    const logs = (player.gameLog ?? []).filter((g) => inWeeklyWindow(g, window))
     if (!logs.length) continue
     const weekly = createWeeklyPlayerSnapshot(player, logs)
     const cohort = playersForRole(players, role)
@@ -550,13 +481,34 @@ export default function Overview() {
   )
   const opResult = useMemo(() => computeOpScores(championsOfWeek), [championsOfWeek])
 
-  const weeklyRecapLines = useMemo(
+  const templateRecapLines = useMemo(
     () =>
       weeklyWindow
         ? buildWeeklyRecapLines(filteredPlayers, filteredTeams, weeklyWindow, league)
         : [],
     [filteredPlayers, filteredTeams, weeklyWindow, league],
   )
+
+  const [cachedRecapLines, setCachedRecapLines] = useState<typeof templateRecapLines>([])
+
+  useEffect(() => {
+    if (!weeklyWindow) {
+      setCachedRecapLines([])
+      return
+    }
+    let cancelled = false
+    void fetchCachedWeeklyRecapLines(weeklyWindow.start, weeklyWindow.end, league).then(
+      (lines) => {
+        if (!cancelled) setCachedRecapLines(lines)
+      },
+    )
+    return () => {
+      cancelled = true
+    }
+  }, [weeklyWindow, league])
+
+  const weeklyRecapLines =
+    cachedRecapLines.length > 0 ? cachedRecapLines : templateRecapLines
 
   useGSAP(
     () => {

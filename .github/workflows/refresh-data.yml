@@ -8,7 +8,7 @@
 # Requires oe_sync_state table — see supabase/migrations/oe_sync_state.sql
 #
 # Secrets: SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, GOOGLE_SERVICE_ACCOUNT_KEY
-# Optional: OE_DRIVE_FOLDER_ID
+# Optional: OE_DRIVE_FOLDER_ID, OPENROUTER_API_KEY (weekly recap generation)
 
 name: Refresh Dashboard Data
 
@@ -127,6 +127,23 @@ jobs:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
         run: python scripts/verify_supabase_seed.py
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+
+      - name: Install Node dependencies
+        run: npm ci
+
+      - name: Generate weekly recap summaries
+        continue-on-error: true
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+        run: npm run generate:weekly-recap
 
       - name: Save OE Drive sync state
         continue-on-error: true

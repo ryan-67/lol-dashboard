@@ -38,7 +38,7 @@ export default function WeeklyRecap({ lines, windowLabel }: WeeklyRecapProps) {
   return (
     <section ref={ref} className="card overview-hub-card">
       <h2 className="card-title">Weekly Recap</h2>
-      <p className="card-subtitle">{windowLabel} · tier-1 takes from the data</p>
+      <p className="card-subtitle">{windowLabel} · tier-1 takes · cached when available</p>
       {!lines.length ? (
         <p className="text-secondary">no match results in this window for the current filter.</p>
       ) : (
