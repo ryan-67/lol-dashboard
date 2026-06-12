@@ -388,12 +388,27 @@ b,
 }
 
 .overview-recap-item {
+  display: grid;
+  grid-template-columns: 72px 1fr;
+  gap: 12px;
+  align-items: start;
   padding: 12px 14px;
   border: 1px solid var(--border-subtle);
   font-size: 13px;
   line-height: 1.55;
   color: var(--text-primary);
   font-family: var(--font-mono);
+}
+
+.overview-recap-date {
+  font-size: 11px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  padding-top: 2px;
+}
+
+.overview-recap-body {
+  min-width: 0;
 }
 
 .overview-recap-team {

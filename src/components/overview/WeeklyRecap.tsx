@@ -45,7 +45,12 @@ export default function WeeklyRecap({ lines, windowLabel }: WeeklyRecapProps) {
         <ul className="overview-recap-list">
           {lines.map((line) => (
             <li key={line.id} className="overview-recap-item">
-              <RecapLineBody line={line} />
+              <time className="overview-recap-date" dateTime={line.date}>
+                {line.dateLabel}
+              </time>
+              <div className="overview-recap-body">
+                <RecapLineBody line={line} />
+              </div>
             </li>
           ))}
         </ul>
