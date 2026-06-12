@@ -1,6 +1,18 @@
 # Refresh Oracle's Elixir data: Drive → ingest → Supabase.
 #
-# Daily (22:00 UTC): download current-year OE CSV only, ingest, upsert Supabase.
+# Twice daily (09:00 + 21:00 UTC), timed for tier-1 league match windows plus ~2–3h
+# Oracle's Elixir CSV lag. OE publishes to Google Drive; we pull current-year CSV only.
+#
+#   09:00 UTC — Americas / overnight catch-up
+#     LCS (PT): weekend blocks typically end ~04:00–07:00 UTC → OE ready by ~09:00.
+#     Also ingests late LEC from the prior EU evening and any straggler rows.
+#
+#   21:00 UTC — Asia + Europe evening
+#     LCK (KST): weekday/weekend evenings usually finish by ~12:00 UTC.
+#     LPL (CST): evening blocks usually finish by ~15:00–16:00 UTC.
+#     LEC (CET/CEST): Fri–Sun evenings usually finish by ~19:00–20:00 UTC.
+#     + ~2–3h OE lag → safe pull around 21:00 UTC.
+#
 # Manual "all" run: download every year (initial backfill or full rebuild).
 #
 # Secrets: SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, GOOGLE_SERVICE_ACCOUNT_KEY
@@ -20,7 +32,8 @@ on:
           - current
           - all
   schedule:
-    - cron: '0 22 * * *'
+    - cron: '0 9 * * *'   # 09:00 UTC — LCS + overnight catch-up
+    - cron: '0 21 * * *'  # 21:00 UTC — LCK / LPL / LEC evening blocks
 
 permissions:
   contents: write
