@@ -39,6 +39,7 @@ supabase/functions/analyst-chat/
 
 supabase/migrations/**
 !supabase/migrations/README.md
+!supabase/migrations/oe_sync_state.sql
 
 scripts/rag-indexer/src/
 scripts/rag-indexer/tsconfig.json

@@ -7,6 +7,7 @@ Full SQL migrations for the production Supabase project are **not** in the publi
 | Table | Purpose |
 |-------|---------|
 | `oe_slices` | Oracle's Elixir aggregates per `(split, league)` as JSONB |
+| `oe_sync_state` | OE Drive CSV metadata for CI refresh polling (apply `oe_sync_state.sql`) |
 | `profiles` | User profile, favorites, subscription flag |
 | `subscriptions` | Stripe-linked plan state |
 | `conversations` / `messages` | nuckyAI chat history |

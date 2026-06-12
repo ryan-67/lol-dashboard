@@ -13,7 +13,6 @@ Environment:
 
 from __future__ import annotations
 
-import json
 import os
 import sys
 from pathlib import Path
@@ -22,75 +21,16 @@ SCRIPTS_DIR = Path(__file__).resolve().parent
 if str(SCRIPTS_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPTS_DIR))
 
-from oe_csv_io import (
-    filter_remote_files_by_years,
-    parse_download_years,
-    resolve_drive_folder_id,
+from oe_csv_io import filter_remote_files_by_years, parse_download_years, resolve_drive_folder_id
+from oe_drive_client import (
+    LOL_DIR,
+    build_drive_service,
+    download_file,
+    list_csv_files,
+    load_env,
 )
 
 ROOT = Path(__file__).resolve().parents[1]
-LOL_DIR = ROOT / "lol"
-SCOPES = ["https://www.googleapis.com/auth/drive.readonly"]
-
-
-def load_env() -> None:
-    try:
-        from dotenv import load_dotenv
-
-        load_dotenv(ROOT / ".env")
-    except ImportError:
-        pass
-
-
-def credentials_from_env():
-    from google.oauth2 import service_account
-
-    raw = os.environ.get("GOOGLE_SERVICE_ACCOUNT_KEY", "").strip()
-    if not raw:
-        raise RuntimeError(
-            "Missing GOOGLE_SERVICE_ACCOUNT_KEY (service account JSON for Google Drive)."
-        )
-    info = json.loads(raw)
-    return service_account.Credentials.from_service_account_info(info, scopes=SCOPES)
-
-
-def list_csv_files(service, folder_id: str) -> list[dict]:
-    files: list[dict] = []
-    page_token = None
-    query = f"'{folder_id}' in parents and trashed = false"
-    while True:
-        response = (
-            service.files()
-            .list(
-                q=query,
-                fields="nextPageToken, files(id, name, modifiedTime, size)",
-                pageSize=200,
-                pageToken=page_token,
-                supportsAllDrives=True,
-                includeItemsFromAllDrives=True,
-            )
-            .execute()
-        )
-        files.extend(response.get("files", []))
-        page_token = response.get("nextPageToken")
-        if not page_token:
-            break
-
-    return files
-
-
-def download_file(service, file_id: str, dest: Path) -> None:
-    from googleapiclient.http import MediaIoBaseDownload
-
-    dest.parent.mkdir(parents=True, exist_ok=True)
-    request = service.files().get_media(fileId=file_id, supportsAllDrives=True)
-    with dest.open("wb") as fh:
-        downloader = MediaIoBaseDownload(fh, request, chunksize=50 * 1024 * 1024)
-        done = False
-        while not done:
-            _, done = downloader.next_chunk()
-            if not done:
-                print(f"  {dest.name}: {int(downloader.progress() * 100)}%")
 
 
 def main() -> None:
@@ -98,14 +38,7 @@ def main() -> None:
     folder_id = resolve_drive_folder_id(os.environ.get("OE_DRIVE_FOLDER_ID"))
     download_years = parse_download_years(os.environ.get("OE_DOWNLOAD_YEARS", "current"))
 
-    try:
-        from googleapiclient.discovery import build
-    except ImportError:
-        print("Install deps: pip install -r scripts/requirements-ingest.txt", file=sys.stderr)
-        sys.exit(1)
-
-    creds = credentials_from_env()
-    service = build("drive", "v3", credentials=creds, cache_discovery=False)
+    service = build_drive_service()
 
     scope_label = "all years" if download_years is None else ", ".join(sorted(download_years))
     print(f"Listing OE CSV files in Drive folder {folder_id} (scope: {scope_label})...")
