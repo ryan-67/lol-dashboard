@@ -47,12 +47,7 @@ function teamAliases(brief: SeriesBrief): Array<{ pattern: RegExp; token: string
 
   for (const { name, token } of pairs) {
     const canonical = resolveTeamCanonicalName(name)
-    const tokens = new Set<string>([
-      canonical,
-      recapTeamTag(name),
-      teamSearchAbbreviation(canonical),
-      ...canonical.split(/\s+/),
-    ])
+    const tokens = new Set<string>([recapTeamTag(name), teamSearchAbbreviation(canonical)])
     for (const t of tokens) {
       if (t.length < 2) continue
       rules.push({ pattern: new RegExp(`\\b${escapeRegex(t)}\\b`, 'gi'), token })

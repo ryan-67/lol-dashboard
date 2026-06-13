@@ -1,5 +1,7 @@
 /** Canonical entity aliases — team renames, abbreviations, DDragon keys. */
 
+import esportsLogos from '../../data/esports-logos.json'
+
 export interface TeamEntityDef {
   canonicalName: string
   oeNames: string[]
@@ -88,7 +90,224 @@ export const TEAM_ENTITIES: TeamEntityDef[] = [
     abbreviations: ['TES'],
     slug: 'top-esports',
   },
+  {
+    canonicalName: 'KT Rolster',
+    oeNames: ['KT Rolster', 'KT', 'KTR'],
+    abbreviations: ['KT'],
+    slug: 'kt-rolster',
+    esportsSlug: 'kt-rolster',
+  },
+  {
+    canonicalName: 'Nongshim RedForce',
+    oeNames: ['Nongshim RedForce', 'Nongshim Red Force', 'NS RedForce', 'NS'],
+    abbreviations: ['NS'],
+    slug: 'nongshim-redforce',
+    esportsSlug: 'nongshim-redforce',
+  },
+  {
+    canonicalName: 'DRX',
+    oeNames: ['DRX'],
+    abbreviations: ['DRX'],
+    slug: 'drx',
+    esportsSlug: 'drx',
+  },
+  {
+    canonicalName: 'FearX',
+    oeNames: ['FearX', 'BNK FEARX', 'BNK FearX', 'BFX'],
+    abbreviations: ['BFX'],
+    slug: 'fearx',
+    esportsSlug: 'fearx',
+  },
+  {
+    canonicalName: 'Team WE',
+    oeNames: ['Team WE', 'WE', "Xi'an Team WE"],
+    abbreviations: ['WE'],
+    slug: 'team-we',
+    esportsSlug: 'team-we',
+  },
+  {
+    canonicalName: 'Weibo Gaming',
+    oeNames: ['Weibo Gaming', 'WBG'],
+    abbreviations: ['WBG'],
+    slug: 'weibo-gaming',
+    esportsSlug: 'weibo-gaming',
+  },
+  {
+    canonicalName: 'Invictus Gaming',
+    oeNames: ['Invictus Gaming', 'IG'],
+    abbreviations: ['IG'],
+    slug: 'invictus-gaming',
+    esportsSlug: 'invictus-gaming',
+  },
+  {
+    canonicalName: 'FunPlus Phoenix',
+    oeNames: ['FunPlus Phoenix', 'FPX'],
+    abbreviations: ['FPX'],
+    slug: 'funplus-phoenix',
+    esportsSlug: 'funplus-phoenix',
+  },
+  {
+    canonicalName: 'LNG Esports',
+    oeNames: ['LNG Esports', 'LNG'],
+    abbreviations: ['LNG'],
+    slug: 'lng-esports',
+    esportsSlug: 'lng-esports',
+  },
+  {
+    canonicalName: 'Oh My God',
+    oeNames: ['Oh My God', 'OMG'],
+    abbreviations: ['OMG'],
+    slug: 'oh-my-god',
+    esportsSlug: 'oh-my-god',
+  },
+  {
+    canonicalName: 'Ultra Prime',
+    oeNames: ['Ultra Prime', 'UP'],
+    abbreviations: ['UP'],
+    slug: 'ultra-prime',
+    esportsSlug: 'ultra-prime',
+  },
+  {
+    canonicalName: 'EDward Gaming',
+    oeNames: ['EDward Gaming', 'EDG'],
+    abbreviations: ['EDG'],
+    slug: 'edward-gaming',
+    esportsSlug: 'edward-gaming',
+  },
+  {
+    canonicalName: "Anyone's Legend",
+    oeNames: ["Anyone's Legend", 'Anyones Legend', 'AL'],
+    abbreviations: ['AL'],
+    slug: 'anyones-legend',
+    esportsSlug: 'anyones-legend',
+  },
+  {
+    canonicalName: 'Lyon Gaming',
+    oeNames: ['Lyon Gaming', 'LYON', 'Lyon'],
+    abbreviations: ['LYON'],
+    slug: 'lyon-gaming',
+    esportsSlug: 'lyon-gaming',
+  },
+  {
+    canonicalName: 'Karmine Corp',
+    oeNames: ['Karmine Corp', 'KC'],
+    abbreviations: ['KC'],
+    slug: 'karmine-corp',
+    esportsSlug: 'karmine-corp',
+  },
+  {
+    canonicalName: 'Movistar KOI',
+    oeNames: ['Movistar KOI', 'MKOI', 'Mad Lions'],
+    abbreviations: ['MKOI'],
+    slug: 'movistar-koi',
+    esportsSlug: 'mad-lions',
+  },
+  {
+    canonicalName: 'Team BDS',
+    oeNames: ['Team BDS', 'BDS'],
+    abbreviations: ['BDS'],
+    slug: 'team-bds',
+    esportsSlug: 'team-bds',
+  },
+  {
+    canonicalName: 'SK Gaming',
+    oeNames: ['SK Gaming', 'SK'],
+    abbreviations: ['SK'],
+    slug: 'sk-gaming',
+    esportsSlug: 'sk-gaming',
+  },
+  {
+    canonicalName: 'GiantX',
+    oeNames: ['GiantX', 'GIANTX', 'GX'],
+    abbreviations: ['GX'],
+    slug: 'giantx-lec',
+    esportsSlug: 'giantx-lec',
+  },
+  {
+    canonicalName: 'Astralis',
+    oeNames: ['Astralis', 'AST'],
+    abbreviations: ['AST'],
+    slug: 'astralis',
+    esportsSlug: 'astralis',
+  },
+  {
+    canonicalName: 'FlyQuest',
+    oeNames: ['FlyQuest', 'FLY'],
+    abbreviations: ['FLY'],
+    slug: 'flyquest',
+    esportsSlug: 'flyquest',
+  },
+  {
+    canonicalName: '100 Thieves',
+    oeNames: ['100 Thieves', '100T'],
+    abbreviations: ['100T'],
+    slug: '100-thieves',
+    esportsSlug: '100-thieves',
+  },
+  {
+    canonicalName: 'NRG',
+    oeNames: ['NRG', 'NRG Esports'],
+    abbreviations: ['NRG'],
+    slug: 'nrg',
+    esportsSlug: 'nrg',
+  },
+  {
+    canonicalName: 'FURIA',
+    oeNames: ['FURIA', 'FURIA Esports'],
+    abbreviations: ['FUR'],
+    slug: 'furia',
+    esportsSlug: 'furia',
+  },
 ]
+
+type EsportsLogoManifest = {
+  teamsByCode?: Record<string, string>
+  teamsByEsportsSlug?: Record<string, string>
+  teamsByName?: Record<string, string>
+  nameToEsportsSlug?: Record<string, string>
+  teamSlugAliases?: Record<string, string>
+}
+
+const esportsManifest = esportsLogos as EsportsLogoManifest
+
+function normalizeTeamName(value: string): string {
+  return value.toLowerCase().replace(/[^a-z0-9]+/g, '')
+}
+
+function slugifyTeamName(value: string): string {
+  return value
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+}
+
+function resolveEsportsSlugFromManifest(oeTeamName: string): string {
+  const norm = normalizeTeamName(oeTeamName)
+  const slug = slugifyTeamName(oeTeamName)
+  return (
+    esportsManifest.teamSlugAliases?.[norm] ??
+    esportsManifest.teamSlugAliases?.[slug] ??
+    esportsManifest.nameToEsportsSlug?.[norm] ??
+    esportsManifest.nameToEsportsSlug?.[slug] ??
+    slug
+  )
+}
+
+function officialCodeFromManifest(oeTeamName: string): string | null {
+  const norm = normalizeTeamName(oeTeamName)
+  const slug = resolveEsportsSlugFromManifest(oeTeamName)
+  const logoUrl =
+    esportsManifest.teamsByEsportsSlug?.[slug] ??
+    esportsManifest.teamsByName?.[norm] ??
+    esportsManifest.teamsByName?.[slug]
+  if (!logoUrl) return null
+
+  for (const [code, url] of Object.entries(esportsManifest.teamsByCode ?? {})) {
+    if (url === logoUrl) return code
+  }
+  return null
+}
 
 /** OE display name → DDragon champion id */
 /** Short team tag for search meta (e.g. JD Gaming → JDG). */
@@ -104,11 +323,11 @@ export function teamSearchAbbreviation(oeTeamName: string): string {
       return team.abbreviations[0] ?? team.canonicalName
     }
   }
+
+  const fromManifest = officialCodeFromManifest(oeTeamName)
+  if (fromManifest) return fromManifest
+
   if (!oeTeamName.includes(' ') && oeTeamName.length <= 6) return oeTeamName
-  const words = oeTeamName.replace(/'/g, '').split(/\s+/).filter(Boolean)
-  if (words.length > 1) {
-    return words.map((w) => w[0]?.toUpperCase() ?? '').join('')
-  }
   return oeTeamName
 }
 
