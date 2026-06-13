@@ -28,12 +28,18 @@ if str(SCRIPTS_DIR) not in sys.path:
 from oe_drive_client import build_drive_service, current_year_csv_meta, load_env
 from oe_sync_state import (
     drive_meta_changed,
+    is_sync_state_access_error,
     load_stored_state,
     supabase_client,
+    sync_state_access_error_message,
     table_missing_message,
     touch_checked,
     year_from_drive_meta,
 )
+
+
+def _is_missing_only(err_text: str) -> bool:
+    return "does not exist" in err_text or "could not find" in err_text or "404" in err_text
 
 
 def main() -> None:
@@ -56,22 +62,32 @@ def main() -> None:
     meta = current_year_csv_meta(service)
     year = year_from_drive_meta(meta)
 
+    client = None
+    stored = None
     try:
         client = supabase_client()
         stored = load_stored_state(client, year)
     except Exception as err:
         err_text = str(err).lower()
-        if "oe_sync_state" in err_text and (
-            "does not exist" in err_text or "could not find" in err_text or "404" in err_text
-        ):
-            print(table_missing_message(), file=sys.stderr)
-            sys.exit(1)
-        raise
+        if is_sync_state_access_error(err_text):
+            if _is_missing_only(err_text):
+                print(table_missing_message(), file=sys.stderr)
+            else:
+                print(sync_state_access_error_message(), file=sys.stderr)
+            print(
+                "WARNING: Cannot read oe_sync_state — treating Drive CSV as changed so refresh still runs.",
+                file=sys.stderr,
+            )
+            stored = None
+            client = None
+        else:
+            raise
 
     changed = args.force or drive_meta_changed(stored, meta)
 
     if not changed:
-        touch_checked(client, meta)
+        if client:
+            touch_checked(client, meta)
         if args.format == "github":
             print("false")
             return

@@ -18,8 +18,22 @@ alter table public.oe_sync_state add column if not exists latest_game_date text;
 
 alter table public.oe_sync_state enable row level security;
 
--- GitHub Actions uses SUPABASE_SERVICE_ROLE_KEY — must grant table access explicitly.
+-- GitHub Actions uses SUPABASE_SERVICE_ROLE_KEY — grants are required even though
+-- service_role bypasses RLS. Re-run this block if you see "permission denied for table oe_sync_state".
+grant usage on schema public to service_role;
 grant select, insert, update, delete on table public.oe_sync_state to service_role;
+
+-- Belt-and-suspenders if the table was created without the grants above.
+do $$
+begin
+  if exists (
+    select 1 from pg_tables
+    where schemaname = 'public' and tablename = 'oe_sync_state'
+  ) then
+    execute 'grant select, insert, update, delete on table public.oe_sync_state to service_role';
+  end if;
+end $$;
+
 grant all on table public.oe_sync_state to postgres;
 
 comment on table public.oe_sync_state is

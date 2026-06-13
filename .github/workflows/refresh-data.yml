@@ -6,6 +6,8 @@
 # Manual workflow_dispatch always runs the full refresh.
 #
 # Requires oe_sync_state table — see supabase/migrations/oe_sync_state.sql
+# If check logs "permission denied for table oe_sync_state", re-run that migration's GRANT block
+# in the Supabase SQL editor (service_role needs SELECT/INSERT/UPDATE/DELETE).
 #
 # Secrets: SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, GOOGLE_SERVICE_ACCOUNT_KEY
 # Optional: OE_DRIVE_FOLDER_ID, OPENROUTER_API_KEY (weekly recap generation)

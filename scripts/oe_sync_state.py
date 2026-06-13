@@ -196,6 +196,13 @@ def save_ingested(client, meta: dict, *, latest_game_date: str | None = None) ->
                 file=sys.stderr,
             )
             return False
+        if _is_sync_state_permission_error(err_text):
+            print(sync_state_access_error_message(), file=sys.stderr)
+            print(
+                "WARNING: oe_slices were seeded successfully; only sync-state bookkeeping failed.",
+                file=sys.stderr,
+            )
+            return False
         raise
 
 
@@ -206,6 +213,24 @@ def _is_missing_sync_table_error(err_text: str) -> bool:
         or "404" in err_text
         or "42p01" in err_text
         or "pgrst205" in err_text
+    )
+
+
+def _is_sync_state_permission_error(err_text: str) -> bool:
+    return "oe_sync_state" in err_text and (
+        "permission denied" in err_text or "42501" in err_text
+    )
+
+
+def is_sync_state_access_error(err_text: str) -> bool:
+    return _is_missing_sync_table_error(err_text) or _is_sync_state_permission_error(err_text)
+
+
+def sync_state_access_error_message() -> str:
+    return (
+        "ERROR: Supabase role cannot access oe_sync_state (permission denied).\n"
+        "Re-run supabase/migrations/oe_sync_state.sql in the Supabase SQL editor — "
+        "especially the GRANT lines for service_role."
     )
 
 
