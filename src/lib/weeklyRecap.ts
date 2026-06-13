@@ -1187,6 +1187,40 @@ export function recapLineToText(line: WeeklyRecapLine): string {
     .trim()
 }
 
+/** Template segments through score/league — excludes stat/context clauses (for AI detail append). */
+export function extractRecapShellSegments(
+  templateLine: WeeklyRecapLine,
+  score: string,
+): WeeklyRecapSegment[] {
+  const shell: WeeklyRecapSegment[] = []
+  for (const seg of templateLine.segments) {
+    if (seg.kind === 'team') {
+      shell.push(seg)
+      continue
+    }
+    const idx = seg.value.indexOf(score)
+    if (idx === -1) {
+      shell.push(seg)
+      continue
+    }
+    const afterScore = seg.value.slice(idx + score.length)
+    const leagueSuffix = afterScore.match(/^\s*\([A-Z]+\)/)?.[0] ?? ''
+    const shellText = seg.value.slice(0, idx + score.length + leagueSuffix.length)
+    if (shellText) shell.push({ kind: 'text', value: shellText })
+    return shell
+  }
+  return shell
+}
+
+export function buildFallbackRecapShell(brief: SeriesBrief): WeeklyRecapSegment[] {
+  return [
+    segTeam(brief.facts.winner),
+    segText(' beat '),
+    segTeam(brief.facts.loser),
+    segText(` ${brief.facts.score} (${brief.facts.league})`),
+  ]
+}
+
 export interface SeriesBrief {
   seriesId: string
   date: string
