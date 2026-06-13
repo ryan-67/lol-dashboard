@@ -53,10 +53,12 @@ export async function fetchCachedWeeklyRecapLines(
   if (!isSupabaseConfigured) return []
 
   const leagues =
-    selectedLeagues.length === TIER1_LEAGUES.length &&
-    TIER1_LEAGUES.every((l) => selectedLeagues.includes(l))
+    !selectedLeagues.length ||
+    selectedLeagues.includes('All Tier 1') ||
+    (selectedLeagues.length === TIER1_LEAGUES.length &&
+      TIER1_LEAGUES.every((l) => selectedLeagues.includes(l)))
       ? null
-      : selectedLeagues
+      : selectedLeagues.filter((l) => l !== 'All Tier 1')
 
   const start = isoDate(windowStart)
   const end = isoDate(windowEnd)

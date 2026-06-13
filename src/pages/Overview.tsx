@@ -139,6 +139,20 @@ function getWeeklyPlayers(
   return out
 }
 
+function gameLogKey(team: string, log: PlayerGameLog): string {
+  return log.gameId ?? `${log.date}|${team}|${log.champion}|${log.result}|${log.opponent ?? ''}|${log.kda}`
+}
+
+function isSameGame(
+  teamA: string,
+  logA: PlayerGameLog,
+  teamB: string,
+  logB: PlayerGameLog,
+): boolean {
+  if (logA.gameId && logB.gameId) return logA.gameId === logB.gameId
+  return gameLogKey(teamA, logA) === gameLogKey(teamB, logB)
+}
+
 function opponentLaneInfo(
   allPlayers: Player[],
   playerTeam: string,
@@ -155,7 +169,9 @@ function opponentLaneInfo(
     })
 
     for (const peer of sameDatePeers) {
-      const peerGame = (peer.gameLog ?? []).find((g) => g.date === log.date)
+      const peerGame = (peer.gameLog ?? []).find((g) =>
+        isSameGame(playerTeam, log, peer.team, g),
+      )
       if (peerGame && peerGame.result !== log.result) {
         return {
           team: peer.team,
@@ -167,7 +183,9 @@ function opponentLaneInfo(
 
     const fallback = sameDatePeers[0]
     if (fallback) {
-      const peerGame = (fallback.gameLog ?? []).find((g) => g.date === log.date)
+      const peerGame = (fallback.gameLog ?? []).find((g) =>
+        isSameGame(playerTeam, log, fallback.team, g),
+      )
       return {
         team: fallback.team,
         player: fallback.name,
@@ -182,7 +200,7 @@ function opponentLaneInfo(
     (p) => p.team === team && normalizePosition(p.position) === role,
   )
   for (const candidate of candidates) {
-    const hit = (candidate.gameLog ?? []).find((g) => g.date === log.date)
+    const hit = (candidate.gameLog ?? []).find((g) => isSameGame(playerTeam, log, team, g))
     if (hit) {
       return { team, player: candidate.name, champion: hit.champion || 'N/A' }
     }
@@ -360,7 +378,7 @@ function championOfWeekFromLogs(
         winrate: ((c.wins ?? 0) / Math.max(picks, 1)) * 100,
       }
     })
-    .filter((c) => c.picks >= 2)
+    .filter((c) => c.picks >= 1)
 }
 
 function WeeklyRadar({
@@ -480,7 +498,7 @@ export default function Overview() {
         : [],
     [weeklyPlayers, filteredChampions, weeklyWindow],
   )
-  const opResult = useMemo(() => computeOpScores(championsOfWeek), [championsOfWeek])
+  const opResult = useMemo(() => computeOpScores(championsOfWeek, 1), [championsOfWeek])
 
   const templateRecapLines = useMemo(
     () =>
@@ -601,7 +619,7 @@ export default function Overview() {
                       g,
                     )
                     return (
-                      <li key={`${g.date}-${idx}`} className="overview-best-game-row">
+                      <li key={gameLogKey(playerOfWeek.base.team, g)} className="overview-best-game-row">
                         <span className="text-accent">
                           #{idx + 1} · {g.date}
                         </span>

@@ -99,7 +99,10 @@ export function selectSliceKeysFromFilters(
   years: string[],
   splits: string[],
 ): string[] {
-  const tier1 = leagues.length ? leagues : [...TIER1_LEAGUES]
+  const tier1 =
+    !leagues.length || leagues.includes('All Tier 1')
+      ? [...TIER1_LEAGUES]
+      : leagues.filter((l) => l !== 'All Tier 1')
   let splitLabels = store.meta.splits
   const allYears = years.includes('ALL')
   const allSplits = splits.includes('ALL')

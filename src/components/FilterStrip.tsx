@@ -35,14 +35,8 @@ export function FilterStripControls({
   const yearLabel = yearsToLabel(selectedYears)
   const splitLabel = splitsToLabel(selectedSplits)
 
-  const leagueOptions = [
-    { value: 'All Tier 1', label: 'All Tier 1' },
-    ...leagues.map((l) => ({ value: l, label: l })),
-  ]
-  const yearOptions = [
-    { value: 'ALL', label: 'ALL' },
-    ...years.map((y) => ({ value: y, label: y })),
-  ]
+  const leagueOptions = leagues.map((l) => ({ value: l, label: l }))
+  const yearOptions = years.map((y) => ({ value: y, label: y }))
   const splitOptions = [
     { value: 'ALL', label: 'ALL' },
     ...splits.map((s) => ({ value: s, label: splitSeasonLabel(s) })),
@@ -74,6 +68,8 @@ export function FilterStripControls({
           selected={selectedYears}
           onToggle={toggleYear}
           minWidth={120}
+          allValue="ALL"
+          isAllSelected={selectedYears.includes('ALL')}
         />
       </div>
       <div className="flex items-center gap-2">
@@ -84,6 +80,8 @@ export function FilterStripControls({
           options={splitOptions}
           selected={selectedSplits}
           onToggle={toggleSplit}
+          allValue="ALL"
+          isAllSelected={selectedSplits.includes('ALL')}
         />
       </div>
     </div>

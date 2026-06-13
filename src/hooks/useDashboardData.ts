@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
 import type { OEStore, OEStoreMeta } from '../lib/mergeSlices'
-import { TIER1_LEAGUES } from '../lib/mergeSlices'
 import {
   buildStoreFromSliceRows,
   fetchOESliceCatalog,
@@ -8,6 +7,7 @@ import {
 } from '../lib/loadOEStore'
 import { isSupabaseConfigured } from '../lib/supabaseClient'
 import { DEFAULT_SPLIT } from '../lib/constants'
+import { expandSelectedLeagues } from '../lib/filterLabels'
 
 export interface DashboardMeta {
   source: string
@@ -172,13 +172,14 @@ export { DEFAULT_SPLIT } from '../lib/constants'
 export {
   leaguesToLeagueLabel,
   leagueLabelToLeagues,
+  expandSelectedLeagues,
   yearsToLabel,
   splitsToLabel,
   splitSeasonLabel,
   isAllTier1Selected,
 } from '../lib/filterLabels'
 
-export const DEFAULT_LEAGUES: string[] = [...TIER1_LEAGUES]
+export const DEFAULT_LEAGUES: string[] = ['All Tier 1']
 
 interface UseDashboardDataReturn {
   store: OEStore | null
@@ -228,7 +229,7 @@ export function useDashboardData(): UseDashboardDataReturn {
       }
 
       const rows = await fetchOESlices({
-        leagues: selectedLeagues,
+        leagues: expandSelectedLeagues(selectedLeagues),
         years: selectedYears,
         splits: selectedSplits,
         catalogSplits: meta.splits,
@@ -249,7 +250,7 @@ export function useDashboardData(): UseDashboardDataReturn {
   }, [fetchData])
 
   const setSelectedLeaguesSafe = useCallback((leagues: string[]) => {
-    setSelectedLeagues(leagues.length ? leagues : [...DEFAULT_LEAGUES])
+    setSelectedLeagues(leagues.length ? leagues : ['All Tier 1'])
   }, [])
 
   const setSelectedYears = useCallback((years: string[]) => {
@@ -262,11 +263,12 @@ export function useDashboardData(): UseDashboardDataReturn {
 
   const toggleLeague = useCallback((league: string) => {
     if (league === 'All Tier 1') {
-      setSelectedLeagues([...TIER1_LEAGUES])
+      setSelectedLeagues(['All Tier 1'])
       return
     }
     setSelectedLeagues((prev) => {
-      const next = prev.includes(league) ? prev.filter((l) => l !== league) : [...prev, league]
+      const base = prev.filter((l) => l !== 'All Tier 1')
+      const next = base.includes(league) ? base.filter((l) => l !== league) : [...base, league]
       return next.length ? next : [league]
     })
   }, [])

@@ -370,8 +370,8 @@ export interface OpScoresResult {
   >
 }
 
-export function computeOpScores(champions: Champion[]): OpScoresResult {
-  const eligible = champions.filter((c) => (c.games ?? c.picks) >= MIN_PICKS_OP)
+export function computeOpScores(champions: Champion[], minPicks = MIN_PICKS_OP): OpScoresResult {
+  const eligible = champions.filter((c) => (c.games ?? c.picks) >= minPicks)
   if (!eligible.length) {
     return { top: null, runners: [], roleAverages: {} as OpScoresResult['roleAverages'] }
   }
