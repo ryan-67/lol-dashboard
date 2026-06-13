@@ -545,7 +545,6 @@ export default function Overview() {
           leagueLabel={league}
           players={filteredPlayers}
           champions={filteredChampions}
-          teams={filteredTeams.map((t) => t.name)}
         />
       )}
 

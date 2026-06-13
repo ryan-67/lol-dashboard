@@ -1,5 +1,12 @@
-import FilterToggleGroup from './ui/FilterToggleGroup'
-import { isAllTier1Selected, splitSeasonLabel } from '../lib/filterLabels'
+import MultiSelectDropdown from './ui/MultiSelectDropdown'
+import LeagueLogo from './entities/LeagueLogo'
+import {
+  isAllTier1Selected,
+  leaguesToLeagueLabel,
+  splitSeasonLabel,
+  splitsToLabel,
+  yearsToLabel,
+} from '../lib/filterLabels'
 
 export interface FilterStripValues {
   selectedLeagues: string[]
@@ -24,35 +31,61 @@ export function FilterStripControls({
   toggleYear,
   toggleSplit,
 }: FilterStripValues) {
-  const leagueOptions = leagues.map((l) => ({ value: l, label: l }))
-  const yearOptions = years.map((y) => ({ value: y, label: y }))
+  const leagueLabel = leaguesToLeagueLabel(selectedLeagues)
+  const yearLabel = yearsToLabel(selectedYears)
+  const splitLabel = splitsToLabel(selectedSplits)
+
+  const leagueOptions = [
+    { value: 'All Tier 1', label: 'All Tier 1' },
+    ...leagues.map((l) => ({ value: l, label: l })),
+  ]
+  const yearOptions = [
+    { value: 'ALL', label: 'ALL' },
+    ...years.map((y) => ({ value: y, label: y })),
+  ]
   const splitOptions = [
     { value: 'ALL', label: 'ALL' },
     ...splits.map((s) => ({ value: s, label: splitSeasonLabel(s) })),
   ]
 
   return (
-    <div className="filter-strip-controls">
-      <FilterToggleGroup
-        label="League"
-        options={leagueOptions}
-        selected={selectedLeagues}
-        onToggle={toggleLeague}
-        allValue="All Tier 1"
-        isAllSelected={isAllTier1Selected(selectedLeagues)}
-      />
-      <FilterToggleGroup
-        label="Year"
-        options={yearOptions}
-        selected={selectedYears}
-        onToggle={toggleYear}
-      />
-      <FilterToggleGroup
-        label="Split"
-        options={splitOptions}
-        selected={selectedSplits}
-        onToggle={toggleSplit}
-      />
+    <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+      <div className="flex items-center gap-2">
+        <span className="label-field">League</span>
+        {isAllTier1Selected(selectedLeagues) ? null : (
+          <LeagueLogo league={selectedLeagues[0] ?? 'LCK'} size={18} />
+        )}
+        <MultiSelectDropdown
+          label="League"
+          displayValue={leagueLabel}
+          options={leagueOptions}
+          selected={selectedLeagues}
+          onToggle={toggleLeague}
+          allValue="All Tier 1"
+          isAllSelected={isAllTier1Selected(selectedLeagues)}
+        />
+      </div>
+      <div className="flex items-center gap-2">
+        <span className="label-field">Year</span>
+        <MultiSelectDropdown
+          label="Year"
+          displayValue={yearLabel}
+          options={yearOptions}
+          selected={selectedYears}
+          onToggle={toggleYear}
+          minWidth={120}
+        />
+      </div>
+      <div className="flex items-center gap-2">
+        <span className="label-field">Split</span>
+        <MultiSelectDropdown
+          label="Split"
+          displayValue={splitLabel}
+          options={splitOptions}
+          selected={selectedSplits}
+          onToggle={toggleSplit}
+        />
+      </div>
     </div>
   )
 }

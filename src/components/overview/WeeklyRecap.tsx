@@ -1,10 +1,10 @@
-import { useMemo, useRef } from 'react'
+import { useRef } from 'react'
 import { useGSAP } from '@gsap/react'
 import type { WeeklyRecapLine, WeeklyRecapSegment } from '../../lib/weeklyRecap'
 import { scrollEntranceStagger } from '../../theme/animations'
 import EntityLink from '../entities/EntityLink'
 import type { Champion, Player } from '../../hooks/useDashboardData'
-import { buildRecapEntityPatterns, linkifyRecapText } from '../../lib/recapEntityLink'
+import { buildRecapEntityPatternsForText, linkifyRecapText, recapTeamsForLine } from '../../lib/recapEntityLink'
 
 interface WeeklyRecapProps {
   lines: WeeklyRecapLine[]
@@ -12,7 +12,6 @@ interface WeeklyRecapProps {
   leagueLabel: string
   players: Player[]
   champions: Champion[]
-  teams: string[]
 }
 
 function RecapScoreRow({ line }: { line: WeeklyRecapLine }) {
@@ -34,26 +33,28 @@ function RecapSegmentBody({
   seg,
   lineId,
   index,
-  patterns,
+  players,
+  champions,
+  teams,
   allPlayers,
 }: {
   seg: WeeklyRecapSegment
   lineId: string
   index: number
-  patterns: ReturnType<typeof buildRecapEntityPatterns>
+  players: Player[]
+  champions: Champion[]
+  teams: string[]
   allPlayers: Player[]
 }) {
   if (seg.kind === 'team') {
     return (
-      <EntityLink
-        type="team"
-        name={seg.canonicalName}
-        className="overview-recap-team"
-      >
+      <EntityLink type="team" name={seg.canonicalName} className="overview-recap-team">
         {seg.label}
       </EntityLink>
     )
   }
+
+  const patterns = buildRecapEntityPatternsForText(seg.value, players, champions, teams)
 
   return (
     <span key={`${lineId}-t-${index}`}>
@@ -64,13 +65,17 @@ function RecapSegmentBody({
 
 function RecapSummaryBody({
   line,
-  patterns,
+  players,
+  champions,
   allPlayers,
 }: {
   line: WeeklyRecapLine
-  patterns: ReturnType<typeof buildRecapEntityPatterns>
+  players: Player[]
+  champions: Champion[]
   allPlayers: Player[]
 }) {
+  const lineTeams = recapTeamsForLine(line)
+
   return (
     <>
       {line.segments.map((seg, i) => (
@@ -79,7 +84,9 @@ function RecapSummaryBody({
           seg={seg}
           lineId={line.id}
           index={i}
-          patterns={patterns}
+          players={players}
+          champions={champions}
+          teams={lineTeams}
           allPlayers={allPlayers}
         />
       ))}
@@ -93,13 +100,8 @@ export default function WeeklyRecap({
   leagueLabel,
   players,
   champions,
-  teams,
 }: WeeklyRecapProps) {
   const ref = useRef<HTMLDivElement>(null)
-  const entityPatterns = useMemo(
-    () => buildRecapEntityPatterns(players, champions, teams),
-    [players, champions, teams],
-  )
 
   useGSAP(() => scrollEntranceStagger(ref.current, '.overview-recap-item'), {
     scope: ref,
@@ -126,7 +128,8 @@ export default function WeeklyRecap({
                 <div className="overview-recap-summary">
                   <RecapSummaryBody
                     line={line}
-                    patterns={entityPatterns}
+                    players={players}
+                    champions={champions}
                     allPlayers={players}
                   />
                 </div>
