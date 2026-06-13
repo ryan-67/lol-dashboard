@@ -14,6 +14,9 @@ on:
         required: true
         default: true
         type: boolean
+  schedule:
+    # Daily backfill after tier-1 series conclude (06:00 UTC)
+    - cron: '0 6 * * *'
 
 concurrency:
   group: generate-weekly-recap
@@ -42,5 +45,6 @@ jobs:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
           OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
-          RECAP_REGENERATE: ${{ inputs.regenerate_recaps && '1' || '0' }}
+          RECAP_FROM_SUPABASE: '1'
+          RECAP_REGENERATE: ${{ github.event_name == 'schedule' && '0' || (inputs.regenerate_recaps && '1' || '0') }}
         run: npm run generate:weekly-recap

@@ -1,5 +1,5 @@
 import type { Player, PlayerGameLog } from '../hooks/useDashboardData'
-import { DEFAULT_SPLIT } from '../hooks/useDashboardData'
+import { DEFAULT_SPLIT } from './constants'
 
 export interface WeeklyWindow {
   start: Date

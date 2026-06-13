@@ -93,7 +93,7 @@ Write the recap for ${brief.facts.winner} vs ${brief.facts.loser} (${brief.facts
   return {
     line,
     plainText: recapLineToText(line),
-    model: model ?? process.env.RECAP_LLM_MODEL ?? 'google/gemini-2.0-flash-001',
+    model: model ?? process.env.RECAP_LLM_MODEL ?? 'google/gemini-2.5-flash-lite',
   }
 }
 

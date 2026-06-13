@@ -13,6 +13,7 @@ import {
   currentYear,
   fetchExistingRecapMeta,
   loadTier1Data,
+  loadTier1DataFromSupabase,
   upsertRecapRow,
 } from './db.ts'
 import { fetchRagContext, buildRagQuery } from './rag.ts'
@@ -27,15 +28,26 @@ async function main(): Promise<void> {
   const client = dryRun ? null : createServiceClient()
 
   console.log(`Loading tier-1 OE data for ${year}...`)
-  const { players, teams } = await loadTier1Data(client, year)
+  let { players, teams } = await loadTier1Data(client, year)
   const window = getWeeklyWindow(players, year, 'ALL')
   if (!window) {
     console.log('No game log dates — nothing to recap.')
     return
   }
 
-  const recapWindow = windowToWeeklyRecapWindow(window)
-  const briefs = collectSeriesBriefs(players, teams, recapWindow)
+  let recapWindow = windowToWeeklyRecapWindow(window)
+  let briefs = collectSeriesBriefs(players, teams, recapWindow)
+
+  if (!briefs.length && client && process.env.RECAP_FROM_SUPABASE !== '1') {
+    console.log('No series from local shards — loading fresh oe_slices from Supabase...')
+    ;({ players, teams } = await loadTier1DataFromSupabase(client, year))
+    const retryWindow = getWeeklyWindow(players, year, 'ALL')
+    if (retryWindow) {
+      recapWindow = windowToWeeklyRecapWindow(retryWindow)
+      briefs = collectSeriesBriefs(players, teams, recapWindow)
+    }
+  }
+
   console.log(`Weekly window ${window.label}: ${briefs.length} series`)
 
   if (!briefs.length) return

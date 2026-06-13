@@ -4,7 +4,7 @@ const OPENROUTER_URL = 'https://openrouter.ai/api/v1/embeddings'
 const CHAT_URL = 'https://openrouter.ai/api/v1/chat/completions'
 
 export const DEFAULT_RECAP_MODEL =
-  process.env.RECAP_LLM_MODEL?.trim() || 'google/gemini-2.0-flash-001'
+  process.env.RECAP_LLM_MODEL?.trim() || 'google/gemini-2.5-flash-lite'
 
 export const EMBEDDING_MODEL =
   process.env.RECAP_EMBEDDING_MODEL?.trim() || 'openai/text-embedding-3-small'

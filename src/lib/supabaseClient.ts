@@ -1,7 +1,16 @@
 import { createClient } from '@supabase/supabase-js'
 
-const supabaseUrl = (import.meta.env.VITE_SUPABASE_URL ?? '').trim().replace(/\/$/, '')
-const supabaseAnonKey = (import.meta.env.VITE_SUPABASE_ANON_KEY ?? '').trim()
+function readEnv(key: string): string {
+  if (typeof import.meta !== 'undefined' && import.meta.env) {
+    const fromVite = (import.meta.env as Record<string, string | undefined>)[key]
+    if (fromVite) return fromVite.trim()
+  }
+  const proc = (globalThis as { process?: { env?: Record<string, string | undefined> } }).process
+  return (proc?.env?.[key] ?? '').trim()
+}
+
+const supabaseUrl = readEnv('VITE_SUPABASE_URL').replace(/\/$/, '') || readEnv('SUPABASE_URL').replace(/\/$/, '')
+const supabaseAnonKey = readEnv('VITE_SUPABASE_ANON_KEY') || readEnv('SUPABASE_ANON_KEY')
 
 export const isSupabaseConfigured = Boolean(supabaseUrl && supabaseAnonKey)
 

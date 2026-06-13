@@ -143,7 +143,6 @@ jobs:
         run: npm ci
 
       - name: Generate weekly recap summaries
-        continue-on-error: true
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}

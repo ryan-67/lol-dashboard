@@ -68,16 +68,33 @@ export async function loadTier1DataFromSupabase(
   year: string,
 ): Promise<{ players: Player[]; teams: Team[] }> {
   const tier1 = ['LCK', 'LPL', 'LEC', 'LCS']
-  const { data, error } = await client.from('oe_slices').select('split, league, data')
-  if (error) throw new Error(`Failed to load oe_slices: ${error.message}`)
+  const { data: keys, error: keysErr } = await client
+    .from('oe_slices')
+    .select('split, league')
+    .like('split', `${year}%`)
+    .in('league', tier1)
+
+  if (keysErr) throw new Error(`Failed to list oe_slices: ${keysErr.message}`)
 
   const slices: OEStore['slices'] = {}
-  for (const row of data ?? []) {
+  for (const row of keys ?? []) {
     const split = String(row.split ?? '')
     const league = String(row.league ?? '')
-    if (!split.startsWith(`${year} `) || !tier1.includes(league)) continue
-    slices[`${split}|${league}`] = row.data as OEStore['slices'][string]
+    if (!split || !league) continue
+
+    const { data: sliceRow, error: sliceErr } = await client
+      .from('oe_slices')
+      .select('data')
+      .eq('split', split)
+      .eq('league', league)
+      .maybeSingle()
+
+    if (sliceErr) throw new Error(`Failed to load oe_slices ${split}|${league}: ${sliceErr.message}`)
+    if (!sliceRow?.data) continue
+    slices[`${split}|${league}`] = sliceRow.data as OEStore['slices'][string]
+    console.log(`  loaded ${split}|${league}`)
   }
+
   if (!Object.keys(slices).length) {
     throw new Error(`No oe_slices rows for ${year} tier-1 leagues`)
   }
@@ -98,6 +115,11 @@ export async function loadTier1Data(
   client: SupabaseClient | null,
   year: string,
 ): Promise<{ players: Player[]; teams: Team[] }> {
+  if (process.env.RECAP_FROM_SUPABASE === '1') {
+    if (!client) throw new Error('RECAP_FROM_SUPABASE requires Supabase client')
+    console.log('Loading oe_slices from Supabase (one row at a time)...')
+    return loadTier1DataFromSupabase(client, year)
+  }
   try {
     return loadTier1DataFromShards(year)
   } catch (shardErr) {
