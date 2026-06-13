@@ -1,90 +1,131 @@
 import type { SeriesBrief } from '../../src/lib/weeklyRecap.ts'
 import type { WeeklyRecapLine, WeeklyRecapSegment } from '../../src/lib/weeklyRecap.ts'
-import {
-  buildFallbackRecapShell,
-  extractRecapShellSegments,
-  recapLineToText,
-} from '../../src/lib/weeklyRecap.ts'
+import { recapLineToText } from '../../src/lib/weeklyRecap.ts'
 import { factsToPromptJson } from '../../src/lib/recapFacts.ts'
+import { recapTeamTag } from '../../src/lib/recapTeamTag.ts'
 import { teamSearchAbbreviation } from '../../src/lib/entities/entityMap.ts'
 import { resolveTeamCanonicalName } from '../../src/lib/entities/slugs.ts'
 import { generateRecapJson } from './openrouter.ts'
 
-const SYSTEM_PROMPT = `You write the stat/context clause for tier-1 lolesports weekly recap lines on nucky.gg.
+const WINNER_TOKEN = '{{WINNER}}'
+const LOSER_TOKEN = '{{LOSER}}'
 
-The UI already renders team logos, names, score, and league. You ONLY write the trailing detail clause.
+const SYSTEM_PROMPT = `You write tier-1 lolesports weekly recap one-liners for nucky.gg — sharp, opinionated, personality-forward.
 
-Voice: lowercase, blunt, casual — like a sharp 20-something fan in 2026. twitch/reddit/x energy is fine. no corporate esports broadcaster tone. no emojis.
+Voice: lowercase, blunt, casual fan energy (twitch/reddit/x). NOT corporate broadcast. NOT formulaic template copy. Hot takes welcome. No emojis.
 
-Rules:
-- Use ONLY stats and facts from [FACTS] JSON. Never invent scores, stats, or player numbers.
-- You may use [EXTERNAL_CONTEXT] for narrative/historical/community vibe but do not contradict [FACTS].
-- Do NOT mention team names, org names, or team abbreviations (no HLE, T1, BLG, etc.) — refer to players by lowercase ign.
-- Do NOT repeat the series score or league — those are already shown.
-- One sentence, ~120–180 characters. Stats + vibe, not a play-by-play.
-- For jungle matchups use "outjungled" (never "outlaned"); for lanes use "outlaned". facts.laneDuel.advantageVerb is authoritative.
+Your job: one cohesive recap (2–3 sentences, ~250–380 chars) that:
+1. Opens with STAKES / CONTEXT when [EXTERNAL_CONTEXT] supports it (MSI qualification, title race, slump, revenge, playoffs) — cite only if RAG/context mentions it
+2. States the series outcome clearly with exact score from facts.score
+3. PRAISE standouts using facts.winnerStars / laneDuel / topCarry — cite real stats & champs from facts
+4. BLUNTLY call out underperformers — facts.winnerConcerns (won but int'd), facts.loserStinkers, facts.leadBlownBy choke jobs. Be direct ("stinker", "lost lane every game", "might be the weak point")
+5. Optional closing question or implication when natural
+
+Team references: use ONLY the tokens {{WINNER}} and {{LOSER}} (never raw team names or abbrevs). UI renders logos from these tokens.
+Player names: lowercase ign only.
+Jungle: "outjungled" never "outlaned". Use facts.laneDuel.advantageVerb when relevant.
+Use ONLY numbers/stats from [FACTS]. RAG may add narrative stakes but cannot contradict facts.
+
+Style examples (structure + vibe only):
+- "{{WINNER}} continues their good form, taking down {{LOSER}} 3-1 to qualify for MSI 2026 - zeka had great series, outlaning faker every game and having massive carry performances on ryze and yone. gumayusi lost lane every game tho - he might be the only weak point in this dominant {{WINNER}} team"
+- "{{WINNER}} looks like title contenders once again, sweeping {{LOSER}} 3-0 despite tarzan outjungling xun in games 1 and 2. knight's ahri looks unstoppable yet again (13.7 kda)"
+- "messy series as {{LOSER}} choke a 2-0 lead, getting reverse swept by {{WINNER}} - showmaker tried his best but siwoo and smash had some stinker performances"
 
 Output JSON only:
-{ "detail": "your clause here without leading dash" }
-
-Example detail: "zeka's ryze was a menace (8.6 kda avg) and delight outlaned keria every game"`
+{ "narrative": "full recap with {{WINNER}} and {{LOSER}} tokens" }`
 
 function escapeRegex(value: string): string {
   return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 }
 
-function teamTokens(brief: SeriesBrief): string[] {
-  const names = [brief.facts.winner, brief.facts.loser, brief.teamA, brief.teamB]
-  const tokens = new Set<string>()
-  for (const name of names) {
+function teamAliases(brief: SeriesBrief): Array<{ pattern: RegExp; token: string }> {
+  const pairs = [
+    { name: brief.facts.winner, token: WINNER_TOKEN },
+    { name: brief.facts.loser, token: LOSER_TOKEN },
+  ]
+  const rules: Array<{ pattern: RegExp; token: string }> = []
+
+  for (const { name, token } of pairs) {
     const canonical = resolveTeamCanonicalName(name)
-    tokens.add(canonical.toLowerCase())
-    tokens.add(teamSearchAbbreviation(canonical).toLowerCase())
-    for (const word of canonical.split(/\s+/)) {
-      if (word.length >= 2) tokens.add(word.toLowerCase())
+    const tokens = new Set<string>([
+      canonical,
+      recapTeamTag(name),
+      teamSearchAbbreviation(canonical),
+      ...canonical.split(/\s+/),
+    ])
+    for (const t of tokens) {
+      if (t.length < 2) continue
+      rules.push({ pattern: new RegExp(`\\b${escapeRegex(t)}\\b`, 'gi'), token })
     }
   }
-  return [...tokens].sort((a, b) => b.length - a.length)
+
+  return rules.sort((a, b) => b.pattern.source.length - a.pattern.source.length)
 }
 
-function sanitizeDetail(detail: string, brief: SeriesBrief): string {
-  let out = detail.trim().replace(/^[—–\-:\s]+/, '')
-  for (const token of teamTokens(brief)) {
-    if (token.length < 2) continue
-    out = out.replace(new RegExp(`\\b${escapeRegex(token)}\\b`, 'gi'), '')
+function normalizeToTokens(narrative: string, brief: SeriesBrief): string {
+  let out = narrative.trim()
+  for (const { pattern, token } of teamAliases(brief)) {
+    out = out.replace(pattern, token)
   }
-  out = out.replace(new RegExp(`\\b${escapeRegex(brief.facts.score)}\\b`, 'g'), '')
-  out = out.replace(/\(\s*(lck|lpl|lec|lcs)\s*\)/gi, '')
-  out = out.replace(/\s{2,}/g, ' ').replace(/^[,.\s—–-]+/, '').trim()
   return out
 }
 
-function shellSegments(brief: SeriesBrief): WeeklyRecapSegment[] {
-  const shell = extractRecapShellSegments(brief.templateLine, brief.facts.score)
-  const hasScore = shell.some(
-    (s) => s.kind === 'text' && s.value.includes(brief.facts.score),
-  )
-  return hasScore && shell.length >= 2 ? shell : buildFallbackRecapShell(brief)
-}
+function hydrateNarrative(narrative: string, brief: SeriesBrief): WeeklyRecapSegment[] {
+  const normalized = normalizeToTokens(narrative, brief)
+  const parts = normalized.split(/(\{\{WINNER\}\}|\{\{LOSER\}\})/g)
+  const segments: WeeklyRecapSegment[] = []
 
-function assembleAiRecapLine(brief: SeriesBrief, detailRaw: string): WeeklyRecapLine {
-  const segments = shellSegments(brief)
-  const detail = sanitizeDetail(detailRaw, brief)
-  if (detail) segments.push({ kind: 'text', value: ` — ${detail}` })
-
-  return {
-    id: brief.seriesId,
-    date: brief.date,
-    dateLabel: brief.dateLabel,
-    segments,
+  for (const part of parts) {
+    if (!part) continue
+    if (part === WINNER_TOKEN) {
+      segments.push({
+        kind: 'team',
+        canonicalName: brief.facts.winner,
+        label: brief.facts.winnerAbbr,
+      })
+    } else if (part === LOSER_TOKEN) {
+      segments.push({
+        kind: 'team',
+        canonicalName: brief.facts.loser,
+        label: brief.facts.loserAbbr,
+      })
+    } else {
+      segments.push({ kind: 'text', value: part })
+    }
   }
+
+  return mergeAdjacentText(segments)
 }
 
-function parseDetail(raw: unknown, brief: SeriesBrief): string {
+function mergeAdjacentText(segments: WeeklyRecapSegment[]): WeeklyRecapSegment[] {
+  const out: WeeklyRecapSegment[] = []
+  for (const seg of segments) {
+    const prev = out[out.length - 1]
+    if (seg.kind === 'text' && prev?.kind === 'text') {
+      prev.value += seg.value
+    } else {
+      out.push(seg)
+    }
+  }
+  return out.filter((s) => s.kind !== 'text' || s.value.length > 0)
+}
+
+function parseNarrative(raw: unknown): string {
   if (!raw || typeof raw !== 'object') throw new Error('Invalid LLM payload')
-  const detail = String((raw as { detail?: string }).detail ?? '').trim()
-  if (!detail) throw new Error('Missing detail string')
-  return detail
+  const narrative = String((raw as { narrative?: string }).narrative ?? '').trim()
+  if (!narrative) throw new Error('Missing narrative string')
+  return narrative
+}
+
+function validateLine(segments: WeeklyRecapSegment[], brief: SeriesBrief): void {
+  const plain = segments.map((s) => (s.kind === 'text' ? s.value : s.label)).join('')
+  if (!plain.includes(brief.facts.score)) {
+    console.warn(`  score ${brief.facts.score} not found in: ${plain}`)
+  }
+  const teamSegs = segments.filter((s) => s.kind === 'team')
+  if (teamSegs.length < 2) {
+    throw new Error('Narrative missing team tokens — need {{WINNER}} and {{LOSER}}')
+  }
 }
 
 export async function generateAiRecapLine(
@@ -96,19 +137,28 @@ export async function generateAiRecapLine(
   const userPrompt = `[FACTS]
 ${factsJson}
 
-[EXTERNAL_CONTEXT]
-${ragContext || '(none — stats only)'}
+[EXTERNAL_CONTEXT — reddit threads, liquipedia, standings/playoffs narrative; use for stakes/implications only]
+${ragContext || '(none — lean on facts.narrativeHints and stats)'}
 
-Write ONLY the detail clause for ${brief.facts.winner} vs ${brief.facts.loser} (${brief.facts.score}, ${brief.facts.league}). Teams and score are rendered separately — do not include them.`
+Write the full recap for this ${brief.facts.league} series. Winner={{WINNER}} (${brief.facts.winnerAbbr}), Loser={{LOSER}} (${brief.facts.loserAbbr}), score ${brief.facts.score}.
+Must include {{WINNER}} and {{LOSER}} at least once each. Call out at least one standout AND one concern/stinker when facts support it.`
 
   const raw = await generateRecapJson(SYSTEM_PROMPT, userPrompt, model)
   const parsed = JSON.parse(raw) as unknown
-  const detail = parseDetail(parsed, brief)
-  const line = assembleAiRecapLine(brief, detail)
+  const narrative = parseNarrative(parsed)
+  const segments = hydrateNarrative(narrative, brief)
+  validateLine(segments, brief)
+
+  const line: WeeklyRecapLine = {
+    id: brief.seriesId,
+    date: brief.date,
+    dateLabel: brief.dateLabel,
+    segments,
+  }
   return {
     line,
     plainText: recapLineToText(line),
-    model: model ?? process.env.RECAP_LLM_MODEL ?? 'google/gemini-2.5-flash-lite',
+    model: model ?? process.env.RECAP_LLM_MODEL ?? 'google/gemini-2.5-flash',
   }
 }
 

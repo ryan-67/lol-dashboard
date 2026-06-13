@@ -1,9 +1,9 @@
 import type { Player, PlayerGameLog, Team } from '../hooks/useDashboardData'
-import { teamSearchAbbreviation } from './entities/entityMap'
 import { resolveTeamCanonicalName } from './entities/slugs'
 import { findTeamByName } from './teamAnalytics'
 import { normalizePosition, type RoleKey } from './playerRadar'
 import { buildSeriesFacts, type SeriesFacts } from './recapFacts'
+import { recapTeamTag } from './recapTeamTag'
 
 export type { SeriesFacts }
 
@@ -118,7 +118,6 @@ function roleAdvantageVerb(role: RoleKey): 'outlaned' | 'outjungled' {
   return role === 'jungle' ? 'outjungled' : 'outlaned'
 }
 
-const FILLER_WORDS = new Set(['esports', 'gaming', 'team', 'life', 'of', 'the'])
 const MAX_CONTEXT_CLAUSES = 3
 
 class RecapLedger {
@@ -158,22 +157,6 @@ function inWindow(log: PlayerGameLog, window: WeeklyRecapWindow): boolean {
   const d = parseDate(log.date)
   if (!d) return false
   return d >= window.start && d <= window.end
-}
-
-function recapTeamTag(name: string): string {
-  const canonical = resolveTeamCanonicalName(name)
-  const mapped = teamSearchAbbreviation(canonical)
-  if (mapped !== canonical && mapped.length <= 6) return mapped.toUpperCase()
-
-  const words = canonical.replace(/'/g, '').split(/\s+/).filter(Boolean)
-  if (words.length === 1) return words[0]!.toUpperCase()
-  if (words[0] && words[0].length <= 4) return words[0].toUpperCase()
-
-  const significant = words.filter((w) => !FILLER_WORDS.has(w.toLowerCase()))
-  if (significant.length >= 2) {
-    return significant.map((w) => w[0]?.toUpperCase() ?? '').join('')
-  }
-  return words.map((w) => w[0]?.toUpperCase() ?? '').join('') || canonical.toUpperCase()
 }
 
 function playerLabel(name: string): string {
@@ -1298,3 +1281,5 @@ export function collectSeriesBriefs(
 
   return briefs.sort((a, b) => b.date.localeCompare(a.date) || a.seriesId.localeCompare(b.seriesId))
 }
+
+export { recapTeamTag } from './recapTeamTag'

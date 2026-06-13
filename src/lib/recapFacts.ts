@@ -2,8 +2,9 @@ import type { Team } from '../hooks/useDashboardData'
 import { resolveTeamCanonicalName } from './entities/slugs'
 import { findTeamByName } from './teamAnalytics'
 import { type RoleKey } from './playerRadar'
+import { recapTeamTag } from './recapTeamTag'
 
-export interface SeriesPlayerFact {
+export interface PlayerPerformanceFact {
   name: string
   team: string
   role: RoleKey | null
@@ -14,11 +15,19 @@ export interface SeriesPlayerFact {
   avgGd15: number
   avgKp: number
   champions: string[]
+  notes: string[]
+}
+
+export interface GameResultFact {
+  game: number
+  winnerAbbr: string
 }
 
 export interface SeriesFacts {
   winner: string
   loser: string
+  winnerAbbr: string
+  loserAbbr: string
   score: string
   league: string
   domWins: number
@@ -27,6 +36,9 @@ export interface SeriesFacts {
   reverseSweep: boolean
   blowout: boolean
   upset: boolean
+  messySeries: boolean
+  leadBlownBy: string | null
+  leadBlownByAbbr: string | null
   domSplitWr: number
   vicSplitWr: number
   seriesStreak: number
@@ -40,12 +52,22 @@ export interface SeriesFacts {
     wonLaneEveryGame: boolean
     wonDmgEveryGame: boolean
     games: number
+    dominatorWonSeries: boolean
   } | null
-  topCarry: SeriesPlayerFact | null
+  topCarry: PlayerPerformanceFact | null
   pocketPick: { name: string; champion: string; role: RoleKey | null } | null
-  loserStandout: { name: string; avgKda: number; avgDmg: number } | null
+  winnerStars: PlayerPerformanceFact[]
+  winnerConcerns: PlayerPerformanceFact[]
+  loserBrightSpots: PlayerPerformanceFact[]
+  loserStinkers: PlayerPerformanceFact[]
+  gameFlow: GameResultFact[]
+  narrativeHints: string[]
+  /** @deprecated use loserStinkers */
   loserHorrors: string[]
-  highlights: SeriesPlayerFact[]
+  /** @deprecated use winnerStars */
+  highlights: PlayerPerformanceFact[]
+  /** @deprecated */
+  loserStandout: { name: string; avgKda: number; avgDmg: number } | null
 }
 
 interface GamePlayer {
@@ -93,8 +115,11 @@ function upsetFromWr(dom: number, vic: number): boolean {
   return dom + 8 < vic
 }
 
-function aggregateSeriesPlayerStats(bucket: SeriesBucket): SeriesPlayerFact[] {
-  const map = new Map<string, SeriesPlayerFact & { _kda: number; _dmg: number; _gd: number; _kp: number }>()
+function aggregateSeriesPlayerStats(bucket: SeriesBucket): PlayerPerformanceFact[] {
+  const map = new Map<
+    string,
+    PlayerPerformanceFact & { _kda: number; _dmg: number; _gd: number; _kp: number }
+  >()
 
   for (const g of bucket.games) {
     for (const p of g.players) {
@@ -110,6 +135,7 @@ function aggregateSeriesPlayerStats(bucket: SeriesBucket): SeriesPlayerFact[] {
         avgGd15: 0,
         avgKp: 0,
         champions: [],
+        notes: [],
         _kda: 0,
         _dmg: 0,
         _gd: 0,
@@ -133,6 +159,60 @@ function aggregateSeriesPlayerStats(bucket: SeriesBucket): SeriesPlayerFact[] {
     avgGd15: _gd / s.games,
     avgKp: _kp / s.games,
   }))
+}
+
+function lostLaneEveryGame(bucket: SeriesBucket, playerName: string): boolean {
+  const gamesPlayed = bucket.games.filter((g) => g.players.some((p) => p.name === playerName))
+  if (gamesPlayed.length < 2) return false
+  for (const g of gamesPlayed) {
+    const me = g.players.find((p) => p.name === playerName)
+    if (!me?.role) return false
+    const opp = g.players.find((p) => p.role === me.role && p.team !== me.team)
+    if (!opp || me.gd15 >= opp.gd15) return false
+  }
+  return true
+}
+
+function wonLaneEveryGame(bucket: SeriesBucket, playerName: string): boolean {
+  const gamesPlayed = bucket.games.filter((g) => g.players.some((p) => p.name === playerName))
+  if (gamesPlayed.length < 2) return false
+  for (const g of gamesPlayed) {
+    const me = g.players.find((p) => p.name === playerName)
+    if (!me?.role) return false
+    const opp = g.players.find((p) => p.role === me.role && p.team !== me.team)
+    if (!opp || me.gd15 <= opp.gd15) return false
+  }
+  return true
+}
+
+function annotatePlayer(
+  p: PlayerPerformanceFact,
+  bucket: SeriesBucket,
+  seriesWinner: string,
+): PlayerPerformanceFact {
+  const notes: string[] = []
+  if (p.avgKda >= 5) notes.push(`${p.avgKda.toFixed(1)} kda — popoff`)
+  else if (p.avgKda >= 3.5) notes.push(`${p.avgKda.toFixed(1)} kda — strong`)
+  else if (p.avgKda < 2) notes.push(`${p.avgKda.toFixed(1)} kda — stinker`)
+
+  if (p.avgDmg >= 30) notes.push(`${p.avgDmg.toFixed(0)}% dmg share`)
+  if (p.avgKp >= 75) notes.push(`${p.avgKp.toFixed(0)}% kp`)
+  if (p.champions.length) notes.push(`champs: ${p.champions.join(', ')}`)
+
+  if (wonLaneEveryGame(bucket, p.name)) {
+    const verb = p.role === 'jungle' ? 'outjungled' : 'outlaned'
+    notes.push(`${verb} lane opponent every game`)
+  }
+  if (lostLaneEveryGame(bucket, p.name)) {
+    const verb = p.role === 'jungle' ? 'outjungled by' : 'lost lane to'
+    notes.push(`${verb} opponent every game`)
+  }
+
+  if (p.team === seriesWinner && p.wins >= 2 && p.avgDmg >= 28 && p.avgKda >= 3.2) {
+    notes.push('series carry')
+  }
+
+  return { ...p, notes: [...new Set(notes)] }
 }
 
 function findLaneDuelDomination(series: SeriesBucket): LaneDuelDomination | null {
@@ -206,6 +286,49 @@ function avgTeamGd15(series: SeriesBucket, team: string): number {
   return vals.reduce((s, v) => s + v, 0) / vals.length
 }
 
+function detectLeadBlown(
+  orderedGames: SeriesBucket['games'],
+  seriesWinner: string,
+): string | null {
+  if (orderedGames.length < 3) return null
+  const first = orderedGames[0]!.winner
+  const second = orderedGames[1]!.winner
+  if (first === second && first !== seriesWinner) return first
+  return null
+}
+
+function buildNarrativeHints(opts: {
+  reverseSweep: boolean
+  blowout: boolean
+  upset: boolean
+  messySeries: boolean
+  leadBlownBy: string | null
+  seriesStreak: number
+  victimSlump: number
+  domSplitWr: number
+  vicSplitWr: number
+  winner: string
+  loser: string
+}): string[] {
+  const hints: string[] = []
+  if (opts.leadBlownBy) {
+    hints.push(`${recapTeamTag(opts.leadBlownBy)} blew a multi-game lead and got reverse swept`)
+  } else if (opts.reverseSweep) {
+    hints.push(`${recapTeamTag(opts.winner)} dropped game 1 then rallied`)
+  }
+  if (opts.blowout) hints.push('clean sweep — no games dropped')
+  if (opts.upset) hints.push(`${recapTeamTag(opts.winner)} upset the higher split-WR favorite`)
+  if (opts.messySeries) hints.push('back-and-forth series — multiple momentum swings')
+  if (opts.seriesStreak >= 3) hints.push(`${recapTeamTag(opts.winner)} on a ${opts.seriesStreak}-series win streak`)
+  else if (opts.seriesStreak >= 2) hints.push(`${recapTeamTag(opts.winner)} building momentum (${opts.seriesStreak} series wins)`)
+  if (opts.victimSlump >= 2) hints.push(`${recapTeamTag(opts.loser)} slumping (${opts.victimSlump}+ series losses)`)
+  if (opts.domSplitWr >= 65) hints.push(`${recapTeamTag(opts.winner)} strong split form (${opts.domSplitWr.toFixed(0)}% WR)`)
+  if (opts.vicSplitWr >= 65 && opts.upset) {
+    hints.push(`${recapTeamTag(opts.loser)} entered as split favorite (${opts.vicSplitWr.toFixed(0)}% WR)`)
+  }
+  return hints
+}
+
 export function buildSeriesFacts(
   bucket: SeriesBucket,
   teams: Team[],
@@ -223,27 +346,59 @@ export function buildSeriesFacts(
   const loser = winner === bucket.teamA ? bucket.teamB : bucket.teamA
   const domWins = Math.max(winsA, winsB)
   const vicWins = Math.min(winsA, winsB)
+  const winnerCanon = resolveTeamCanonicalName(winner)
+  const loserCanon = resolveTeamCanonicalName(loser)
 
   const domSplitWr = splitWinrate(teams, winner)
   const vicSplitWr = splitWinrate(teams, loser)
   const league = teamLeague(teams, winner)
-  const playerStats = aggregateSeriesPlayerStats(bucket)
+  const playerStats = aggregateSeriesPlayerStats(bucket).map((p) =>
+    annotatePlayer(p, bucket, winner),
+  )
   const laneDuel = findLaneDuelDomination(bucket)
-  const winPlayers = playerStats.filter((p) => p.team === winner && p.wins > 0)
+  const winPlayers = playerStats.filter((p) => p.team === winner)
   const losePlayers = playerStats.filter((p) => p.team === loser)
 
-  const topCarry =
-    winPlayers
-      .filter((p) => p.wins >= 2 && p.avgDmg >= 28 && p.avgKda >= 3.2)
-      .sort((a, b) => b.avgDmg * b.avgKda - a.avgDmg * a.avgKda)[0] ?? null
+  const ordered = [...bucket.games].sort((a, b) => a.date.localeCompare(b.date))
+  const leadBlownBy = detectLeadBlown(ordered, winner)
+  const messySeries = vicWins >= 2 && domWins >= 2 && bucket.games.length >= 4
 
-  const pocket = winPlayers
-    .filter((p) => {
-      const champ = p.champions.find((c) => (weekCounts.get(c) ?? 0) <= 2)
-      return champ && p.avgKda >= 2.5
-    })
-    .sort((a, b) => b.avgKda - a.avgKda)[0]
+  const winnerStars = winPlayers
+    .filter(
+      (p) =>
+        p.notes.some((n) => n.includes('carry') || n.includes('popoff') || n.includes('strong')) ||
+        p.avgKda >= 3.5 ||
+        p.avgDmg >= 28,
+    )
+    .sort((a, b) => b.avgKda * 0.4 + b.avgDmg * 0.6 - (a.avgKda * 0.4 + a.avgDmg * 0.6))
+    .slice(0, 4)
 
+  const winnerConcerns = winPlayers
+    .filter(
+      (p) =>
+        p.notes.some((n) => n.includes('stinker') || n.includes('lost lane') || n.includes('outjungled by')) ||
+        p.avgKda < 2.3 ||
+        lostLaneEveryGame(bucket, p.name),
+    )
+    .sort((a, b) => a.avgKda - b.avgKda)
+    .slice(0, 3)
+
+  const loserStinkers = losePlayers
+    .filter((p) => p.avgKda < 2.2 || p.notes.some((n) => n.includes('stinker')))
+    .sort((a, b) => a.avgKda - b.avgKda)
+    .slice(0, 3)
+
+  const loserBrightSpots = losePlayers
+    .filter((p) => p.avgKda >= 3 || p.avgDmg >= 28)
+    .sort((a, b) => b.avgKda * 0.5 + b.avgDmg * 0.5 - (a.avgKda * 0.5 + a.avgDmg * 0.5))
+    .slice(0, 2)
+
+  const topCarry = winnerStars[0] ?? null
+
+  const pocket = winPlayers.find((p) => {
+    const champ = p.champions.find((c) => (weekCounts.get(c) ?? 0) <= 2)
+    return champ && p.avgKda >= 2.5
+  })
   const pocketPick = pocket
     ? {
         name: pocket.name,
@@ -252,25 +407,34 @@ export function buildSeriesFacts(
       }
     : null
 
-  const loserStandout =
-    losePlayers
-      .filter((p) => p.avgKda >= 3.2 || p.avgDmg >= 28)
-      .sort((a, b) => b.avgKda * 0.5 + b.avgDmg * 0.5 - (a.avgKda * 0.5 + a.avgDmg * 0.5))[0] ?? null
+  const gameFlow = ordered.map((g, i) => ({
+    game: i + 1,
+    winnerAbbr: recapTeamTag(g.winner),
+  }))
 
-  const loserHorrors = losePlayers
-    .filter((p) => p.avgKda < 2.2)
-    .sort((a, b) => a.avgKda - b.avgKda)
-    .slice(0, 2)
-    .map((p) => p.name)
+  const narrativeHints = buildNarrativeHints({
+    reverseSweep: opts.reverseSweep,
+    blowout: domWins >= 2 && vicWins === 0,
+    upset: upsetFromWr(domSplitWr, vicSplitWr),
+    messySeries,
+    leadBlownBy,
+    seriesStreak: opts.seriesStreak,
+    victimSlump: opts.victimSlump,
+    domSplitWr,
+    vicSplitWr,
+    winner: winnerCanon,
+    loser: loserCanon,
+  })
 
-  const highlights = playerStats
-    .filter((p) => p.avgKda >= 3.5 || p.avgDmg >= 28)
-    .sort((a, b) => b.avgKda * 0.4 + b.avgDmg * 0.6 - (a.avgKda * 0.4 + a.avgDmg * 0.6))
-    .slice(0, 6)
+  const laneDuelPlayer = laneDuel
+    ? playerStats.find((p) => p.name === laneDuel.dominator)
+    : null
 
   return {
-    winner: resolveTeamCanonicalName(winner),
-    loser: resolveTeamCanonicalName(loser),
+    winner: winnerCanon,
+    loser: loserCanon,
+    winnerAbbr: recapTeamTag(winnerCanon),
+    loserAbbr: recapTeamTag(loserCanon),
     score: `${domWins}-${vicWins}`,
     league,
     domWins,
@@ -279,6 +443,9 @@ export function buildSeriesFacts(
     reverseSweep: opts.reverseSweep,
     blowout: domWins >= 2 && vicWins === 0,
     upset: upsetFromWr(domSplitWr, vicSplitWr),
+    messySeries,
+    leadBlownBy: leadBlownBy ? resolveTeamCanonicalName(leadBlownBy) : null,
+    leadBlownByAbbr: leadBlownBy ? recapTeamTag(leadBlownBy) : null,
     domSplitWr,
     vicSplitWr,
     seriesStreak: opts.seriesStreak,
@@ -293,15 +460,22 @@ export function buildSeriesFacts(
           wonLaneEveryGame: laneDuel.wonLaneEveryGame,
           wonDmgEveryGame: laneDuel.wonDmgEveryGame,
           games: laneDuel.games,
+          dominatorWonSeries: laneDuelPlayer?.team === winner,
         }
       : null,
-    topCarry: topCarry ?? null,
+    topCarry,
     pocketPick,
-    loserStandout: loserStandout
-      ? { name: loserStandout.name, avgKda: loserStandout.avgKda, avgDmg: loserStandout.avgDmg }
+    winnerStars,
+    winnerConcerns,
+    loserBrightSpots,
+    loserStinkers,
+    gameFlow,
+    narrativeHints,
+    loserHorrors: loserStinkers.map((p) => p.name),
+    highlights: winnerStars,
+    loserStandout: loserBrightSpots[0]
+      ? { name: loserBrightSpots[0].name, avgKda: loserBrightSpots[0].avgKda, avgDmg: loserBrightSpots[0].avgDmg }
       : null,
-    loserHorrors,
-    highlights,
   }
 }
 

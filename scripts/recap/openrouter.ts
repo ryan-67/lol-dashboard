@@ -3,8 +3,9 @@ import { requireEnv } from './db.ts'
 const OPENROUTER_URL = 'https://openrouter.ai/api/v1/embeddings'
 const CHAT_URL = 'https://openrouter.ai/api/v1/chat/completions'
 
+/** Creative + cheap; override with RECAP_LLM_MODEL (e.g. openai/gpt-4o-mini, moonshotai/kimi-k2). */
 export const DEFAULT_RECAP_MODEL =
-  process.env.RECAP_LLM_MODEL?.trim() || 'google/gemini-2.5-flash-lite'
+  process.env.RECAP_LLM_MODEL?.trim() || 'google/gemini-2.5-flash'
 
 export const EMBEDDING_MODEL =
   process.env.RECAP_EMBEDDING_MODEL?.trim() || 'openai/text-embedding-3-small'
@@ -49,8 +50,8 @@ export async function generateRecapJson(
     choices?: Array<{ message?: { content?: string } }>
   }>(CHAT_URL, {
     model,
-    temperature: 0.85,
-    max_tokens: 320,
+    temperature: 0.92,
+    max_tokens: 520,
     response_format: { type: 'json_object' },
     messages: [
       { role: 'system', content: systemPrompt },

@@ -16,7 +16,7 @@ import {
   loadTier1DataFromSupabase,
   upsertRecapRow,
 } from './db.ts'
-import { fetchRagContext, buildRagQuery } from './rag.ts'
+import { fetchRecapRagBundle } from './rag.ts'
 import { generateAiRecapLine, briefToTemplateLine } from './compose.ts'
 import { recapLineToText } from '../../src/lib/weeklyRecap.ts'
 import { DEFAULT_RECAP_MODEL } from './openrouter.ts'
@@ -72,15 +72,8 @@ async function main(): Promise<void> {
   for (const brief of pending) {
     console.log(`\n→ ${brief.facts.winner} vs ${brief.facts.loser} (${brief.facts.score}) [${brief.seriesId}]`)
     try {
-      const ragQuery = buildRagQuery(
-        brief.facts.winner,
-        brief.facts.loser,
-        brief.league,
-        brief.facts.score,
-        brief.date,
-      )
-      const ragContext = client ? await fetchRagContext(client, ragQuery, brief.league) : ''
-      if (ragContext) console.log(`  RAG: ${ragContext.slice(0, 120)}...`)
+      const ragContext = client ? await fetchRecapRagBundle(client, brief) : ''
+      if (ragContext) console.log(`  RAG (${ragContext.split('---').length} chunks): ${ragContext.slice(0, 140)}...`)
 
       let line = briefToTemplateLine(brief)
       let plainText = recapLineToText(line)
