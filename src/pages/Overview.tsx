@@ -436,6 +436,7 @@ export default function Overview() {
     split,
     year,
     lastUpdated,
+    selectedLeagues,
   } = useDashboard()
   const rootRef = useRef<HTMLDivElement>(null)
 
@@ -497,7 +498,7 @@ export default function Overview() {
       return
     }
     let cancelled = false
-    void fetchCachedWeeklyRecapLines(weeklyWindow.start, weeklyWindow.end, league).then(
+    void fetchCachedWeeklyRecapLines(weeklyWindow.start, weeklyWindow.end, selectedLeagues).then(
       (lines) => {
         if (!cancelled) setCachedRecapLines(lines)
       },
@@ -505,7 +506,7 @@ export default function Overview() {
     return () => {
       cancelled = true
     }
-  }, [weeklyWindow, league])
+  }, [weeklyWindow, selectedLeagues])
 
   const weeklyRecapLines =
     cachedRecapLines.length > 0 ? cachedRecapLines : templateRecapLines
@@ -538,7 +539,14 @@ export default function Overview() {
       </section>
 
       {weeklyWindow && (
-        <WeeklyRecap lines={weeklyRecapLines} windowLabel={weeklyWindow.label} />
+        <WeeklyRecap
+          lines={weeklyRecapLines}
+          windowLabel={weeklyWindow.label}
+          leagueLabel={league}
+          players={filteredPlayers}
+          champions={filteredChampions}
+          teams={filteredTeams.map((t) => t.name)}
+        />
       )}
 
       <section className="card overview-hub-card">

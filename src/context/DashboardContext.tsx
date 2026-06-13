@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useCallback, useMemo, useEffect, ReactNode } from 'react'
+import { createContext, useContext, useMemo, useEffect, ReactNode } from 'react'
 import {
   useDashboardData,
   DashboardData,
@@ -6,10 +6,14 @@ import {
   Team,
   Champion,
   DEFAULT_SPLIT,
-  leagueLabelToLeagues,
   leaguesToLeagueLabel,
+  leagueLabelToLeagues,
+  yearsToLabel,
+  splitsToLabel,
+  splitSeasonLabel,
+  isAllTier1Selected,
 } from '../hooks/useDashboardData'
-import { mergeSlices, TIER1_LEAGUES, type OEStoreMeta } from '../lib/mergeSlices'
+import { mergeSlicesFromFilters, TIER1_LEAGUES, type OEStoreMeta } from '../lib/mergeSlices'
 
 interface DashboardContextValue {
   data: DashboardData | null
@@ -24,6 +28,13 @@ interface DashboardContextValue {
   setYear: (y: string) => void
   split: string
   setSplit: (s: string) => void
+
+  selectedLeagues: string[]
+  selectedYears: string[]
+  selectedSplits: string[]
+  toggleLeague: (league: string) => void
+  toggleYear: (year: string) => void
+  toggleSplit: (split: string) => void
 
   filteredPlayers: Player[]
   filteredTeams: Team[]
@@ -40,80 +51,83 @@ export const DEFAULT_YEAR = '2026'
 export { DEFAULT_SPLIT }
 
 export function DashboardProvider({ children }: { children: ReactNode }) {
-  const [year, setYearState] = useState(DEFAULT_YEAR)
-
   const {
     store,
     catalog,
     loading,
     error,
     lastUpdated,
-    selectedSplit,
+    selectedYears,
+    selectedSplits,
     selectedLeagues,
-    setSelectedSplit,
+    setSelectedYears,
+    setSelectedSplits,
     setSelectedLeagues,
-  } = useDashboardData(year)
+    toggleYear,
+    toggleSplit,
+    toggleLeague,
+  } = useDashboardData()
 
   const meta = catalog ?? store?.meta ?? null
 
   const leagues = useMemo(() => {
-    if (!meta) return ['All Tier 1']
+    if (!meta) return ['All Tier 1', ...TIER1_LEAGUES]
     return ['All Tier 1', ...TIER1_LEAGUES.filter((l) => meta.leagues.includes(l))]
   }, [meta])
 
   const years = useMemo(() => {
-    if (!meta) return [DEFAULT_YEAR]
+    if (!meta) return ['ALL', DEFAULT_YEAR]
     const set = new Set<string>()
     for (const splitLabel of meta.splits) {
       const [year] = splitLabel.split(' ', 1)
       if (year) set.add(year)
     }
-    return [...set].sort()
+    return ['ALL', ...[...set].sort()]
   }, [meta])
 
   const league = leaguesToLeagueLabel(selectedLeagues)
-  const split = selectedSplit
+  const year = yearsToLabel(selectedYears)
+  const split = splitsToLabel(selectedSplits)
 
-  const splitOptionsByYear = useMemo(() => {
+  const splitOptions = useMemo(() => {
     if (!meta) return []
-    return meta.splits.filter((splitLabel) => splitLabel.startsWith(`${year} `))
-  }, [meta, year])
+    if (selectedYears.includes('ALL')) return meta.splits
+    return meta.splits.filter((splitLabel) =>
+      selectedYears.some((y) => splitLabel.startsWith(`${y} `)),
+    )
+  }, [meta, selectedYears])
 
-  const setLeague = useCallback(
-    (l: string) => {
-      setSelectedLeagues(leagueLabelToLeagues(l))
-    },
-    [setSelectedLeagues],
-  )
+  const setLeague = (l: string) => {
+    setSelectedLeagues(leagueLabelToLeagues(l))
+  }
 
-  const setYear = useCallback((y: string) => setYearState(y), [])
+  const setYear = (y: string) => {
+    setSelectedYears(y === 'ALL' ? ['ALL'] : [y])
+  }
 
-  const setSplit = useCallback(
-    (s: string) => {
-      setSelectedSplit(s)
-    },
-    [setSelectedSplit],
-  )
+  const setSplit = (s: string) => {
+    setSelectedSplits(s === 'ALL' ? ['ALL'] : [s])
+  }
 
   useEffect(() => {
     if (!meta) return
-    if (!years.includes(year)) {
-      setYearState(DEFAULT_YEAR)
-      return
+    if (!selectedYears.includes('ALL') && !selectedYears.some((y) => years.includes(y))) {
+      setSelectedYears([DEFAULT_YEAR])
     }
-    if (split === 'ALL') return
-    if (!splitOptionsByYear.includes(split)) {
-      const spring = `${year} Spring`
-      setSelectedSplit(
-        splitOptionsByYear.includes(spring) ? spring : (splitOptionsByYear[0] ?? spring),
-      )
+    if (selectedSplits.includes('ALL')) return
+    const valid = selectedSplits.filter((s) => splitOptions.includes(s))
+    if (!valid.length && splitOptions.length) {
+      const spring = splitOptions.find((s) => s.endsWith(' Spring')) ?? splitOptions[0]!
+      setSelectedSplits([spring])
+    } else if (valid.length !== selectedSplits.length) {
+      setSelectedSplits(valid)
     }
-  }, [meta, years, year, split, splitOptionsByYear, setSelectedSplit])
+  }, [meta, years, selectedYears, selectedSplits, splitOptions, setSelectedYears, setSelectedSplits])
 
   const data = useMemo(() => {
     if (!store) return null
-    return mergeSlices(store, league, split, year)
-  }, [store, league, split, year])
+    return mergeSlicesFromFilters(store, selectedLeagues, selectedYears, selectedSplits)
+  }, [store, selectedLeagues, selectedYears, selectedSplits])
 
   const filteredPlayers = data?.players ?? []
   const filteredTeams = data?.teams ?? []
@@ -133,12 +147,18 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
         setYear,
         split,
         setSplit,
+        selectedLeagues,
+        selectedYears,
+        selectedSplits,
+        toggleLeague,
+        toggleYear,
+        toggleSplit,
         filteredPlayers,
         filteredTeams,
         filteredChampions,
         leagues,
         years,
-        splits: splitOptionsByYear,
+        splits: splitOptions,
       }}
     >
       {children}
@@ -151,3 +171,5 @@ export function useDashboard() {
   if (!ctx) throw new Error('useDashboard must be used inside DashboardProvider')
   return ctx
 }
+
+export { splitSeasonLabel, isAllTier1Selected }

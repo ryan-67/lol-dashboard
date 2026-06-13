@@ -22,6 +22,15 @@ export interface WeeklyRecapLine {
   date: string
   dateLabel: string
   segments: WeeklyRecapSegment[]
+  score: WeeklyRecapScore
+}
+
+export interface WeeklyRecapScore {
+  winner: string
+  loser: string
+  winnerAbbr: string
+  loserAbbr: string
+  score: string
 }
 
 interface GamePlayer {
@@ -1015,7 +1024,7 @@ function summarizeSeries(
   weekCounts: Map<string, number>,
   lineIndex: number,
   ledger: RecapLedger,
-): WeeklyRecapLine | null {
+): Omit<WeeklyRecapLine, 'score'> | null {
   const { teamA, teamB, games } = bucket
   if (!games.length) return null
 
@@ -1154,7 +1163,25 @@ export function buildWeeklyRecapLines(
     const bucket = series[i]!
     if (bucket.games.length < 1) continue
     const line = summarizeSeries(bucket, teams, players, weekCounts, i, ledger)
-    if (line) lines.push(line)
+    if (!line) continue
+
+    const winsA = bucket.games.filter((g) => g.winner === bucket.teamA).length
+    const winsB = bucket.games.length - winsA
+    const dominant = winsA >= winsB ? bucket.teamA : bucket.teamB
+    const victim = dominant === bucket.teamA ? bucket.teamB : bucket.teamA
+    const domWins = Math.max(winsA, winsB)
+    const vicWins = Math.min(winsA, winsB)
+
+    lines.push({
+      ...line,
+      score: {
+        winner: resolveTeamCanonicalName(dominant),
+        loser: resolveTeamCanonicalName(victim),
+        winnerAbbr: recapTeamTag(dominant),
+        loserAbbr: recapTeamTag(victim),
+        score: `${domWins}-${vicWins}`,
+      },
+    })
   }
 
   return lines
@@ -1264,8 +1291,19 @@ export function collectSeriesBriefs(
       victimSlump: vicWins > domWins ? 0 : victimSlump,
     })
 
-    const templateLine = summarizeSeries(bucket, teams, players, weekCounts, i, ledger)
-    if (!templateLine) continue
+    const templateBase = summarizeSeries(bucket, teams, players, weekCounts, i, ledger)
+    if (!templateBase) continue
+
+    const templateLine: WeeklyRecapLine = {
+      ...templateBase,
+      score: {
+        winner: resolveTeamCanonicalName(dominant),
+        loser: resolveTeamCanonicalName(victim),
+        winnerAbbr: recapTeamTag(dominant),
+        loserAbbr: recapTeamTag(victim),
+        score: `${domWins}-${vicWins}`,
+      },
+    }
 
     briefs.push({
       seriesId: stableSeriesId(bucket.teamA, bucket.teamB, latestDate),

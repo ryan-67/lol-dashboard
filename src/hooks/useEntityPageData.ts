@@ -29,7 +29,12 @@ async function findBestSplit(
     if (seen.has(split)) continue
     seen.add(split)
     const year = split.split(' ', 1)[0] ?? globalYear
-    const rows = await fetchOESlices({ split, leagues: leagueLabelToLeagues(league) })
+    const rows = await fetchOESlices({
+      leagues: leagueLabelToLeagues(league),
+      years: [year],
+      splits: [split],
+      catalogSplits: catalog.splits,
+    })
     const store = buildStoreFromSliceRows(catalog!, rows)
     const data = mergeDataForFilters(store, { league, year, split })
     if (hasData(data)) {
@@ -68,6 +73,7 @@ export function useEntityPageData(hasDataForSplit: (data: DashboardData) => bool
 
   const splitsForYear = useMemo(() => {
     if (!catalog) return []
+    if (filters.year === 'ALL') return catalog.splits
     return catalog.splits.filter((s) => s.startsWith(`${filters.year} `))
   }, [catalog, filters.year])
 
@@ -100,9 +106,9 @@ export function useEntityPageData(hasDataForSplit: (data: DashboardData) => bool
     void (async () => {
       setLoading(true)
       const rows = await fetchOESlices({
-        split: filters.split,
         leagues: leagueLabelToLeagues(filters.league),
-        year: filters.year,
+        years: filters.year === 'ALL' ? ['ALL'] : [filters.year],
+        splits: filters.split === 'ALL' ? ['ALL'] : [filters.split],
         catalogSplits: catalog.splits,
       })
       if (cancelled) return

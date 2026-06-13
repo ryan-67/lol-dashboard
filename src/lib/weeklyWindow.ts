@@ -1,5 +1,4 @@
 import type { Player, PlayerGameLog } from '../hooks/useDashboardData'
-import { DEFAULT_SPLIT } from './constants'
 
 export interface WeeklyWindow {
   start: Date
@@ -40,8 +39,8 @@ function weekLabel(start: Date, end: Date): string {
 /** Rolling 7-day window; use split ALL + current year for recap generation across tier-1. */
 export function getWeeklyWindow(
   players: Player[],
-  year: string,
-  split: string,
+  _year: string,
+  _split: string,
   now: Date = new Date(),
 ): WeeklyWindow | null {
   const dates = players
@@ -52,7 +51,9 @@ export function getWeeklyWindow(
   dates.sort((a, b) => a.getTime() - b.getTime())
   const latestDataDate = dates[dates.length - 1]!
   const today = startOfDay(now)
-  const isCurrentContext = year === String(today.getFullYear()) && (split === DEFAULT_SPLIT || split === 'ALL')
+  const daysSinceLatest =
+    (today.getTime() - startOfDay(latestDataDate).getTime()) / (1000 * 60 * 60 * 24)
+  const isCurrentContext = daysSinceLatest <= 14
 
   const anchorEnd = isCurrentContext ? endOfDay(today) : endOfDay(latestDataDate)
   const start = startOfDay(new Date(anchorEnd))

@@ -7,6 +7,7 @@ import {
   fetchOESlices,
 } from '../lib/loadOEStore'
 import { isSupabaseConfigured } from '../lib/supabaseClient'
+import { DEFAULT_SPLIT } from '../lib/constants'
 
 export interface DashboardMeta {
   source: string
@@ -167,20 +168,17 @@ export interface DashboardData {
   teamChampions: TeamChampion[]
 }
 
-export const DEFAULT_SPLIT = '2026 Spring'
+export { DEFAULT_SPLIT } from '../lib/constants'
+export {
+  leaguesToLeagueLabel,
+  leagueLabelToLeagues,
+  yearsToLabel,
+  splitsToLabel,
+  splitSeasonLabel,
+  isAllTier1Selected,
+} from '../lib/filterLabels'
+
 export const DEFAULT_LEAGUES: string[] = [...TIER1_LEAGUES]
-
-export function leaguesToLeagueLabel(leagues: string[]): string {
-  const tier1 = TIER1_LEAGUES as readonly string[]
-  if (leagues.length === tier1.length && tier1.every((l) => leagues.includes(l))) {
-    return 'All Tier 1'
-  }
-  return leagues[0] ?? 'All Tier 1'
-}
-
-export function leagueLabelToLeagues(league: string): string[] {
-  return league === 'All Tier 1' ? [...TIER1_LEAGUES] : [league]
-}
 
 interface UseDashboardDataReturn {
   store: OEStore | null
@@ -188,20 +186,27 @@ interface UseDashboardDataReturn {
   loading: boolean
   error: string | null
   lastUpdated: Date | null
-  selectedSplit: string
+  selectedYears: string[]
+  selectedSplits: string[]
   selectedLeagues: string[]
-  setSelectedSplit: (split: string) => void
+  setSelectedYears: (years: string[]) => void
+  setSelectedSplits: (splits: string[]) => void
   setSelectedLeagues: (leagues: string[]) => void
+  toggleYear: (year: string) => void
+  toggleSplit: (split: string) => void
+  toggleLeague: (league: string) => void
 }
 
-export function useDashboardData(selectedYear: string): UseDashboardDataReturn {
+export function useDashboardData(): UseDashboardDataReturn {
   const [catalog, setCatalog] = useState<OEStoreMeta | null>(null)
   const [store, setStore] = useState<OEStore | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null)
-  const [selectedSplit, setSelectedSplit] = useState(DEFAULT_SPLIT)
+  const [selectedYears, setSelectedYearsState] = useState<string[]>(['2026'])
+  const [selectedSplits, setSelectedSplitsState] = useState<string[]>([DEFAULT_SPLIT])
   const [selectedLeagues, setSelectedLeagues] = useState<string[]>(DEFAULT_LEAGUES)
+
   const fetchData = useCallback(async () => {
     setLoading(true)
     setError(null)
@@ -223,9 +228,9 @@ export function useDashboardData(selectedYear: string): UseDashboardDataReturn {
       }
 
       const rows = await fetchOESlices({
-        split: selectedSplit,
         leagues: selectedLeagues,
-        year: selectedYear,
+        years: selectedYears,
+        splits: selectedSplits,
         catalogSplits: meta.splits,
       })
       const nextStore = buildStoreFromSliceRows(meta, rows)
@@ -237,7 +242,7 @@ export function useDashboardData(selectedYear: string): UseDashboardDataReturn {
     } finally {
       setLoading(false)
     }
-  }, [catalog, selectedSplit, selectedLeagues, selectedYear])
+  }, [catalog, selectedYears, selectedSplits, selectedLeagues])
 
   useEffect(() => {
     void fetchData()
@@ -247,15 +252,63 @@ export function useDashboardData(selectedYear: string): UseDashboardDataReturn {
     setSelectedLeagues(leagues.length ? leagues : [...DEFAULT_LEAGUES])
   }, [])
 
+  const setSelectedYears = useCallback((years: string[]) => {
+    setSelectedYearsState(years.length ? years : ['2026'])
+  }, [])
+
+  const setSelectedSplits = useCallback((splits: string[]) => {
+    setSelectedSplitsState(splits.length ? splits : [DEFAULT_SPLIT])
+  }, [])
+
+  const toggleLeague = useCallback((league: string) => {
+    if (league === 'All Tier 1') {
+      setSelectedLeagues([...TIER1_LEAGUES])
+      return
+    }
+    setSelectedLeagues((prev) => {
+      const next = prev.includes(league) ? prev.filter((l) => l !== league) : [...prev, league]
+      return next.length ? next : [league]
+    })
+  }, [])
+
+  const toggleYear = useCallback((year: string) => {
+    if (year === 'ALL') {
+      setSelectedYearsState(['ALL'])
+      return
+    }
+    setSelectedYearsState((prev) => {
+      const base = prev.filter((y) => y !== 'ALL')
+      const next = base.includes(year) ? base.filter((y) => y !== year) : [...base, year]
+      return next.length ? next : ['2026']
+    })
+  }, [])
+
+  const toggleSplit = useCallback((split: string) => {
+    if (split === 'ALL') {
+      setSelectedSplitsState(['ALL'])
+      return
+    }
+    setSelectedSplitsState((prev) => {
+      const base = prev.filter((s) => s !== 'ALL')
+      const next = base.includes(split) ? base.filter((s) => s !== split) : [...base, split]
+      return next.length ? next : [split]
+    })
+  }, [])
+
   return {
     store,
     catalog,
     loading,
     error,
     lastUpdated,
-    selectedSplit,
+    selectedYears,
+    selectedSplits,
     selectedLeagues,
-    setSelectedSplit,
+    setSelectedYears,
+    setSelectedSplits,
     setSelectedLeagues: setSelectedLeaguesSafe,
+    toggleYear,
+    toggleSplit,
+    toggleLeague,
   }
 }

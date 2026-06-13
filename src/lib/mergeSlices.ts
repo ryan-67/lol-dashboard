@@ -93,6 +93,34 @@ export function sliceKey(split: string, league: string): string {
   return `${split}|${league}`
 }
 
+export function selectSliceKeysFromFilters(
+  store: OEStore,
+  leagues: string[],
+  years: string[],
+  splits: string[],
+): string[] {
+  const tier1 = leagues.length ? leagues : [...TIER1_LEAGUES]
+  let splitLabels = store.meta.splits
+  const allYears = years.includes('ALL')
+  const allSplits = splits.includes('ALL')
+
+  if (!allYears) {
+    splitLabels = splitLabels.filter((s) => years.some((y) => s.startsWith(`${y} `)))
+  }
+  if (!allSplits) {
+    splitLabels = splitLabels.filter((s) => splits.includes(s))
+  }
+
+  const keys: string[] = []
+  for (const splitLabel of splitLabels) {
+    for (const league of tier1) {
+      const key = sliceKey(splitLabel, league)
+      if (store.slices[key]) keys.push(key)
+    }
+  }
+  return keys
+}
+
 export function selectSliceKeys(
   store: OEStore,
   league: string,
@@ -551,6 +579,42 @@ function mergeTeamChampions(slices: DashboardSlice[]): TeamChampion[] {
       }
       return result
     })
+}
+
+export function mergeSlicesFromFilters(
+  store: OEStore,
+  leagues: string[],
+  years: string[],
+  splits: string[],
+): DashboardData {
+  const keys = selectSliceKeysFromFilters(store, leagues, years, splits)
+  const slices = keys.map((key) => store.slices[key]).filter(Boolean)
+
+  if (slices.length === 0) {
+    return {
+      meta: {
+        ...store.meta,
+        leagues: [...store.meta.leagues],
+      },
+      players: [],
+      teams: [],
+      champions: [],
+      matchups: [],
+      teamChampions: [],
+    }
+  }
+
+  return {
+    meta: {
+      ...store.meta,
+      leagues: [...store.meta.leagues],
+    },
+    players: mergePlayers(slices),
+    teams: mergeTeams(slices),
+    champions: mergeChampions(slices),
+    matchups: mergeMatchups(slices),
+    teamChampions: mergeTeamChampions(slices),
+  }
 }
 
 export function mergeSlices(

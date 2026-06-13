@@ -12,10 +12,28 @@ export interface OESliceRow {
 }
 
 export interface FetchOESlicesParams {
-  split: string
   leagues: string[]
-  year?: string
+  years: string[]
+  splits: string[]
   catalogSplits?: string[]
+}
+
+function resolveTargetSplits(
+  catalogSplits: string[],
+  years: string[],
+  splits: string[],
+): string[] {
+  let result = catalogSplits
+  const allYears = years.includes('ALL')
+  const allSplits = splits.includes('ALL')
+
+  if (!allYears) {
+    result = result.filter((s) => years.some((y) => s.startsWith(`${y} `)))
+  }
+  if (!allSplits) {
+    result = result.filter((s) => splits.includes(s))
+  }
+  return result
 }
 
 function buildMetaFromCatalogRows(
@@ -75,13 +93,12 @@ export async function fetchOESliceCatalog(): Promise<OEStoreMeta> {
 }
 
 /**
- * Fetch only the slices for the active split + leagues (1–4 rows with jsonb).
- * On-demand loads stay small and avoid statement timeouts from bulk selects.
+ * Fetch slices for active league/year/split filters (small batched jsonb load).
  */
 export async function fetchOESlices({
-  split,
   leagues,
-  year,
+  years,
+  splits,
   catalogSplits,
 }: FetchOESlicesParams): Promise<OESliceRow[]> {
   if (!isSupabaseConfigured) {
@@ -90,45 +107,43 @@ export async function fetchOESlices({
     )
   }
 
-  if (!leagues.length) {
+  if (!leagues.length || !catalogSplits?.length) {
     return []
   }
 
-  if (split === 'ALL') {
-    if (!year || !catalogSplits?.length) return []
-    const yearSplits = catalogSplits.filter((s) => s.startsWith(`${year} `))
-    if (!yearSplits.length) return []
-
-    const { data, error } = await supabase
-      .from(TABLE)
-      .select('split, league, data, updated_at')
-      .in('split', yearSplits)
-      .in('league', leagues)
-
-    if (error) {
-      throw new Error(error.message)
-    }
-
-    return ((data ?? []) as OESliceRow[]).sort(
-      (a, b) => a.split.localeCompare(b.split) || a.league.localeCompare(b.league),
-    )
-  }
-
-  if (!split) {
-    return []
-  }
+  const targetSplits = resolveTargetSplits(catalogSplits, years, splits)
+  if (!targetSplits.length) return []
 
   const { data, error } = await supabase
     .from(TABLE)
     .select('split, league, data, updated_at')
-    .eq('split', split)
+    .in('split', targetSplits)
     .in('league', leagues)
 
   if (error) {
     throw new Error(error.message)
   }
 
-  return ((data ?? []) as OESliceRow[]).sort((a, b) => a.league.localeCompare(b.league))
+  return ((data ?? []) as OESliceRow[]).sort(
+    (a, b) => a.split.localeCompare(b.split) || a.league.localeCompare(b.league),
+  )
+}
+
+/** @deprecated use fetchOESlices with years/splits arrays */
+export async function fetchOESlicesLegacy(params: {
+  split: string
+  leagues: string[]
+  year?: string
+  catalogSplits?: string[]
+}): Promise<OESliceRow[]> {
+  const years = params.year ? [params.year] : ['ALL']
+  const splits = params.split === 'ALL' ? ['ALL'] : [params.split]
+  return fetchOESlices({
+    leagues: params.leagues,
+    years,
+    splits,
+    catalogSplits: params.catalogSplits,
+  })
 }
 
 export function buildStoreFromSliceRows(

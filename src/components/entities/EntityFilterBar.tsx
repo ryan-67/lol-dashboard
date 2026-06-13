@@ -1,8 +1,12 @@
 import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { FilterStripControls, FilterStripShell, type FilterStripValues } from '../FilterStrip'
+import {
+  EntityFilterStripControls,
+  EntityFilterStripShell,
+  type EntityFilterStripValues,
+} from '../EntityFilterStrip'
 
-interface EntityFilterBarProps extends FilterStripValues {
+interface EntityFilterBarProps extends EntityFilterStripValues {
   fallbackNotice?: string | null
   showAllSplit?: boolean
 }
@@ -19,15 +23,15 @@ export default function EntityFilterBar({
   }, [])
 
   const strip = (
-    <FilterStripShell
+    <EntityFilterStripShell
       trailing={
         fallbackNotice ? (
           <span className="text-xs text-tertiary max-w-md lg:text-right">{fallbackNotice}</span>
         ) : undefined
       }
     >
-      <FilterStripControls {...controls} showAllSplit={showAllSplit} />
-    </FilterStripShell>
+      <EntityFilterStripControls {...controls} showAllSplit={showAllSplit} />
+    </EntityFilterStripShell>
   )
 
   if (slot) return createPortal(strip, slot)

@@ -154,6 +154,13 @@ Must include {{WINNER}} and {{LOSER}} at least once each. Call out at least one 
     date: brief.date,
     dateLabel: brief.dateLabel,
     segments,
+    score: {
+      winner: brief.facts.winner,
+      loser: brief.facts.loser,
+      winnerAbbr: brief.facts.winnerAbbr,
+      loserAbbr: brief.facts.loserAbbr,
+      score: brief.facts.score,
+    },
   }
   return {
     line,

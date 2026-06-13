@@ -3,8 +3,18 @@ import { formatRefreshTimestamp } from '../lib/format'
 import { FilterStripControls, FilterStripShell } from './FilterStrip'
 
 export default function TopBar() {
-  const { league, setLeague, year, setYear, split, setSplit, lastUpdated, leagues, years, splits } =
-    useDashboard()
+  const {
+    lastUpdated,
+    leagues,
+    years,
+    splits,
+    selectedLeagues,
+    selectedYears,
+    selectedSplits,
+    toggleLeague,
+    toggleYear,
+    toggleSplit,
+  } = useDashboard()
 
   return (
     <FilterStripShell
@@ -17,16 +27,15 @@ export default function TopBar() {
       }
     >
       <FilterStripControls
-        league={league}
-        year={year}
-        split={split}
+        selectedLeagues={selectedLeagues}
+        selectedYears={selectedYears}
+        selectedSplits={selectedSplits}
         leagues={leagues}
         years={years}
         splits={splits}
-        onLeagueChange={setLeague}
-        onYearChange={setYear}
-        onSplitChange={setSplit}
-        showAllSplit
+        toggleLeague={toggleLeague}
+        toggleYear={toggleYear}
+        toggleSplit={toggleSplit}
       />
     </FilterStripShell>
   )

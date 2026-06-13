@@ -1,73 +1,58 @@
-import Select from './ui/Select'
-import LeagueLogo from './entities/LeagueLogo'
+import FilterToggleGroup from './ui/FilterToggleGroup'
+import { isAllTier1Selected, splitSeasonLabel } from '../lib/filterLabels'
 
 export interface FilterStripValues {
-  league: string
-  year: string
-  split: string
+  selectedLeagues: string[]
+  selectedYears: string[]
+  selectedSplits: string[]
   leagues: string[]
   years: string[]
   splits: string[]
-  onLeagueChange: (v: string) => void
-  onYearChange: (v: string) => void
-  onSplitChange: (v: string) => void
-  showAllSplit?: boolean
-}
-
-function splitLabel(value: string): string {
-  return value.replace(/^\d{4}\s+/, '')
+  toggleLeague: (v: string) => void
+  toggleYear: (v: string) => void
+  toggleSplit: (v: string) => void
 }
 
 export function FilterStripControls({
-  league,
-  year,
-  split,
+  selectedLeagues,
+  selectedYears,
+  selectedSplits,
   leagues,
   years,
   splits,
-  onLeagueChange,
-  onYearChange,
-  onSplitChange,
-  showAllSplit = true,
+  toggleLeague,
+  toggleYear,
+  toggleSplit,
 }: FilterStripValues) {
+  const leagueOptions = leagues.map((l) => ({ value: l, label: l }))
+  const yearOptions = years.map((y) => ({ value: y, label: y }))
+  const splitOptions = [
+    { value: 'ALL', label: 'ALL' },
+    ...splits.map((s) => ({ value: s, label: splitSeasonLabel(s) })),
+  ]
+
   return (
-    <div className="flex flex-col sm:flex-row sm:items-center gap-4">
-      <div className="flex items-center gap-2">
-        <span className="label-field">League</span>
-        {league !== 'All Tier 1' ? <LeagueLogo league={league} size={18} /> : null}
-        <Select label="League" value={league} onChange={(e) => onLeagueChange(e.target.value)}>
-          {leagues.map((l) => (
-            <option key={l} value={l}>
-              {l}
-            </option>
-          ))}
-        </Select>
-      </div>
-      <div className="flex items-center gap-2">
-        <span className="label-field">Year</span>
-        <Select label="Year" value={year} onChange={(e) => onYearChange(e.target.value)}>
-          {years.map((y) => (
-            <option key={y} value={y}>
-              {y}
-            </option>
-          ))}
-        </Select>
-      </div>
-      <div className="flex items-center gap-2">
-        <span className="label-field">Split</span>
-        <Select label="Split" value={split} onChange={(e) => onSplitChange(e.target.value)}>
-          {showAllSplit ? (
-            <option key="ALL" value="ALL">
-              ALL
-            </option>
-          ) : null}
-          {splits.map((s) => (
-            <option key={s} value={s}>
-              {splitLabel(s)}
-            </option>
-          ))}
-        </Select>
-      </div>
+    <div className="filter-strip-controls">
+      <FilterToggleGroup
+        label="League"
+        options={leagueOptions}
+        selected={selectedLeagues}
+        onToggle={toggleLeague}
+        allValue="All Tier 1"
+        isAllSelected={isAllTier1Selected(selectedLeagues)}
+      />
+      <FilterToggleGroup
+        label="Year"
+        options={yearOptions}
+        selected={selectedYears}
+        onToggle={toggleYear}
+      />
+      <FilterToggleGroup
+        label="Split"
+        options={splitOptions}
+        selected={selectedSplits}
+        onToggle={toggleSplit}
+      />
     </div>
   )
 }

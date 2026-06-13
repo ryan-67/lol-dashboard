@@ -83,7 +83,12 @@ export async function buildEntitySearchIndex(catalog: OEStoreMeta): Promise<Enti
     const championMap = new Map<string, EntitySearchEntry>()
 
     for (const split of splitsNewestFirst(catalog.splits)) {
-      const rows = await fetchOESlices({ split, leagues: [...TIER1_LEAGUES] })
+      const rows = await fetchOESlices({
+        leagues: [...TIER1_LEAGUES],
+        years: [split.split(' ', 1)[0] ?? '2026'],
+        splits: [split],
+        catalogSplits: catalog.splits,
+      })
       const store = buildStoreFromSliceRows(catalog, rows)
       const data = mergeSlices(store, 'All Tier 1', split)
 

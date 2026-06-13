@@ -14,6 +14,8 @@ type EntityType = 'player' | 'team' | 'champion'
 interface EntityLinkProps {
   type: EntityType
   name: string
+  /** Override visible link text (defaults to name). */
+  children?: React.ReactNode
   /** Required for player disambiguation when multiple same-name players exist */
   player?: Pick<Player, 'name' | 'team' | 'league'>
   allPlayers?: Player[]
@@ -35,20 +37,22 @@ function hrefFor(type: EntityType, name: string, player?: EntityLinkProps['playe
 export default function EntityLink({
   type,
   name,
+  children,
   player,
   allPlayers,
   className = '',
   showIcon = type !== 'player',
 }: EntityLinkProps) {
-  if (!name || name === 'N/A') return <span className={className}>{name}</span>
+  if (!name || name === 'N/A') return <span className={className}>{children ?? name}</span>
 
   const to = hrefFor(type, name, player ?? (allPlayers ? allPlayers.find((p) => p.name === name) : undefined), allPlayers)
+  const label = children ?? name
 
   return (
     <Link to={to} className={`entity-link ${className}`.trim()}>
       {showIcon && type === 'champion' ? <ChampionIcon name={name} size={18} /> : null}
       {showIcon && type === 'team' ? <TeamLogo name={name} size={18} /> : null}
-      <span>{name}</span>
+      <span>{label}</span>
     </Link>
   )
 }

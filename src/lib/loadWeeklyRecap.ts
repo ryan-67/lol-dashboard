@@ -1,7 +1,9 @@
 import type { WeeklyRecapLine } from './weeklyRecap'
 import { formatRecapDate } from './weeklyRecap'
+import { recapTeamTag } from './recapTeamTag'
+import { resolveTeamCanonicalName } from './entities/slugs'
 import { isSupabaseConfigured, supabase } from './supabaseClient'
-import { leagueLabelToLeagues } from '../hooks/useDashboardData'
+import { TIER1_LEAGUES } from './mergeSlices'
 
 const TABLE = 'weekly_recap_lines'
 
@@ -10,6 +12,10 @@ interface RecapRow {
   series_date: string
   segments: WeeklyRecapLine['segments']
   league: string
+  winner: string
+  score: string
+  team_a: string
+  team_b: string
 }
 
 function isoDate(d: Date): string {
@@ -17,11 +23,24 @@ function isoDate(d: Date): string {
 }
 
 function rowToLine(row: RecapRow): WeeklyRecapLine {
+  const winner = resolveTeamCanonicalName(row.winner)
+  const teamA = resolveTeamCanonicalName(row.team_a)
+  const teamB = resolveTeamCanonicalName(row.team_b)
+  const loser = winner === teamA ? teamB : teamA
+  const [domWins = '0', vicWins = '0'] = row.score.split('-')
+
   return {
     id: row.series_id,
     date: row.series_date,
     dateLabel: formatRecapDate(row.series_date),
     segments: row.segments,
+    score: {
+      winner,
+      loser,
+      winnerAbbr: recapTeamTag(winner),
+      loserAbbr: recapTeamTag(loser),
+      score: `${domWins}-${vicWins}`,
+    },
   }
 }
 
@@ -29,32 +48,37 @@ function rowToLine(row: RecapRow): WeeklyRecapLine {
 export async function fetchCachedWeeklyRecapLines(
   windowStart: Date,
   windowEnd: Date,
-  leagueLabel: string,
+  selectedLeagues: string[],
 ): Promise<WeeklyRecapLine[]> {
   if (!isSupabaseConfigured) return []
 
-  const leagues = leagueLabelToLeagues(leagueLabel)
+  const leagues =
+    selectedLeagues.length === TIER1_LEAGUES.length &&
+    TIER1_LEAGUES.every((l) => selectedLeagues.includes(l))
+      ? null
+      : selectedLeagues
+
   const start = isoDate(windowStart)
   const end = isoDate(windowEnd)
 
-  const { data, error } = await supabase
+  let query = supabase
     .from(TABLE)
-    .select('series_id, series_date, segments, league')
+    .select('series_id, series_date, segments, league, winner, score, team_a, team_b')
     .gte('series_date', start)
     .lte('series_date', end)
     .order('series_date', { ascending: false })
     .limit(24)
+
+  if (leagues?.length) {
+    query = query.in('league', leagues)
+  }
+
+  const { data, error } = await query
 
   if (error) {
     console.warn('[weekly-recap] fetch failed:', error.message)
     return []
   }
 
-  const rows = (data ?? []) as RecapRow[]
-  const filtered =
-    leagueLabel === 'All Tier 1'
-      ? rows
-      : rows.filter((r) => leagues.includes(r.league as (typeof leagues)[number]))
-
-  return filtered.map(rowToLine).slice(0, 8)
+  return ((data ?? []) as RecapRow[]).map(rowToLine).slice(0, 8)
 }
