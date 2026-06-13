@@ -1,0 +1,46 @@
+# Regenerate AI weekly recap lines for the past 7 days (no OE download).
+#
+# Manual: workflow_dispatch. Set regenerate_recaps=true to overwrite existing AI rows.
+#
+# Secrets: SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, OPENROUTER_API_KEY
+
+name: Generate Weekly Recap
+
+on:
+  workflow_dispatch:
+    inputs:
+      regenerate_recaps:
+        description: Regenerate all series in window (overwrite existing AI summaries)
+        required: true
+        default: true
+        type: boolean
+
+concurrency:
+  group: generate-weekly-recap
+  cancel-in-progress: false
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate weekly recap summaries
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          RECAP_REGENERATE: ${{ inputs.regenerate_recaps && '1' || '0' }}
+        run: npm run generate:weekly-recap

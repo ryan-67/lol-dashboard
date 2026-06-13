@@ -44,11 +44,67 @@ export function loadTier1DataFromShards(year: string): { players: Player[]; team
   return { players: merged.players, teams: merged.teams }
 }
 
-export async function fetchExistingSeriesIds(client: SupabaseClient, ids: string[]): Promise<Set<string>> {
-  if (!ids.length) return new Set()
-  const { data, error } = await client.from('weekly_recap_lines').select('series_id').in('series_id', ids)
+export async function fetchExistingRecapMeta(
+  client: SupabaseClient,
+  ids: string[],
+): Promise<Map<string, string | null>> {
+  if (!ids.length) return new Map()
+  const { data, error } = await client
+    .from('weekly_recap_lines')
+    .select('series_id, model')
+    .in('series_id', ids)
   if (error) throw new Error(`Failed to check existing recaps: ${error.message}`)
-  return new Set((data ?? []).map((r) => r.series_id as string))
+  return new Map((data ?? []).map((r) => [r.series_id as string, (r.model as string | null) ?? null]))
+}
+
+/** @deprecated use fetchExistingRecapMeta */
+export async function fetchExistingSeriesIds(client: SupabaseClient, ids: string[]): Promise<Set<string>> {
+  const meta = await fetchExistingRecapMeta(client, ids)
+  return new Set(meta.keys())
+}
+
+export async function loadTier1DataFromSupabase(
+  client: SupabaseClient,
+  year: string,
+): Promise<{ players: Player[]; teams: Team[] }> {
+  const tier1 = ['LCK', 'LPL', 'LEC', 'LCS']
+  const { data, error } = await client.from('oe_slices').select('split, league, data')
+  if (error) throw new Error(`Failed to load oe_slices: ${error.message}`)
+
+  const slices: OEStore['slices'] = {}
+  for (const row of data ?? []) {
+    const split = String(row.split ?? '')
+    const league = String(row.league ?? '')
+    if (!split.startsWith(`${year} `) || !tier1.includes(league)) continue
+    slices[`${split}|${league}`] = row.data as OEStore['slices'][string]
+  }
+  if (!Object.keys(slices).length) {
+    throw new Error(`No oe_slices rows for ${year} tier-1 leagues`)
+  }
+
+  const meta: OEStoreMeta = {
+    source: "Oracle's Elixir",
+    generated_at: new Date().toISOString(),
+    leagues: tier1,
+    splits: [...new Set(Object.keys(slices).map((k) => k.split('|')[0]!))],
+    schema_version: '2.1',
+  }
+  const store: OEStore = { meta, slices }
+  const merged = mergeSlices(store, 'All Tier 1', 'ALL', year)
+  return { players: merged.players, teams: merged.teams }
+}
+
+export async function loadTier1Data(
+  client: SupabaseClient | null,
+  year: string,
+): Promise<{ players: Player[]; teams: Team[] }> {
+  try {
+    return loadTier1DataFromShards(year)
+  } catch (shardErr) {
+    if (!client) throw shardErr
+    console.log('Local shards unavailable — loading oe_slices from Supabase...')
+    return loadTier1DataFromSupabase(client, year)
+  }
 }
 
 export interface RecapRow {

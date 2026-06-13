@@ -23,6 +23,11 @@ on:
         options:
           - current
           - all
+      regenerate_recaps:
+        description: Regenerate all weekly recap summaries (overwrite cached rows)
+        required: true
+        default: false
+        type: boolean
   schedule:
     - cron: '0 */2 * * *'
 
@@ -143,6 +148,7 @@ jobs:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
           OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          RECAP_REGENERATE: ${{ github.event_name == 'workflow_dispatch' && inputs.regenerate_recaps && '1' || '0' }}
         run: npm run generate:weekly-recap
 
       - name: Save OE Drive sync state

@@ -113,6 +113,11 @@ const ROLE_CHAT: Record<RoleKey, string> = {
   support: 'support',
 }
 
+/** GD@15 advantage phrasing — jungle is not a lane. */
+function roleAdvantageVerb(role: RoleKey): 'outlaned' | 'outjungled' {
+  return role === 'jungle' ? 'outjungled' : 'outlaned'
+}
+
 const FILLER_WORDS = new Set(['esports', 'gaming', 'team', 'life', 'of', 'the'])
 const MAX_CONTEXT_CLAUSES = 3
 
@@ -792,6 +797,7 @@ function buildContextInsights(
 
   if (laneDuel && (laneDuel.wonLaneEveryGame || laneDuel.wonDmgEveryGame)) {
     const r = ROLE_CHAT[laneDuel.role]
+    const adv = roleAdvantageVerb(laneDuel.role)
     const dom = playerLabel(laneDuel.dominator)
     const vic = playerLabel(laneDuel.victim)
     const onWinnerSide = playerStats.some(
@@ -805,7 +811,7 @@ function buildContextInsights(
         segments: [
           segText(
             ledger.pick(`${id}-ls`, salt, [
-              ` — ${dom} outlaned and outdamaged ${vic} in every game`,
+              ` — ${dom} ${adv} and outdamaged ${vic} in every game`,
               ` — ${dom} styled on ${vic} in ${r} all series (${laneDuel.games} games)`,
               ` with ${dom} winning ${r} and damage vs ${vic} every single game`,
             ]),
@@ -813,14 +819,15 @@ function buildContextInsights(
         ],
       })
     } else if (laneDuel.wonLaneEveryGame) {
+      const lanePhrase =
+        laneDuel.role === 'jungle'
+          ? ` — ${dom} ${adv} ${vic} every game`
+          : ` — ${dom} ${adv} ${vic} in ${r} every game`
       insights.push({
         kind: 'lane_sweep',
         priority: 88,
         segments: [
-          segText(
-            ` — ${dom} outlaned ${vic} in ${r} every game` +
-              (onWinnerSide ? '' : ` (still lost the series)`),
-          ),
+          segText(lanePhrase + (onWinnerSide ? '' : ` (still lost the series)`)),
         ],
       })
     } else if (laneDuel.wonDmgEveryGame) {

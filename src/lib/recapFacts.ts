@@ -36,6 +36,7 @@ export interface SeriesFacts {
     dominator: string
     victim: string
     role: RoleKey
+    advantageVerb: 'outlaned' | 'outjungled'
     wonLaneEveryGame: boolean
     wonDmgEveryGame: boolean
     games: number
@@ -288,6 +289,7 @@ export function buildSeriesFacts(
           dominator: laneDuel.dominator,
           victim: laneDuel.victim,
           role: laneDuel.role,
+          advantageVerb: laneDuel.role === 'jungle' ? 'outjungled' : 'outlaned',
           wonLaneEveryGame: laneDuel.wonLaneEveryGame,
           wonDmgEveryGame: laneDuel.wonDmgEveryGame,
           games: laneDuel.games,

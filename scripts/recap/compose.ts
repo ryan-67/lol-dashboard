@@ -16,6 +16,7 @@ Rules:
 - Must mention the exact series score from facts.score.
 - One or two sentences max. ~220 characters target unless the series needs more.
 - Use team abbreviations in team segments (T1, G2, BLG, C9, etc.) not full org names in labels.
+- For jungle matchups use "outjungled" (never "outlaned") when describing GD@15/jungle advantages; use "outlaned" for top/mid/bot/support only. facts.laneDuel.advantageVerb is authoritative when present.
 
 Output JSON only:
 {

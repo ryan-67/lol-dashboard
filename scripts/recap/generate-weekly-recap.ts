@@ -4,15 +4,15 @@
  * Run after OE ingest/seed in CI or locally.
  *
  * Env: SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, OPENROUTER_API_KEY
- * Optional: RECAP_LLM_MODEL, RECAP_YEAR, RECAP_DRY_RUN=1
+ * Optional: RECAP_LLM_MODEL, RECAP_YEAR, RECAP_DRY_RUN=1, RECAP_REGENERATE=1
  */
 import { collectSeriesBriefs } from '../../src/lib/weeklyRecap.ts'
 import { getWeeklyWindow, windowToWeeklyRecapWindow } from '../../src/lib/weeklyWindow.ts'
 import {
   createServiceClient,
   currentYear,
-  fetchExistingSeriesIds,
-  loadTier1DataFromShards,
+  fetchExistingRecapMeta,
+  loadTier1Data,
   upsertRecapRow,
 } from './db.ts'
 import { fetchRagContext, buildRagQuery } from './rag.ts'
@@ -22,11 +22,12 @@ import { DEFAULT_RECAP_MODEL } from './openrouter.ts'
 
 async function main(): Promise<void> {
   const dryRun = process.env.RECAP_DRY_RUN === '1'
+  const forceRegenerate = process.env.RECAP_REGENERATE === '1'
   const year = currentYear()
   const client = dryRun ? null : createServiceClient()
 
-  console.log(`Loading tier-1 OE shards for ${year}...`)
-  const { players, teams } = loadTier1DataFromShards(year)
+  console.log(`Loading tier-1 OE data for ${year}...`)
+  const { players, teams } = await loadTier1Data(client, year)
   const window = getWeeklyWindow(players, year, 'ALL')
   if (!window) {
     console.log('No game log dates — nothing to recap.')
@@ -40,9 +41,17 @@ async function main(): Promise<void> {
   if (!briefs.length) return
 
   const ids = briefs.map((b) => b.seriesId)
-  const existing = client ? await fetchExistingSeriesIds(client, ids) : new Set<string>()
-  const pending = briefs.filter((b) => !existing.has(b.seriesId))
-  console.log(`${pending.length} new series to generate (${existing.size} already cached)`)
+  const existingMeta = client ? await fetchExistingRecapMeta(client, ids) : new Map<string, string | null>()
+  const pending = briefs.filter((b) => {
+    if (forceRegenerate) return true
+    const model = existingMeta.get(b.seriesId)
+    if (model === undefined) return true
+    return model === 'template-fallback'
+  })
+  console.log(
+    `${pending.length} series to generate (${existingMeta.size} cached` +
+      `${forceRegenerate ? ', force regenerate' : ''})`,
+  )
 
   if (!pending.length) return
 
