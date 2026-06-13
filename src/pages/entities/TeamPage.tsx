@@ -16,7 +16,7 @@ import {
 import { isDisplayableTeam } from '../../lib/teamAnalytics'
 import { isDisplayablePlayer, normalizePosition, ROLES } from '../../lib/playerRadar'
 import { playerKey } from '../../lib/playerAnalytics'
-import { formatNum, formatPct } from '../../lib/format'
+import { formatGameDate, formatNum, formatPct } from '../../lib/format'
 import TeamRadarChart from '../../components/teams/TeamRadarChart'
 import {
   EntityFilterBar,
@@ -319,7 +319,7 @@ export default function TeamPage() {
                 <tbody>
                   {matchHistory.map((m, i) => (
                     <tr key={`${m.date}-${i}`}>
-                      <td>{m.date}</td>
+                      <td>{formatGameDate(m.date)}</td>
                       <td>
                         <EntityLink type="team" name={m.opponent} />
                       </td>

@@ -13,6 +13,7 @@ import {
 import type { TeamGoldGameSeries } from '../../lib/entities/entityAnalytics'
 import { averageGoldTimeline } from '../../lib/entities/entityAnalytics'
 import { makeChartTooltipContent } from '../ui/ChartTooltip'
+import { formatGameDate } from '../../lib/format'
 import { scrollEntrance } from '../../theme/animations'
 import { CHART } from '../../theme/chartTheme'
 import Select from '../ui/Select'
@@ -212,7 +213,7 @@ export default function TeamGoldGraph({ games }: TeamGoldGraphProps) {
                   style={{ backgroundColor: game.result === 'W' ? WIN_COLOR : LOSS_COLOR }}
                 />
                 <span className="entity-gold-legend-label">{game.opponent}</span>
-                <span className="text-secondary text-xs">{game.date}</span>
+                <span className="text-secondary text-xs">{formatGameDate(game.date)}</span>
               </button>
             )
           })}

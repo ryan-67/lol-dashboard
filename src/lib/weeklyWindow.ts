@@ -32,9 +32,7 @@ function isoDate(date: Date): string {
   return date.toISOString().slice(0, 10)
 }
 
-function weekLabel(start: Date, end: Date): string {
-  return `${start.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })} – ${end.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}`
-}
+import { formatDateRange } from './format'
 
 /** Rolling 7-day window; use split ALL + current year for recap generation across tier-1. */
 export function getWeeklyWindow(
@@ -66,7 +64,7 @@ export function getWeeklyWindow(
     start,
     end: anchorEnd,
     key: isoDate(start),
-    label: weekLabel(start, anchorEnd),
+    label: formatDateRange(start, anchorEnd),
     latestDataDate,
     dataStale,
   }

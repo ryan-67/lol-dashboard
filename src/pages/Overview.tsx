@@ -1,12 +1,15 @@
 import { useMemo, useRef, useState, useEffect } from 'react'
 import { useGSAP } from '@gsap/react'
 import { useDashboard } from '../context/DashboardContext'
-import { type Champion, type Player, type PlayerGameLog } from '../hooks/useDashboardData'
+import { type Player, type PlayerGameLog } from '../hooks/useDashboardData'
 import {
   ROLES,
-  computeOpScores,
   type RoleKey,
 } from '../lib/championAnalytics'
+import {
+  buildWeeklyChampionStatsFromPlayers,
+  computeChampionOfWeekScores,
+} from '../lib/championOfWeekScore'
 import {
   PLAYERS_ROLE_COLORS,
   ROLE_METRICS,
@@ -28,7 +31,7 @@ import {
   scrollEntranceStagger,
   refreshScrollTrigger,
 } from '../theme/animations'
-import { formatNum, formatPct, formatRefreshTimestamp } from '../lib/format'
+import { formatGameDate, formatNum, formatPct, formatRefreshTimestamp } from '../lib/format'
 import {
   PolarAngleAxis,
   PolarGrid,
@@ -321,66 +324,6 @@ function calculateHottestTeams(
     .sort((a, b) => b.impressiveness - a.impressiveness)
 }
 
-function championOfWeekFromLogs(
-  weeklyPlayers: WeeklyPlayer[],
-  allChamps: Champion[],
-  weekKey: string,
-): Champion[] {
-  const src = new Map(allChamps.map((c) => [c.name, c]))
-  const map = new Map<string, Champion>()
-
-  const uniqueMatches = new Set<string>()
-  for (const wp of weeklyPlayers) {
-    for (const g of wp.weeklyGames) {
-      uniqueMatches.add(`${wp.base.team}|${g.date}|${g.opponent}`)
-      const k = g.champion
-      if (!k) continue
-      const base = src.get(k)
-      const ex =
-        map.get(k) ??
-        ({
-          name: k,
-          positions: base?.positions ?? [wp.role],
-          picks: 0,
-          bans: 0,
-          presence: 0,
-          pickRate: 0,
-          banRate: 0,
-          winrate: 0,
-          avgKda: 0,
-          games: 0,
-          wins: 0,
-        } as Champion)
-      ex.picks += 1
-      ex.games = ex.picks
-      ex.avgKda += g.kda
-      ex.wins = (ex.wins ?? 0) + (g.result === 1 ? 1 : 0)
-      map.set(k, ex)
-    }
-  }
-
-  const totalGames = Math.max(uniqueMatches.size / 2, 1)
-  return [...map.values()]
-    .map((c) => {
-      const base = src.get(c.name)
-      const weekly = base?.weeklyStats?.find((w) => w.weekStart === weekKey)
-      const picks = c.picks
-      const bans = weekly?.bans ?? 0
-      const pickRate = (picks / totalGames) * 100
-      const banRate = (bans / totalGames) * 100
-      return {
-        ...c,
-        bans,
-        pickRate,
-        banRate,
-        presence: pickRate + banRate,
-        avgKda: c.avgKda / Math.max(picks, 1),
-        winrate: ((c.wins ?? 0) / Math.max(picks, 1)) * 100,
-      }
-    })
-    .filter((c) => c.picks >= 1)
-}
-
 function WeeklyRadar({
   player,
   role,
@@ -491,14 +434,15 @@ export default function Overview() {
     [hottestTeam, filteredTeams],
   )
 
-  const championsOfWeek = useMemo(
-    () =>
-      weeklyWindow
-        ? championOfWeekFromLogs(weeklyPlayers, filteredChampions, weeklyWindow.key)
-        : [],
-    [weeklyPlayers, filteredChampions, weeklyWindow],
-  )
-  const opResult = useMemo(() => computeOpScores(championsOfWeek, 1), [championsOfWeek])
+  const championOpResult = useMemo(() => {
+    if (!weeklyWindow) return { top: null, runners: [] }
+    const stats = buildWeeklyChampionStatsFromPlayers(
+      weeklyPlayers,
+      filteredChampions,
+      weeklyWindow.key,
+    )
+    return computeChampionOfWeekScores(stats)
+  }, [weeklyPlayers, filteredChampions, weeklyWindow])
 
   const templateRecapLines = useMemo(
     () =>
@@ -550,7 +494,7 @@ export default function Overview() {
           <span className="text-accent">{split}</span>
           {weeklyWindow ? ` · Past 7 days: ${weeklyWindow.label}` : ''}
           {weeklyWindow?.dataStale && weeklyWindow.latestDataDate
-            ? ` · Data through ${weeklyWindow.latestDataDate.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}`
+            ? ` · Data through ${formatGameDate(weeklyWindow.latestDataDate, { year: 'numeric' })}`
             : ''}
           {lastUpdated ? ` · Refreshed ${formatRefreshTimestamp(lastUpdated)}` : ''}
         </p>
@@ -606,35 +550,45 @@ export default function Overview() {
               cohort={weeklyPlayers.filter((p) => p.role === playerOfWeek.role).map((p) => p.weekly)}
             />
             <div className="overview-best-games">
-              <h3 className="card-title">Top 3 games this week (by KDA)</h3>
+              <h3 className="card-title">Top 3 games this week (by performance score)</h3>
               <ul>
-                {[...playerOfWeek.weeklyGames]
-                  .sort((a, b) => b.kda - a.kda)
-                  .slice(0, 3)
-                  .map((g, idx) => {
-                    const opp = opponentLaneInfo(
-                      filteredPlayers,
-                      playerOfWeek.base.team,
-                      playerOfWeek.role,
-                      g,
+                {(() => {
+                  const roleCohort = weeklyPlayers
+                    .filter((p) => p.role === playerOfWeek.role)
+                    .map((p) => p.weekly)
+                  return [...playerOfWeek.weeklyGames]
+                    .sort(
+                      (a, b) =>
+                        computeGameScore(b, playerOfWeek.role, roleCohort) -
+                        computeGameScore(a, playerOfWeek.role, roleCohort),
                     )
-                    return (
-                      <li key={gameLogKey(playerOfWeek.base.team, g)} className="overview-best-game-row">
-                        <span className="text-accent">
-                          #{idx + 1} · {g.date}
-                        </span>
-                        <span className="entity-table-champ">
-                          <ChampionEntityInline name={g.champion} iconSize={16} />
-                          {' · '}{formatNum(g.kda, 2)} KDA
-                        </span>
+                    .slice(0, 3)
+                    .map((g, idx) => {
+                      const opp = opponentLaneInfo(
+                        filteredPlayers,
+                        playerOfWeek.base.team,
+                        playerOfWeek.role,
+                        g,
+                      )
+                      const perfScore = computeGameScore(g, playerOfWeek.role, roleCohort)
+                      return (
+                        <li key={gameLogKey(playerOfWeek.base.team, g)} className="overview-best-game-row">
+                          <span className="text-accent">
+                            #{idx + 1} · {formatGameDate(g.date)}
+                          </span>
+                          <span className="entity-table-champ">
+                            <ChampionEntityInline name={g.champion} iconSize={16} />
+                            {' · '}{formatNum(perfScore * 100, 1)} perf · {formatNum(g.kda, 2)} KDA
+                          </span>
                         <span className="text-secondary entity-inline-row">
                           vs <EntityLink type="team" name={opp.team} showIcon={false} /> /{' '}
                           <EntityLink type="player" name={opp.player} allPlayers={filteredPlayers} showIcon={false} /> /{' '}
                           <ChampionEntityInline name={opp.champion} iconSize={16} />
                         </span>
                       </li>
-                    )
-                  })}
+                      )
+                    })
+                })()}
               </ul>
             </div>
           </>
@@ -717,32 +671,34 @@ export default function Overview() {
 
       <section className="card overview-hub-card">
         <h2 className="card-title">Champion of the Week</h2>
-        {!opResult.top ? (
+        {!championOpResult.top ? (
           <p className="text-secondary">No champion weekly sample for this filter.</p>
         ) : (
           <div className="overview-champion-week">
             <div className="overview-weekly-name">
-              <EntityLink type="champion" name={opResult.top.champion.name} />
+              <EntityLink type="champion" name={championOpResult.top.champion.name} />
             </div>
             <div className="overview-weekly-meta">
-              Role: {opResult.top.role.toUpperCase()} · Presence:{' '}
-              {formatPct(opResult.top.champion.presence, 1)} · Winrate:{' '}
-              {formatPct(opResult.top.champion.winrate, 1)}
+              Role: {championOpResult.top.role.toUpperCase()} · {championOpResult.top.samplePicks}{' '}
+              {championOpResult.top.samplePicks === 1 ? 'game' : 'games'} · Presence:{' '}
+              {formatPct(championOpResult.top.champion.presence, 1)} · Winrate:{' '}
+              {formatPct(championOpResult.top.champion.winrate, 1)}
             </div>
             <div className="overview-opscore-row">
               <span
                 className="overview-opscore-label"
-                title="OP Score = average z-score across presence, winrate, ban rate, and average KDA within role."
+                title="Weekly OP Score blends role-weighted z-scores for meta (presence, bans), results (winrate, KDA), and in-game stats (e.g. GD@15, DPM, KP, vision). Low sample sizes are confidence-adjusted."
               >
                 OP Score ⓘ
               </span>
-              <span className="overview-opscore-value">{formatNum(opResult.top.opScore, 2)}</span>
+              <span className="overview-opscore-value">{formatNum(championOpResult.top.opScore, 2)}</span>
             </div>
             <div className="overview-hottest-stats">
-              <div>Presence: {formatPct(opResult.top.champion.presence, 1)}</div>
-              <div>Winrate: {formatPct(opResult.top.champion.winrate, 1)}</div>
-              <div>Ban rate: {formatPct(opResult.top.champion.banRate, 1)}</div>
-              <div>Avg KDA: {formatNum(opResult.top.champion.avgKda, 2)}</div>
+              <div>Presence: {formatPct(championOpResult.top.champion.presence, 1)}</div>
+              <div>Winrate: {formatPct(championOpResult.top.champion.winrate, 1)}</div>
+              <div>Ban rate: {formatPct(championOpResult.top.champion.banRate, 1)}</div>
+              <div>Avg KDA: {formatNum(championOpResult.top.champion.avgKda, 2)}</div>
+              <div>Sample confidence: {formatPct(championOpResult.top.confidence * 100, 0)}</div>
             </div>
           </div>
         )}

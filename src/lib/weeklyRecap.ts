@@ -156,10 +156,10 @@ function daysBetween(a: string, b: string): number {
   return Math.abs(da.getTime() - db.getTime()) / (1000 * 60 * 60 * 24)
 }
 
+import { formatGameDate } from './format'
+
 export function formatRecapDate(iso: string): string {
-  const d = parseDate(iso)
-  if (!d) return iso
-  return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
+  return formatGameDate(iso)
 }
 
 function inWindow(log: PlayerGameLog, window: WeeklyRecapWindow): boolean {

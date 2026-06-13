@@ -4,7 +4,7 @@ import { useEntityPageData } from '../../hooks/useEntityPageData'
 import { resolvePlayerFromSlug, bestWorstChampions } from '../../lib/entities'
 import { playersForRole, isDisplayablePlayer } from '../../lib/playerRadar'
 import { getPlayerRole } from '../../lib/playerAnalytics'
-import { formatNum, formatPct } from '../../lib/format'
+import { formatGameDate, formatNum, formatPct } from '../../lib/format'
 import PlayerRadarChart from '../../components/players/PlayerRadarChart'
 import PlayerFormChart from '../../components/players/PlayerFormChart'
 import {
@@ -173,7 +173,7 @@ export default function PlayerPage() {
                 .slice(0, 20)
                 .map((g, i) => (
                   <tr key={`${g.date}-${i}`}>
-                    <td>{g.date}</td>
+                    <td>{formatGameDate(g.date)}</td>
                     <td>
                       <ChampionEntityInline name={g.champion} />
                     </td>

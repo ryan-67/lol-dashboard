@@ -5,6 +5,7 @@ import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import { DashboardProvider } from './context/DashboardContext'
 import { AuthProvider } from './context/AuthContext'
+import { TimezoneProvider } from './context/TimezoneContext'
 import Layout from './components/Layout'
 import Overview from './pages/Overview'
 import Players from './pages/Players'
@@ -86,7 +87,8 @@ function SmoothScroll({ children }: { children: React.ReactNode }) {
 function App() {
   return (
     <AuthProvider>
-      <DashboardProvider>
+      <TimezoneProvider>
+        <DashboardProvider>
         <SmoothScroll>
           <Layout>
             <Routes>
@@ -107,7 +109,8 @@ function App() {
             </Routes>
           </Layout>
         </SmoothScroll>
-      </DashboardProvider>
+        </DashboardProvider>
+      </TimezoneProvider>
     </AuthProvider>
   )
 }
