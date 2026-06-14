@@ -1,9 +1,16 @@
 import type { Champion, PlayerGameLog } from '../hooks/useDashboardData'
-import { ROLES, roleForChampion, type RoleKey } from './championAnalytics'
+import { ROLES, roleForChampion, championPresenceRates, type RoleKey } from './championAnalytics'
+import { parseDate } from './weeklyWindow'
 
 export interface WeeklyChampionBuildInput {
   weeklyGames: PlayerGameLog[]
   role: RoleKey
+  team: string
+}
+
+export interface WeeklyChampionWindow {
+  start: string
+  end: string
 }
 
 export interface WeeklyChampionStats extends Champion {
@@ -158,6 +165,45 @@ function pickWeeklyRole(counts: Map<RoleKey, number>, fallback: RoleKey): RoleKe
   return best
 }
 
+function weeklyBansInWindow(champ: Champion | undefined, window: WeeklyChampionWindow): number {
+  if (!champ?.weeklyStats?.length) return 0
+  const winStart = parseDate(window.start)
+  const winEnd = parseDate(window.end)
+  if (!winStart || !winEnd) return 0
+
+  let bans = 0
+  for (const w of champ.weeklyStats) {
+    const weekStart = parseDate(w.weekStart)
+    if (!weekStart) continue
+    const weekEnd = new Date(weekStart)
+    weekEnd.setDate(weekEnd.getDate() + 6)
+    weekEnd.setHours(23, 59, 59, 999)
+    if (weekStart <= winEnd && weekEnd >= winStart) bans += w.bans ?? 0
+  }
+  return bans
+}
+
+/** Unique matches in the filtered weekly window (gameId preferred). */
+function countWeeklyMatches(entries: WeeklyChampionBuildInput[]): number {
+  const keys = new Set<string>()
+  let anyGameId = false
+
+  for (const { weeklyGames, team } of entries) {
+    for (const g of weeklyGames) {
+      if (g.gameId) {
+        anyGameId = true
+        keys.add(g.gameId)
+      } else {
+        keys.add(`${g.date}|${team}|${g.opponent ?? ''}`)
+      }
+    }
+  }
+
+  if (!keys.size) return 1
+  if (anyGameId) return keys.size
+  return Math.max(Math.ceil(keys.size / 2), 1)
+}
+
 function metricValue(champion: WeeklyChampionStats, key: MetricKey): number {
   switch (key) {
     case 'presence':
@@ -199,15 +245,14 @@ function metricValue(champion: WeeklyChampionStats, key: MetricKey): number {
 export function buildWeeklyChampionStats(
   entries: WeeklyChampionBuildInput[],
   allChamps: Champion[],
-  weekKey: string,
+  window: WeeklyChampionWindow,
 ): WeeklyChampionStats[] {
   const src = new Map(allChamps.map((c) => [c.name, c]))
   const map = new Map<string, Accumulator>()
-  const uniqueMatches = new Set<string>()
+  const totalGames = countWeeklyMatches(entries)
 
   for (const { weeklyGames, role } of entries) {
     for (const g of weeklyGames) {
-      uniqueMatches.add(`${g.date}|${g.opponent ?? ''}|${g.champion}`)
       const name = g.champion
       if (!name) continue
 
@@ -262,16 +307,15 @@ export function buildWeeklyChampionStats(
     }
   }
 
-  const totalGames = Math.max(uniqueMatches.size / 2, 1)
-
   return [...map.values()]
     .map((row) => {
       const base = src.get(row.champion.name)
-      const weekly = base?.weeklyStats?.find((w) => w.weekStart === weekKey)
       const picks = row.picks
-      const bans = weekly?.bans ?? base?.bans ?? 0
-      const pickRate = (picks / totalGames) * 100
-      const banRate = (bans / totalGames) * 100
+      const bans = weeklyBansInWindow(base, window)
+      const { pickRate, banRate, presence } = championPresenceRates(
+        { ...row.champion, picks, bans },
+        totalGames,
+      )
       const fallbackRole = roleForChampion(base ?? row.champion)
       const weeklyRole = pickWeeklyRole(row.roleCounts, fallbackRole)
 
@@ -282,7 +326,7 @@ export function buildWeeklyChampionStats(
         bans,
         pickRate,
         banRate,
-        presence: pickRate + banRate,
+        presence,
         avgKda: row.kda / Math.max(picks, 1),
         winrate: (row.wins / Math.max(picks, 1)) * 100,
         avgGd15: row.gd15 / Math.max(picks, 1),
@@ -360,13 +404,17 @@ export function computeChampionOfWeekScores(
 
 /** Helper for overview weekly player rows. */
 export function buildWeeklyChampionStatsFromPlayers(
-  weeklyPlayers: Array<{ role: RoleKey; weeklyGames: PlayerGameLog[] }>,
+  weeklyPlayers: Array<{ role: RoleKey; weeklyGames: PlayerGameLog[]; base: { team: string } }>,
   allChamps: Champion[],
-  weekKey: string,
+  window: WeeklyChampionWindow,
 ): WeeklyChampionStats[] {
   return buildWeeklyChampionStats(
-    weeklyPlayers.map((wp) => ({ weeklyGames: wp.weeklyGames, role: wp.role })),
+    weeklyPlayers.map((wp) => ({
+      weeklyGames: wp.weeklyGames,
+      role: wp.role,
+      team: wp.base.team,
+    })),
     allChamps,
-    weekKey,
+    window,
   )
 }

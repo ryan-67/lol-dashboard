@@ -445,7 +445,7 @@ export default function Overview() {
     const stats = buildWeeklyChampionStatsFromPlayers(
       weeklyPlayers,
       filteredChampions,
-      weeklyWindow.key,
+      { start: weeklyWindow.key, end: weeklyWindow.end.toISOString().slice(0, 10) },
     )
     return computeChampionOfWeekScores(stats)
   }, [weeklyPlayers, filteredChampions, weeklyWindow])
