@@ -76,13 +76,13 @@ function hydrateNarrative(narrative: string, brief: SeriesBrief): WeeklyRecapSeg
       segments.push({
         kind: 'team',
         canonicalName: brief.facts.winner,
-        label: brief.facts.winnerAbbr,
+        label: recapTeamTag(brief.facts.winner),
       })
     } else if (part === LOSER_TOKEN) {
       segments.push({
         kind: 'team',
         canonicalName: brief.facts.loser,
-        label: brief.facts.loserAbbr,
+        label: recapTeamTag(brief.facts.loser),
       })
     } else {
       segments.push({ kind: 'text', value: part })

@@ -1,5 +1,5 @@
 import type { WeeklyRecapLine } from './weeklyRecap'
-import { formatRecapDate } from './weeklyRecap'
+import { formatRecapDate, normalizeRecapSegmentLabels } from './weeklyRecap'
 import { recapTeamTag } from './recapTeamTag'
 import { resolveTeamCanonicalName } from './entities/slugs'
 import { isSupabaseConfigured, supabase } from './supabaseClient'
@@ -33,7 +33,7 @@ function rowToLine(row: RecapRow): WeeklyRecapLine {
     id: row.series_id,
     date: row.series_date,
     dateLabel: formatRecapDate(row.series_date),
-    segments: row.segments,
+    segments: normalizeRecapSegmentLabels(row.segments),
     score: {
       winner,
       loser,

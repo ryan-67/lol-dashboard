@@ -17,6 +17,13 @@ export type WeeklyRecapSegment =
   | { kind: 'text'; value: string }
   | { kind: 'team'; canonicalName: string; label: string }
 
+/** Re-apply official abbrev tags to cached team segments (fixes stale KR/TW labels in DB). */
+export function normalizeRecapSegmentLabels(segments: WeeklyRecapSegment[]): WeeklyRecapSegment[] {
+  return segments.map((seg) =>
+    seg.kind === 'team' ? { ...seg, label: recapTeamTag(seg.canonicalName) } : seg,
+  )
+}
+
 export interface WeeklyRecapLine {
   id: string
   date: string

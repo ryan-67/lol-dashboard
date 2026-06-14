@@ -1,6 +1,7 @@
 import { useRef } from 'react'
 import { useGSAP } from '@gsap/react'
 import type { WeeklyRecapLine, WeeklyRecapSegment } from '../../lib/weeklyRecap'
+import { recapTeamTag } from '../../lib/recapTeamTag'
 import { scrollEntranceStagger } from '../../theme/animations'
 import EntityLink from '../entities/EntityLink'
 import type { Champion, Player } from '../../hooks/useDashboardData'
@@ -49,7 +50,7 @@ function RecapSegmentBody({
   if (seg.kind === 'team') {
     return (
       <EntityLink type="team" name={seg.canonicalName} className="overview-recap-team">
-        {seg.label}
+        {recapTeamTag(seg.canonicalName)}
       </EntityLink>
     )
   }
