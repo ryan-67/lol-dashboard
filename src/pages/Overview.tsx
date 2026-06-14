@@ -42,6 +42,12 @@ import {
   Tooltip,
 } from 'recharts'
 import { makeChartTooltipContent } from '../components/ui/ChartTooltip'
+import { MetricScoreRow } from '../components/ui/MetricHint'
+import {
+  OP_SCORE_HINT,
+  PERFORMANCE_SCORE_HINT,
+  TEAM_SCORE_HINT,
+} from '../lib/metricHints'
 
 interface WeeklyPlayer {
   base: Player
@@ -410,10 +416,10 @@ export default function Overview() {
     [filteredPlayers, weeklyWindow],
   )
 
-  const playerOfWeek = useMemo(
-    () => [...weeklyPlayers].sort((a, b) => b.scoreAvg - a.scoreAvg)[0] ?? null,
-    [weeklyPlayers],
-  )
+  const playerOfWeek = useMemo(() => {
+    if (!weeklyPlayers.length) return null
+    return [...weeklyPlayers].sort((a, b) => b.scoreAvg - a.scoreAvg)[0] ?? null
+  }, [weeklyPlayers])
 
   const teamOfWeek = useMemo(() => {
     return ROLES.map((role) => {
@@ -522,8 +528,9 @@ export default function Overview() {
                   <EntityLink type="player" name={playerOfWeek.base.name} player={playerOfWeek.base} allPlayers={filteredPlayers} showIcon={false} />
                 </div>
                 <div className="overview-weekly-meta">
-                  <EntityLink type="team" name={playerOfWeek.base.team} showIcon={false} /> · {playerOfWeek.role.toUpperCase()} ·{' '}
-                  {formatNum(playerOfWeek.scoreAvg * 100, 1)} avg performance score
+                  <EntityLink type="team" name={playerOfWeek.base.team} showIcon={false} /> ·{' '}
+                  {playerOfWeek.role.toUpperCase()} · {playerOfWeek.weeklyGames.length}{' '}
+                  {playerOfWeek.weeklyGames.length === 1 ? 'game' : 'games'} this week
                 </div>
               </div>
               <div className="overview-weekly-highlight">
@@ -544,6 +551,11 @@ export default function Overview() {
                 })()}
               </div>
             </div>
+            <MetricScoreRow
+              label="Average Performance Score"
+              hint={PERFORMANCE_SCORE_HINT}
+              value={formatNum(playerOfWeek.scoreAvg * 100, 1)}
+            />
             <WeeklyRadar
               player={playerOfWeek.weekly}
               role={playerOfWeek.role}
@@ -643,10 +655,11 @@ export default function Overview() {
               <div className="overview-weekly-name">
                 <EntityLink type="team" name={hottestTeam.team} />
               </div>
-              <div className="overview-weekly-meta">
-                Team Score:{' '}
-                <span className="text-accent">{formatNum(hottestTeam.impressiveness, 1)}</span>
-              </div>
+              <MetricScoreRow
+                label="Team Score"
+                hint={TEAM_SCORE_HINT}
+                value={formatNum(hottestTeam.impressiveness, 1)}
+              />
               <div className="overview-hottest-stats">
                 <div>Weekly WR: {formatPct(hottestTeam.weeklyWinrate, 1)}</div>
                 <div>Weekly avg KDA: {formatNum(hottestTeam.weeklyAvgKda, 2)}</div>
@@ -655,10 +668,6 @@ export default function Overview() {
                 <div>Opponent split WR avg: {formatPct(hottestTeam.avgOpponentSplitWinrate, 1)}</div>
                 <div>Upset wins bonus: {hottestTeam.upsetWins}</div>
               </div>
-              <p className="text-secondary overview-method-note">
-                Method blends team weekly performance (winrate, KDA, GD@15, objective control) with
-                strength-of-schedule (average opponent split winrate) plus upset-win bonus.
-              </p>
             </div>
             {hottestTeamEntity && (
               <div className="overview-hottest-radar">
@@ -684,15 +693,11 @@ export default function Overview() {
               {formatPct(championOpResult.top.champion.presence, 1)} · Winrate:{' '}
               {formatPct(championOpResult.top.champion.winrate, 1)}
             </div>
-            <div className="overview-opscore-row">
-              <span
-                className="overview-opscore-label"
-                title="Weekly OP Score blends role-weighted z-scores for meta (presence, bans), results (winrate, KDA), and in-game stats (e.g. GD@15, DPM, KP, vision). Low sample sizes are confidence-adjusted."
-              >
-                OP Score ⓘ
-              </span>
-              <span className="overview-opscore-value">{formatNum(championOpResult.top.opScore, 2)}</span>
-            </div>
+            <MetricScoreRow
+              label="OP Score"
+              hint={OP_SCORE_HINT}
+              value={formatNum(championOpResult.top.opScore, 2)}
+            />
             <div className="overview-hottest-stats">
               <div>Presence: {formatPct(championOpResult.top.champion.presence, 1)}</div>
               <div>Winrate: {formatPct(championOpResult.top.champion.winrate, 1)}</div>
