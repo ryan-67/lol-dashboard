@@ -10,6 +10,7 @@ import { useDashboard } from '../../context/DashboardContext'
 import ChatSidebar from './ChatSidebar'
 import ChatWindow from './ChatWindow'
 import { useAgentChat } from './useAgentChat'
+import { pickThinkingMessage } from '../../lib/nuckyThinking'
 import type { ConversationRow, MessageRow, ProfileRow } from './types'
 
 export default function NuckyAIContainer() {
@@ -156,7 +157,16 @@ export default function NuckyAIContainer() {
           ? withoutLastAssistant
           : [...withoutLastAssistant, { role: 'user' as const, content: message, created_at: now }]
 
-        return [...base, { role: 'assistant' as const, content: '', created_at: now, retryable: false }]
+        return [
+          ...base,
+          {
+            role: 'assistant' as const,
+            content: pickThinkingMessage(message),
+            created_at: now,
+            retryable: false,
+            thinking: true,
+          },
+        ]
       })
 
       void sendMessage({
@@ -174,7 +184,12 @@ export default function NuckyAIContainer() {
             const copy = [...prev]
             for (let i = copy.length - 1; i >= 0; i -= 1) {
               if (copy[i].role === 'assistant') {
-                copy[i] = { ...copy[i], content: `${copy[i].content}${chunk}` }
+                const wasThinking = copy[i].thinking
+                copy[i] = {
+                  ...copy[i],
+                  thinking: false,
+                  content: wasThinking ? chunk : `${copy[i].content}${chunk}`,
+                }
                 break
               }
             }
@@ -195,6 +210,7 @@ export default function NuckyAIContainer() {
                   ...copy[i],
                   content: copy[i].content || err,
                   retryable: true,
+                  thinking: false,
                 }
                 return copy
               }

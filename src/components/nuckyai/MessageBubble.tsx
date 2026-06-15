@@ -280,6 +280,8 @@ export default function MessageBubble({
     window.setTimeout(() => setCopied(false), 1200)
   }
 
+  const isThinking = Boolean(message.thinking)
+
   return (
     <div className={`w-full ${isAssistant ? '' : 'flex flex-col items-end'}`}>
       <div
@@ -289,6 +291,10 @@ export default function MessageBubble({
             : 'border-[var(--accent)] bg-[var(--accent-bg)]'
         } group`}
       >
+        {isThinking ? (
+          <p className="text-sm text-[var(--text-secondary)] italic animate-pulse">{message.content}</p>
+        ) : (
+          <>
         {blocks.map((block, idx) => {
           if (block.type === 'text') {
             return <div key={`t-${idx}`}>{renderText(block.content)}</div>
@@ -314,7 +320,7 @@ export default function MessageBubble({
           )
         })}
 
-        {isAssistant && (
+        {isAssistant && !isThinking && (
           <div className="mt-2 flex items-center gap-3 text-xs">
             <button
               type="button"
@@ -341,7 +347,7 @@ export default function MessageBubble({
             )}
           </div>
         )}
-        {relativeTime(message.created_at) && (
+        {!isThinking && relativeTime(message.created_at) && (
           <div
             className={`mt-1 text-[11px] text-[var(--text-tertiary)] ${
               isAssistant ? 'opacity-70 group-hover:opacity-100 transition-opacity' : ''
@@ -349,6 +355,8 @@ export default function MessageBubble({
           >
             {relativeTime(message.created_at)}
           </div>
+        )}
+          </>
         )}
       </div>
     </div>

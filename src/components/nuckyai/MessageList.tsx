@@ -42,7 +42,12 @@ export default function MessageList({
   })()
 
   return (
-    <div ref={containerRef} className="flex-1 overflow-y-auto p-4 space-y-3" onScroll={updateAutoScrollState}>
+    <div
+      ref={containerRef}
+      className="flex-1 min-h-0 overflow-y-auto p-4 space-y-3"
+      data-lenis-prevent
+      onScroll={updateAutoScrollState}
+    >
       {messages.map((message, idx) => (
         <MessageBubble
           key={message.id ?? `${message.role}-${message.created_at ?? idx}-${idx}`}
@@ -53,9 +58,6 @@ export default function MessageList({
           deferCharts={streaming && idx === lastAssistantIdx}
         />
       ))}
-      {isTyping && (
-        <div className="text-xs text-[var(--text-tertiary)] animate-pulse">nuckyAI is typing...</div>
-      )}
       <div ref={bottomRef} />
     </div>
   )

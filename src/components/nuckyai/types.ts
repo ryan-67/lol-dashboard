@@ -19,6 +19,8 @@ export interface MessageRow {
   content: string
   created_at?: string
   retryable?: boolean
+  /** True while waiting for first streamed token — shows thinking copy, hides actions */
+  thinking?: boolean
 }
 
 export interface ChartDataset {
