@@ -121,12 +121,14 @@ export function getMetricValue(player: Player, key: RadarMetricKey): number {
   return Number(raw)
 }
 
+/** Min–max vs cohort, clamped 0–100 so single-game spikes cannot exceed the display scale. */
 function normalizeInCohort(value: number, cohortValues: number[]): number {
   if (!cohortValues.length) return 0
   const min = Math.min(...cohortValues)
   const max = Math.max(...cohortValues)
   if (max === min) return 50
-  return ((value - min) / (max - min)) * 100
+  const scaled = ((value - min) / (max - min)) * 100
+  return Math.min(100, Math.max(0, scaled))
 }
 
 /** Map a single-game log row to a Player-shaped snapshot for scoring. */
