@@ -9,6 +9,7 @@
     "index:rag": "tsx scripts/rag-indexer/src/index.ts",
     "index:rag:dry": "tsx scripts/rag-indexer/src/index.ts --dry-run",
     "generate:weekly-recap": "tsx scripts/recap/generate-weekly-recap.ts",
+    "eval:nuckyai": "tsx scripts/eval-nuckyai.ts",
     "dev": "vite",
     "build": "tsc && vite build",
     "preview": "vite preview"
