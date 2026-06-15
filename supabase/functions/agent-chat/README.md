@@ -9,9 +9,9 @@ Hosted on Supabase Edge Functions in production. Responsibilities:
 - Deterministic analyst tools over `oe_slices` and `esports_schedules`
   - includes `team_roster` for "who's on DK / T1 roster" asks (no LLM SQL)
   - default split = latest regional season (Spring/Summer), not First Stand
-  - `team_winrate_chart` builds cumulative WR line charts from gameLog (no SQL)
-  - schedule_lookup merges esports_schedules + oe recent results when split is complete
-  - reddit answers fail-closed unless RAG chunks explicitly support claims
+  - `team_winrate_chart` builds cumulative WR from Winter+Spring gameLog (excludes First Stand/MSI/Worlds); fixes `winrates` plural intent
+  - chart prefix uses `streamChunk` (no premature SSE DONE)
+  - schedule_lookup adds `recentSeriesFromOE` — scores from oe only, no reverse-sweep hallucination
 - pgvector RAG via `match_documents`
 - Team/player compare with injected radar chart payloads
 - Usage limits and conversation persistence
