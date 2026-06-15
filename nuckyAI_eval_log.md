@@ -74,9 +74,12 @@ Filter default: **LCK**, **current split** (2026 Spring unless noted).
 | 22 | compare chovy 2024 Summer and 2024 Worlds | PARTIAL | PARTIAL | B2 | multi-split if indexed |
 | 23 | T1 winrates line graph all of 2025 | PARTIAL | PARTIAL | B2 | chart + historical |
 | 24 | What players are on DK? | FAIL | PASS* | B1/B2 | `team_roster` tool; regional split default (not First Stand) |
+| 25 | T1 winrates line graph all of 2026 | FAIL | PASS* | B1 | `team_winrate_chart` from gameLog; no SQL |
+| 26 | What did Reddit say about last GEN vs T1 series? | FAIL | PASS* | B3/B5 | series_player_analysis + reddit fail-closed |
+| 27 | What's on the LCK schedule this week? | FAIL | PASS* | B4 | schedule_lookup + oe recent results when split complete |
 
 **Pre-fix estimated pass rate:** ~35% (8/23 PASS or strong PARTIAL)  
-**Post-fix estimated pass rate:** ~88% (21/24 PASS*) — pending live deploy + RAG freshness for 13–15, 19–23
+**Post-fix estimated pass rate:** ~89% (24/27 PASS*) — pending live deploy + RAG freshness for 13–15, 19–23
 
 \*PASS* = code-path verified via `scripts/eval-nuckyai.ts` fixture alignment + tool routing audit; live golden re-run required after deploy.
 

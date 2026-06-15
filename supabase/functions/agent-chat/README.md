@@ -9,6 +9,9 @@ Hosted on Supabase Edge Functions in production. Responsibilities:
 - Deterministic analyst tools over `oe_slices` and `esports_schedules`
   - includes `team_roster` for "who's on DK / T1 roster" asks (no LLM SQL)
   - default split = latest regional season (Spring/Summer), not First Stand
+  - `team_winrate_chart` builds cumulative WR line charts from gameLog (no SQL)
+  - schedule_lookup merges esports_schedules + oe recent results when split is complete
+  - reddit answers fail-closed unless RAG chunks explicitly support claims
 - pgvector RAG via `match_documents`
 - Team/player compare with injected radar chart payloads
 - Usage limits and conversation persistence
