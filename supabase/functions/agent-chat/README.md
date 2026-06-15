@@ -10,7 +10,10 @@ Hosted on Supabase Edge Functions in production. Responsibilities:
   - includes `team_roster` for "who's on DK / T1 roster" asks (no LLM SQL)
   - default split = latest regional season (Spring/Summer), not First Stand
   - `team_winrate_chart` builds cumulative WR from Winter+Spring gameLog (excludes First Stand/MSI/Worlds); fixes `winrates` plural intent
-  - chart prefix uses `streamChunk` (no premature SSE DONE)
+  - chart prefix uses `streamChunk` (no premature SSE DONE); LLM prose sanitized live (strip duplicate ```chart blocks + source footnotes)
+  - `splitBreakdown` in chart payload for winter/spring WR commentary without a second chart
+  - `responseSanitize.ts` slims DB context on chart questions; strips `source` keys before LLM
+  - `seriesSummary.ts` groups series by date+gameId order; exposes `gameSequence` + `winner` (never infer reverse sweeps)
   - schedule_lookup adds `recentSeriesFromOE` — scores from oe only, no reverse-sweep hallucination
 - pgvector RAG via `match_documents`
 - Team/player compare with injected radar chart payloads
