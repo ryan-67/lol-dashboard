@@ -86,6 +86,8 @@ Filter default: **LCK**, **current split** (2026 Spring unless noted).
 
 **2026-06-05 deploy 4:** Deterministic series recap + team WR fast paths; incremental split fetch for series; removed per-token stream sanitize; client clears stuck thinking placeholders.
 
+**TEMP QA:** Daily limit raised 25 → 1000 in agent-chat (revert before launch).
+
 **Pre-fix estimated pass rate:** ~35% (8/23 PASS or strong PARTIAL)  
 **Post-fix estimated pass rate:** ~89% (24/27 PASS*) — pending live deploy + RAG freshness for 13–15, 19–23
 

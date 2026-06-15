@@ -19,6 +19,6 @@ Hosted on Supabase Edge Functions in production. Responsibilities:
   - schedule_lookup adds `recentSeriesFromOE` — scores from oe only, no reverse-sweep hallucination
 - pgvector RAG via `match_documents`
 - Team/player compare with injected radar chart payloads
-- Usage limits and conversation persistence
+- Usage limits and conversation persistence (TEMP: daily limit 1000 for QA — revert to 25 at launch)
 
 Source is maintained privately. See [docs/PRIVATE_COMPONENTS.md](../../../docs/PRIVATE_COMPONENTS.md).
