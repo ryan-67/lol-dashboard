@@ -6,7 +6,6 @@ import { supabase } from '../../lib/supabaseClient'
 import { fetchSubscriptionState } from '../../lib/subscription'
 import { scrollEntrance } from '../../theme/animations'
 import { useAuth } from '../../context/AuthContext'
-import { useDashboard } from '../../context/DashboardContext'
 import ChatSidebar from './ChatSidebar'
 import ChatWindow from './ChatWindow'
 import { useAgentChat } from './useAgentChat'
@@ -15,7 +14,6 @@ import type { ConversationRow, MessageRow, ProfileRow } from './types'
 
 export default function NuckyAIContainer() {
   const { user } = useAuth()
-  const { league, split, year, selectedLeagues, selectedYears, selectedSplits } = useDashboard()
   const [profile, setProfile] = useState<ProfileRow | null>(null)
   const [isSubscribed, setIsSubscribed] = useState(false)
   const [conversations, setConversations] = useState<ConversationRow[]>([])
@@ -31,18 +29,6 @@ export default function NuckyAIContainer() {
   /** True while an in-flight send owns the message list — skip DB reloads that would wipe streaming state. */
   const pendingSendRef = useRef(false)
   const { streaming, sendMessage, stop } = useAgentChat()
-
-  const filterContext = useMemo(
-    () => ({
-      league,
-      split,
-      year,
-      selectedLeagues,
-      selectedYears,
-      selectedSplits,
-    }),
-    [league, split, year, selectedLeagues, selectedYears, selectedSplits],
-  )
 
   useGSAP(() => {
     scrollEntrance(document.querySelector('.nuckyai-shell'))
@@ -172,7 +158,6 @@ export default function NuckyAIContainer() {
       void sendMessage({
         message,
         conversationId: activeConversationId ?? undefined,
-        filter: filterContext,
         onMetadata: (conversationId) => {
           setActiveConversationId(conversationId)
           const next = new URLSearchParams(searchParams)
@@ -223,7 +208,7 @@ export default function NuckyAIContainer() {
         },
       })
     },
-    [activeConversationId, filterContext, loadConversations, searchParams, sendMessage, setSearchParams],
+    [activeConversationId, loadConversations, searchParams, sendMessage, setSearchParams],
   )
 
   const send = useCallback(
