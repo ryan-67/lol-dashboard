@@ -1,0 +1,337 @@
+# nuckyAI — Fix & Stabilize Scope
+# nucky.gg | TODO #1 | Generated 2026-06-15
+#
+# Goal: nuckyAI works as intended — grounded answers over OE stats, schedules, and RAG
+# context; reliable streaming UX; subscription gating that matches billing state.
+#
+# Related: nucky.txt (product vision), docs/ARCHITECTURE.md, docs/PRIVATE_COMPONENTS.md
+
+================================================================================
+0. PRODUCT INTENT (what "working" means)
+================================================================================
+
+nuckyAI is the paid SaaS moat: an analyst that reads the same tier-1 data the
+dashboard shows, plus external context (Liquipedia, patch notes, Reddit threads,
+Kalshi odds, schedules). Users should be able to:
+
+  - Ask natural-language questions about players, teams, champions, matchups, meta
+  - Get numbers that match the dashboard for the same league/split filter
+  - Receive external narrative context when RAG has relevant chunks (with source attribution)
+  - See radar/compare charts inline when comparing entities
+  - Trust that empty data → honest "no data" rather than invented stats
+
+Success criteria (post-fix):
+  - Golden question set pass rate >= 85% (see Section 5)
+  - Zero subscription desync between nav and paywall
+  - Distinct, actionable error messages for auth / quota / server failures
+  - RAG index fresh within 7 days; documents table non-empty for tier-1 leagues
+
+================================================================================
+1. CURRENT ARCHITECTURE
+================================================================================
+
+PUBLIC REPO (this GitHub tree)
+  - UI:     src/pages/NuckyAI.tsx
+            src/components/nuckyai/* (11 files)
+  - Client: src/components/nuckyai/useAgentChat.ts (SSE → agent-chat edge fn)
+  - Context: league + split from DashboardContext sent with each message
+  - Billing client: src/lib/billing.ts → stripe-checkout / stripe-portal edge fns
+  - Auth:   src/context/AuthContext.tsx, profiles + conversations/messages via RLS
+
+PRIVATE / HOSTED (not in public repo — gitignored)
+  - supabase/functions/agent-chat/     — orchestration, prompts, tools, RAG, streaming
+  - supabase/functions/stripe-*        — checkout, portal, webhook
+  - scripts/rag-indexer/src/           — weekly embedding pipeline
+  - supabase/migrations/ (most)        — full schema, match_documents, subscriptions
+  - .github/workflows/index-rag.yml    — RAG CI (if present locally)
+
+DATA PLANE
+  - oe_slices (Postgres JSONB) ← ingest_csv.py + seed_supabase.py (public scripts)
+  - esports_schedules ← Riot schedule API via private RAG indexer
+  - documents (pgvector) ← RAG indexer; queried via match_documents RPC
+  - agent_usage_events ← quota tracking (private)
+
+REQUEST FLOW
+  Browser → POST /functions/v1/agent-chat (SSE)
+    Body: { message, conversation_id?, league, split }
+    Headers: Authorization Bearer JWT, apikey anon
+  Edge fn → auth + quota → intent classify → tools (OE/schedule) + RAG → OpenRouter stream
+  Edge fn → persist conversations/messages → SSE chunks + metadata events
+  Client → parse ```chart blocks → NuckyRadarChart / Recharts
+
+LOCAL DISCOVERY NOTE (2026-06-15)
+  On this machine, private paths contain README stubs only:
+    - supabase/functions/agent-chat/ → README.md only
+    - scripts/rag-indexer/ → README.md only
+  Phase 0 MUST confirm whether a private backup exists elsewhere before Phase 2.
+
+================================================================================
+2. KNOWN BUGS & FAILURE MODES
+================================================================================
+
+CLIENT (fixable in public repo)
+
+  [C1] Subscription gate mismatch
+       NuckyAIContainer checks profiles.is_subscribed only.
+       Layout.tsx also checks subscriptions table (active/trialing).
+       Symptom: user passes nav but hits paywall, or reverse.
+
+  [C2] Generic error swallowing
+       useAgentChat.ts maps all failures to "nuckyAI is taking a nap."
+       Symptom: 401/403/429/500 indistinguishable; impossible to self-diagnose.
+
+  [C3] Regenerate duplicates messages
+       send() always appends new user + assistant pair; regenerate re-sends without
+       removing prior assistant turn.
+       Symptom: duplicate user messages and stacked assistant replies.
+
+  [C4] No stream cancel
+       useAgentChat exports stop() but NuckyAIContainer never wires it.
+       Symptom: user stuck waiting on long/broken streams.
+
+  [C5] Chart parse flicker
+       MessageBubble regex-parses ```chart during streaming; partial JSON may flash.
+       Symptom: raw JSON visible mid-stream.
+
+  [C6] Silent message load failures
+       loadMessages logs to console only; user sees empty chat.
+
+  [C7] Narrow filter context
+       Only league + split sent; multi-league "All Tier 1" or cross-split questions
+       may not match backend tool semantics.
+
+BACKEND (requires private source or Supabase dashboard access)
+
+  [B1] Tool router gaps
+       Intent → tool mapping may miss common question types; LLM guesses without data.
+
+  [B2] OE tool vs dashboard drift
+       Backend tools query oe_slices; dashboard computes via mergeSlices.ts + src/lib/*.
+       Symptom: AI cites different winrate/KDA than UI for same filter.
+
+  [B3] RAG empty or stale
+       documents table empty, indexer not run, or match_documents RPC param mismatch.
+       Symptom: no external context; hallucinated narrative.
+       Reference: scripts/recap/rag.ts shows fallback param shapes for match_documents.
+
+  [B4] Schedule tool not wired / stale esports_schedules
+       Symptom: "when does T1 play next" fails or returns old dates.
+
+  [B5] Prompt allows hallucination when tools return empty
+       Symptom: confident wrong facts instead of "no data for this filter."
+
+  [B6] Usage quota opaque
+       agent_usage_events may block requests; client shows generic nap message.
+
+  [B7] Private source missing locally
+       Cannot edit prompts/tools without backup recovery.
+
+================================================================================
+3. FIX PHASES
+================================================================================
+
+--- Phase 0: Discovery (1–2 days) — GATE before backend work ---
+
+  Checklist:
+  [ ] List which private paths exist on dev machine (see .gitignore lines 28–46)
+  [ ] Locate private backup: encrypted archive, private git remote, or other machine
+  [ ] Supabase dashboard → Edge Functions → agent-chat → recent logs + error rate
+  [ ] Query documents: SELECT count(*), max(updated_at) FROM documents;
+  [ ] Query esports_schedules: count + max(start_time) for tier-1 leagues
+  [ ] Query agent_usage_events: recent 429/quota blocks
+  [ ] Run golden question set (Section 5); classify each failure (C* vs B*)
+  [ ] Document OpenRouter model IDs in use (edge fn env vars)
+
+  Exit criteria: written failure taxonomy + decision: recover private source OR rebuild minimal agent-chat.
+
+  Recovery if no local source:
+    - Copy from private backup per docs/PRIVATE_COMPONENTS.md
+    - OR reconstruct from: agent-chat/README.md + docs/ARCHITECTURE.md + recap RAG patterns
+      (scripts/recap/rag.ts, scripts/recap/openrouter.ts)
+
+--- Phase 1: Public client fixes (3–5 days, no backend deploy required) ---
+
+  Files to touch:
+    src/components/nuckyai/NuckyAIContainer.tsx
+    src/components/nuckyai/useAgentChat.ts
+    src/components/nuckyai/MessageBubble.tsx (optional chart buffer)
+    src/components/Layout.tsx (extract shared isSubscribed helper)
+
+  Tasks:
+  [ ] C1: Shared subscription check — profiles.is_subscribed OR subscriptions active/trialing
+         (match Layout.tsx logic exactly)
+  [ ] C2: Map HTTP status → user-facing messages:
+         401 → "session expired, log in again"
+         403 → "subscription required" or "not authorized"
+         429 → "daily limit reached — resets at [time]" (if backend sends hint)
+         5xx → "server error, try again"
+  [ ] C3: Regenerate: remove last assistant message before re-stream; do not duplicate user
+  [ ] C4: Add Stop button during streaming; wire stop() from useAgentChat
+  [ ] C6: Toast or inline error when message load fails
+  [ ] Optional: pass selectedLeagues[] + year in request body if backend updated to accept
+
+  Exit criteria: manual QA on paywall, errors, regenerate, cancel; no regressions on happy path.
+
+--- Phase 2: Backend reliability (1–2 weeks, requires private source + deploy) ---
+
+  Tasks:
+  [ ] B1: Audit intent classifier + tool router against golden question categories
+  [ ] B2: Align tool filter logic with mergeSlices.ts rules:
+         - All Tier 1 vs single league
+         - ALL split vs specific split + playoffs suffix
+         - Same player name disambiguation (team|league key)
+  [ ] B3: RAG pipeline health:
+         - Verify npm run index:rag / CI schedule
+         - Fix match_documents RPC args (query_embedding vs embedding — see recap/rag.ts)
+         - League filter passthrough on RAG queries
+         - Alert if documents count drops or max(updated_at) > 8 days stale
+  [ ] B4: Schedule tool reads esports_schedules; verify indexer still upserts Riot API
+  [ ] B5: Prompt hardening:
+         - System: "If [DATABASE_RESULTS] is empty, say you don't have data for that filter."
+         - Require numeric citations from tool output only
+         - Separate [EXTERNAL_CONTEXT] from stats — external cannot override OE numbers
+  [ ] B6: Return structured error events in SSE for quota (type: error, code: quota_exceeded)
+  [ ] B2 continued: Add integration test script comparing tool output vs dashboard for 5 fixtures
+
+  Exit criteria: golden set >= 85% pass; spot-check 10 stats answers vs dashboard UI exact match.
+
+--- Phase 3: Product enhancements (post-stability, optional sequencing) ---
+
+  [ ] Grounding chips in MessageBubble: "OE · LCK · Split 2026 Spring" when metadata emitted
+  [ ] Contextual "Ask nuckyAI" on Matchups tab (pre-fill matchup question)
+  [ ] Contextual "Ask nuckyAI" on Overview weekly cards
+  [ ] Free tier: N queries/day (product decision — see nucky.txt monetization section)
+  [ ] Match room hook: "Summarize this thread" post-match (depends on nuckyLive_scope.txt)
+  [ ] Saved insights / shareable answer links
+
+  Do NOT start Phase 3 until Phase 2 golden set passes.
+
+================================================================================
+4. KEY FILES REFERENCE
+================================================================================
+
+  Frontend
+    src/pages/NuckyAI.tsx
+    src/components/nuckyai/NuckyAIContainer.tsx
+    src/components/nuckyai/useAgentChat.ts
+    src/components/nuckyai/MessageBubble.tsx
+    src/components/nuckyai/NuckyRadarChart.tsx
+    src/components/Layout.tsx
+    src/lib/billing.ts
+    src/context/DashboardContext.tsx
+    src/lib/mergeSlices.ts
+
+  Docs / config
+    docs/ARCHITECTURE.md
+    docs/PRIVATE_COMPONENTS.md
+    supabase/functions/agent-chat/README.md
+    scripts/rag-indexer/README.md
+    .env.example (OPENROUTER_API_KEY, VITE_SUPABASE_*, VITE_STRIPE_PRICE_ID)
+
+  Reference implementations (public)
+    scripts/recap/rag.ts          — match_documents with fallback params
+    scripts/recap/openrouter.ts   — embedding + LLM calls
+    scripts/recap/compose.ts      — grounded narrative hydration pattern
+
+  Private (expected locally, not in GitHub)
+    supabase/functions/agent-chat/index.ts (or equivalent)
+    scripts/rag-indexer/src/*
+    supabase/migrations/*.sql (full set)
+
+================================================================================
+5. GOLDEN QUESTION SET (eval framework)
+================================================================================
+
+Run each prompt with dashboard filter: League = LCK (or ALL Tier 1), Split = current.
+Record: PASS | FAIL | PARTIAL. Note failure class (C1–C7, B1–B7).
+
+  CATEGORY: Player stats
+    1. "What is Chovy's KDA this split?"
+    2. "Who has the best GD@15 among LCK mid laners?"
+    3. "Compare Faker and Zeka — radar chart"
+
+  CATEGORY: Team stats
+    4. "How is T1's winrate this split?"
+    5. "Which LCK team has the best objective control?"
+    6. "Compare Gen.G and HLE"
+
+  CATEGORY: Champion meta
+    7. "What are the most picked champions in LCK right now?"
+    8. "Is Ahri meta in LPL this split?"
+
+  CATEGORY: Matchup
+    9. "T1 vs Gen.G head to head this split"
+   10. "Lane matchup: Kiin vs Zeus"
+
+  CATEGORY: Schedule
+   11. "When does T1 play next?"
+   12. "What's on the LCK schedule this week?"
+
+  CATEGORY: External / RAG
+   13. "What changed in the latest patch for ADC items?"
+   14. "What did Reddit say about the last GEN vs HLE series?"
+   15. "Kalshi odds for today's LCK matches" (if indexed)
+
+  CATEGORY: Edge cases
+   16. "Best support in CBLOL" (wrong league — should say no data or clarify filter)
+   17. "Faker stats" with LPL filter selected (should disambiguate or note mismatch)
+   18. Empty/novel player name "xyzplayer123" (should not invent stats)
+   19. "Who won MSI 2026?" (may need RAG; must not hallucinate if no data)
+   20. Cross-split: "T1 winrate in 2025 vs 2026" (may exceed tool capability — honest answer)
+
+  PASS definition:
+    - Numbers match dashboard within rounding (±0.1 for rates, ±1 for raw counts)
+    - Compare questions include chart or explicit stat table
+    - No invented players, teams, or scores
+    - External questions cite or imply external source; admit gap if RAG empty
+
+  Track in spreadsheet or markdown log:
+    date | prompt | filter | expected | actual | pass/fail | failure class | notes
+
+  Re-run full set after every agent-chat deploy.
+
+================================================================================
+6. ENV & OPS CHECKLIST
+================================================================================
+
+  Client (.env / Cloudflare Pages)
+    VITE_SUPABASE_URL
+    VITE_SUPABASE_ANON_KEY
+    VITE_STRIPE_PRICE_ID
+
+  Server (Supabase secrets / local .env — never in client bundle)
+    OPENROUTER_API_KEY
+    STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET
+    SUPABASE_SERVICE_ROLE_KEY
+    KALSHI_API_KEY (RAG indexer)
+
+  CI
+    refresh-data.yml — OE ingest (Sundays)
+    index-rag.yml — RAG re-index (verify exists locally / runs weekly)
+
+  Monitoring (recommended)
+    - Edge fn error rate alert
+    - documents freshness > 8 days → notify
+    - Golden set regression on deploy (manual until automated)
+
+================================================================================
+7. SEQUENCING vs LIVE MATCH ROOMS
+================================================================================
+
+  nuckyLive_scope.txt is a separate initiative. Recommendation:
+    - Complete nuckyAI Phase 0 + Phase 1 in parallel with Live L1 (foundation)
+    - Complete nuckyAI Phase 2 BEFORE Live L5 (nuckyAI match brief in rooms)
+    - Do not split attention across Phase 2 backend AND Live L3 (ACS worker) simultaneously
+
+================================================================================
+8. ACCEPTANCE CHECKLIST (definition of done for TODO #1)
+================================================================================
+
+  [ ] Phase 0 discovery doc completed; private source located or recovery plan written
+  [ ] Phase 1 client fixes shipped
+  [ ] Phase 2 backend fixes deployed
+  [ ] Golden set >= 85% pass documented with log
+  [ ] FAQ/README updated if free tier or error messages change
+  [ ] No known P0 bugs: paywall desync, silent failures, regenerate duplicate
+
+# End nuckyAI_scope.txt

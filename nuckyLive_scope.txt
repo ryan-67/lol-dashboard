@@ -1,0 +1,522 @@
+# nucky.gg Live Match Rooms + Fan Ratings — Implementation Scope
+# TODO #2 (Real-style live match rooms) + TODO #3 (player ratings / stickers)
+# Generated 2026-06-15
+#
+# Related: nucky.txt (Ideas 2 & 3), nuckyAI_scope.txt, docs/ARCHITECTURE.md
+
+================================================================================
+0. PRODUCT INTENT
+================================================================================
+
+PROBLEM
+  English-speaking LoL esports fans watch live on Twitch, costreams (Caedrel), or
+  YouTube. Discussion happens in platform chats (spam, no real conversation) or
+  async Reddit match threads (not live). lolesports.com offers broadcast + basic
+  live state but no community layer.
+
+GOAL
+  nucky.gg becomes the live match room hub: live stats + discussion in one place.
+  Differentiation vs lolesports = community; vs Reddit = real-time; vs gol.gg =
+  live social layer on top of stats.
+
+  Phase A-only rooms (schedule + post-match OE, no live stats) are explicitly OUT
+  OF SCOPE for v1 — lolesports already covers that. v1 must ship BOTH:
+    (1) live match stats to the extent APIs allow, AND
+    (2) live discussion threads.
+
+USER DECISIONS (confirmed)
+  - Auth: anyone can READ rooms; POST comments, ratings, tags require login
+  - Ratings: Real-app style — 1 numeric rating per user per player/team per match
+  - Tags/stickers: curated vocabulary; display top N most-given tags per player
+  - Leagues: tier-1 focus (LCK, LPL, LEC, LCS) matching existing dashboard filter
+
+POSITIONING (honest)
+  "Live discussion during matches; stats update as APIs allow; deep OE analytics
+  after refresh." Do not promise frame-perfect live telemetry without GRID/LDP.
+
+================================================================================
+1. LIVE DATA SOURCE INVESTIGATION
+================================================================================
+
+--- 1.1 LoL Esports Persisted API (primary for v1) ---
+
+  Base: https://esports-api.lolesports.com/persisted/gw
+  Auth: header x-api-key: 0TvQnueqKa5mxJntVWt0w4LpLfEkrV1Ta8rQBb9Z
+        (public frontend key — already in scripts/sync_esports_logos.py)
+
+  Endpoints to use:
+    GET /getLeagues?hl=en-US              — league IDs (already synced for logos)
+    GET /getSchedule?hl=en-US&leagueId=   — upcoming + recent events
+    GET /getLive?hl=en-US                 — currently live events + state
+    GET /getEventDetails?hl=en-US&id=     — match detail, game IDs, VOD links
+    GET /getStandings?hl=en-US&tournamentId= — standings (optional hub widget)
+
+  Provides:
+    - Series score (e.g. 2-1), match state (unstarted / inProgress / completed)
+    - Team names, slugs, logos (cross-ref esports-logos.json)
+    - Game index within series, start times
+    - Draft picks/bans in some responses (verify per event type)
+    - Links to lolesports VOD when completed
+
+  Does NOT provide:
+    - Full in-game player KDA/DPM/gold frame-by-frame during live (reliably)
+
+  Production notes:
+    - Unofficial / community-documented; Riot may change without notice
+    - MUST proxy server-side (CORS blocks direct browser calls)
+    - Poll interval: 5–15s during live; 60s when idle
+    - Alt base seen in docs: https://prod-relapi.ewp.gg/persisted/gw/ (fallback)
+
+--- 1.2 ACS Stats API (secondary — in-game depth, fragile) ---
+
+  Base: https://acs.leagueoflegends.com/v1/stats/game/{platform}/{gameId}?gameHash={hash}
+  Timeline: .../timeline
+
+  Provides:
+    - Full post-game stats: KDA, items, gold, damage, vision, etc.
+    - Timeline events (kills, objectives, structures)
+    - May update during live game once gameId + gameHash known from getEventDetails
+
+  Limitations:
+    - Rate limited aggressively
+    - Historically required Riot session Cookie (id_token) — not viable for browser
+    - Must run from server worker with caching; expect breakage
+    - Not a long-term production solution at scale
+
+  MVP use:
+    - Worker polls ACS when getEventDetails exposes game sub-IDs
+    - Cache last good snapshot; show "stats updating..." on failure
+    - Graceful degrade to series scoreboard only
+
+--- 1.3 Oracle's Elixir (post-match enrichment — already have) ---
+
+  Pipeline: ingest_csv.py → seed_supabase.py → oe_slices (daily / ~2h poll)
+  Provides: rich player/team/champion stats AFTER games appear in CSV
+
+  Role in live rooms:
+    - NOT live overlay
+    - Post-match tab: "Full stats" linking to existing Player/Team entity pages
+    - Auto-refresh room when OE ingest completes (webhook or poll oe_sync_state)
+
+--- 1.4 GRID / Riot Esports Data (production telemetry — v2) ---
+
+  URL: https://riotesportsdata.com/
+  Official low-latency esports data via GRID partnership.
+
+  Provides: real-time kills, objectives, draft, player stats suitable for Real-parity UX.
+
+  Role:
+    - Evaluate after MVP retention proves demand
+    - Commercial cost + partnership approval required
+    - Document as L6 upgrade path; do not block v1 launch on GRID access
+
+--- 1.5 NOT applicable ---
+
+  - Riot Live Client API (127.0.0.1:2999) — local games only
+  - Riot Developer match-v5 — soloQ/ranked, not pro esports feed
+
+--- 1.6 Recommendation summary ---
+
+  v1 launch stack:
+    Persisted API (always) + ACS worker (best-effort) + OE (post-match) + Supabase Realtime (chat)
+
+  Upgrade path:
+    GRID/LDP when traffic justifies cost
+
+================================================================================
+2. SYSTEM ARCHITECTURE
+================================================================================
+
+--- 2.1 High-level flow ---
+
+  [Live ingest worker]  poll getLive + getSchedule + getEventDetails
+         |              optional ACS fetch per active gameId
+         v
+  [Supabase Postgres]   match_rooms, match_live_state, match_comments,
+                        match_ratings, match_player_tags, tag_vocabulary
+         |
+         | Realtime broadcast
+         v
+  [nucky.gg SPA]        /live hub, /live/:matchId room page
+         |
+         v
+  [Post-match persist]  ratings/tags on PlayerPage / TeamPage; OE deep stats
+
+--- 2.2 New routes ---
+
+  /live
+    - Match day hub: today's + live tier-1 matches
+    - Cards: teams, league, state (LIVE / Upcoming / Final), link to room
+    - Filter by league (reuse FilterStrip patterns or simplified league chips)
+
+  /live/:matchId
+    - matchId = Riot event id (from schedule/live API) — stable external key
+    - Layout (desktop): stats panel (left) | discussion (center/right)
+    - Mobile: tabs — Stats | Chat | Ratings (post-match)
+
+  Optional deep links:
+    /live?team=T1
+    /live?league=LCK
+
+--- 2.3 Live ingest worker ---
+
+  Location: scripts/live-sync/ (new) OR supabase/functions/live-sync/ (edge cron)
+
+  Responsibilities:
+    1. Poll getLive every 10s when any tier-1 match inProgress
+    2. Poll getSchedule every 5 min for upcoming events (next 48h)
+    3. Upsert match_rooms rows
+    4. Write normalized JSON to match_live_state
+    5. On new game in series: fetch getEventDetails → extract gameId/gameHash → ACS poll
+    6. On match completed: set state=completed; optional trigger OE refresh check
+
+  Deployment:
+    - GitHub Action on cron (match days: every 1 min during LCK/LPL prime hours?)
+    - OR Supabase pg_cron + edge function
+    - OR long-running worker on Fly/Railway if edge timeout too short
+
+  Never expose x-api-key or ACS cookies to browser.
+
+--- 2.4 Normalized live state schema (match_live_state.payload JSON) ---
+
+  {
+    "version": 3,
+    "updatedAt": "ISO8601",
+    "state": "scheduled" | "live" | "completed",
+    "league": "LCK",
+    "bestOf": 5,
+    "seriesScore": { "teamA": 2, "teamB": 1 },
+    "currentGame": 4,
+    "teams": [
+      { "name": "T1", "slug": "t1", "side": "blue" },
+      { "name": "Gen.G", "slug": "gen-g", "side": "red" }
+    ],
+    "draft": { "bans": [...], "picks": [...] },        // when available
+    "players": [                                         // when ACS available
+      { "name": "Faker", "champion": "Azir", "kda": "2/1/5", "gold": 10200, ... }
+    ],
+    "objectives": { "dragons": {...}, "barons": 1, ... },
+    "statsSource": "persisted" | "acs" | "oe",
+    "statsLagMs": 15000,
+    "vodUrl": "https://lolesports.com/..."
+  }
+
+  Client renders from this blob only — decouples UI from raw Riot response shapes.
+
+--- 2.5 Supabase Realtime ---
+
+  Subscribe:
+    - match_live_state (UPDATE on room_id) — stats panel live updates
+    - match_comments (INSERT) — chat stream
+
+  RLS:
+    - match_live_state: SELECT public
+    - match_comments: SELECT public; INSERT authenticated + rate limit via RPC or edge
+
+================================================================================
+3. DATABASE SCHEMA (DDL sketch)
+================================================================================
+
+  -- Core room registry
+  CREATE TABLE match_rooms (
+    id            uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    riot_event_id text UNIQUE NOT NULL,
+    league        text NOT NULL,
+    team_a        text NOT NULL,
+    team_b        text NOT NULL,
+    start_time    timestamptz,
+    state         text NOT NULL DEFAULT 'scheduled'
+                  CHECK (state IN ('scheduled','live','completed')),
+    best_of       int,
+    created_at    timestamptz DEFAULT now(),
+    updated_at    timestamptz DEFAULT now()
+  );
+
+  -- Latest live snapshot (one row per room, overwritten by worker)
+  CREATE TABLE match_live_state (
+    room_id       uuid PRIMARY KEY REFERENCES match_rooms(id) ON DELETE CASCADE,
+    payload       jsonb NOT NULL,
+    version       int NOT NULL DEFAULT 1,
+    updated_at    timestamptz DEFAULT now()
+  );
+
+  -- Discussion
+  CREATE TABLE match_comments (
+    id            uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    room_id       uuid NOT NULL REFERENCES match_rooms(id) ON DELETE CASCADE,
+    user_id       uuid NOT NULL REFERENCES auth.users(id),
+    body          text NOT NULL CHECK (char_length(body) BETWEEN 1 AND 2000),
+    created_at    timestamptz DEFAULT now()
+  );
+  CREATE INDEX match_comments_room_created ON match_comments(room_id, created_at DESC);
+
+  -- Fan ratings (Real-style: one per user per entity per match)
+  CREATE TABLE match_ratings (
+    id            uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    room_id       uuid NOT NULL REFERENCES match_rooms(id) ON DELETE CASCADE,
+    user_id       uuid NOT NULL REFERENCES auth.users(id),
+    entity_type   text NOT NULL CHECK (entity_type IN ('player','team')),
+    entity_id     text NOT NULL,  -- canonical player name or team name
+    score         smallint NOT NULL CHECK (score BETWEEN 1 AND 10),
+    created_at    timestamptz DEFAULT now(),
+    updated_at    timestamptz DEFAULT now(),
+    UNIQUE (room_id, user_id, entity_type, entity_id)
+  );
+
+  -- Tags / stickers (curated vocabulary)
+  CREATE TABLE tag_vocabulary (
+    id            text PRIMARY KEY,  -- slug: goat, lane_kingdom, inting, clutch
+    label         text NOT NULL,
+    icon_ref      text,              -- optional asset key
+    sort_order    int DEFAULT 0
+  );
+
+  CREATE TABLE match_player_tags (
+    id            uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    room_id       uuid NOT NULL REFERENCES match_rooms(id) ON DELETE CASCADE,
+    user_id       uuid NOT NULL REFERENCES auth.users(id),
+    player_id     text NOT NULL,     -- canonical player name
+    tag_id        text NOT NULL REFERENCES tag_vocabulary(id),
+    created_at    timestamptz DEFAULT now(),
+    UNIQUE (room_id, user_id, player_id)  -- one tag per user per player per match
+  );
+
+  -- Aggregates (materialized view or computed on read)
+  -- match_rating_aggregates(room_id, entity_type, entity_id, avg_score, count)
+  -- match_tag_aggregates(room_id, player_id, tag_id, count)
+
+  RLS policies:
+    match_rooms, match_live_state, match_comments (SELECT): anon + authenticated
+    match_comments (INSERT): authenticated only
+    match_ratings, match_player_tags (INSERT/UPDATE): authenticated only
+    match_ratings, match_player_tags (SELECT): public (aggregates only in UI — optional hide raw rows)
+
+  Rate limiting:
+    - Edge function or DB trigger: max 30 comments/hour/user
+    - max 10 rating upserts/hour/user
+
+================================================================================
+4. FRONTEND (design system constraints)
+================================================================================
+
+  Follow src/theme/tokens.css + animations.ts:
+    - Noto Sans Mono, matte gold #c5a059 accents
+    - No border-radius, no shadows
+    - GSAP ScrollTrigger + Lenis on hub; minimal motion in live room (real-time content)
+
+  New components (src/components/live/):
+    LiveHub.tsx           — match day grid/list
+    LiveMatchCard.tsx     — team logos, state badge, score
+    MatchRoom.tsx         — page shell
+    LiveStatsPanel.tsx    — series score, draft, player table, objective strip
+    MatchChat.tsx         — comment list + input (auth gate on submit)
+    PostMatchRatings.tsx  — rating sliders 1–10 + tag picker
+    TagChipBar.tsx        — top N tags display
+
+  Reuse:
+    EntityLink, team logos (esports-logos.json), format.ts date helpers
+    AuthModal for login prompt on gated actions
+
+  Wire into App.tsx routes; add "Live" to primary nav (between Overview and Players?)
+
+  TeamPage schedule placeholder (TeamPage.tsx line ~303):
+    Replace "coming soon" with link to /live?team={team.name}
+
+================================================================================
+5. DISCUSSION FEATURE (TODO #2)
+================================================================================
+
+  v1 scope:
+    - Flat single thread per match (no nested replies)
+    - Sort: newest first during live
+    - Post-match: optional toggle "Top" by upvotes (defer upvotes to L5 — start newest only)
+    - Max 2000 chars per comment
+    - Report button → flag table for manual review (admin later)
+
+  Moderation (v1 minimum):
+    - Auth required to post
+    - Rate limits (Section 3)
+    - Basic profanity blocklist in edge function before insert
+    - No images/links preview (plain text) to reduce spam surface
+
+  Future (L5+):
+    - Threaded replies
+    - Upvotes
+    - Mod tools / auto-mod
+    - nuckyAI "Summarize thread" post-match (requires nuckyAI Phase 2 stable)
+
+================================================================================
+6. RATINGS & STICKERS (TODO #3 — Real-inspired)
+================================================================================
+
+  BEHAVIOR
+
+  When:
+    - Rating/tag submission opens when match state = completed (or final game ends)
+    - Optionally allow during live for tags only (decision: POST-MATCH ONLY for v1 to
+      match Real "rate after you watched" and reduce heat-of-moment toxicity)
+
+  Rating:
+    - 1–10 integer per player (all 10 players in match) and optionally each team
+    - One row per (user, room, entity) — upsert on change
+    - Display: average to 1 decimal, vote count
+
+  Tags (stickers):
+    - Curated vocabulary only (seed tag_vocabulary table)
+    - Suggested initial set (10–15):
+        goat, lane_kingdom, inting, clutch, invisible, gap, coinflip,
+        draft_bait, mental, support_diff, jg_gap, washed, rising
+    - One tag per user per player per match (upsert)
+    - Display top 3–5 tags by count per player (hide tags with count < 3)
+
+  PERSISTENCE ON ENTITY PAGES
+
+  PlayerPage (src/pages/entities/PlayerPage.tsx):
+    New section: "Fan ratings — {Team} vs {Team}, {date}"
+      - avg score, vote count
+      - top tags as chips
+      - link back to /live/:matchId
+    Query: aggregate match_ratings + match_player_tags for rooms involving player
+
+  TeamPage: analogous team rating block
+
+  Live room (post-match tab):
+    - Full rating UI for all players
+    - Running aggregates update as votes come in (Realtime optional)
+
+================================================================================
+7. PHASED DELIVERY
+================================================================================
+
+  --- L1: Foundation (2–3 weeks) ---
+
+  [ ] Migration: match_rooms, match_live_state (comments/ratings tables can wait)
+  [ ] live-sync worker: getSchedule + getLive → upsert rooms + state
+  [ ] Expose esports_schedules OR match_rooms to SPA (pick one source of truth)
+  [ ] /live hub page (read-only cards)
+  [ ] /live/:matchId skeleton (stats from match_live_state, no chat yet)
+  [ ] Server-side API proxy for LoL Esports (edge fn esports-proxy)
+
+  Acceptance: hub lists today's tier-1 matches; room shows series state when live.
+
+  --- L2: Live core (3–4 weeks) ---
+
+  [ ] match_comments table + RLS + Realtime
+  [ ] MatchChat component; auth gate on post
+  [ ] LiveStatsPanel: series score, game indicator, team headers
+  [ ] State badge animations (live pulse — CSS only, no radius/shadows)
+  [ ] Nav link + match day empty state
+
+  Acceptance: two users see live chat; stats panel updates on worker poll via Realtime.
+
+  --- L3: Live stats depth (2–3 weeks) ---
+
+  [ ] getEventDetails integration in worker
+  [ ] ACS worker path with caching + error backoff
+  [ ] Player rows in LiveStatsPanel when ACS payload available
+  [ ] Draft display when present in API
+  [ ] "Stats may lag broadcast" honest empty state
+
+  Acceptance: during live LCK match, room shows KDA/gold when ACS returns data;
+              degrades gracefully when ACS fails.
+
+  --- L4: Community flavor (2 weeks) ---
+
+  [ ] match_ratings + match_player_tags + tag_vocabulary migrations
+  [ ] PostMatchRatings UI (1–10 + tag picker)
+  [ ] Aggregate queries / views
+  [ ] PlayerPage + TeamPage fan rating sections
+  [ ] Top-N tag display with min-count threshold
+
+  Acceptance: logged-in user rates player; rating visible on PlayerPage after match.
+
+  --- L5: Polish (ongoing) ---
+
+  [ ] Mobile tab layout
+  [ ] /live?team= deep links from TeamPage
+  [ ] "Match starting" notification (email or browser push — optional)
+  [ ] nuckyAI post-match brief in room
+  [ ] OE post-match stats tab linking to entity pages
+
+  --- L6: Production telemetry (future) ---
+
+  [ ] Evaluate GRID / Riot Esports Data partnership
+  [ ] Replace ACS fragile path with official feed if approved
+
+  V1 PUBLIC LAUNCH = L2 + L3 complete (live discussion + best-effort live stats).
+  L4 can ship within 2 weeks after launch if L2+L3 stable.
+
+================================================================================
+8. API PROXY (edge function sketch)
+================================================================================
+
+  supabase/functions/esports-proxy/index.ts
+
+  GET /esports-proxy?path=getLive&hl=en-US
+  GET /esports-proxy?path=getSchedule&leagueId=...
+
+  - Validates path against allowlist
+  - Adds x-api-key server-side
+  - Cache-Control: 5s for getLive, 60s for getSchedule
+  - Returns JSON verbatim
+
+  Worker calls proxy OR calls Riot directly with service key in CI/server env.
+
+================================================================================
+9. RISKS & MITIGATIONS
+================================================================================
+
+  RISK: LoL Esports API changes
+    MITIGATION: allowlist proxy; monitor worker errors; alert on 4xx spike
+
+  RISK: ACS rate limit / auth breakage
+    MITIGATION: cache snapshots; never depend on ACS for series score; plan GRID
+
+  RISK: Moderation load on LCK weekends
+    MITIGATION: tier-1 only; rate limits; report queue; no anon posting
+
+  RISK: Solo maintainer overload
+    MITIGATION: sequence after nuckyAI Phase 1; don't parallel L3 + nuckyAI Phase 2
+
+  RISK: Empty rooms if no discovery
+    MITIGATION: link from Overview weekly recap, TeamPage, Twitter match-day posts
+
+  RISK: Stats mismatch vs OE post-match
+    MITIGATION: label ACS as "live (unofficial)"; OE as "official analytics" post-refresh
+
+================================================================================
+10. TIE-IN TO EXISTING ASSETS
+================================================================================
+
+  esports_schedules (private indexer) — may duplicate match_rooms; consolidate or sync
+  scripts/sync_esports_logos.py — team/league slug mapping
+  src/data/esports-logos.json — UI logos
+  src/lib/entities/entityMap.ts — canonical team/player names for entity_id fields
+  Overview weekly recap — link "Discuss live" on series mentioned in recap
+  nucky.txt Idea 1 — DONE (Player/Team/Champion of the Week on Overview)
+  nuckyAI_scope.txt — match brief feature depends on AI Phase 2
+
+================================================================================
+11. ACCEPTANCE CHECKLIST (definition of done for TODO #2 + #3)
+================================================================================
+
+  TODO #2 Live rooms:
+  [ ] /live hub shows tier-1 matches for today
+  [ ] /live/:matchId works for anon read
+  [ ] Live series state updates without page refresh
+  [ ] Authenticated users can post comments visible to all readers in Realtime
+  [ ] In-game player stats shown when ACS path succeeds; graceful fallback otherwise
+
+  TODO #3 Ratings/stickers:
+  [ ] Post-match: user submits 1–10 rating per player (upsert)
+  [ ] Post-match: user submits one tag per player from vocabulary
+  [ ] PlayerPage shows aggregate rating + top 3–5 tags for recent matches
+  [ ] Tags below minimum vote threshold hidden
+
+  NON-GOALS for v1:
+  - GRID integration
+  - Mobile native app
+  - Free-form sticker uploads
+  - Threaded forum-style sub-rooms per team fanbase
+
+# End nuckyLive_scope.txt
