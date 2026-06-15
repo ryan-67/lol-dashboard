@@ -6,9 +6,11 @@ interface ChatInputProps {
   onSend: () => void
   disabled?: boolean
   onStop?: () => void
+  /** Increment to focus the textarea (e.g. after "new chat"). */
+  focusTrigger?: number
 }
 
-export default function ChatInput({ value, onChange, onSend, disabled, onStop }: ChatInputProps) {
+export default function ChatInput({ value, onChange, onSend, disabled, onStop, focusTrigger }: ChatInputProps) {
   const ref = useRef<HTMLTextAreaElement>(null)
 
   useEffect(() => {
@@ -17,6 +19,11 @@ export default function ChatInput({ value, onChange, onSend, disabled, onStop }:
     el.style.height = 'auto'
     el.style.height = `${Math.min(el.scrollHeight, 180)}px`
   }, [value])
+
+  useEffect(() => {
+    if (focusTrigger === undefined || focusTrigger <= 0) return
+    ref.current?.focus()
+  }, [focusTrigger])
 
   return (
     <div className="border-t border-[var(--border-subtle)] bg-[var(--bg-surface)] p-3">

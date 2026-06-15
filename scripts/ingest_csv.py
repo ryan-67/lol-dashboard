@@ -378,7 +378,7 @@ def compile_players(players_dict):
                 "goldShare": round(sum(p["goldShare"]) / len(p["goldShare"]), 1) if p["goldShare"] else 0,
                 "firstBloodRate": round(sum(p["firstBloodGames"]) / games * 100, 1) if games else 0,
                 "objControl": round(sum(p["objControl"]) / len(p["objControl"]), 2) if p["objControl"] else 0,
-                "gameLog": sorted(p["gameLog"], key=lambda g: g.get("date", "")),
+                "gameLog": sorted(p["gameLog"], key=lambda g: (g.get("date", ""), g.get("gameId", ""))),
                 "championPool": [
                     {
                         "champion": champ,

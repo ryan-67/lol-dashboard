@@ -12,8 +12,8 @@ Hosted on Supabase Edge Functions in production. Responsibilities:
   - `team_winrate_chart` builds cumulative WR from Winter+Spring gameLog (excludes First Stand/MSI/Worlds); fixes `winrates` plural intent
   - chart prefix uses `streamChunk` (no premature SSE DONE); LLM prose sanitized live (strip duplicate ```chart blocks + source footnotes)
   - `splitBreakdown` in chart payload for winter/spring WR commentary without a second chart
-  - deterministic fast paths for series recap + team winrate (no LLM round-trip)
-  - series bundle loads splits newest-first until matchup found (avoids multi-split timeout)
+  - deterministic fast paths for simple team winrate only; series recaps use LLM with gameFlow ordering
+  - series game order: date + gameId (+ ordinal suffix) — matches dashboard match history
   - source footnotes stripped once after stream completes (not per-token)
   - `seriesSummary.ts` groups series by date+gameId order; exposes `gameSequence` + `winner` (never infer reverse sweeps)
   - schedule_lookup adds `recentSeriesFromOE` — scores from oe only, no reverse-sweep hallucination

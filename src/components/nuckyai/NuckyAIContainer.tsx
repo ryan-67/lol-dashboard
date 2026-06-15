@@ -28,6 +28,7 @@ export default function NuckyAIContainer() {
   )
   /** True while an in-flight send owns the message list — skip DB reloads that would wipe streaming state. */
   const pendingSendRef = useRef(false)
+  const [inputFocusTrigger, setInputFocusTrigger] = useState(0)
   const { streaming, sendMessage, stop } = useAgentChat()
 
   useGSAP(() => {
@@ -248,6 +249,7 @@ export default function NuckyAIContainer() {
     pendingSendRef.current = false
     setActiveConversationId(null)
     setMessages([])
+    setInputFocusTrigger((n) => n + 1)
     const next = new URLSearchParams(searchParams)
     next.delete('conversation_id')
     setSearchParams(next, { replace: true })
@@ -371,6 +373,7 @@ export default function NuckyAIContainer() {
           onRegenerate={regenerate}
           onRetry={regenerate}
           onStop={stop}
+          inputFocusTrigger={inputFocusTrigger}
         />
       </div>
     </div>

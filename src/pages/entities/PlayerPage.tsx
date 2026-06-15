@@ -169,7 +169,7 @@ export default function PlayerPage() {
             </thead>
             <tbody>
               {[...(player.gameLog ?? [])]
-                .sort((a, b) => b.date.localeCompare(a.date))
+                .sort((a, b) => b.date.localeCompare(a.date) || (b.gameId ?? '').localeCompare(a.gameId ?? ''))
                 .slice(0, 20)
                 .map((g, i) => (
                   <tr key={`${g.date}-${i}`}>

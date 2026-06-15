@@ -100,9 +100,14 @@ export function buildTeamMatchHistory(
       opponent: game.opponent ?? 'Unknown',
       result: (game.result === 1 ? 'W' : 'L') as 'W' | 'L',
       tournament: formatTournamentLabel(game.league, game.split, fallbackLeague, fallbackSplit),
+      gameId: game.gameId ?? '',
     }))
-    .sort((a, b) => b.date.localeCompare(a.date))
-  return limit === undefined ? sorted : sorted.slice(0, limit)
+    .sort((a, b) => {
+      const byDate = b.date.localeCompare(a.date)
+      if (byDate !== 0) return byDate
+      return b.gameId.localeCompare(a.gameId)
+    })
+  return limit === undefined ? sorted.map(({ gameId: _g, ...row }) => row) : sorted.slice(0, limit).map(({ gameId: _g, ...row }) => row)
 }
 
 export interface SideWinrates {

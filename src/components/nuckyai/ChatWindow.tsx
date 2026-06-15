@@ -11,6 +11,7 @@ interface ChatWindowProps {
   onRegenerate: () => void
   onRetry: () => void
   onStop: () => void
+  inputFocusTrigger?: number
 }
 
 export default function ChatWindow({
@@ -20,6 +21,7 @@ export default function ChatWindow({
   onRegenerate,
   onRetry,
   onStop,
+  inputFocusTrigger,
 }: ChatWindowProps) {
   const [draft, setDraft] = useState('')
   const showConversation = messages.length > 0 || streaming
@@ -54,6 +56,7 @@ export default function ChatWindow({
         onSend={send}
         disabled={streaming}
         onStop={onStop}
+        focusTrigger={inputFocusTrigger}
       />
     </section>
   )
