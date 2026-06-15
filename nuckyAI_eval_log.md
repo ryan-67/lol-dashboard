@@ -24,7 +24,7 @@
 | **C5** | Chart JSON parsed mid-stream | Raw JSON flicker |
 | **C6** | Message load errors console-only | Silent empty chat |
 | **C7** | Only `league` + `split` sent; split label strips year (`Spring` vs `2026 Spring`) | OE tool filter drift vs dashboard |
-| **B2** | `oeData.resolveSplit` uses display split label, not `mergeSlices` multi-slice semantics | Stats mismatch |
+| **B2** | `resolveSplit` used `updated_at` → First Stand instead of Spring; DK absent from invitational slice | Roster empty / wrong split in answers |
 | **B1** | No `player_stat` / `team_stat` / `team_roster` tools for direct asks | LLM guesses or runs fragile SQL |
 | **B3** | `vectorSearch` single RPC param shape; no recap-style fallbacks | RAG empty on param mismatch |
 | **B5** | Prompt lacks explicit fail-closed on empty `[DATABASE_RESULTS]` | Hallucination risk |
@@ -73,7 +73,7 @@ Filter default: **LCK**, **current split** (2026 Spring unless noted).
 | 21 | Faker all-time winrate on Azir | PARTIAL | PARTIAL | B2 | historical beyond OE |
 | 22 | compare chovy 2024 Summer and 2024 Worlds | PARTIAL | PARTIAL | B2 | multi-split if indexed |
 | 23 | T1 winrates line graph all of 2025 | PARTIAL | PARTIAL | B2 | chart + historical |
-| 24 | What players are on DK? | FAIL | PASS* | B1 | `team_roster` tool; skip LLM SQL |
+| 24 | What players are on DK? | FAIL | PASS* | B1/B2 | `team_roster` tool; regional split default (not First Stand) |
 
 **Pre-fix estimated pass rate:** ~35% (8/23 PASS or strong PARTIAL)  
 **Post-fix estimated pass rate:** ~88% (21/24 PASS*) — pending live deploy + RAG freshness for 13–15, 19–23
