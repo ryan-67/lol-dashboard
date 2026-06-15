@@ -92,6 +92,14 @@ Filter default: **LCK**, **current split** (2026 Spring unless noted).
 
 **2026-06-05 deploy 6:** Restored missing `vectorSearch`/`sqlQuery` imports; radar requests route to player compare and skip RAG.
 
+**2026-06-05 deploy 7:** Fixed explicit split scope (`2026 spring lck` no longer widens to ALL LCK); added `champion_pool_compare` tool so pool compare cites oe championPool — no invented pick counts/WR.
+
+**Golden set addendum:**
+
+| # | Prompt | Pre-fix | Post-fix | Class | Notes |
+|---|--------|---------|----------|-------|-------|
+| 28 | compare ruler vs gumayusi champion pools from 2026 spring lck | FAIL | PASS* | B2/B5 | split widen bug + LLM invented pools; champion_pool_compare + narrow filters |
+
 **Pre-fix estimated pass rate:** ~35% (8/23 PASS or strong PARTIAL)  
 **Post-fix estimated pass rate:** ~89% (24/27 PASS*) — pending live deploy + RAG freshness for 13–15, 19–23
 

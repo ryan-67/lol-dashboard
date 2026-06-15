@@ -17,6 +17,8 @@ Hosted on Supabase Edge Functions in production. Responsibilities:
   - source footnotes stripped once after stream completes (not per-token)
   - `seriesSummary.ts` groups series by date+gameId order; exposes `gameSequence` + `winner` (never infer reverse sweeps)
   - schedule_lookup adds `recentSeriesFromOE` — scores from oe only, no reverse-sweep hallucination
+  - explicit split scope (e.g. "2026 spring lck") stays narrow — no widen to ALL splits for compare/champion pool asks
+  - `champion_pool_compare` tool — per-player championPool from oe for split-scoped pool compare (no invented pick counts)
 - pgvector RAG via `match_documents`
 - Team/player compare with injected radar chart payloads
 - Usage limits and conversation persistence (TEMP: daily limit 1000 for QA — revert to 25 at launch)
