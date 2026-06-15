@@ -80,6 +80,8 @@ Filter default: **LCK**, **current split** (2026 Spring unless noted).
 
 **2026-06-05 follow-up deploy:** `responseSanitize.ts` (slim DB context, strip source footnotes + duplicate charts live), `seriesSummary.ts` gameId-ordered `gameSequence`, chart max_tokens 220.
 
+**2026-06-05 deploy 2:** Fixed stream stall when source footnote stripped mid-stream; citations only when user asks; series questions widen to all regional splits for year; series recap leads with score (no filler).
+
 **Pre-fix estimated pass rate:** ~35% (8/23 PASS or strong PARTIAL)  
 **Post-fix estimated pass rate:** ~89% (24/27 PASS*) — pending live deploy + RAG freshness for 13–15, 19–23
 
