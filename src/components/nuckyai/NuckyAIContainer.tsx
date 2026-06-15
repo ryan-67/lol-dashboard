@@ -155,6 +155,8 @@ export default function NuckyAIContainer() {
         ]
       })
 
+      let receivedChunk = false
+
       void sendMessage({
         message,
         conversationId: activeConversationId ?? undefined,
@@ -165,6 +167,7 @@ export default function NuckyAIContainer() {
           setSearchParams(next, { replace: true })
         },
         onChunk: (chunk) => {
+          receivedChunk = true
           setMessages((prev) => {
             const copy = [...prev]
             for (let i = copy.length - 1; i >= 0; i -= 1) {
@@ -183,6 +186,23 @@ export default function NuckyAIContainer() {
         },
         onDone: () => {
           pendingSendRef.current = false
+          if (!receivedChunk) {
+            setMessages((prev) => {
+              const copy = [...prev]
+              for (let i = copy.length - 1; i >= 0; i -= 1) {
+                if (copy[i].role === 'assistant' && copy[i].thinking) {
+                  copy[i] = {
+                    ...copy[i],
+                    thinking: false,
+                    content: "couldn't get a response — try again.",
+                    retryable: true,
+                  }
+                  break
+                }
+              }
+              return copy
+            })
+          }
           void loadConversations()
         },
         onError: (err) => {
@@ -193,7 +213,7 @@ export default function NuckyAIContainer() {
               if (copy[i].role === 'assistant') {
                 copy[i] = {
                   ...copy[i],
-                  content: copy[i].content || err,
+                  content: err,
                   retryable: true,
                   thinking: false,
                 }
