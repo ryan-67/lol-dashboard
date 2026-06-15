@@ -90,6 +90,8 @@ Filter default: **LCK**, **current split** (2026 Spring unless noted).
 
 **2026-06-05 deploy 5:** gameFlow W/L order (date+gameId); series recap personality via LLM; new-chat input autofocus; ingest gameLog sort by gameId.
 
+**2026-06-05 deploy 6:** Restored missing `vectorSearch`/`sqlQuery` imports; radar requests route to player compare and skip RAG.
+
 **Pre-fix estimated pass rate:** ~35% (8/23 PASS or strong PARTIAL)  
 **Post-fix estimated pass rate:** ~89% (24/27 PASS*) — pending live deploy + RAG freshness for 13–15, 19–23
 
