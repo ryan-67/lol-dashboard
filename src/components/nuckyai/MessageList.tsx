@@ -7,9 +7,16 @@ interface MessageListProps {
   onRegenerate: () => void
   onRetry: () => void
   isTyping: boolean
+  streaming?: boolean
 }
 
-export default function MessageList({ messages, onRegenerate, onRetry, isTyping }: MessageListProps) {
+export default function MessageList({
+  messages,
+  onRegenerate,
+  onRetry,
+  isTyping,
+  streaming = false,
+}: MessageListProps) {
   const bottomRef = useRef<HTMLDivElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
   const shouldAutoScrollRef = useRef(true)
@@ -27,6 +34,13 @@ export default function MessageList({ messages, onRegenerate, onRetry, isTyping 
     }
   }, [messages, isTyping])
 
+  const lastAssistantIdx = (() => {
+    for (let i = messages.length - 1; i >= 0; i -= 1) {
+      if (messages[i]?.role === 'assistant') return i
+    }
+    return -1
+  })()
+
   return (
     <div ref={containerRef} className="flex-1 overflow-y-auto p-4 space-y-3" onScroll={updateAutoScrollState}>
       {messages.map((message, idx) => (
@@ -36,6 +50,7 @@ export default function MessageList({ messages, onRegenerate, onRetry, isTyping 
           isAssistant={message.role === 'assistant'}
           onRegenerate={onRegenerate}
           onRetry={onRetry}
+          deferCharts={streaming && idx === lastAssistantIdx}
         />
       ))}
       {isTyping && (

@@ -5,9 +5,10 @@ interface ChatInputProps {
   onChange: (value: string) => void
   onSend: () => void
   disabled?: boolean
+  onStop?: () => void
 }
 
-export default function ChatInput({ value, onChange, onSend, disabled }: ChatInputProps) {
+export default function ChatInput({ value, onChange, onSend, disabled, onStop }: ChatInputProps) {
   const ref = useRef<HTMLTextAreaElement>(null)
 
   useEffect(() => {
@@ -19,6 +20,17 @@ export default function ChatInput({ value, onChange, onSend, disabled }: ChatInp
 
   return (
     <div className="border-t border-[var(--border-subtle)] bg-[var(--bg-surface)] p-3">
+      {disabled && onStop && (
+        <div className="mb-2">
+          <button
+            type="button"
+            className="border border-[var(--border-subtle)] px-3 py-1 text-xs text-[var(--text-secondary)] hover:text-[var(--accent)]"
+            onClick={onStop}
+          >
+            stop
+          </button>
+        </div>
+      )}
       <div className="flex items-end gap-2">
         <textarea
           ref={ref}

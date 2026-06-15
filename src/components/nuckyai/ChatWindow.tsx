@@ -10,9 +10,17 @@ interface ChatWindowProps {
   onSend: (message: string) => void
   onRegenerate: () => void
   onRetry: () => void
+  onStop: () => void
 }
 
-export default function ChatWindow({ messages, streaming, onSend, onRegenerate, onRetry }: ChatWindowProps) {
+export default function ChatWindow({
+  messages,
+  streaming,
+  onSend,
+  onRegenerate,
+  onRetry,
+  onStop,
+}: ChatWindowProps) {
   const [draft, setDraft] = useState('')
   const showConversation = messages.length > 0 || streaming
 
@@ -25,7 +33,13 @@ export default function ChatWindow({ messages, streaming, onSend, onRegenerate, 
   return (
     <section className="flex-1 min-h-0 flex flex-col bg-[var(--bg-base)]">
       {showConversation ? (
-        <MessageList messages={messages} onRegenerate={onRegenerate} onRetry={onRetry} isTyping={streaming} />
+        <MessageList
+          messages={messages}
+          onRegenerate={onRegenerate}
+          onRetry={onRetry}
+          isTyping={streaming}
+          streaming={streaming}
+        />
       ) : (
         <div className="flex-1 overflow-y-auto p-4">
           <div className="border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-4 max-w-2xl">
@@ -34,7 +48,13 @@ export default function ChatWindow({ messages, streaming, onSend, onRegenerate, 
           </div>
         </div>
       )}
-      <ChatInput value={draft} onChange={setDraft} onSend={send} disabled={streaming} />
+      <ChatInput
+        value={draft}
+        onChange={setDraft}
+        onSend={send}
+        disabled={streaming}
+        onStop={onStop}
+      />
     </section>
   )
 }

@@ -22,6 +22,8 @@ interface MessageBubbleProps {
   isAssistant: boolean
   onRegenerate?: () => void
   onRetry?: () => void
+  /** When true, incomplete chart JSON is shown as plain text until stream completes. */
+  deferCharts?: boolean
 }
 
 interface TextBlock {
@@ -51,7 +53,16 @@ function splitBareCharts(text: string): TextBlock[] {
   return blocks.length ? blocks : [{ type: 'text', content: text }]
 }
 
-function parseBlocks(content: string): TextBlock[] {
+function isCompleteChartJson(json: string): boolean {
+  try {
+    JSON.parse(json)
+    return true
+  } catch {
+    return false
+  }
+}
+
+function parseBlocks(content: string, deferCharts: boolean): TextBlock[] {
   const blocks: TextBlock[] = []
   const chartOrCode = /```(chart|[\w-]+)?\n([\s\S]*?)```/g
   let last = 0
@@ -65,7 +76,12 @@ function parseBlocks(content: string): TextBlock[] {
     }
     const lang = (match[1] ?? '').toLowerCase()
     if (lang === 'chart') {
-      blocks.push({ type: 'chart', content: match[2].trim() })
+      const chartJson = match[2].trim()
+      if (deferCharts && !isCompleteChartJson(chartJson)) {
+        blocks.push({ type: 'text', content: `\`\`\`chart\n${chartJson}` })
+      } else {
+        blocks.push({ type: 'chart', content: chartJson })
+      }
     } else {
       blocks.push({ type: 'code', content: match[2].trim() })
     }
@@ -245,9 +261,18 @@ function relativeTime(value?: string) {
   return formatMessageTimestamp(value)
 }
 
-export default function MessageBubble({ message, isAssistant, onRegenerate, onRetry }: MessageBubbleProps) {
+export default function MessageBubble({
+  message,
+  isAssistant,
+  onRegenerate,
+  onRetry,
+  deferCharts = false,
+}: MessageBubbleProps) {
   const [copied, setCopied] = useState(false)
-  const blocks = useMemo(() => parseBlocks(message.content), [message.content])
+  const blocks = useMemo(
+    () => parseBlocks(message.content, deferCharts),
+    [message.content, deferCharts],
+  )
 
   const copy = async () => {
     await navigator.clipboard.writeText(message.content)

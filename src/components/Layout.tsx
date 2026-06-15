@@ -4,7 +4,7 @@ import AnimatedOutlet from './AnimatedOutlet'
 import AuthModal from './AuthModal'
 import { useDashboard } from '../context/DashboardContext'
 import { useAuth } from '../context/AuthContext'
-import { supabase } from '../lib/supabaseClient'
+import { fetchSubscriptionState } from '../lib/subscription'
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom'
 import { navSearchForPath, stripNuckyAiSearchParams } from '../lib/navSearchParams'
 import { GlobalSearch } from './entities'
@@ -72,23 +72,10 @@ export default function Layout({ children }: { children: React.ReactNode }) {
         }
         return
       }
-      const { data: profileData } = await supabase
-        .from('profiles')
-        .select('is_subscribed, username')
-        .eq('id', user.id)
-        .maybeSingle()
-
-      const { data: subData } = await supabase
-        .from('subscriptions')
-        .select('status')
-        .eq('user_id', user.id)
-        .in('status', ['active', 'trialing'])
-        .limit(1)
-
-      const hasActiveSub = Array.isArray(subData) && subData.length > 0
+      const { profile, isSubscribed: subscribed } = await fetchSubscriptionState(user.id)
       if (mounted) {
-        setIsSubscribed(Boolean(profileData?.is_subscribed) || hasActiveSub)
-        setUsername((profileData?.username as string | null) ?? null)
+        setIsSubscribed(subscribed)
+        setUsername((profile?.username as string | null) ?? null)
       }
     }
     void loadSubscription()

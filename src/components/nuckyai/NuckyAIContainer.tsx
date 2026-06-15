@@ -3,6 +3,7 @@ import { useGSAP } from '@gsap/react'
 import { useSearchParams } from 'react-router-dom'
 import { startStripeCheckout } from '../../lib/billing'
 import { supabase } from '../../lib/supabaseClient'
+import { fetchSubscriptionState } from '../../lib/subscription'
 import { scrollEntrance } from '../../theme/animations'
 import { useAuth } from '../../context/AuthContext'
 import { useDashboard } from '../../context/DashboardContext'
@@ -13,8 +14,9 @@ import type { ConversationRow, MessageRow, ProfileRow } from './types'
 
 export default function NuckyAIContainer() {
   const { user } = useAuth()
-  const { league, split } = useDashboard()
+  const { league, split, year, selectedLeagues, selectedYears, selectedSplits } = useDashboard()
   const [profile, setProfile] = useState<ProfileRow | null>(null)
+  const [isSubscribed, setIsSubscribed] = useState(false)
   const [conversations, setConversations] = useState<ConversationRow[]>([])
   const [conversationsLoading, setConversationsLoading] = useState(false)
   const [messages, setMessages] = useState<MessageRow[]>([])
@@ -27,25 +29,40 @@ export default function NuckyAIContainer() {
   )
   /** True while an in-flight send owns the message list — skip DB reloads that would wipe streaming state. */
   const pendingSendRef = useRef(false)
-  const { streaming, sendMessage } = useAgentChat()
+  const { streaming, sendMessage, stop } = useAgentChat()
+
+  const filterContext = useMemo(
+    () => ({
+      league,
+      split,
+      year,
+      selectedLeagues,
+      selectedYears,
+      selectedSplits,
+    }),
+    [league, split, year, selectedLeagues, selectedYears, selectedSplits],
+  )
 
   useGSAP(() => {
     scrollEntrance(document.querySelector('.nuckyai-shell'))
   }, [])
 
-  const isSubscribed = !!profile?.is_subscribed
-
   const loadProfile = useCallback(async () => {
     if (!user) {
       setProfile(null)
+      setIsSubscribed(false)
       return
     }
-    const { data } = await supabase
-      .from('profiles')
-      .select('id, username, avatar_url, is_subscribed, plan')
-      .eq('id', user.id)
-      .maybeSingle()
-    setProfile((data as ProfileRow | null) ?? null)
+    const [{ data: profileData }, subscriptionState] = await Promise.all([
+      supabase
+        .from('profiles')
+        .select('id, username, avatar_url, is_subscribed, plan')
+        .eq('id', user.id)
+        .maybeSingle(),
+      fetchSubscriptionState(user.id),
+    ])
+    setProfile((profileData as ProfileRow | null) ?? null)
+    setIsSubscribed(subscriptionState.isSubscribed)
   }, [user])
 
   const loadConversations = useCallback(async () => {
@@ -72,6 +89,7 @@ export default function NuckyAIContainer() {
 
       if (error) {
         console.error('[nuckyAI] failed to load messages', error.message)
+        setToast('could not load chat history — try again.')
         return
       }
 
@@ -123,21 +141,28 @@ export default function NuckyAIContainer() {
     void loadMessages(fromQuery)
   }, [searchParams]) // eslint-disable-line react-hooks/exhaustive-deps -- only react to URL changes
 
-  const send = useCallback(
-    (message: string) => {
+  const streamAssistant = useCallback(
+    (message: string, options?: { skipUserAppend?: boolean }) => {
       const now = new Date().toISOString()
       pendingSendRef.current = true
-      setMessages((prev) => [
-        ...prev,
-        { role: 'user', content: message, created_at: now },
-        { role: 'assistant', content: '', created_at: now, retryable: false },
-      ])
+
+      setMessages((prev) => {
+        const withoutLastAssistant =
+          options?.skipUserAppend && prev.length && prev[prev.length - 1]?.role === 'assistant'
+            ? prev.slice(0, -1)
+            : prev
+
+        const base = options?.skipUserAppend
+          ? withoutLastAssistant
+          : [...withoutLastAssistant, { role: 'user' as const, content: message, created_at: now }]
+
+        return [...base, { role: 'assistant' as const, content: '', created_at: now, retryable: false }]
+      })
 
       void sendMessage({
         message,
         conversationId: activeConversationId ?? undefined,
-        league,
-        split,
+        filter: filterContext,
         onMetadata: (conversationId) => {
           setActiveConversationId(conversationId)
           const next = new URLSearchParams(searchParams)
@@ -182,14 +207,21 @@ export default function NuckyAIContainer() {
         },
       })
     },
-    [activeConversationId, league, loadConversations, searchParams, sendMessage, setSearchParams, split],
+    [activeConversationId, filterContext, loadConversations, searchParams, sendMessage, setSearchParams],
+  )
+
+  const send = useCallback(
+    (message: string) => {
+      streamAssistant(message)
+    },
+    [streamAssistant],
   )
 
   const regenerate = useCallback(() => {
     const lastUser = [...messages].reverse().find((m) => m.role === 'user')
-    if (!lastUser?.content) return
-    send(lastUser.content)
-  }, [messages, send])
+    if (!lastUser?.content || streaming) return
+    streamAssistant(lastUser.content, { skipUserAppend: true })
+  }, [messages, streamAssistant, streaming])
 
   const beginNewChat = useCallback(() => {
     pendingSendRef.current = false
@@ -317,6 +349,7 @@ export default function NuckyAIContainer() {
           onSend={send}
           onRegenerate={regenerate}
           onRetry={regenerate}
+          onStop={stop}
         />
       </div>
     </div>

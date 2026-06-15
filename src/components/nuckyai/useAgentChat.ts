@@ -2,11 +2,19 @@ import { useCallback, useRef, useState } from 'react'
 import { supabase } from '../../lib/supabaseClient'
 import type { MessageRow } from './types'
 
+export interface AgentFilterContext {
+  league?: string
+  split?: string
+  year?: string
+  selectedLeagues?: string[]
+  selectedYears?: string[]
+  selectedSplits?: string[]
+}
+
 interface SendMessageArgs {
   message: string
   conversationId?: string
-  league?: string
-  split?: string
+  filter?: AgentFilterContext
   onMetadata?: (conversationId: string) => void
   onChunk?: (chunk: string) => void
   onDone?: () => void
@@ -23,7 +31,14 @@ interface AgentChunkEvent {
   chunk: string
 }
 
-type AgentSseEvent = AgentMetadataEvent | AgentChunkEvent
+interface AgentErrorEvent {
+  type: 'error'
+  code: string
+  message?: string
+  reset_at?: string
+}
+
+type AgentSseEvent = AgentMetadataEvent | AgentChunkEvent | AgentErrorEvent
 
 function parseDataLine(line: string): string | null {
   if (!line.startsWith('data:')) return null
@@ -33,6 +48,26 @@ function parseDataLine(line: string): string | null {
 function getFunctionUrl(): string {
   const base = (import.meta.env.VITE_SUPABASE_URL ?? '').trim().replace(/\/$/, '')
   return `${base}/functions/v1/agent-chat`
+}
+
+function mapHttpError(status: number): string {
+  if (status === 401) return 'session expired — log in again.'
+  if (status === 403) return 'subscription required — upgrade to use nuckyAI.'
+  if (status === 429) return 'daily limit reached — try again tomorrow.'
+  if (status >= 500) return 'server error — try again in a moment.'
+  return `request failed (${status}). try again.`
+}
+
+function mapSseError(event: AgentErrorEvent): string {
+  if (event.code === 'quota_exceeded') {
+    const resetHint = event.reset_at
+      ? ` resets ${new Date(event.reset_at).toLocaleString(undefined, { dateStyle: 'short', timeStyle: 'short' })}.`
+      : ' try again tomorrow.'
+    return event.message ?? `daily limit reached —${resetHint}`
+  }
+  if (event.code === 'unauthorized') return 'session expired — log in again.'
+  if (event.code === 'forbidden') return 'subscription required — upgrade to use nuckyAI.'
+  return event.message ?? 'nuckyAI hit an error. try again.'
 }
 
 export function useAgentChat() {
@@ -50,8 +85,7 @@ export function useAgentChat() {
     async ({
       message,
       conversationId,
-      league,
-      split,
+      filter,
       onMetadata,
       onChunk,
       onDone,
@@ -83,14 +117,18 @@ export function useAgentChat() {
           body: JSON.stringify({
             message,
             conversation_id: conversationId,
-            league,
-            split,
+            league: filter?.league,
+            split: filter?.split,
+            year: filter?.year,
+            selectedLeagues: filter?.selectedLeagues,
+            selectedYears: filter?.selectedYears,
+            selectedSplits: filter?.selectedSplits,
           }),
           signal: controller.signal,
         })
 
         if (!response.ok || !response.body) {
-          throw new Error(`agent request failed (${response.status})`)
+          throw new Error(mapHttpError(response.status))
         }
 
         const reader = response.body.getReader()
@@ -134,11 +172,24 @@ export function useAgentChat() {
             if (parsed.type === 'chunk' && parsed.chunk) {
               onChunk?.(parsed.chunk)
             }
+            if (parsed.type === 'error') {
+              const msg = mapSseError(parsed)
+              setStreamError(msg)
+              onError?.(msg)
+              finish()
+              return
+            }
           }
         }
         finish()
-      } catch {
-        const msg = 'nuckyAI is taking a nap. try again.'
+      } catch (err) {
+        if (controller.signal.aborted) return
+        const msg =
+          err instanceof Error && err.message && !err.message.startsWith('agent request failed')
+            ? err.message
+            : err instanceof Error
+              ? err.message
+              : 'nuckyAI is taking a nap. try again.'
         setStreamError(msg)
         onError?.(msg)
       } finally {
