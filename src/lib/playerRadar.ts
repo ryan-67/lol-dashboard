@@ -1,4 +1,10 @@
 import type { Player, PlayerGameLog } from '../hooks/useDashboardData'
+import {
+  ADVANCED_METRICS_BY_ROLE,
+  enrichPlayerWithAdvancedStats,
+  getAdvancedMetricValue,
+  type AdvancedMetricKey,
+} from './advancedStats'
 
 export type RoleKey = 'top' | 'jungle' | 'mid' | 'adc' | 'support'
 export type RoleFilter = 'all' | RoleKey
@@ -35,6 +41,7 @@ export type RadarMetricKey =
   | 'objControl'
   | 'goldShare'
   | 'visionScore'
+  | AdvancedMetricKey
 
 export interface RadarMetricDef {
   key: RadarMetricKey
@@ -48,52 +55,71 @@ export const ROLE_METRICS: Record<RoleKey, RadarMetricDef[]> = {
     { key: 'csd15', label: 'CS Diff@15', shortLabel: 'CS@15', format: (v) => `${v > 0 ? '+' : ''}${v.toFixed(1)}` },
     { key: 'gd15', label: 'Gold Diff@15', shortLabel: 'GD@15', format: (v) => `${v > 0 ? '+' : ''}${v.toFixed(1)}` },
     { key: 'xpd15', label: 'XP Diff@15', shortLabel: 'XPD@15', format: (v) => `${v > 0 ? '+' : ''}${v.toFixed(1)}` },
-    { key: 'dpm', label: 'DPM', shortLabel: 'DPM', format: (v) => v.toFixed(0) },
+    ...ADVANCED_METRICS_BY_ROLE.top.map((d) => ({
+      key: d.key,
+      label: d.label,
+      shortLabel: d.shortLabel,
+      format: d.format,
+    })),
     { key: 'kda', label: 'KDA', shortLabel: 'KDA', format: (v) => v.toFixed(2) },
-    { key: 'dmgShare', label: 'Damage %', shortLabel: 'DMG%', format: (v) => `${v.toFixed(1)}%` },
   ],
   jungle: [
-    { key: 'csd15', label: 'CS Diff@15', shortLabel: 'CS@15', format: (v) => `${v > 0 ? '+' : ''}${v.toFixed(1)}` },
     { key: 'gd15', label: 'Gold Diff@15', shortLabel: 'GD@15', format: (v) => `${v > 0 ? '+' : ''}${v.toFixed(1)}` },
-    { key: 'xpd15', label: 'XP Diff@15', shortLabel: 'XPD@15', format: (v) => `${v > 0 ? '+' : ''}${v.toFixed(1)}` },
-    { key: 'firstBloodRate', label: 'First Blood %', shortLabel: 'FB%', format: (v) => `${v.toFixed(1)}%` },
+    ...ADVANCED_METRICS_BY_ROLE.jungle.map((d) => ({
+      key: d.key,
+      label: d.label,
+      shortLabel: d.shortLabel,
+      format: d.format,
+    })),
     { key: 'kp', label: 'Kill Participation', shortLabel: 'KP', format: (v) => `${v.toFixed(1)}%` },
-    { key: 'objControl', label: 'Objective Control %', shortLabel: 'OBJ%', format: (v) => v.toFixed(2) },
+    { key: 'firstBloodRate', label: 'First Blood %', shortLabel: 'FB%', format: (v) => `${v.toFixed(1)}%` },
     { key: 'kda', label: 'KDA', shortLabel: 'KDA', format: (v) => v.toFixed(2) },
   ],
   mid: [
     { key: 'csd15', label: 'CS Diff@15', shortLabel: 'CS@15', format: (v) => `${v > 0 ? '+' : ''}${v.toFixed(1)}` },
     { key: 'gd15', label: 'Gold Diff@15', shortLabel: 'GD@15', format: (v) => `${v > 0 ? '+' : ''}${v.toFixed(1)}` },
     { key: 'xpd15', label: 'XP Diff@15', shortLabel: 'XPD@15', format: (v) => `${v > 0 ? '+' : ''}${v.toFixed(1)}` },
-    { key: 'dpm', label: 'DPM', shortLabel: 'DPM', format: (v) => v.toFixed(0) },
-    { key: 'dmgShare', label: 'Damage %', shortLabel: 'DMG%', format: (v) => `${v.toFixed(1)}%` },
+    ...ADVANCED_METRICS_BY_ROLE.mid.map((d) => ({
+      key: d.key,
+      label: d.label,
+      shortLabel: d.shortLabel,
+      format: d.format,
+    })),
     { key: 'kda', label: 'KDA', shortLabel: 'KDA', format: (v) => v.toFixed(2) },
   ],
   adc: [
     { key: 'csd15', label: 'CS Diff@15', shortLabel: 'CS@15', format: (v) => `${v > 0 ? '+' : ''}${v.toFixed(1)}` },
     { key: 'gd15', label: 'Gold Diff@15', shortLabel: 'GD@15', format: (v) => `${v > 0 ? '+' : ''}${v.toFixed(1)}` },
+    ...ADVANCED_METRICS_BY_ROLE.adc.map((d) => ({
+      key: d.key,
+      label: d.label,
+      shortLabel: d.shortLabel,
+      format: d.format,
+    })),
     { key: 'dpm', label: 'DPM', shortLabel: 'DPM', format: (v) => v.toFixed(0) },
-    { key: 'dmgShare', label: 'Damage %', shortLabel: 'DMG%', format: (v) => `${v.toFixed(1)}%` },
-    { key: 'goldShare', label: 'Gold %', shortLabel: 'gold%', format: (v) => `${v.toFixed(1)}%` },
     { key: 'kda', label: 'KDA', shortLabel: 'KDA', format: (v) => v.toFixed(2) },
   ],
   support: [
-    { key: 'gd15', label: 'Gold Diff@15', shortLabel: 'GD@15', format: (v) => `${v > 0 ? '+' : ''}${v.toFixed(1)}` },
-    { key: 'firstBloodRate', label: 'First Blood %', shortLabel: 'FB%', format: (v) => `${v.toFixed(1)}%` },
+    ...ADVANCED_METRICS_BY_ROLE.support.map((d) => ({
+      key: d.key,
+      label: d.label,
+      shortLabel: d.shortLabel,
+      format: d.format,
+    })),
     { key: 'kp', label: 'Kill Participation', shortLabel: 'KP', format: (v) => `${v.toFixed(1)}%` },
     { key: 'visionScore', label: 'Vision Score', shortLabel: 'VS', format: (v) => v.toFixed(1) },
+    { key: 'gd15', label: 'Gold Diff@15', shortLabel: 'GD@15', format: (v) => `${v > 0 ? '+' : ''}${v.toFixed(1)}` },
     { key: 'kda', label: 'KDA', shortLabel: 'KDA', format: (v) => v.toFixed(2) },
-    { key: 'dmgShare', label: 'Damage %', shortLabel: 'DMG%', format: (v) => `${v.toFixed(1)}%` },
   ],
 }
 
 /** Weight keys align with scoring helpers below */
 const SCORE_WEIGHTS: Record<RoleKey, Partial<Record<RadarMetricKey, number>>> = {
-  top: { kda: 0.25, gd15: 0.25, csd15: 0.2, dpm: 0.15, dmgShare: 0.15 },
-  jungle: { kda: 0.25, gd15: 0.2, csd15: 0.15, kp: 0.2, objControl: 0.2 },
-  mid: { kda: 0.25, gd15: 0.25, csd15: 0.2, dpm: 0.15, dmgShare: 0.15 },
-  adc: { kda: 0.25, gd15: 0.25, dpm: 0.2, dmgShare: 0.15, goldShare: 0.15 },
-  support: { kda: 0.3, visionScore: 0.25, kp: 0.2, gd15: 0.15, firstBloodRate: 0.1 },
+  top: { kda: 0.2, gd15: 0.25, csd15: 0.2, soloKills: 0.15, dmgGoldRatio: 0.1, xpd15: 0.1 },
+  jungle: { kda: 0.2, kaPerMin: 0.25, kp: 0.2, objectivesStolen: 0.15, gd15: 0.1, firstBloodRate: 0.1 },
+  mid: { kda: 0.2, gd15: 0.2, csd15: 0.15, dmgGoldRatio: 0.2, soloKills: 0.15, xpd15: 0.1 },
+  adc: { kda: 0.2, gd15: 0.2, dmgGoldRatio: 0.2, dmgPerGold: 0.15, dpm: 0.15, csd15: 0.1 },
+  support: { kda: 0.25, kaPerMin: 0.25, wardsDestroyed: 0.2, kp: 0.15, visionScore: 0.1, gd15: 0.05 },
 }
 
 const warnedMissing = new Set<string>()
@@ -109,7 +135,19 @@ export function normalizePosition(position: string | undefined): RoleKey | null 
 }
 
 export function getMetricValue(player: Player, key: RadarMetricKey): number {
-  const raw = player[key]
+  const enriched = enrichPlayerWithAdvancedStats(player)
+  const advancedKeys: AdvancedMetricKey[] = [
+    'soloKills',
+    'dmgGoldRatio',
+    'dmgPerGold',
+    'kaPerMin',
+    'objectivesStolen',
+    'wardsDestroyed',
+  ]
+  if (advancedKeys.includes(key as AdvancedMetricKey)) {
+    return getAdvancedMetricValue(enriched, key as AdvancedMetricKey)
+  }
+  const raw = enriched[key as keyof Player]
   if (raw === null || raw === undefined || Number.isNaN(Number(raw))) {
     const warnKey = `missing:${key}`
     if (!warnedMissing.has(warnKey)) {
@@ -133,6 +171,9 @@ function normalizeInCohort(value: number, cohortValues: number[]): number {
 
 /** Map a single-game log row to a Player-shaped snapshot for scoring. */
 export function playerSnapshotFromGame(game: PlayerGameLog): Player {
+  const dmgGoldRatio =
+    game.dmgGoldRatio ??
+    (game.goldShare && game.goldShare > 0 ? (game.dmgShare ?? 0) / game.goldShare : 0)
   return {
     name: '',
     team: '',
@@ -150,6 +191,12 @@ export function playerSnapshotFromGame(game: PlayerGameLog): Player {
     goldShare: game.goldShare ?? 0,
     firstBloodRate: game.firstBloodRate ?? 0,
     objControl: game.objControl ?? 0,
+    soloKills: game.soloKills ?? 0,
+    objectivesStolen: game.objectivesStolen ?? 0,
+    wardsDestroyed: game.wardsDestroyed ?? 0,
+    kaPerMin: game.kaPerMin ?? 0,
+    dmgGoldRatio,
+    dmgPerGold: game.dmgPerGold ?? 0,
   }
 }
 

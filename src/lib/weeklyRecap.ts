@@ -4,6 +4,12 @@ import { findTeamByName } from './teamAnalytics'
 import { normalizePosition, type RoleKey } from './playerRadar'
 import { buildSeriesFacts, type SeriesFacts } from './recapFacts'
 import { recapTeamTag } from './recapTeamTag'
+import {
+  enrichPlayerWithAdvancedStats,
+  findAdvancedOutliers,
+  findGameAdvancedHighlights,
+  formatAdvancedOutlierLine,
+} from './advancedStats'
 
 export type { SeriesFacts }
 
@@ -767,6 +773,93 @@ function buildResultSegments(
   return ledger.pick(`${id}-close`, salt + 3, templates)()
 }
 
+function seriesGameIds(bucket: SeriesBucket): Set<string> {
+  const ids = new Set<string>()
+  for (const g of bucket.games) ids.add(g.id)
+  return ids
+}
+
+function playerSeriesLogs(player: Player, gameIds: Set<string>): PlayerGameLog[] {
+  return (player.gameLog ?? []).filter((g) => {
+    const id = g.gameId ?? `${g.date}|${player.team}|${g.opponent ?? ''}|${g.result}`
+    return gameIds.has(id)
+  })
+}
+
+function buildSeriesAdvancedInsights(
+  bucket: SeriesBucket,
+  players: Player[],
+  ledger: RecapLedger,
+  id: string,
+  salt: number,
+): SeriesContext[] {
+  const insights: SeriesContext[] = []
+  const gameIds = seriesGameIds(bucket)
+  const namesInSeries = new Set(bucket.games.flatMap((g) => g.players.map((p) => p.name)))
+
+  for (const player of players) {
+    if (!namesInSeries.has(player.name)) continue
+    const role = normalizePosition(player.position)
+    if (!role) continue
+
+    const seriesLogs = playerSeriesLogs(player, gameIds)
+    if (!seriesLogs.length) continue
+
+    const leagueCohort = players
+      .filter((p) => normalizePosition(p.position) === role && p.league === player.league)
+      .map((p) => enrichPlayerWithAdvancedStats(p))
+
+    const snapshot: Player = {
+      ...enrichPlayerWithAdvancedStats(player),
+      gameLog: seriesLogs,
+      games: seriesLogs.length,
+    }
+
+    const outliers = findAdvancedOutliers(snapshot, role, leagueCohort, seriesLogs)
+    for (const o of outliers.slice(0, 1)) {
+      const line = formatAdvancedOutlierLine(o)
+      insights.push({
+        kind: `advanced_${o.metric}_${o.direction}`,
+        priority: 80 + Math.abs(o.zScore) * 5,
+        segments: [
+          segText(` — ${line.charAt(0).toLowerCase() + line.slice(1)}`),
+        ],
+      })
+    }
+
+    for (const g of seriesLogs) {
+      if ((g.objectivesStolen ?? 0) >= 1) {
+        insights.push({
+          kind: 'obj_steal_game',
+          priority: 90 + (g.objectivesStolen ?? 0) * 5,
+          segments: [
+            segText(
+              ledger.pick(`${id}-obj-${player.name}`, salt, [
+                ` — ${playerLabel(player.name)} stole ${g.objectivesStolen} objective${(g.objectivesStolen ?? 0) > 1 ? 's' : ''} (swing play)`,
+                ` — clutch objective steal from ${playerLabel(player.name)}`,
+              ]),
+            ),
+          ],
+        })
+      }
+
+      const cohortGames = leagueCohort.flatMap((p) => p.gameLog ?? [])
+      const spikes = findGameAdvancedHighlights(g, role, cohortGames)
+      if (spikes.length) {
+        insights.push({
+          kind: 'advanced_game_spike',
+          priority: 76,
+          segments: [
+            segText(` — ${playerLabel(player.name)} ${spikes[0]}`),
+          ],
+        })
+      }
+    }
+  }
+
+  return insights
+}
+
 function buildContextInsights(
   bucket: SeriesBucket,
   dominant: string,
@@ -781,6 +874,7 @@ function buildContextInsights(
     domSplitWr: number
     vicSplitWr: number
   },
+  players: Player[],
   ledger: RecapLedger,
   id: string,
   salt: number,
@@ -1021,6 +1115,8 @@ function buildContextInsights(
     })
   }
 
+  insights.push(...buildSeriesAdvancedInsights(bucket, players, ledger, id, salt))
+
   return insights.sort((a, b) => b.priority - a.priority)
 }
 
@@ -1123,6 +1219,7 @@ function summarizeSeries(
     playerStats,
     weekCounts,
     { reverseSweep, blowout, domSplitWr, vicSplitWr },
+    players,
     ledger,
     id,
     salt,

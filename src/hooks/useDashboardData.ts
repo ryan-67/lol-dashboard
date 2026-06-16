@@ -40,6 +40,13 @@ export interface PlayerGameLog {
   goldShare?: number
   firstBloodRate?: number
   objControl?: number
+  soloKills?: number
+  objectivesStolen?: number
+  wardsDestroyed?: number
+  kaPerMin?: number
+  dmgGoldRatio?: number
+  dmgPerGold?: number
+  gpm?: number
   side?: string
   split?: string
   league?: string
@@ -72,6 +79,12 @@ export interface Player {
   goldShare?: number
   firstBloodRate?: number
   objControl?: number
+  soloKills?: number
+  objectivesStolen?: number
+  wardsDestroyed?: number
+  kaPerMin?: number
+  dmgGoldRatio?: number
+  dmgPerGold?: number
   kills?: number
   deaths?: number
   assists?: number

@@ -15,10 +15,11 @@ import {
   ROLE_METRICS,
   buildRadarSeries,
   computeGameScore,
+  getMetricValue,
   normalizePosition,
   playersForRole,
-  type RadarMetricKey,
 } from '../lib/playerRadar'
+import { aggregateAdvancedFromGameLog } from '../lib/advancedStats'
 import { findTeamByName } from '../lib/teamAnalytics'
 import TeamRadarChart from '../components/teams/TeamRadarChart'
 import { EntityLink, ChampionEntityInline } from '../components/entities'
@@ -77,7 +78,7 @@ interface TeamWeekStats {
   impressiveness: number
 }
 
-const METRIC_LABELS: Partial<Record<RadarMetricKey, string>> = {
+const METRIC_LABELS: Partial<Record<keyof Player, string>> = {
   csd15: 'CS@15',
   gd15: 'GD@15',
   xpd15: 'XP@15',
@@ -89,6 +90,12 @@ const METRIC_LABELS: Partial<Record<RadarMetricKey, string>> = {
   objControl: 'OBJ CTRL',
   goldShare: 'GOLD%',
   visionScore: 'VISION',
+  soloKills: 'Solo K',
+  dmgGoldRatio: 'DMG/GOLD',
+  dmgPerGold: 'DMG/G',
+  kaPerMin: 'K+A/m',
+  objectivesStolen: 'Obj Steal',
+  wardsDestroyed: 'Wards Clr',
 }
 
 function avg(values: number[]): number {
@@ -97,6 +104,7 @@ function avg(values: number[]): number {
 }
 
 function createWeeklyPlayerSnapshot(base: Player, logs: PlayerGameLog[]): Player {
+  const advanced = aggregateAdvancedFromGameLog(logs)
   return {
     ...base,
     games: logs.length,
@@ -111,6 +119,12 @@ function createWeeklyPlayerSnapshot(base: Player, logs: PlayerGameLog[]): Player
     goldShare: avg(logs.map((g) => g.goldShare ?? 0)),
     firstBloodRate: avg(logs.map((g) => g.firstBloodRate ?? 0)),
     objControl: avg(logs.map((g) => g.objControl ?? 0)),
+    soloKills: advanced.soloKills,
+    objectivesStolen: advanced.objectivesStolen,
+    wardsDestroyed: advanced.wardsDestroyed,
+    kaPerMin: advanced.kaPerMin,
+    dmgGoldRatio: advanced.dmgGoldRatio,
+    dmgPerGold: advanced.dmgPerGold,
     gameLog: logs,
   }
 }
@@ -226,8 +240,8 @@ function highestDeltaStat(
   let best = { stat: 'KDA', value: player.weekly.kda, delta: 0 }
   for (const def of defs) {
     const cohortAvg =
-      avg(roleCohort.map((c) => Number(c[def.key] ?? 0))) || 0
-    const val = Number(player.weekly[def.key] ?? 0)
+      avg(roleCohort.map((c) => Number(getMetricValue(c, def.key) ?? 0))) || 0
+    const val = Number(getMetricValue(player.weekly, def.key) ?? 0)
     const delta = val - cohortAvg
     if (delta > best.delta) {
       best = {

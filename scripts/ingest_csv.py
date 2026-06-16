@@ -157,6 +157,33 @@ def safe_int(val, default=0):
         return default
 
 
+def row_lookup(row, keys, default=0, as_float=False):
+    for key in keys:
+        val = row.get(key)
+        if val not in (None, ""):
+            return safe_float(val) if as_float else safe_int(val)
+    return default
+
+
+def aggregate_advanced_from_gamelog(game_log, games):
+    if not game_log:
+        return {}
+    valid_dgr = [
+        g["dmgGoldRatio"]
+        for g in game_log
+        if g.get("dmgGoldRatio") and g.get("goldShare", 0) > 0
+    ]
+    valid_dpg = [g["dmgPerGold"] for g in game_log if g.get("dmgPerGold")]
+    return {
+        "soloKills": round(sum(g.get("soloKills", 0) for g in game_log) / games, 2),
+        "objectivesStolen": int(sum(g.get("objectivesStolen", 0) for g in game_log)),
+        "wardsDestroyed": round(sum(g.get("wardsDestroyed", 0) for g in game_log) / games, 1),
+        "kaPerMin": round(sum(g.get("kaPerMin", 0) for g in game_log) / len(game_log), 2),
+        "dmgGoldRatio": round(sum(valid_dgr) / len(valid_dgr), 3) if valid_dgr else 0,
+        "dmgPerGold": round(sum(valid_dpg) / len(valid_dpg), 4) if valid_dpg else 0,
+    }
+
+
 def normalize_position(raw: str) -> str:
     return POSITION_MAP.get((raw or "").lower(), raw or "")
 
@@ -378,6 +405,10 @@ def compile_players(players_dict):
                 "goldShare": round(sum(p["goldShare"]) / len(p["goldShare"]), 1) if p["goldShare"] else 0,
                 "firstBloodRate": round(sum(p["firstBloodGames"]) / games * 100, 1) if games else 0,
                 "objControl": round(sum(p["objControl"]) / len(p["objControl"]), 2) if p["objControl"] else 0,
+                **aggregate_advanced_from_gamelog(
+                    sorted(p["gameLog"], key=lambda g: (g.get("date", ""), g.get("gameId", ""))),
+                    games,
+                ),
                 "gameLog": sorted(p["gameLog"], key=lambda g: (g.get("date", ""), g.get("gameId", ""))),
                 "championPool": [
                     {
@@ -769,6 +800,33 @@ def process_row(row, buckets: dict, team_to_league: dict[str, str]):
         deaths_g = max(safe_int(row.get("deaths", 0)), 1)
         kills_g = safe_int(row.get("kills", 0))
         assists_g = safe_int(row.get("assists", 0))
+        gl = safe_float(row.get("gamelength", 0))
+        earned_gold = safe_float(row.get("earnedgold", 0))
+        total_dmg = safe_float(row.get("damagetochampions", 0))
+        dmg_share_pct = safe_float(row.get("damageshare", 0)) * 100
+        gold_share_pct = safe_float(row.get("earnedgoldshare", 0)) * 100
+        solo_kills = row_lookup(
+            row,
+            ("solokills", "solo_kills", "solokill", "solokillsat15"),
+            0,
+            as_float=False,
+        )
+        obj_stolen = row_lookup(
+            row,
+            ("objectivesstolen", "enemyobjectivesstolen", "stolenobjectives", "objstolen"),
+            0,
+            as_float=False,
+        )
+        wards_destroyed = row_lookup(
+            row,
+            ("wardskilled", "wardsdestroyed", "wards_destroyed", "wardscleared"),
+            0,
+            as_float=True,
+        )
+        ka_per_min = (kills_g + assists_g) / (gl / 60) if gl > 0 else 0.0
+        dmg_per_gold = (total_dmg / earned_gold) if earned_gold > 0 else 0.0
+        dmg_gold_ratio = (dmg_share_pct / gold_share_pct) if gold_share_pct > 0 else 0.0
+        gpm = (earned_gold / gl * 60) if gl > 0 else 0.0
         date_only = str(row.get("date", "")).strip()[:10] if row.get("date") else ""
         entry = {
                 "date": date_only,
@@ -788,6 +846,14 @@ def process_row(row, buckets: dict, team_to_league: dict[str, str]):
                 "goldShare": round(safe_float(row.get("earnedgoldshare", 0)) * 100, 1),
                 "firstBloodRate": 100.0 if fb_involved else 0.0,
                 "objControl": float(obj_total),
+                "soloKills": solo_kills,
+                "objectivesStolen": obj_stolen,
+                "wardsDestroyed": round(wards_destroyed, 1),
+                "kaPerMin": round(ka_per_min, 2),
+                "dmgGoldRatio": round(dmg_gold_ratio, 3),
+                "dmgPerGold": round(dmg_per_gold, 4),
+                "gpm": round(gpm, 1),
+                "gameLength": round(gl / 60, 1) if gl > 0 else None,
             }
         side_val = str(row.get("side", "")).strip().lower()
         if side_val:

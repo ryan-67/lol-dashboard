@@ -8,6 +8,7 @@ import type {
   Team,
   TeamChampion,
 } from '../hooks/useDashboardData'
+import { aggregateAdvancedFromGameLog } from './advancedStats'
 import { mergeChampionPoolEntries } from './playerAnalytics'
 
 export interface DashboardSlice {
@@ -241,6 +242,8 @@ function mergePlayers(slices: DashboardSlice[]): Player[] {
   return [...acc.values()]
     .map((p) => {
       const deaths = Math.max(p.deaths, 1)
+      const gameLog = dedupeGameLog(p.gameLog).sort((a, b) => a.date.localeCompare(b.date))
+      const advanced = aggregateAdvancedFromGameLog(gameLog)
       return {
         name: p.name,
         team: p.team,
@@ -261,7 +264,13 @@ function mergePlayers(slices: DashboardSlice[]): Player[] {
         goldShare: round(avgWeighted(p.goldShare), 1),
         firstBloodRate: round(avgWeighted(p.firstBloodRate), 1),
         objControl: round(avgWeighted(p.objControl), 2),
-        gameLog: dedupeGameLog(p.gameLog).sort((a, b) => a.date.localeCompare(b.date)),
+        soloKills: round(advanced.soloKills ?? 0, 2),
+        objectivesStolen: Math.round(advanced.objectivesStolen ?? 0),
+        wardsDestroyed: round(advanced.wardsDestroyed ?? 0, 1),
+        kaPerMin: round(advanced.kaPerMin ?? 0, 2),
+        dmgGoldRatio: round(advanced.dmgGoldRatio ?? 0, 3),
+        dmgPerGold: round(advanced.dmgPerGold ?? 0, 4),
+        gameLog,
         championPool: mergeChampionPoolEntries(p.championPool),
       } satisfies Player
     })
