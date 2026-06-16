@@ -166,6 +166,15 @@ def row_lookup(row, keys, default=0, as_float=False):
     return default
 
 
+def team_turret_plates(row) -> int:
+    """OE team-row plate count. 2026 CSVs sometimes store inflated values (35–45); use min(team, opp, 14)."""
+    t = row_lookup(row, ("turretplates", "turret_plates", "turretplate"), 0, as_float=False)
+    o = row_lookup(row, ("opp_turretplates", "opp_turret_plates"), 0, as_float=False)
+    if t > 14 or o > 14:
+        return min(t, o, 14)
+    return t
+
+
 def aggregate_advanced_from_gamelog(game_log, games):
     if not game_log:
         return {}
@@ -383,6 +392,28 @@ def backfill_game_log_opponents(players_dict, game_teams):
                         break
             if g.get("side"):
                 g["side"] = str(g["side"]).strip().lower()
+
+
+def backfill_game_log_team_fields(players_dict, game_team_gold, game_team_meta):
+    """Attach team-row stats (gold timeline, turret plates) after all CSV rows are processed."""
+    for p in players_dict.values():
+        team_name = p.get("team") or ""
+        for g in p["gameLog"]:
+            game_id = g.get("gameId") or ""
+            if not game_id:
+                continue
+            if not g.get("goldTimeline"):
+                gold_meta = game_team_gold.get(game_id, {}).get(team_name)
+                if gold_meta:
+                    timeline = gold_meta.get("timeline") or []
+                    if timeline:
+                        g["goldTimeline"] = timeline
+                    if gold_meta.get("gameLength") and not g.get("gameLength"):
+                        g["gameLength"] = gold_meta["gameLength"]
+            if g.get("turretPlates") is None:
+                team_meta = game_team_meta.get(game_id, {}).get(team_name)
+                if team_meta and team_meta.get("turretPlates") is not None:
+                    g["turretPlates"] = team_meta["turretPlates"]
 
 
 def compile_players(players_dict):
@@ -620,6 +651,9 @@ def compile_team_champions(team_champions):
 
 def compile_slice(store):
     backfill_game_log_opponents(store["players"], store["game_teams"])
+    backfill_game_log_team_fields(
+        store["players"], store["game_team_gold"], store["game_team_meta"]
+    )
     return {
         "players": compile_players(store["players"]),
         "teams": compile_teams(store["teams"]),
@@ -751,12 +785,7 @@ def process_row(row, buckets: dict, team_to_league: dict[str, str]):
             bucket["game_teams"][game_id].append(
                 {"team": team_name, "result": result, "league": bucket_league, "side": side_val}
             )
-            plates = row_lookup(
-                row,
-                ("turretplates", "turret_plates", "turretplate", "turretplate"),
-                0,
-                as_float=False,
-            )
+            plates = team_turret_plates(row)
             bucket["game_team_meta"][game_id][team_name] = {"turretPlates": plates}
         for i in range(1, 6):
             ban = row.get(f"ban{i}", "")

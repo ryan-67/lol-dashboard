@@ -89,6 +89,7 @@ def _aggregate_advanced(game_log: list[dict], games: int) -> dict:
         return {}
     return {
         "objectivesStolen": int(sum(g.get("objectivesStolen", 0) for g in game_log)),
+        "turretPlates": round(sum(g.get("turretPlates", 0) for g in game_log) / games, 2),
     }
 
 

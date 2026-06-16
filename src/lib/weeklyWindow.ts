@@ -49,16 +49,20 @@ export function getWeeklyWindow(
   dates.sort((a, b) => a.getTime() - b.getTime())
   const latestDataDate = dates[dates.length - 1]!
   const today = startOfDay(now)
+  const latestDay = startOfDay(latestDataDate)
   const daysSinceLatest =
-    (today.getTime() - startOfDay(latestDataDate).getTime()) / (1000 * 60 * 60 * 24)
-  const isCurrentContext = daysSinceLatest <= 14
+    (today.getTime() - latestDay.getTime()) / (1000 * 60 * 60 * 24)
+  const isRecentSeason = daysSinceLatest <= 14
 
-  const anchorEnd = isCurrentContext ? endOfDay(today) : endOfDay(latestDataDate)
+  // Cap the window at the last game day — never roll forward to today when no games exist yet.
+  const endDay =
+    isRecentSeason && latestDay.getTime() <= today.getTime() ? latestDay : isRecentSeason ? today : latestDay
+
+  const anchorEnd = endOfDay(endDay)
   const start = startOfDay(new Date(anchorEnd))
   start.setDate(start.getDate() - 6)
 
-  const dataStale =
-    isCurrentContext && startOfDay(latestDataDate).getTime() < today.getTime()
+  const dataStale = latestDay.getTime() < today.getTime()
 
   return {
     start,
