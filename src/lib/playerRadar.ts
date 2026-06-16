@@ -3,6 +3,7 @@ import {
   ADVANCED_METRICS_BY_ROLE,
   enrichPlayerWithAdvancedStats,
   getAdvancedMetricValue,
+  isAdvancedMetricAvailable,
   type AdvancedMetricKey,
 } from './advancedStats'
 
@@ -264,7 +265,18 @@ export function buildRadarSeries(
   role: RoleKey,
   cohort: Player[],
 ): RadarPoint[] {
-  const metrics = ROLE_METRICS[role]
+  const advancedKeys: AdvancedMetricKey[] = [
+    'soloKills',
+    'dmgGoldRatio',
+    'dmgPerGold',
+    'kaPerMin',
+    'objectivesStolen',
+    'wardsDestroyed',
+  ]
+  const metrics = ROLE_METRICS[role].filter((def) => {
+    if (!advancedKeys.includes(def.key as AdvancedMetricKey)) return true
+    return isAdvancedMetricAvailable(def.key as AdvancedMetricKey, cohort)
+  })
   return metrics.map((def) => {
     const cohortValues = cohort.map((p) => getMetricValue(p, def.key))
     const playerRaw = getMetricValue(player, def.key)

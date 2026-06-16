@@ -125,13 +125,33 @@ function zScore(value: number, values: number[]): number {
 export function dmgGoldRatioFromGame(game: PlayerGameLog): number | null {
   const gold = game.goldShare ?? 0
   if (gold <= 0) return null
+  if (game.dmgGoldRatio && game.dmgGoldRatio > 0) return game.dmgGoldRatio
   return (game.dmgShare ?? 0) / gold
+}
+
+export function dmgPerGoldFromGame(game: PlayerGameLog): number {
+  if (game.dmgPerGold && game.dmgPerGold > 0) return game.dmgPerGold
+  if (game.dpm && game.gpm && game.gpm > 0) return game.dpm / game.gpm
+  return 0
+}
+
+export function isAdvancedMetricAvailable(
+  metric: AdvancedMetricKey,
+  cohort: Player[],
+): boolean {
+  if (metric === 'soloKills' || metric === 'objectivesStolen') {
+    return cohort.some((p) => getAdvancedMetricValue(p, metric) > 0)
+  }
+  if (metric === 'dmgPerGold') {
+    return cohort.some((p) => getAdvancedMetricValue(p, metric) > 0)
+  }
+  return true
 }
 
 export function aggregateAdvancedFromGameLog(logs: PlayerGameLog[]): Partial<Record<AdvancedMetricKey, number>> {
   if (!logs.length) return {}
   const dmgRatios = logs.map(dmgGoldRatioFromGame).filter((v): v is number => v != null && v > 0)
-  const dmgPerGold = logs.map((g) => g.dmgPerGold ?? 0).filter((v) => v > 0)
+  const dmgPerGold = logs.map(dmgPerGoldFromGame).filter((v) => v > 0)
   return {
     soloKills: logs.reduce((s, g) => s + (g.soloKills ?? 0), 0) / logs.length,
     objectivesStolen: logs.reduce((s, g) => s + (g.objectivesStolen ?? 0), 0),
@@ -195,6 +215,8 @@ export function findAdvancedOutliers(
   const outliers: AdvancedOutlier[] = []
 
   for (const def of defs) {
+    if (!isAdvancedMetricAvailable(def.key, cohort)) continue
+
     const cohortValues = cohort
       .map((p) => getAdvancedMetricValue(p, def.key))
       .filter((v) => v > 0 || def.key === 'soloKills' || def.key === 'objectivesStolen')

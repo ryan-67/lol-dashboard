@@ -168,12 +168,20 @@ def row_lookup(row, keys, default=0, as_float=False):
 def aggregate_advanced_from_gamelog(game_log, games):
     if not game_log:
         return {}
-    valid_dgr = [
-        g["dmgGoldRatio"]
-        for g in game_log
-        if g.get("dmgGoldRatio") and g.get("goldShare", 0) > 0
-    ]
-    valid_dpg = [g["dmgPerGold"] for g in game_log if g.get("dmgPerGold")]
+    valid_dgr = []
+    for g in game_log:
+        ratio = g.get("dmgGoldRatio")
+        if not ratio and g.get("goldShare", 0) > 0:
+            ratio = (g.get("dmgShare", 0) or 0) / g["goldShare"]
+        if ratio and ratio > 0:
+            valid_dgr.append(ratio)
+    valid_dpg = []
+    for g in game_log:
+        dpg = g.get("dmgPerGold")
+        if not dpg and g.get("dpm") and g.get("gpm", 0) > 0:
+            dpg = g["dpm"] / g["gpm"]
+        if dpg and dpg > 0:
+            valid_dpg.append(dpg)
     return {
         "soloKills": round(sum(g.get("soloKills", 0) for g in game_log) / games, 2),
         "objectivesStolen": int(sum(g.get("objectivesStolen", 0) for g in game_log)),
