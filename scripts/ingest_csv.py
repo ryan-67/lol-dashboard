@@ -158,8 +158,9 @@ def safe_int(val, default=0):
 
 
 def row_lookup(row, keys, default=0, as_float=False):
+    lower = {str(k).lower(): v for k, v in row.items()}
     for key in keys:
-        val = row.get(key)
+        val = lower.get(str(key).lower())
         if val not in (None, ""):
             return safe_float(val) if as_float else safe_int(val)
     return default
@@ -1009,6 +1010,14 @@ def ingest():
     log_tier1_coverage(slices)
     if UNMAPPED_WARNINGS:
         print(f"  Unmapped split warnings: {len(UNMAPPED_WARNINGS)}", file=sys.stderr)
+
+    try:
+        from enrich_gol_advanced_stats import enrich_slices
+
+        print("Enriching advanced stats (solo kills / obj steals) from gol.gg…")
+        enrich_slices(year="2026", season="Spring")
+    except Exception as err:
+        print(f"  WARNING: gol.gg enrichment skipped: {err}", file=sys.stderr)
 
 
 if __name__ == "__main__":

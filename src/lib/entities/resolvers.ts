@@ -1,6 +1,8 @@
 import type { Champion, DashboardData, Player, Team } from '../../hooks/useDashboardData'
+import { aggregateAdvancedFromGameLog } from '../advancedStats'
 import { mergeChampionPoolEntries } from '../playerAnalytics'
-import { mergeSlices, type OEStore, splitSortKey } from '../mergeSlices'
+import { mergeSlices, type OEStore } from '../mergeSlices'
+import { pickNewestSplitWithData, splitsNewestFirst } from '../splitSelection'
 import { playerSlug, resolveTeamCanonicalName, teamMatchesCanonical, teamSlugFromName } from './slugs'
 
 function round(value: number, digits: number): number {
@@ -75,6 +77,7 @@ export function mergePlayersByName(players: Player[], name: string): Player | nu
   const sortedLog = [...(merged.gameLog ?? [])].sort((a, b) => a.date.localeCompare(b.date))
   const latest = sortedLog[sortedLog.length - 1]
   const latestRow = rows.find((p) => p.gameLog?.some((g) => g.date === latest?.date)) ?? rows[rows.length - 1]
+  const advanced = aggregateAdvancedFromGameLog(sortedLog)
 
   const deaths = Math.max(merged.deaths, 1)
   const kdaFromKda =
@@ -109,6 +112,12 @@ export function mergePlayersByName(players: Player[], name: string): Player | nu
     goldShare: round(avgWeighted(merged.goldShare), 1),
     firstBloodRate: round(avgWeighted(merged.firstBloodRate), 1),
     objControl: round(avgWeighted(merged.objControl), 2),
+    soloKills: advanced.soloKills,
+    objectivesStolen: advanced.objectivesStolen,
+    wardsDestroyed: advanced.wardsDestroyed,
+    kaPerMin: advanced.kaPerMin,
+    dmgGoldRatio: advanced.dmgGoldRatio,
+    dmgPerGold: advanced.dmgPerGold,
     gameLog: sortedLog,
     championPool: mergeChampionPoolEntries(merged.championPool ?? []),
   }
@@ -185,30 +194,15 @@ export function championHasData(data: DashboardData, championSlug: string): bool
 export function resolveEntityFilters(
   catalogSplits: string[],
   defaultYear: string,
-  defaultSplit: string,
+  _defaultSplit: string,
   hasData: (split: string) => boolean,
 ): EntityFilterState {
-  const yearSplits = catalogSplits.filter((s) => s.startsWith(`${defaultYear} `))
-  const tryOrder = [
-    defaultSplit,
-    ...yearSplits.filter((s) => s !== defaultSplit),
-    ...[...catalogSplits].sort((a, b) => {
-      const ka = splitSortKey(a)
-      const kb = splitSortKey(b)
-      return kb[0] - ka[0] || kb[1] - ka[1] || kb[2].localeCompare(ka[2])
-    }),
-  ]
-
-  for (const split of tryOrder) {
-    if (hasData(split)) {
-      const year = split.split(' ', 1)[0] ?? defaultYear
-      return { league: 'All Tier 1', year, split }
-    }
-  }
-
-  const fallback = catalogSplits[catalogSplits.length - 1] ?? defaultSplit
-  const year = fallback.split(' ', 1)[0] ?? defaultYear
-  return { league: 'All Tier 1', year, split: fallback }
+  const split =
+    pickNewestSplitWithData(catalogSplits, hasData, defaultYear) ??
+    splitsNewestFirst(catalogSplits)[0] ??
+    `${defaultYear} Spring`
+  const year = split.split(' ', 1)[0] ?? defaultYear
+  return { league: 'All Tier 1', year, split }
 }
 
 export function buildPlayerSearchSlug(player: Player, allPlayers: Player[]): string {

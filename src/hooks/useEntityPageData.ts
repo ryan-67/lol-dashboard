@@ -4,31 +4,19 @@ import { buildStoreFromSliceRows, fetchOESlices } from '../lib/loadOEStore'
 import { mergeDataForFilters, type EntityFilterState } from '../lib/entities/resolvers'
 import type { DashboardData } from '../hooks/useDashboardData'
 import { leagueLabelToLeagues } from '../hooks/useDashboardData'
-import { splitSortKey, type OEStore } from '../lib/mergeSlices'
+import type { OEStore } from '../lib/mergeSlices'
+import { pickNewestSplitWithData, splitsNewestFirst, yearFromSplitLabel } from '../lib/splitSelection'
 
 async function findBestSplit(
   catalogSplits: string[],
   globalYear: string,
-  globalSplit: string,
+  _globalSplit: string,
   league: string,
   catalog: NonNullable<ReturnType<typeof useDashboard>['catalog']>,
   hasData: (data: DashboardData) => boolean,
 ): Promise<{ filters: EntityFilterState; notice: string | null }> {
-  const ordered = [
-    globalSplit,
-    ...catalogSplits.filter((s) => s.startsWith(`${globalYear} `) && s !== globalSplit),
-    ...[...catalogSplits].sort((a, b) => {
-      const ka = splitSortKey(a)
-      const kb = splitSortKey(b)
-      return kb[0] - ka[0] || kb[1] - ka[1] || kb[2].localeCompare(ka[2])
-    }),
-  ]
-
-  const seen = new Set<string>()
-  for (const split of ordered) {
-    if (seen.has(split)) continue
-    seen.add(split)
-    const year = split.split(' ', 1)[0] ?? globalYear
+  const trySplit = async (split: string): Promise<boolean> => {
+    const year = yearFromSplitLabel(split, globalYear)
     const rows = await fetchOESlices({
       leagues: leagueLabelToLeagues(league),
       years: [year],
@@ -37,14 +25,24 @@ async function findBestSplit(
     })
     const store = buildStoreFromSliceRows(catalog!, rows)
     const data = mergeDataForFilters(store, { league, year, split })
-    if (hasData(data)) {
-      const notice = split !== globalSplit ? `Showing ${split} — no data for ${globalSplit}` : null
-      return { filters: { league, year, split }, notice }
+    return hasData(data)
+  }
+
+  const ordered = splitsNewestFirst(catalogSplits)
+  const yearPref = [
+    ...ordered.filter((s) => s.startsWith(`${globalYear} `)),
+    ...ordered.filter((s) => !s.startsWith(`${globalYear} `)),
+  ]
+
+  for (const split of yearPref) {
+    if (await trySplit(split)) {
+      const year = yearFromSplitLabel(split, globalYear)
+      return { filters: { league, year, split }, notice: null }
     }
   }
 
-  const fallback = catalogSplits[catalogSplits.length - 1] ?? globalSplit
-  const year = fallback.split(' ', 1)[0] ?? globalYear
+  const fallback = pickNewestSplitWithData(catalogSplits, () => false) ?? catalogSplits[0] ?? `${globalYear} Spring`
+  const year = yearFromSplitLabel(fallback, globalYear)
   return {
     filters: { league, year, split: fallback },
     notice: `Showing ${fallback} — limited data for this entity`,
@@ -133,16 +131,14 @@ export function useEntityPageData(hasDataForSplit: (data: DashboardData) => bool
   const setYear = useCallback(
     (year: string) => {
       const nextSplits = catalog?.splits.filter((s) => s.startsWith(`${year} `)) ?? []
-      const spring = `${year} Spring`
+      const newest = splitsNewestFirst(nextSplits)[0]
       setFilters((f) => ({
         ...f,
         year,
         split:
           f.split === 'ALL'
             ? 'ALL'
-            : nextSplits.includes(spring)
-              ? spring
-              : (nextSplits[0] ?? f.split),
+            : newest ?? nextSplits.find((s) => s.endsWith(' Spring')) ?? nextSplits[0] ?? f.split,
       }))
       setFallbackNotice(null)
     },
