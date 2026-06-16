@@ -14,6 +14,8 @@ node_modules/
 lol/
 .vscode/
 scripts/__pycache__/
+scripts/_*
+scripts/_tmp_*.py
 chunk2_generator.py
 
 # Supabase local CLI state

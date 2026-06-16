@@ -1014,7 +1014,7 @@ def ingest():
     try:
         from enrich_gol_advanced_stats import enrich_slices
 
-        print("Enriching advanced stats (solo kills / obj steals) from gol.gg…")
+        print("Enriching advanced stats (gol.gg + LPL tjstats solo kills)…")
         enrich_slices(year="2026", season="Spring")
     except Exception as err:
         print(f"  WARNING: gol.gg enrichment skipped: {err}", file=sys.stderr)

@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
 """
-Enrich oe_slices JSON shards with per-game solo kills / objectives stolen from gol.gg.
+Enrich oe_slices JSON shards with per-game solo kills / objectives stolen.
 
-Oracle's Elixir CSVs do not ship solo-kill columns; gol.gg fullstats pages do.
+- gol.gg fullstats: KR/West + objectives stolen (Oracle's Elixir has no solo-kill columns).
+- tjstats heroKill: LPL solo kills (requires TJSTATS_* credentials — see lpl_tjstats.py).
+
 Run after ingest_csv.py (or let ingest invoke this automatically).
 """
 
@@ -27,6 +29,7 @@ from gol_game_stats import (  # noqa: E402
     load_cache,
     save_cache,
 )
+from lpl_tjstats import enrich_lpl_solo_kills  # noqa: E402
 
 OUT_DIR = ROOT / "public" / "data"
 
@@ -184,6 +187,7 @@ def enrich_slices(
     season: str = "Spring",
     max_games: int = 0,
     skip_fetch: bool = False,
+    skip_lpl: bool = False,
     verbose: bool = True,
 ) -> int:
     cache = load_cache()
@@ -208,8 +212,15 @@ def enrich_slices(
 
     patched = enrich_year_shard(shard, gol_games)
     if verbose:
-        print(f"Patched {patched} game-log rows in {shard.name}")
-    return patched
+        print(f"gol.gg: patched {patched} game-log rows in {shard.name}")
+
+    lpl_patched = 0
+    if not skip_lpl:
+        if verbose:
+            print("Enriching LPL solo kills from tjstats…")
+        lpl_patched = enrich_lpl_solo_kills(shard, verbose=verbose)
+
+    return patched + lpl_patched
 
 
 def main() -> None:
@@ -218,12 +229,14 @@ def main() -> None:
     parser.add_argument("--season", default="Spring", help="gol.gg split label for tournament discovery")
     parser.add_argument("--max-games", type=int, default=0, help="Limit gol games fetched (0 = all)")
     parser.add_argument("--skip-fetch", action="store_true", help="Only use gol_game_cache.json")
+    parser.add_argument("--skip-lpl", action="store_true", help="Skip LPL tjstats solo-kill enrichment")
     args = parser.parse_args()
     enrich_slices(
         year=args.year,
         season=args.season,
         max_games=args.max_games,
         skip_fetch=args.skip_fetch,
+        skip_lpl=args.skip_lpl,
     )
 
 
