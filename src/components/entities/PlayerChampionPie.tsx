@@ -4,6 +4,7 @@ import { Cell, Legend, Pie, PieChart, ResponsiveContainer, Tooltip } from 'recha
 import type { Player } from '../../hooks/useDashboardData'
 import { championPieColors } from '../../lib/championColors'
 import { makeChartTooltipContent } from '../ui/ChartTooltip'
+import ShareableChart from '../ui/ShareableChart'
 import { scrollEntrance } from '../../theme/animations'
 import { CHART } from '../../theme/chartTheme'
 
@@ -50,7 +51,7 @@ export default function PlayerChampionPie({ player }: { player: Player }) {
   }
 
   return (
-    <div ref={ref} className="card">
+    <ShareableChart ref={ref} className="card">
       <h3 className="card-title">Champion Pool</h3>
       <p className="card-subtitle">Pick distribution for {player.name}</p>
       <div className="entity-chart-body">
@@ -81,6 +82,6 @@ export default function PlayerChampionPie({ player }: { player: Player }) {
           </PieChart>
         </ResponsiveContainer>
       </div>
-    </div>
+    </ShareableChart>
   )
 }

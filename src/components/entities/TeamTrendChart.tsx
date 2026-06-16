@@ -11,6 +11,7 @@ import {
 } from 'recharts'
 import type { TeamTrendPoint } from '../../lib/entities/entityAnalytics'
 import { makeChartTooltipContent } from '../ui/ChartTooltip'
+import ShareableChart from '../ui/ShareableChart'
 import { scrollEntrance } from '../../theme/animations'
 import { CHART } from '../../theme/chartTheme'
 
@@ -44,7 +45,7 @@ export default function TeamTrendChart({ points }: { points: TeamTrendPoint[] })
   }
 
   return (
-    <div ref={ref} className="card">
+    <ShareableChart ref={ref} className="card">
       <h3 className="card-title">Performance Trend</h3>
       <p className="card-subtitle">Rolling winrate and average GD@15 over recent matches</p>
       <div className="entity-chart-body">
@@ -76,6 +77,6 @@ export default function TeamTrendChart({ points }: { points: TeamTrendPoint[] })
           </LineChart>
         </ResponsiveContainer>
       </div>
-    </div>
+    </ShareableChart>
   )
 }

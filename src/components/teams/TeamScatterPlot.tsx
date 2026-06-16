@@ -13,6 +13,7 @@ import {
 } from 'recharts'
 import type { Team } from '../../hooks/useDashboardData'
 import { leagueColor } from '../../lib/teamAnalytics'
+import ShareableChart from '../ui/ShareableChart'
 import { makeChartTooltipContent } from '../ui/ChartTooltip'
 import { scrollEntrance } from '../../theme/animations'
 import { CHART } from '../../theme/chartTheme'
@@ -63,7 +64,7 @@ export default function TeamScatterPlot({ teams }: TeamScatterPlotProps) {
   )
 
   return (
-    <div ref={sectionRef} className="card page-section">
+    <ShareableChart ref={sectionRef} className="card page-section">
       <h2 className="card-title">Win Rate vs Early Game Gold</h2>
       <p className="card-subtitle">X = avg Gold Diff@15 · Y = win rate · dot size = games played</p>
       <div className="h-80">
@@ -114,6 +115,6 @@ export default function TeamScatterPlot({ teams }: TeamScatterPlotProps) {
           </ScatterChart>
         </ResponsiveContainer>
       </div>
-    </div>
+    </ShareableChart>
   )
 }

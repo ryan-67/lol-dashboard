@@ -3,6 +3,7 @@ import { useGSAP } from '@gsap/react'
 import { Bar, BarChart, CartesianGrid, Cell, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import type { ChampionWinrateEntry } from '../../lib/entities/entityAnalytics'
 import { makeChartTooltipContent } from '../ui/ChartTooltip'
+import ShareableChart from '../ui/ShareableChart'
 import { scrollEntrance } from '../../theme/animations'
 import { CHART } from '../../theme/chartTheme'
 import ChampionEntityInline from './ChampionEntityInline'
@@ -48,9 +49,10 @@ export default function ChampionWinrateBars({
 
   return (
     <div ref={ref} className="card">
-      <h3 className="card-title">{title}</h3>
-      <div className="entity-chart-body entity-chart-body-sm">
-        <ResponsiveContainer width="100%" height={220}>
+      <ShareableChart>
+        <h3 className="card-title">{title}</h3>
+        <div className="entity-chart-body entity-chart-body-sm">
+          <ResponsiveContainer width="100%" height={220}>
           <BarChart data={entries} layout="vertical" margin={{ left: 8, right: 16 }}>
             <CartesianGrid stroke={CHART.grid} strokeDasharray="3 3" horizontal={false} />
             <XAxis type="number" domain={[0, 100]} tick={{ fill: CHART.tick, fontSize: 10 }} />
@@ -69,6 +71,7 @@ export default function ChampionWinrateBars({
           </BarChart>
         </ResponsiveContainer>
       </div>
+      </ShareableChart>
       <ul className="entity-champ-win-list">
         {entries.map((e) => (
           <li key={e.champion}>

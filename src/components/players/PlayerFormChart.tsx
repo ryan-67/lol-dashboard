@@ -12,6 +12,7 @@ import {
 } from 'recharts'
 import type { Player } from '../../hooks/useDashboardData'
 import { makeChartTooltipContent } from '../ui/ChartTooltip'
+import ShareableChart from '../ui/ShareableChart'
 import { buildFormTrajectorySeries, type FormTrajectorySeries } from '../../lib/playerAnalytics'
 import { scrollEntrance } from '../../theme/animations'
 import { CHART } from '../../theme/chartTheme'
@@ -65,7 +66,7 @@ export default function PlayerFormChart({ players, cohortPlayers }: PlayerFormCh
   }
 
   return (
-    <div ref={sectionRef} className="card player-chart-card">
+    <ShareableChart ref={sectionRef} className="card player-chart-card">
       <h3 className="card-title">Form Trajectory</h3>
       <p className="card-subtitle">Composite score · 3-game rolling average · dotted trend</p>
       <div className="player-chart-body">
@@ -129,6 +130,6 @@ export default function PlayerFormChart({ players, cohortPlayers }: PlayerFormCh
           </ComposedChart>
         </ResponsiveContainer>
       </div>
-    </div>
+    </ShareableChart>
   )
 }

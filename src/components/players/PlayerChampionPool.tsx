@@ -14,6 +14,7 @@ import {
 } from 'recharts'
 import type { Player } from '../../hooks/useDashboardData'
 import { makeChartTooltipContent } from '../ui/ChartTooltip'
+import ShareableChart from '../ui/ShareableChart'
 import {
   buildChampionPoolBars,
   playerKey,
@@ -93,7 +94,7 @@ export default function PlayerChampionPool({ players }: PlayerChampionPoolProps)
   }
 
   return (
-    <div ref={sectionRef} className="card player-chart-card">
+    <ShareableChart ref={sectionRef} className="card player-chart-card">
       <h3 className="card-title">Champion Pool</h3>
       <p className="card-subtitle">Top 5 champions by games · winrate label</p>
       <div className="player-chart-body">
@@ -154,6 +155,6 @@ export default function PlayerChampionPool({ players }: PlayerChampionPoolProps)
           </BarChart>
         </ResponsiveContainer>
       </div>
-    </div>
+    </ShareableChart>
   )
 }

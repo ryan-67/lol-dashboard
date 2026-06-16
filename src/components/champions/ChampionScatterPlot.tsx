@@ -25,6 +25,7 @@ import {
   totalGamesInCohort,
 } from '../../lib/championAnalytics'
 import { makeChartTooltipContent } from '../ui/ChartTooltip'
+import ShareableChart from '../ui/ShareableChart'
 import RoleToggleLegend from '../ui/RoleToggleLegend'
 import { scrollEntrance } from '../../theme/animations'
 import { CHART } from '../../theme/chartTheme'
@@ -133,12 +134,13 @@ export default function ChampionScatterPlot({
 
   return (
     <div ref={sectionRef} className="card page-section">
-      <h2 className="card-title">Win Rate vs Pick Rate</h2>
-      <p className="card-subtitle">
-        Dot size = games played · dashed lines = cohort average · click legend to filter roles
-        {focusedName ? ` · focused: ${focusedName}` : ''}
-      </p>
-      <div className="h-80">
+      <ShareableChart>
+        <h2 className="card-title">Win Rate vs Pick Rate</h2>
+        <p className="card-subtitle">
+          Dot size = games played · dashed lines = cohort average · click legend to filter roles
+          {focusedName ? ` · focused: ${focusedName}` : ''}
+        </p>
+        <div className="h-80">
         <ResponsiveContainer width="100%" height="100%">
           <ScatterChart margin={{ top: 8, right: 24, left: 8, bottom: 24 }}>
             <CartesianGrid stroke={CHART.grid} strokeDasharray="3 3" />
@@ -214,6 +216,7 @@ export default function ChampionScatterPlot({
           </ScatterChart>
         </ResponsiveContainer>
       </div>
+      </ShareableChart>
       <RoleToggleLegend
         items={ROLE_LEGEND_ITEMS}
         hiddenKeys={hiddenRoles}

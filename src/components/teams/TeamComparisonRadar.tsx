@@ -18,6 +18,7 @@ import {
   teamKey,
 } from '../../lib/teamAnalytics'
 import { makeChartTooltipContent } from '../ui/ChartTooltip'
+import ShareableChart from '../ui/ShareableChart'
 import { animateRadarDraw } from '../../theme/animations'
 import { CHART } from '../../theme/chartTheme'
 
@@ -62,7 +63,7 @@ export default function TeamComparisonRadar({ teams, cohort }: TeamComparisonRad
   )
 
   return (
-    <div className="card page-section">
+    <ShareableChart className="card page-section">
       <h2 className="card-title">Team Comparison</h2>
       <p className="card-subtitle">
         Overlay of {teams.length} teams vs league-relative average (dashed).
@@ -110,6 +111,6 @@ export default function TeamComparisonRadar({ teams, cohort }: TeamComparisonRad
           </RadarChart>
         </ResponsiveContainer>
       </div>
-    </div>
+    </ShareableChart>
   )
 }

@@ -13,6 +13,7 @@ import {
 import type { TeamGoldGameSeries } from '../../lib/entities/entityAnalytics'
 import { averageGoldTimeline } from '../../lib/entities/entityAnalytics'
 import { makeChartTooltipContent } from '../ui/ChartTooltip'
+import ShareableChart from '../ui/ShareableChart'
 import { formatGameDate } from '../../lib/format'
 import { scrollEntrance } from '../../theme/animations'
 import { CHART } from '../../theme/chartTheme'
@@ -116,11 +117,7 @@ export default function TeamGoldGraph({ games }: TeamGoldGraphProps) {
   return (
     <div ref={ref} className="card">
       <div className="entity-gold-graph-head">
-        <div>
-          <h3 className="card-title">Gold Graph</h3>
-          <p className="card-subtitle">Team gold difference over time · click legend to toggle games</p>
-        </div>
-        <div className="entity-gold-graph-controls">
+        <div className="entity-gold-graph-controls entity-gold-graph-controls-only">
           <label className="entity-gold-graph-control">
             <span className="label-field">Max duration</span>
             <Select
@@ -139,7 +136,10 @@ export default function TeamGoldGraph({ games }: TeamGoldGraphProps) {
       </div>
 
       <div className="entity-gold-graph-layout">
-        <div className="entity-chart-body entity-gold-graph-chart">
+        <ShareableChart className="entity-gold-graph-chart-wrap">
+          <h3 className="card-title">Gold Graph</h3>
+          <p className="card-subtitle">Team gold difference over time · click legend to toggle games</p>
+          <div className="entity-chart-body entity-gold-graph-chart">
           <ResponsiveContainer width="100%" height={360}>
             <LineChart data={chartData} margin={{ top: 8, right: 12, left: 4, bottom: 8 }}>
               <CartesianGrid stroke={CHART.grid} strokeDasharray="3 3" />
@@ -188,8 +188,8 @@ export default function TeamGoldGraph({ games }: TeamGoldGraphProps) {
               ) : null}
             </LineChart>
           </ResponsiveContainer>
-        </div>
-
+          </div>
+        </ShareableChart>
         <aside className="entity-gold-graph-legend">
           <button
             type="button"

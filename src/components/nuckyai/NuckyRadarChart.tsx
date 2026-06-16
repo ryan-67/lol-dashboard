@@ -9,6 +9,7 @@ import {
   Tooltip,
 } from 'recharts'
 import type { RadarChartPayload } from './types'
+import ShareableChart from '../ui/ShareableChart'
 import { COMPARISON_COLORS, leagueColor } from '../../lib/teamAnalytics'
 import { makeChartTooltipContent } from '../ui/ChartTooltip'
 import { CHART } from '../../theme/chartTheme'
@@ -63,7 +64,7 @@ export default function NuckyRadarChart({ payload }: { payload: RadarChartPayloa
   const data = buildRadarRows(payload)
 
   return (
-    <div className="border border-[var(--border-subtle)] bg-[var(--bg-base)] p-3 my-2">
+    <ShareableChart className="border border-[var(--border-subtle)] bg-[var(--bg-base)] p-3 my-2">
       <div className="text-xs text-[var(--text-secondary)] mb-2">{payload.title}</div>
       <div className="h-72">
         <ResponsiveContainer width="100%" height="100%">
@@ -109,6 +110,6 @@ export default function NuckyRadarChart({ payload }: { payload: RadarChartPayloa
           </RadarChart>
         </ResponsiveContainer>
       </div>
-    </div>
+    </ShareableChart>
   )
 }

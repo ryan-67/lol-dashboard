@@ -14,6 +14,7 @@ import type { Champion } from '../../hooks/useDashboardData'
 import { championWeeklyTrend } from '../../lib/entities/entityAnalytics'
 import { getPresence } from '../../lib/championAnalytics'
 import { makeChartTooltipContent } from '../ui/ChartTooltip'
+import ShareableChart from '../ui/ShareableChart'
 import { scrollEntrance } from '../../theme/animations'
 import { CHART } from '../../theme/chartTheme'
 
@@ -52,7 +53,7 @@ export default function ChampionTrendCharts({
   }
 
   return (
-    <div ref={ref} className="card">
+    <ShareableChart ref={ref} className="card">
       <h3 className="card-title">Presence & Winrate Trends</h3>
       <p className="card-subtitle">
         Overall presence {getPresence(champion, totalGames).toFixed(1)}% · WR {champion.winrate.toFixed(1)}%
@@ -74,6 +75,6 @@ export default function ChampionTrendCharts({
           </LineChart>
         </ResponsiveContainer>
       </div>
-    </div>
+    </ShareableChart>
   )
 }

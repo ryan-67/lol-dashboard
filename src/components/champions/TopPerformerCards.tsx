@@ -3,6 +3,7 @@ import { useGSAP } from '@gsap/react'
 import type { Champion } from '../../hooks/useDashboardData'
 import { bestByRole, roleColor, roleLabel } from '../../lib/championAnalytics'
 import { scrollEntranceStagger } from '../../theme/animations'
+import ShareableChart from '../ui/ShareableChart'
 
 interface TopPerformerCardsProps {
   champions: Champion[]
@@ -49,7 +50,7 @@ export default function TopPerformerCards({ champions }: TopPerformerCardsProps)
         {bestByRoleEntries.map(({ role, champion }) => {
           const color = roleColor(role)
           return (
-            <div key={role} className="performer-card performer-card-static">
+            <ShareableChart key={role} className="performer-card performer-card-static">
               <div className="performer-card-role" style={{ color }}>
                 {roleLabel(role)}
               </div>
@@ -65,7 +66,7 @@ export default function TopPerformerCards({ champions }: TopPerformerCardsProps)
               ) : (
                 <div className="text-dim text-sm">No qualifying data</div>
               )}
-            </div>
+            </ShareableChart>
           )
         })}
       </div>

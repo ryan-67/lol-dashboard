@@ -13,6 +13,7 @@ import type { Team } from '../../hooks/useDashboardData'
 import { buildTeamRadarSeries } from '../../lib/teamAnalytics'
 import { teamBrandColor } from '../../lib/entities/teamBrandColor'
 import { makeChartTooltipContent } from '../ui/ChartTooltip'
+import ShareableChart from '../ui/ShareableChart'
 import { animateRadarDraw } from '../../theme/animations'
 import { CHART } from '../../theme/chartTheme'
 
@@ -59,7 +60,7 @@ export default function TeamRadarChart({
   )
 
   return (
-    <div
+    <ShareableChart
       className={`radar-card${highlighted ? ' radar-card-favorite' : ''}${compact ? ' radar-card-compact' : ''}`}
     >
       {!compact ? (
@@ -107,6 +108,6 @@ export default function TeamRadarChart({
           </RadarChart>
         </ResponsiveContainer>
       </div>
-    </div>
+    </ShareableChart>
   )
 }

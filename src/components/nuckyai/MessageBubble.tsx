@@ -14,6 +14,9 @@ import {
 import type { AnyChartPayload, ChartPayload, MessageRow } from './types'
 import { isRadarChartPayload } from './types'
 import NuckyRadarChart from './NuckyRadarChart'
+import ShareableChart from '../ui/ShareableChart'
+import ClipboardToast from '../ui/ClipboardToast'
+import { extractPlainTextFromAssistantMessage } from '../../lib/extractPlainTextFromMessage'
 import { formatMessageTimestamp } from '../../lib/formatMessageTimestamp'
 import { CHART, CHART_TOOLTIP_PROPS } from '../../theme/chartTheme'
 
@@ -199,7 +202,7 @@ function ChartBlock({ json }: { json: string }) {
   const colors = ['#c5a059', '#8c7340', '#9e8c7a', '#6a7a8c']
 
   return (
-    <div className="border border-[var(--border-subtle)] bg-[var(--bg-base)] p-3 my-2">
+    <ShareableChart className="border border-[var(--border-subtle)] bg-[var(--bg-base)] p-3 my-2">
       <div className="text-xs text-[var(--text-secondary)] mb-2">{barPayload.title}</div>
       <div className="h-64">
         <ResponsiveContainer width="100%" height="100%">
@@ -253,7 +256,7 @@ function ChartBlock({ json }: { json: string }) {
           )}
         </ResponsiveContainer>
       </div>
-    </div>
+    </ShareableChart>
   )
 }
 
@@ -275,9 +278,9 @@ export default function MessageBubble({
   )
 
   const copy = async () => {
-    await navigator.clipboard.writeText(message.content)
+    await navigator.clipboard.writeText(extractPlainTextFromAssistantMessage(message.content))
     setCopied(true)
-    window.setTimeout(() => setCopied(false), 1200)
+    window.setTimeout(() => setCopied(false), 500)
   }
 
   const isThinking = Boolean(message.thinking)
@@ -321,14 +324,15 @@ export default function MessageBubble({
         })}
 
         {isAssistant && !isThinking && (
-          <div className="mt-2 flex items-center gap-3 text-xs">
+          <div className="mt-2 flex items-center gap-3 text-xs nuckyai-copy-row">
             <button
               type="button"
               className="text-[var(--text-secondary)] hover:text-[var(--accent)]"
-              onClick={copy}
+              onClick={() => void copy()}
             >
-              {copied ? 'copied' : 'copy'}
+              copy
             </button>
+            <ClipboardToast visible={copied} />
             <button
               type="button"
               className="text-[var(--text-secondary)] hover:text-[var(--accent)]"

@@ -13,6 +13,7 @@ import {
 } from 'recharts'
 import type { Player } from '../../hooks/useDashboardData'
 import { makeChartTooltipContent } from '../ui/ChartTooltip'
+import ShareableChart from '../ui/ShareableChart'
 import { buildConsistencyData } from '../../lib/playerAnalytics'
 import { scrollEntrance } from '../../theme/animations'
 import { CHART } from '../../theme/chartTheme'
@@ -102,7 +103,7 @@ export default function PlayerConsistencyStrip({
   }
 
   return (
-    <div ref={sectionRef} className="card player-chart-card player-chart-card-wide">
+    <ShareableChart ref={sectionRef} className="card player-chart-card player-chart-card-wide">
       <div className="player-chart-header-row">
         <div>
           <h3 className="card-title">Game-to-Game Consistency</h3>
@@ -161,6 +162,6 @@ export default function PlayerConsistencyStrip({
           </ScatterChart>
         </ResponsiveContainer>
       </div>
-    </div>
+    </ShareableChart>
   )
 }

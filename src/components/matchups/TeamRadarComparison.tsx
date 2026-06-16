@@ -11,6 +11,7 @@ import {
 } from 'recharts'
 import type { Team } from '../../hooks/useDashboardData'
 import { makeChartTooltipContent } from '../ui/ChartTooltip'
+import ShareableChart from '../ui/ShareableChart'
 import { buildComparisonRadarData } from '../../lib/teamAnalytics'
 import { formatGameLength } from '../../lib/matchupAnalytics'
 import { animateRadarDraw, scrollEntrance } from '../../theme/animations'
@@ -79,11 +80,12 @@ export default function TeamRadarComparison({ teamA, teamB, cohort }: TeamRadarC
 
   return (
     <div ref={sectionRef} className="card page-section">
-      <h2 className="card-title">Team Radar Comparison</h2>
-      <p className="card-subtitle">
-        {teamA.name} vs {teamB.name} — dashed line is cohort average
-      </p>
-      <div ref={chartRef} className="radar-chart-wrap" style={{ minHeight: 360 }}>
+      <ShareableChart>
+        <h2 className="card-title">Team Radar Comparison</h2>
+        <p className="card-subtitle">
+          {teamA.name} vs {teamB.name} — dashed line is cohort average
+        </p>
+        <div ref={chartRef} className="radar-chart-wrap" style={{ minHeight: 360 }}>
         <ResponsiveContainer width="100%" height={360}>
           <RadarChart data={data} cx="50%" cy="50%" outerRadius="75%">
             <PolarGrid stroke={CHART.grid} />
@@ -149,6 +151,7 @@ export default function TeamRadarComparison({ teamA, teamB, cohort }: TeamRadarC
           Cohort average
         </span>
       </div>
+      </ShareableChart>
       <div className="matchup-team-stats">
         <div className="matchup-team-stats-header">
           <span className="matchup-stat-team matchup-stat-value-a">{teamA.name}</span>

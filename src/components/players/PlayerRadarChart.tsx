@@ -11,6 +11,7 @@ import {
 } from 'recharts'
 import type { Player } from '../../hooks/useDashboardData'
 import { makeChartTooltipContent } from '../ui/ChartTooltip'
+import ShareableChart from '../ui/ShareableChart'
 import { EntityLink } from '../entities'
 import {
   PLAYERS_ROLE_COLORS,
@@ -62,7 +63,7 @@ export default function PlayerRadarChart({
   )
 
   return (
-    <div className={compact ? 'radar-card radar-card-compact' : 'radar-card'}>
+    <ShareableChart className={compact ? 'radar-card radar-card-compact' : 'radar-card'}>
       <div className="radar-card-header">
         <h3 className="radar-card-title">
           <EntityLink type="player" name={player.name} player={player} showIcon={false} />
@@ -107,6 +108,6 @@ export default function PlayerRadarChart({
           </RadarChart>
         </ResponsiveContainer>
       </div>
-    </div>
+    </ShareableChart>
   )
 }

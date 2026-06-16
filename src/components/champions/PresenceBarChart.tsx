@@ -14,6 +14,7 @@ import { buildPresenceBarData, totalGamesInCohort } from '../../lib/championAnal
 import type { Champion } from '../../hooks/useDashboardData'
 import { useDashboard } from '../../context/DashboardContext'
 import { makeChartTooltipContent } from '../ui/ChartTooltip'
+import ShareableChart from '../ui/ShareableChart'
 import { scrollEntrance } from '../../theme/animations'
 import { CHART } from '../../theme/chartTheme'
 
@@ -62,7 +63,7 @@ export default function PresenceBarChart({ champions }: PresenceBarChartProps) {
   )
 
   return (
-    <div ref={sectionRef} className="card page-section">
+    <ShareableChart ref={sectionRef} className="card page-section">
       <h2 className="card-title">Champion Presence</h2>
       <p className="card-subtitle">Top 20 by presence — pick rate (gold) vs ban rate (dim)</p>
       <div className="h-[520px]">
@@ -110,6 +111,6 @@ export default function PresenceBarChart({ champions }: PresenceBarChartProps) {
           </BarChart>
         </ResponsiveContainer>
       </div>
-    </div>
+    </ShareableChart>
   )
 }

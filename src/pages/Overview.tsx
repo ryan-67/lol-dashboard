@@ -42,6 +42,7 @@ import {
   Tooltip,
 } from 'recharts'
 import { makeChartTooltipContent } from '../components/ui/ChartTooltip'
+import ShareableChart from '../components/ui/ShareableChart'
 import { MetricScoreRow } from '../components/ui/MetricHint'
 import {
   OP_SCORE_HINT,
@@ -359,7 +360,7 @@ function WeeklyRadar({
     },
   )
   return (
-    <div className="overview-weekly-radar">
+    <ShareableChart className="overview-weekly-radar">
       <ResponsiveContainer width="100%" height={compact ? 200 : 270}>
         <RadarChart data={data} cx="50%" cy="50%" outerRadius={compact ? '68%' : '72%'}>
           <PolarGrid stroke={CHART.grid} />
@@ -389,7 +390,7 @@ function WeeklyRadar({
           />
         </RadarChart>
       </ResponsiveContainer>
-    </div>
+    </ShareableChart>
   )
 }
 
