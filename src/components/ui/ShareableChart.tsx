@@ -5,6 +5,8 @@ import ClipboardToast from './ClipboardToast'
 interface ShareableChartProps {
   children: ReactNode
   className?: string
+  title?: string
+  subtitle?: string
 }
 
 function ShareIcon() {
@@ -22,7 +24,7 @@ function ShareIcon() {
 }
 
 const ShareableChart = forwardRef<HTMLDivElement, ShareableChartProps>(function ShareableChart(
-  { children, className = '' },
+  { children, className = '', title, subtitle },
   ref,
 ) {
   const captureRef = useRef<HTMLDivElement>(null)
@@ -31,7 +33,7 @@ const ShareableChart = forwardRef<HTMLDivElement, ShareableChartProps>(function 
   async function handleShare() {
     if (!captureRef.current) return
     try {
-      await copyChartImageToClipboard(captureRef.current)
+      await copyChartImageToClipboard(captureRef.current, { title, subtitle })
       setShowToast(true)
       window.setTimeout(() => setShowToast(false), 500)
     } catch {
@@ -42,6 +44,12 @@ const ShareableChart = forwardRef<HTMLDivElement, ShareableChartProps>(function 
   return (
     <div ref={ref} className={`shareable-chart ${className}`.trim()}>
       <div ref={captureRef} className="shareable-chart-capture">
+        {(title || subtitle) && (
+          <div className="shareable-chart-export-header" aria-hidden="true">
+            {title ? <div className="shareable-chart-export-title">{title}</div> : null}
+            {subtitle ? <div className="shareable-chart-export-subtitle">{subtitle}</div> : null}
+          </div>
+        )}
         {children}
       </div>
       <button

@@ -374,7 +374,11 @@ function WeeklyRadar({
     },
   )
   return (
-    <ShareableChart className="overview-weekly-radar">
+    <ShareableChart
+      className="overview-weekly-radar"
+      title={`${player.name} — ${role.toUpperCase()} radar`}
+      subtitle={`${player.team} · weekly performance profile`}
+    >
       <ResponsiveContainer width="100%" height={compact ? 200 : 270}>
         <RadarChart data={data} cx="50%" cy="50%" outerRadius={compact ? '68%' : '72%'}>
           <PolarGrid stroke={CHART.grid} />
