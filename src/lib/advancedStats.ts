@@ -24,14 +24,14 @@ export const ADVANCED_METRICS_BY_ROLE: Record<RoleKey, AdvancedMetricDef[]> = {
     {
       key: 'soloKills',
       label: 'Solo Kills / game',
-      shortLabel: 'Solo K',
+      shortLabel: 'SK',
       higherIsBetter: true,
       format: (v) => v.toFixed(2),
     },
     {
       key: 'dmgGoldRatio',
       label: 'Dmg% / Gold%',
-      shortLabel: 'DMG/GOLD',
+      shortLabel: 'DMG%/G%',
       higherIsBetter: true,
       format: (v) => v.toFixed(2),
     },
@@ -56,14 +56,14 @@ export const ADVANCED_METRICS_BY_ROLE: Record<RoleKey, AdvancedMetricDef[]> = {
     {
       key: 'dmgGoldRatio',
       label: 'Dmg% / Gold%',
-      shortLabel: 'DMG/GOLD',
+      shortLabel: 'DMG%/G%',
       higherIsBetter: true,
       format: (v) => v.toFixed(2),
     },
     {
       key: 'soloKills',
       label: 'Solo Kills / game',
-      shortLabel: 'Solo K',
+      shortLabel: 'SK',
       higherIsBetter: true,
       format: (v) => v.toFixed(2),
     },
@@ -72,7 +72,7 @@ export const ADVANCED_METRICS_BY_ROLE: Record<RoleKey, AdvancedMetricDef[]> = {
     {
       key: 'dmgGoldRatio',
       label: 'Dmg% / Gold%',
-      shortLabel: 'DMG/GOLD',
+      shortLabel: 'DMG%/G%',
       higherIsBetter: true,
       format: (v) => v.toFixed(2),
     },

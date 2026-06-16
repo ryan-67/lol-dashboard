@@ -3,7 +3,6 @@ import {
   ADVANCED_METRICS_BY_ROLE,
   enrichPlayerWithAdvancedStats,
   getAdvancedMetricValue,
-  isAdvancedMetricAvailable,
   type AdvancedMetricKey,
 } from './advancedStats'
 
@@ -73,7 +72,6 @@ export const ROLE_METRICS: Record<RoleKey, RadarMetricDef[]> = {
     { key: 'firstBloodRate', label: 'First Blood %', shortLabel: 'FB%', format: (v) => `${v.toFixed(1)}%` },
     { key: 'kp', label: 'Kill Participation', shortLabel: 'KP', format: (v) => `${v.toFixed(1)}%` },
     { key: 'objControl', label: 'Objective Control %', shortLabel: 'OBJ%', format: (v) => v.toFixed(2) },
-    { key: 'kda', label: 'KDA', shortLabel: 'KDA', format: (v) => v.toFixed(2) },
     ...ADVANCED_METRICS_BY_ROLE.jungle.map((d) => ({
       key: d.key,
       label: d.label,
@@ -265,18 +263,7 @@ export function buildRadarSeries(
   role: RoleKey,
   cohort: Player[],
 ): RadarPoint[] {
-  const advancedKeys: AdvancedMetricKey[] = [
-    'soloKills',
-    'dmgGoldRatio',
-    'dmgPerGold',
-    'kaPerMin',
-    'objectivesStolen',
-    'wardsDestroyed',
-  ]
-  const metrics = ROLE_METRICS[role].filter((def) => {
-    if (!advancedKeys.includes(def.key as AdvancedMetricKey)) return true
-    return isAdvancedMetricAvailable(def.key as AdvancedMetricKey, cohort)
-  })
+  const metrics = ROLE_METRICS[role]
   return metrics.map((def) => {
     const cohortValues = cohort.map((p) => getMetricValue(p, def.key))
     const playerRaw = getMetricValue(player, def.key)
