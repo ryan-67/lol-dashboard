@@ -3,7 +3,7 @@ import type { RoleKey } from './playerRadar'
 
 /** Advanced / derived metrics surfaced on radars and in recap / nuckyAI highlights. */
 export type AdvancedMetricKey =
-  | 'soloKills'
+  | 'turretPlates'
   | 'dmgGoldRatio'
   | 'dmgPerGold'
   | 'kaPerMin'
@@ -22,9 +22,9 @@ export interface AdvancedMetricDef {
 export const ADVANCED_METRICS_BY_ROLE: Record<RoleKey, AdvancedMetricDef[]> = {
   top: [
     {
-      key: 'soloKills',
-      label: 'Solo Kills / game',
-      shortLabel: 'SK',
+      key: 'turretPlates',
+      label: 'Turret Plates / game',
+      shortLabel: 'Plates',
       higherIsBetter: true,
       format: (v) => v.toFixed(2),
     },
@@ -61,11 +61,11 @@ export const ADVANCED_METRICS_BY_ROLE: Record<RoleKey, AdvancedMetricDef[]> = {
       format: (v) => v.toFixed(2),
     },
     {
-      key: 'soloKills',
-      label: 'Solo Kills / game',
-      shortLabel: 'SK',
+      key: 'dmgPerGold',
+      label: 'Dmg / Gold',
+      shortLabel: 'DMG/G',
       higherIsBetter: true,
-      format: (v) => v.toFixed(2),
+      format: (v) => v.toFixed(3),
     },
   ],
   adc: [
@@ -139,7 +139,10 @@ export function isAdvancedMetricAvailable(
   metric: AdvancedMetricKey,
   cohort: Player[],
 ): boolean {
-  if (metric === 'soloKills' || metric === 'objectivesStolen') {
+  if (metric === 'objectivesStolen') {
+    return cohort.some((p) => getAdvancedMetricValue(p, metric) > 0)
+  }
+  if (metric === 'turretPlates') {
     return cohort.some((p) => getAdvancedMetricValue(p, metric) > 0)
   }
   if (metric === 'dmgPerGold') {
@@ -153,7 +156,7 @@ export function aggregateAdvancedFromGameLog(logs: PlayerGameLog[]): Partial<Rec
   const dmgRatios = logs.map(dmgGoldRatioFromGame).filter((v): v is number => v != null && v > 0)
   const dmgPerGold = logs.map(dmgPerGoldFromGame).filter((v) => v > 0)
   return {
-    soloKills: logs.reduce((s, g) => s + (g.soloKills ?? 0), 0) / logs.length,
+    turretPlates: logs.reduce((s, g) => s + (g.turretPlates ?? 0), 0) / logs.length,
     objectivesStolen: logs.reduce((s, g) => s + (g.objectivesStolen ?? 0), 0),
     wardsDestroyed: logs.reduce((s, g) => s + (g.wardsDestroyed ?? 0), 0) / logs.length,
     kaPerMin: logs.reduce((s, g) => s + (g.kaPerMin ?? 0), 0) / logs.length,
@@ -166,7 +169,7 @@ export function enrichPlayerWithAdvancedStats(player: Player): Player {
   const fromLog = aggregateAdvancedFromGameLog(player.gameLog ?? [])
   return {
     ...player,
-    soloKills: player.soloKills ?? fromLog.soloKills,
+    turretPlates: player.turretPlates ?? fromLog.turretPlates,
     objectivesStolen: player.objectivesStolen ?? fromLog.objectivesStolen,
     wardsDestroyed: player.wardsDestroyed ?? fromLog.wardsDestroyed,
     kaPerMin: player.kaPerMin ?? fromLog.kaPerMin,
@@ -219,11 +222,11 @@ export function findAdvancedOutliers(
 
     const cohortValues = cohort
       .map((p) => getAdvancedMetricValue(p, def.key))
-      .filter((v) => v > 0 || def.key === 'soloKills' || def.key === 'objectivesStolen')
+      .filter((v) => v > 0 || def.key === 'objectivesStolen' || def.key === 'turretPlates')
     if (cohortValues.length < 3) continue
 
     const value = getAdvancedMetricValue(enriched, def.key)
-    if (value === 0 && (def.key === 'objectivesStolen' || def.key === 'soloKills')) {
+    if (value === 0 && (def.key === 'objectivesStolen' || def.key === 'turretPlates')) {
       continue
     }
 
@@ -259,10 +262,10 @@ export function findAdvancedOutliers(
 export function formatAdvancedOutlierLine(o: AdvancedOutlier): string {
   const name = o.playerName
   switch (o.metric) {
-    case 'soloKills':
+    case 'turretPlates':
       return o.direction === 'high'
-        ? `${name} was isolating — ${o.formatted} solo kills/game`
-        : `${name} wasn't finding solo kills (${o.formatted}/game)`
+        ? `${name} was shredding plates — ${o.formatted}/game`
+        : `${name} wasn't securing plates (${o.formatted}/game)`
     case 'dmgGoldRatio':
       return o.direction === 'high'
         ? `${name} punched way above their gold weight (${o.formatted} dmg%/gold%)`
@@ -288,8 +291,8 @@ export function formatAdvancedOutlierLine(o: AdvancedOutlier): string {
 
 function gameAdvancedValue(game: PlayerGameLog, key: AdvancedMetricKey): number {
   switch (key) {
-    case 'soloKills':
-      return game.soloKills ?? 0
+    case 'turretPlates':
+      return game.turretPlates ?? 0
     case 'objectivesStolen':
       return game.objectivesStolen ?? 0
     case 'wardsDestroyed':

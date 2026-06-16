@@ -123,6 +123,7 @@ export function useAgentChat() {
             selectedLeagues: filter?.selectedLeagues,
             selectedYears: filter?.selectedYears,
             selectedSplits: filter?.selectedSplits,
+            client_now: new Date().toISOString(),
           }),
           signal: controller.signal,
         })

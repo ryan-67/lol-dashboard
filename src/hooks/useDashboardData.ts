@@ -40,7 +40,7 @@ export interface PlayerGameLog {
   goldShare?: number
   firstBloodRate?: number
   objControl?: number
-  soloKills?: number
+  turretPlates?: number
   objectivesStolen?: number
   wardsDestroyed?: number
   kaPerMin?: number
@@ -79,7 +79,7 @@ export interface Player {
   goldShare?: number
   firstBloodRate?: number
   objControl?: number
-  soloKills?: number
+  turretPlates?: number
   objectivesStolen?: number
   wardsDestroyed?: number
   kaPerMin?: number

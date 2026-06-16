@@ -1,4 +1,4 @@
-"""Fetch per-game solo kills / objectives stolen from gol.gg fullstats pages."""
+"""Fetch per-game objectives stolen from gol.gg fullstats pages."""
 
 from __future__ import annotations
 
@@ -16,7 +16,6 @@ GOL_BASE = "https://gol.gg"
 USER_AGENT = "nucky-dashboard-ingest/1.0"
 
 ROW_LABELS = {
-    "soloKills": ("solo kills",),
     "objectivesStolen": ("objectives stolen",),
 }
 
@@ -92,9 +91,6 @@ def parse_fullstats_html(html: str) -> dict:
 
     players = []
     for idx, name in enumerate(names):
-        solo_raw = stats_by_row.get("soloKills", [""] * len(names))[idx] if idx < len(
-            stats_by_row.get("soloKills", [])
-        ) else ""
         obj_raw = stats_by_row.get("objectivesStolen", [""] * len(names))[idx] if idx < len(
             stats_by_row.get("objectivesStolen", [])
         ) else ""
@@ -104,7 +100,6 @@ def parse_fullstats_html(html: str) -> dict:
                 "name": name,
                 "champion": champ,
                 "championKey": _normalize_champion(champ),
-                "soloKills": int(solo_raw) if str(solo_raw).isdigit() else 0,
                 "objectivesStolen": int(obj_raw) if str(obj_raw).isdigit() else 0,
             }
         )

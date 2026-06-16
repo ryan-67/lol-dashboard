@@ -184,12 +184,12 @@ def aggregate_advanced_from_gamelog(game_log, games):
         if dpg and dpg > 0:
             valid_dpg.append(dpg)
     return {
-        "soloKills": round(sum(g.get("soloKills", 0) for g in game_log) / games, 2),
         "objectivesStolen": int(sum(g.get("objectivesStolen", 0) for g in game_log)),
         "wardsDestroyed": round(sum(g.get("wardsDestroyed", 0) for g in game_log) / games, 1),
         "kaPerMin": round(sum(g.get("kaPerMin", 0) for g in game_log) / len(game_log), 2),
         "dmgGoldRatio": round(sum(valid_dgr) / len(valid_dgr), 3) if valid_dgr else 0,
         "dmgPerGold": round(sum(valid_dpg) / len(valid_dpg), 4) if valid_dpg else 0,
+        "turretPlates": round(sum(g.get("turretPlates", 0) for g in game_log) / games, 2),
     }
 
 
@@ -356,6 +356,7 @@ def slice_store():
         "team_champions": defaultdict(lambda: {"picks": 0, "wins": 0, "pick_slots": []}),
         "game_teams": defaultdict(list),
         "game_team_gold": defaultdict(dict),
+        "game_team_meta": defaultdict(dict),
         "team_games": 0,
         "weekly_team_games": defaultdict(int),
     }
@@ -750,6 +751,13 @@ def process_row(row, buckets: dict, team_to_league: dict[str, str]):
             bucket["game_teams"][game_id].append(
                 {"team": team_name, "result": result, "league": bucket_league, "side": side_val}
             )
+            plates = row_lookup(
+                row,
+                ("turretplates", "turret_plates", "turretplate", "turretplate"),
+                0,
+                as_float=False,
+            )
+            bucket["game_team_meta"][game_id][team_name] = {"turretPlates": plates}
         for i in range(1, 6):
             ban = row.get(f"ban{i}", "")
             if ban:
@@ -874,6 +882,9 @@ def process_row(row, buckets: dict, team_to_league: dict[str, str]):
                 entry["goldTimeline"] = gold_meta.get("timeline") or []
                 if gold_meta.get("gameLength"):
                     entry["gameLength"] = gold_meta["gameLength"]
+            team_meta = bucket["game_team_meta"].get(game_id, {}).get(team_name)
+            if team_meta and team_meta.get("turretPlates") is not None:
+                entry["turretPlates"] = team_meta["turretPlates"]
         p["gameLog"].append(entry)
         if champion:
             cp = p["champions"][champion]
@@ -1014,7 +1025,7 @@ def ingest():
     try:
         from enrich_gol_advanced_stats import enrich_slices
 
-        print("Enriching advanced stats (gol.gg + LPL tjstats solo kills)…")
+        print("Enriching advanced stats (objectives stolen from gol.gg)…")
         enrich_slices(year="2026", season="Spring")
     except Exception as err:
         print(f"  WARNING: gol.gg enrichment skipped: {err}", file=sys.stderr)

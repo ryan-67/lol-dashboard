@@ -112,7 +112,7 @@ export function mergePlayersByName(players: Player[], name: string): Player | nu
     goldShare: round(avgWeighted(merged.goldShare), 1),
     firstBloodRate: round(avgWeighted(merged.firstBloodRate), 1),
     objControl: round(avgWeighted(merged.objControl), 2),
-    soloKills: advanced.soloKills,
+    turretPlates: advanced.turretPlates,
     objectivesStolen: advanced.objectivesStolen,
     wardsDestroyed: advanced.wardsDestroyed,
     kaPerMin: advanced.kaPerMin,

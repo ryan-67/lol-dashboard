@@ -1,10 +1,8 @@
 #!/usr/bin/env python3
 """
-Enrich oe_slices JSON shards with per-game solo kills / objectives stolen.
+Enrich oe_slices JSON shards with per-game objectives stolen from gol.gg.
 
-- gol.gg fullstats: KR/West + objectives stolen (Oracle's Elixir has no solo-kill columns).
-- tjstats heroKill: LPL solo kills (requires TJSTATS_* credentials — see lpl_tjstats.py).
-
+Oracle's Elixir CSVs do not ship objectives-stolen columns; gol.gg fullstats pages do.
 Run after ingest_csv.py (or let ingest invoke this automatically).
 """
 
@@ -29,7 +27,6 @@ from gol_game_stats import (  # noqa: E402
     load_cache,
     save_cache,
 )
-from lpl_tjstats import enrich_lpl_solo_kills  # noqa: E402
 
 OUT_DIR = ROOT / "public" / "data"
 
@@ -91,7 +88,6 @@ def _aggregate_advanced(game_log: list[dict], games: int) -> dict:
     if not game_log or games <= 0:
         return {}
     return {
-        "soloKills": round(sum(g.get("soloKills", 0) for g in game_log) / games, 2),
         "objectivesStolen": int(sum(g.get("objectivesStolen", 0) for g in game_log)),
     }
 
@@ -115,7 +111,6 @@ def _match_game_entry(gol_game: dict, oe_game: dict, player_name: str, player_te
     if opponent_keys and not opponent_keys.isdisjoint(gol_team_keys):
         pass
     elif opponent_keys and opponent_keys.isdisjoint(gol_team_keys):
-        # opponent must appear in the other side of the match title
         if gol_team_keys.isdisjoint(opponent_keys):
             return False
 
@@ -136,7 +131,6 @@ def _apply_gol_stats_to_game(oe_game: dict, gol_game: dict, player_name: str, pl
         champ_key = _normalize_champion(oe_game.get("champion") or "")
         if champ_key and row.get("championKey") and row["championKey"] != champ_key:
             continue
-        oe_game["soloKills"] = row.get("soloKills", 0)
         oe_game["objectivesStolen"] = row.get("objectivesStolen", 0)
         return True
     return False
@@ -187,7 +181,6 @@ def enrich_slices(
     season: str = "Spring",
     max_games: int = 0,
     skip_fetch: bool = False,
-    skip_lpl: bool = False,
     verbose: bool = True,
 ) -> int:
     cache = load_cache()
@@ -212,31 +205,22 @@ def enrich_slices(
 
     patched = enrich_year_shard(shard, gol_games)
     if verbose:
-        print(f"gol.gg: patched {patched} game-log rows in {shard.name}")
-
-    lpl_patched = 0
-    if not skip_lpl:
-        if verbose:
-            print("Enriching LPL solo kills from tjstats…")
-        lpl_patched = enrich_lpl_solo_kills(shard, verbose=verbose)
-
-    return patched + lpl_patched
+        print(f"Patched {patched} game-log rows in {shard.name}")
+    return patched
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Enrich oe_slices with gol.gg solo kills / obj steals")
+    parser = argparse.ArgumentParser(description="Enrich oe_slices with gol.gg objectives stolen")
     parser.add_argument("--year", default="2026", help="Shard year to patch (default: 2026)")
     parser.add_argument("--season", default="Spring", help="gol.gg split label for tournament discovery")
     parser.add_argument("--max-games", type=int, default=0, help="Limit gol games fetched (0 = all)")
     parser.add_argument("--skip-fetch", action="store_true", help="Only use gol_game_cache.json")
-    parser.add_argument("--skip-lpl", action="store_true", help="Skip LPL tjstats solo-kill enrichment")
     args = parser.parse_args()
     enrich_slices(
         year=args.year,
         season=args.season,
         max_games=args.max_games,
         skip_fetch=args.skip_fetch,
-        skip_lpl=args.skip_lpl,
     )
 
 

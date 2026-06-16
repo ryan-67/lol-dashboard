@@ -264,7 +264,7 @@ function mergePlayers(slices: DashboardSlice[]): Player[] {
         goldShare: round(avgWeighted(p.goldShare), 1),
         firstBloodRate: round(avgWeighted(p.firstBloodRate), 1),
         objControl: round(avgWeighted(p.objControl), 2),
-        soloKills: round(advanced.soloKills ?? 0, 2),
+        turretPlates: round(advanced.turretPlates ?? 0, 2),
         objectivesStolen: Math.round(advanced.objectivesStolen ?? 0),
         wardsDestroyed: round(advanced.wardsDestroyed ?? 0, 1),
         kaPerMin: round(advanced.kaPerMin ?? 0, 2),
