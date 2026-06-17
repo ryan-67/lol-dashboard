@@ -179,8 +179,7 @@ def resolve_camps_stolen(row, position: str) -> int:
     """
     Enemy jungle camps stolen (OE monsterkillsenemyjungle).
 
-    LPL partial rows include the column; LCK/LEC/LCS complete rows do not — those
-    are backfilled later via enrich_riot_camps_stolen.py (Riot Match-V5).
+    LPL partial rows include the column; LCK/LEC/LCS complete rows do not.
     """
     if normalize_position(position) != "jungle":
         return 0
@@ -1073,13 +1072,6 @@ def ingest():
         enrich_slices(year="2026", season="Spring")
     except Exception as err:
         print(f"  WARNING: gol.gg enrichment skipped: {err}", file=sys.stderr)
-
-    try:
-        from enrich_riot_camps_stolen import enrich_slices as enrich_riot_camps
-
-        enrich_riot_camps(year="2026")
-    except Exception as err:
-        print(f"  WARNING: Riot camps stolen enrichment skipped: {err}", file=sys.stderr)
 
 
 if __name__ == "__main__":

@@ -45,9 +45,9 @@ export const ADVANCED_METRICS_BY_ROLE: Record<RoleKey, AdvancedMetricDef[]> = {
       format: (v) => v.toFixed(2),
     },
     {
-      key: 'campsStolen',
-      label: 'Camps Stolen / game',
-      shortLabel: 'Camps',
+      key: 'dmgGoldRatio',
+      label: 'Dmg% / Gold%',
+      shortLabel: 'DMG%/G%',
       higherIsBetter: true,
       format: (v) => v.toFixed(2),
     },
