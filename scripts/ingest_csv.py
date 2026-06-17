@@ -166,6 +166,39 @@ def row_lookup(row, keys, default=0, as_float=False):
     return default
 
 
+def row_has_value(row, keys) -> bool:
+    lower = {str(k).lower(): v for k, v in row.items()}
+    for key in keys:
+        val = lower.get(str(key).lower())
+        if val not in (None, ""):
+            return True
+    return False
+
+
+def resolve_camps_stolen(row, position: str) -> int:
+    """
+    Enemy jungle camps stolen (OE monsterkillsenemyjungle).
+
+    LPL partial rows include the column; LCK/LEC/LCS complete rows do not — those
+    are backfilled later via enrich_riot_camps_stolen.py (Riot Match-V5).
+    """
+    if normalize_position(position) != "jungle":
+        return 0
+
+    enemy_keys = ("monsterkillsenemyjungle", "monster_kills_enemy_jungle")
+    if row_has_value(row, enemy_keys):
+        return row_lookup(row, enemy_keys, 0, as_float=False)
+
+    own_keys = ("monsterkillsownjungle", "monster_kills_own_jungle")
+    if row_has_value(row, own_keys):
+        mk = row_lookup(row, ("monsterkills", "monster_kills"), 0, as_float=False)
+        own = row_lookup(row, own_keys, 0, as_float=False)
+        if mk > own:
+            return mk - own
+
+    return 0
+
+
 def aggregate_advanced_from_gamelog(game_log, games):
     if not game_log:
         return {}
@@ -844,12 +877,7 @@ def process_row(row, buckets: dict, team_to_league: dict[str, str]):
             0,
             as_float=False,
         )
-        camps_stolen = row_lookup(
-            row,
-            ("monsterkillsenemyjungle", "monster_kills_enemy_jungle"),
-            0,
-            as_float=False,
-        )
+        camps_stolen = resolve_camps_stolen(row, pos)
         wards_destroyed = row_lookup(
             row,
             ("wardskilled", "wardsdestroyed", "wards_destroyed", "wardscleared"),
@@ -1045,6 +1073,13 @@ def ingest():
         enrich_slices(year="2026", season="Spring")
     except Exception as err:
         print(f"  WARNING: gol.gg enrichment skipped: {err}", file=sys.stderr)
+
+    try:
+        from enrich_riot_camps_stolen import enrich_slices as enrich_riot_camps
+
+        enrich_riot_camps(year="2026")
+    except Exception as err:
+        print(f"  WARNING: Riot camps stolen enrichment skipped: {err}", file=sys.stderr)
 
 
 if __name__ == "__main__":

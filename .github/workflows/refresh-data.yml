@@ -10,7 +10,8 @@
 # in the Supabase SQL editor (service_role needs SELECT/INSERT/UPDATE/DELETE).
 #
 # Secrets: SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, GOOGLE_SERVICE_ACCOUNT_KEY
-# Optional: OE_DRIVE_FOLDER_ID, OPENROUTER_API_KEY (weekly recap generation)
+# Optional: OE_DRIVE_FOLDER_ID, OPENROUTER_API_KEY (weekly recap generation),
+#           RIOT_API_KEY (jungle campsStolen backfill for LCK/LEC/LCS)
 
 name: Refresh Dashboard Data
 
@@ -120,6 +121,8 @@ jobs:
         run: python scripts/download_oe_csv.py
 
       - name: Ingest CSVs into slice JSON shards
+        env:
+          RIOT_API_KEY: ${{ secrets.RIOT_API_KEY }}
         run: python scripts/ingest_csv.py
 
       - name: Seed Supabase oe_slices
