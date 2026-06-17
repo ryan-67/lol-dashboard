@@ -126,7 +126,7 @@ export const ROLE_METRICS: Record<RoleKey, RadarMetricDef[]> = {
 /** Weight keys align with scoring helpers below */
 const SCORE_WEIGHTS: Record<RoleKey, Partial<Record<RadarMetricKey, number>>> = {
   top: { kda: 0.2, gd15: 0.25, csd15: 0.2, turretPlates: 0.15, dmgGoldRatio: 0.1, xpd15: 0.1 },
-  jungle: { kda: 0.2, kaPerMin: 0.25, kp: 0.2, objectivesStolen: 0.15, gd15: 0.1, firstBloodRate: 0.1 },
+  jungle: { kda: 0.2, kaPerMin: 0.25, kp: 0.2, campsStolen: 0.15, gd15: 0.1, firstBloodRate: 0.1 },
   mid: { kda: 0.2, gd15: 0.2, csd15: 0.15, dmgGoldRatio: 0.2, dmgPerGold: 0.15, xpd15: 0.1 },
   adc: { kda: 0.2, gd15: 0.2, dmgGoldRatio: 0.2, dmgPerGold: 0.15, dpm: 0.15, csd15: 0.1 },
   support: { kda: 0.25, kaPerMin: 0.25, wardsDestroyed: 0.2, kp: 0.15, visionScore: 0.1, gd15: 0.05 },
@@ -151,7 +151,7 @@ export function getMetricValue(player: Player, key: RadarMetricKey): number {
     'dmgGoldRatio',
     'dmgPerGold',
     'kaPerMin',
-    'objectivesStolen',
+    'campsStolen',
     'wardsDestroyed',
   ]
   if (advancedKeys.includes(key as AdvancedMetricKey)) {
@@ -202,7 +202,7 @@ export function playerSnapshotFromGame(game: PlayerGameLog): Player {
     firstBloodRate: game.firstBloodRate ?? 0,
     objControl: game.objControl ?? 0,
     turretPlates: game.turretPlates ?? 0,
-    objectivesStolen: game.objectivesStolen ?? 0,
+    campsStolen: game.campsStolen ?? 0,
     wardsDestroyed: game.wardsDestroyed ?? 0,
     kaPerMin: game.kaPerMin ?? 0,
     dmgGoldRatio,

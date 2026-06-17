@@ -94,7 +94,7 @@ const METRIC_LABELS: Partial<Record<keyof Player, string>> = {
   dmgGoldRatio: 'DMG/GOLD',
   dmgPerGold: 'DMG/G',
   kaPerMin: 'K+A/m',
-  objectivesStolen: 'Obj Steal',
+  campsStolen: 'Camps',
   wardsDestroyed: 'Wards Clr',
 }
 
@@ -120,7 +120,7 @@ function createWeeklyPlayerSnapshot(base: Player, logs: PlayerGameLog[]): Player
     firstBloodRate: avg(logs.map((g) => g.firstBloodRate ?? 0)),
     objControl: avg(logs.map((g) => g.objControl ?? 0)),
     turretPlates: advanced.turretPlates,
-    objectivesStolen: advanced.objectivesStolen,
+    campsStolen: advanced.campsStolen,
     wardsDestroyed: advanced.wardsDestroyed,
     kaPerMin: advanced.kaPerMin,
     dmgGoldRatio: advanced.dmgGoldRatio,

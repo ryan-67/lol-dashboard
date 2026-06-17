@@ -828,15 +828,15 @@ function buildSeriesAdvancedInsights(
     }
 
     for (const g of seriesLogs) {
-      if ((g.objectivesStolen ?? 0) >= 1) {
+      if (role === 'jungle' && (g.campsStolen ?? 0) >= 1) {
         insights.push({
-          kind: 'obj_steal_game',
-          priority: 90 + (g.objectivesStolen ?? 0) * 5,
+          kind: 'camps_stolen_game',
+          priority: 90 + (g.campsStolen ?? 0) * 5,
           segments: [
             segText(
-              ledger.pick(`${id}-obj-${player.name}`, salt, [
-                ` — ${playerLabel(player.name)} stole ${g.objectivesStolen} objective${(g.objectivesStolen ?? 0) > 1 ? 's' : ''} (swing play)`,
-                ` — clutch objective steal from ${playerLabel(player.name)}`,
+              ledger.pick(`${id}-camps-${player.name}`, salt, [
+                ` — ${playerLabel(player.name)} stole ${g.campsStolen} enemy camp${(g.campsStolen ?? 0) > 1 ? 's' : ''}`,
+                ` — ${playerLabel(player.name)} was deep in enemy jungle (${g.campsStolen} camps stolen)`,
               ]),
             ),
           ],

@@ -41,7 +41,7 @@ export interface PlayerGameLog {
   firstBloodRate?: number
   objControl?: number
   turretPlates?: number
-  objectivesStolen?: number
+  campsStolen?: number
   wardsDestroyed?: number
   kaPerMin?: number
   dmgGoldRatio?: number
@@ -80,7 +80,7 @@ export interface Player {
   firstBloodRate?: number
   objControl?: number
   turretPlates?: number
-  objectivesStolen?: number
+  campsStolen?: number
   wardsDestroyed?: number
   kaPerMin?: number
   dmgGoldRatio?: number

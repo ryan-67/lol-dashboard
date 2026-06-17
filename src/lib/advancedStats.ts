@@ -7,7 +7,7 @@ export type AdvancedMetricKey =
   | 'dmgGoldRatio'
   | 'dmgPerGold'
   | 'kaPerMin'
-  | 'objectivesStolen'
+  | 'campsStolen'
   | 'wardsDestroyed'
 
 export interface AdvancedMetricDef {
@@ -45,11 +45,11 @@ export const ADVANCED_METRICS_BY_ROLE: Record<RoleKey, AdvancedMetricDef[]> = {
       format: (v) => v.toFixed(2),
     },
     {
-      key: 'objectivesStolen',
-      label: 'Objectives Stolen',
-      shortLabel: 'Obj Steal',
+      key: 'campsStolen',
+      label: 'Camps Stolen / game',
+      shortLabel: 'Camps',
       higherIsBetter: true,
-      format: (v) => String(Math.round(v)),
+      format: (v) => v.toFixed(2),
     },
   ],
   mid: [
@@ -139,7 +139,7 @@ export function isAdvancedMetricAvailable(
   metric: AdvancedMetricKey,
   cohort: Player[],
 ): boolean {
-  if (metric === 'objectivesStolen') {
+  if (metric === 'campsStolen') {
     return cohort.some((p) => getAdvancedMetricValue(p, metric) > 0)
   }
   if (metric === 'turretPlates') {
@@ -157,7 +157,7 @@ export function aggregateAdvancedFromGameLog(logs: PlayerGameLog[]): Partial<Rec
   const dmgPerGold = logs.map(dmgPerGoldFromGame).filter((v) => v > 0)
   return {
     turretPlates: logs.reduce((s, g) => s + (g.turretPlates ?? 0), 0) / logs.length,
-    objectivesStolen: logs.reduce((s, g) => s + (g.objectivesStolen ?? 0), 0),
+    campsStolen: logs.reduce((s, g) => s + (g.campsStolen ?? 0), 0) / logs.length,
     wardsDestroyed: logs.reduce((s, g) => s + (g.wardsDestroyed ?? 0), 0) / logs.length,
     kaPerMin: logs.reduce((s, g) => s + (g.kaPerMin ?? 0), 0) / logs.length,
     dmgGoldRatio: dmgRatios.length ? dmgRatios.reduce((a, b) => a + b, 0) / dmgRatios.length : 0,
@@ -170,7 +170,7 @@ export function enrichPlayerWithAdvancedStats(player: Player): Player {
   return {
     ...player,
     turretPlates: player.turretPlates ?? fromLog.turretPlates,
-    objectivesStolen: player.objectivesStolen ?? fromLog.objectivesStolen,
+    campsStolen: player.campsStolen ?? fromLog.campsStolen,
     wardsDestroyed: player.wardsDestroyed ?? fromLog.wardsDestroyed,
     kaPerMin: player.kaPerMin ?? fromLog.kaPerMin,
     dmgGoldRatio: player.dmgGoldRatio ?? fromLog.dmgGoldRatio,
@@ -222,11 +222,11 @@ export function findAdvancedOutliers(
 
     const cohortValues = cohort
       .map((p) => getAdvancedMetricValue(p, def.key))
-      .filter((v) => v > 0 || def.key === 'objectivesStolen' || def.key === 'turretPlates')
+      .filter((v) => v > 0 || def.key === 'campsStolen' || def.key === 'turretPlates')
     if (cohortValues.length < 3) continue
 
     const value = getAdvancedMetricValue(enriched, def.key)
-    if (value === 0 && (def.key === 'objectivesStolen' || def.key === 'turretPlates')) {
+    if (value === 0 && (def.key === 'campsStolen' || def.key === 'turretPlates')) {
       continue
     }
 
@@ -278,8 +278,10 @@ export function formatAdvancedOutlierLine(o: AdvancedOutlier): string {
       return o.direction === 'high'
         ? `${name} was everywhere on the map (${o.formatted} K+A/min)`
         : `${name} was pretty inactive (${o.formatted} K+A/min)`
-    case 'objectivesStolen':
-      return `${name} stole ${o.formatted} objective${o.value === 1 ? '' : 's'} — swing play`
+    case 'campsStolen':
+      return o.direction === 'high'
+        ? `${name} was deep in enemy jungle (${o.formatted} camps stolen/game)`
+        : `${name} rarely stole camps (${o.formatted}/game)`
     case 'wardsDestroyed':
       return o.direction === 'high'
         ? `${name} denied vision hard (${o.formatted} wards cleared/game)`
@@ -293,8 +295,8 @@ function gameAdvancedValue(game: PlayerGameLog, key: AdvancedMetricKey): number 
   switch (key) {
     case 'turretPlates':
       return game.turretPlates ?? 0
-    case 'objectivesStolen':
-      return game.objectivesStolen ?? 0
+    case 'campsStolen':
+      return game.campsStolen ?? 0
     case 'wardsDestroyed':
       return game.wardsDestroyed ?? 0
     case 'kaPerMin':
@@ -319,17 +321,17 @@ export function findGameAdvancedHighlights(
 
   for (const def of defs) {
     const gameVal = gameAdvancedValue(game, def.key)
-    if (!gameVal && def.key !== 'objectivesStolen') continue
+    if (!gameVal && def.key !== 'campsStolen') continue
 
     const cohortVals = cohortGames
       .map((g) => gameAdvancedValue(g, def.key))
-      .filter((v) => v > 0 || def.key === 'objectivesStolen')
+      .filter((v) => v > 0 || def.key === 'campsStolen')
 
     if (cohortVals.length < 5) continue
     const z = zScore(gameVal, cohortVals)
 
-    if (def.key === 'objectivesStolen' && gameVal >= 1) {
-      lines.push(`stole ${Math.round(gameVal)} objective${gameVal > 1 ? 's' : ''}`)
+    if (def.key === 'campsStolen' && gameVal >= 1) {
+      lines.push(`${Math.round(gameVal)} enemy camp${gameVal > 1 ? 's' : ''} stolen`)
       continue
     }
 

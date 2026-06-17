@@ -184,7 +184,7 @@ def aggregate_advanced_from_gamelog(game_log, games):
         if dpg and dpg > 0:
             valid_dpg.append(dpg)
     return {
-        "objectivesStolen": int(sum(g.get("objectivesStolen", 0) for g in game_log)),
+        "campsStolen": round(sum(g.get("campsStolen", 0) for g in game_log) / games, 2),
         "wardsDestroyed": round(sum(g.get("wardsDestroyed", 0) for g in game_log) / games, 1),
         "kaPerMin": round(sum(g.get("kaPerMin", 0) for g in game_log) / len(game_log), 2),
         "dmgGoldRatio": round(sum(valid_dgr) / len(valid_dgr), 3) if valid_dgr else 0,
@@ -844,9 +844,9 @@ def process_row(row, buckets: dict, team_to_league: dict[str, str]):
             0,
             as_float=False,
         )
-        obj_stolen = row_lookup(
+        camps_stolen = row_lookup(
             row,
-            ("objectivesstolen", "enemyobjectivesstolen", "stolenobjectives", "objstolen"),
+            ("monsterkillsenemyjungle", "monster_kills_enemy_jungle"),
             0,
             as_float=False,
         )
@@ -880,7 +880,7 @@ def process_row(row, buckets: dict, team_to_league: dict[str, str]):
                 "firstBloodRate": 100.0 if fb_involved else 0.0,
                 "objControl": float(obj_total),
                 "soloKills": solo_kills,
-                "objectivesStolen": obj_stolen,
+                "campsStolen": camps_stolen,
                 "wardsDestroyed": round(wards_destroyed, 1),
                 "kaPerMin": round(ka_per_min, 2),
                 "dmgGoldRatio": round(dmg_gold_ratio, 3),
