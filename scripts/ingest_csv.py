@@ -385,6 +385,21 @@ def backfill_game_log_opponents(players_dict, game_teams):
                 g["side"] = str(g["side"]).strip().lower()
 
 
+def backfill_game_log_turret_plates(players_dict, game_team_meta):
+    """OE stores turretplates on team rows, which are processed after player rows in the CSV."""
+    for p in players_dict.values():
+        team_name = p.get("team") or ""
+        for g in p["gameLog"]:
+            if g.get("turretPlates") is not None:
+                continue
+            game_id = g.get("gameId") or ""
+            if not game_id:
+                continue
+            team_meta = game_team_meta.get(game_id, {}).get(team_name)
+            if team_meta and team_meta.get("turretPlates") is not None:
+                g["turretPlates"] = team_meta["turretPlates"]
+
+
 def compile_players(players_dict):
     out = []
     for name, p in players_dict.items():
@@ -620,6 +635,7 @@ def compile_team_champions(team_champions):
 
 def compile_slice(store):
     backfill_game_log_opponents(store["players"], store["game_teams"])
+    backfill_game_log_turret_plates(store["players"], store["game_team_meta"])
     return {
         "players": compile_players(store["players"]),
         "teams": compile_teams(store["teams"]),

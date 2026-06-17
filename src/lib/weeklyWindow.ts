@@ -34,6 +34,15 @@ function isoDate(date: Date): string {
 
 import { formatDateRange } from './format'
 
+function countGamesInWindow(players: Player[], start: Date, end: Date): number {
+  return players
+    .flatMap((p) => p.gameLog ?? [])
+    .filter((g) => {
+      const d = parseDate(g.date)
+      return d !== null && d >= start && d <= end
+    }).length
+}
+
 /** Rolling 7-day window; use split ALL + current year for recap generation across tier-1. */
 export function getWeeklyWindow(
   players: Player[],
@@ -53,9 +62,17 @@ export function getWeeklyWindow(
     (today.getTime() - startOfDay(latestDataDate).getTime()) / (1000 * 60 * 60 * 24)
   const isCurrentContext = daysSinceLatest <= 14
 
-  const anchorEnd = isCurrentContext ? endOfDay(today) : endOfDay(latestDataDate)
-  const start = startOfDay(new Date(anchorEnd))
+  let anchorEnd = isCurrentContext ? endOfDay(today) : endOfDay(latestDataDate)
+  let start = startOfDay(new Date(anchorEnd))
   start.setDate(start.getDate() - 6)
+
+  // OE data often lags the calendar week — keep today as end when games exist, otherwise
+  // use the most recent 7 days of ingested games so weekly hub sections stay populated.
+  if (isCurrentContext && countGamesInWindow(players, start, anchorEnd) === 0) {
+    anchorEnd = endOfDay(latestDataDate)
+    start = startOfDay(new Date(anchorEnd))
+    start.setDate(start.getDate() - 6)
+  }
 
   const dataStale =
     isCurrentContext && startOfDay(latestDataDate).getTime() < today.getTime()
