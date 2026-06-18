@@ -288,21 +288,39 @@ export interface PlayerChampionStatsRow {
   metrics: Partial<Record<RadarMetricKey, number>>
 }
 
+const AT15_METRICS: RadarMetricKey[] = ['gd15', 'csd15', 'xpd15', 'turretPlates']
+
+function metricFromGame(game: PlayerGameLog, key: RadarMetricKey): number | undefined {
+  const raw = game[key as keyof PlayerGameLog]
+  if (typeof raw === 'number' && !Number.isNaN(raw)) return raw
+  return undefined
+}
+
 export function buildPlayerChampionStats(player: Player, role: RoleKey): PlayerChampionStatsRow[] {
   const metricKeys = ROLE_METRICS[role].map((m) => m.key)
   const acc = new Map<
     string,
-    { games: number; wins: number; sums: Partial<Record<RadarMetricKey, number>> }
+    {
+      games: number
+      wins: number
+      sums: Partial<Record<RadarMetricKey, number>>
+      counts: Partial<Record<RadarMetricKey, number>>
+    }
   >()
 
   for (const game of player.gameLog ?? []) {
     if (!game.champion) continue
-    const snap = playerSnapshotFromGame(game)
-    const cur = acc.get(game.champion) ?? { games: 0, wins: 0, sums: {} }
+    const cur = acc.get(game.champion) ?? { games: 0, wins: 0, sums: {}, counts: {} }
     cur.games += 1
     if (game.result === 1) cur.wins += 1
     for (const key of metricKeys) {
-      cur.sums[key] = (cur.sums[key] ?? 0) + getMetricValue(snap, key)
+      const value =
+        AT15_METRICS.includes(key) || key === 'turretPlates'
+          ? metricFromGame(game, key)
+          : getMetricValue(playerSnapshotFromGame(game), key)
+      if (value == null) continue
+      cur.sums[key] = (cur.sums[key] ?? 0) + value
+      cur.counts[key] = (cur.counts[key] ?? 0) + 1
     }
     acc.set(game.champion, cur)
   }
@@ -313,6 +331,7 @@ export function buildPlayerChampionStats(player: Player, role: RoleKey): PlayerC
         games: row.games,
         wins: row.wins,
         sums: {},
+        counts: {},
       })
     }
   }
@@ -321,8 +340,9 @@ export function buildPlayerChampionStats(player: Player, role: RoleKey): PlayerC
     .map(([champion, stats]) => {
       const metrics: Partial<Record<RadarMetricKey, number>> = {}
       for (const key of metricKeys) {
-        if (stats.sums[key] != null && stats.games > 0) {
-          metrics[key] = stats.sums[key]! / stats.games
+        const count = stats.counts[key]
+        if (stats.sums[key] != null && count && count > 0) {
+          metrics[key] = stats.sums[key]! / count
         }
       }
       return {

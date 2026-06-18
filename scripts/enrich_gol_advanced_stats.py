@@ -92,6 +92,24 @@ def _aggregate_advanced(game_log: list[dict], games: int) -> dict:
     }
 
 
+def _avg_from_gamelog(game_log: list[dict], key: str) -> float | None:
+    vals = [g[key] for g in game_log if key in g and g[key] is not None]
+    if not vals:
+        return None
+    return round(sum(vals) / len(vals), 1)
+
+
+def recompute_player_lane_aggregates(player: dict) -> None:
+    """Recompute gd15/csd15/xpd15 player averages from gameLog after gol backfill."""
+    game_log = player.get("gameLog") or []
+    if not game_log:
+        return
+    for key in ("gd15", "csd15", "xpd15"):
+        avg = _avg_from_gamelog(game_log, key)
+        if avg is not None:
+            player[key] = avg
+
+
 def _match_game_entry(gol_game: dict, oe_game: dict, player_name: str, player_team: str) -> bool:
     if not gol_game.get("players"):
         return False
@@ -132,6 +150,13 @@ def _apply_gol_stats_to_game(oe_game: dict, gol_game: dict, player_name: str, pl
         if champ_key and row.get("championKey") and row["championKey"] != champ_key:
             continue
         oe_game["objectivesStolen"] = row.get("objectivesStolen", 0)
+        patched = False
+        for stat in ("gd15", "csd15", "xpd15"):
+            val = row.get(stat)
+            if val is not None:
+                oe_game[stat] = round(float(val), 1)
+                oe_game["at15Source"] = "gol.gg"
+                patched = True
         return True
     return False
 
@@ -160,6 +185,7 @@ def enrich_slice_players(players: list[dict], gol_games: list[dict]) -> int:
                     if _apply_gol_stats_to_game(oe_game, gol_game, player["name"], player.get("team", "")):
                         patched += 1
                     break
+        recompute_player_lane_aggregates(player)
         adv = _aggregate_advanced(game_log, player.get("games") or len(game_log))
         player.update(adv)
     return patched

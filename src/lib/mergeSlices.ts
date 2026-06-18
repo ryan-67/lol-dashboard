@@ -84,6 +84,26 @@ function dedupeGameLog(log: PlayerGameLog[]): PlayerGameLog[] {
   })
 }
 
+function avgFromGameLog(
+  gameLog: PlayerGameLog[],
+  key: 'gd15' | 'csd15' | 'xpd15',
+): number | null {
+  const vals = gameLog
+    .map((g) => g[key])
+    .filter((v): v is number => typeof v === 'number' && !Number.isNaN(v))
+  if (!vals.length) return null
+  return round(vals.reduce((a, b) => a + b, 0) / vals.length, 1)
+}
+
+function laneStat(
+  weighted: Array<{ value: number; weight: number }>,
+  gameLog: PlayerGameLog[],
+  key: 'gd15' | 'csd15' | 'xpd15',
+): number | null {
+  if (weighted.length) return round(avgWeighted(weighted), 1)
+  return avgFromGameLog(gameLog, key)
+}
+
 function avgWeighted(values: Array<{ value: number; weight: number }>): number {
   const totalWeight = values.reduce((sum, v) => sum + v.weight, 0)
   if (totalWeight <= 0) return 0
@@ -214,11 +234,13 @@ function mergePlayers(slices: DashboardSlice[]): Player[] {
       if (games > 0 && typeof p.dmgShare === 'number') {
         existing.dmgShare.push({ value: p.dmgShare, weight: games })
       }
-      if (games > 0 && typeof p.gd15 === 'number') existing.gd15.push({ value: p.gd15, weight: games })
-      if (games > 0 && typeof p.csd15 === 'number') {
+      if (games > 0 && p.gd15 != null && typeof p.gd15 === 'number') {
+        existing.gd15.push({ value: p.gd15, weight: games })
+      }
+      if (games > 0 && p.csd15 != null && typeof p.csd15 === 'number') {
         existing.csd15.push({ value: p.csd15, weight: games })
       }
-      if (games > 0 && typeof p.xpd15 === 'number') {
+      if (games > 0 && p.xpd15 != null && typeof p.xpd15 === 'number') {
         existing.xpd15.push({ value: p.xpd15, weight: games })
       }
       if (games > 0 && typeof p.dpm === 'number') existing.dpm.push({ value: p.dpm, weight: games })
@@ -256,9 +278,9 @@ function mergePlayers(slices: DashboardSlice[]): Player[] {
         kda: round((p.kills + p.assists) / deaths, 2),
         kp: round(avgWeighted(p.kp), 1),
         dmgShare: round(avgWeighted(p.dmgShare), 1),
-        gd15: round(avgWeighted(p.gd15), 1),
-        csd15: round(avgWeighted(p.csd15), 1),
-        xpd15: round(avgWeighted(p.xpd15), 1),
+        gd15: laneStat(p.gd15, gameLog, 'gd15') ?? 0,
+        csd15: laneStat(p.csd15, gameLog, 'csd15') ?? 0,
+        xpd15: laneStat(p.xpd15, gameLog, 'xpd15') ?? 0,
         dpm: round(avgWeighted(p.dpm), 1),
         visionScore: round(avgWeighted(p.visionScore), 1),
         goldShare: round(avgWeighted(p.goldShare), 1),

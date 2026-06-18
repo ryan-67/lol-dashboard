@@ -175,6 +175,38 @@ def row_has_value(row, keys) -> bool:
     return False
 
 
+def resolve_at15_from_row(row) -> tuple[float | None, float | None, float | None]:
+    """
+    Resolve lane diffs at 15 from OE row.
+
+    LPL rows are datacompleteness=partial and often omit golddiffat15/csdiffat15/xpdiffat15
+    entirely (not zero). Return None when missing so ingest does not average fake zeros.
+    """
+    gd = row.get("golddiffat15")
+    csd = row.get("csdiffat15")
+    xpd = row.get("xpdiffat15")
+
+    def diff_or_compute(val, at_key, opp_at_key):
+        if val not in (None, ""):
+            return safe_float(val)
+        at = row.get(at_key)
+        opp = row.get(opp_at_key)
+        if at not in (None, "") and opp not in (None, ""):
+            return safe_float(at) - safe_float(opp)
+        return None
+
+    return (
+        diff_or_compute(gd, "goldat15", "opp_goldat15"),
+        diff_or_compute(csd, "csat15", "opp_csat15"),
+        diff_or_compute(xpd, "xpat15", "opp_xpat15"),
+    )
+
+
+def append_if_present(bucket_list: list, value: float | None) -> None:
+    if value is not None:
+        bucket_list.append(value)
+
+
 def resolve_camps_stolen(row, position: str) -> int:
     """
     Enemy jungle camps stolen (OE monsterkillsenemyjungle).
@@ -432,6 +464,15 @@ def backfill_game_log_turret_plates(players_dict, game_team_meta):
                 g["turretPlates"] = team_meta["turretPlates"]
 
 
+def avg_lane_stat(bucket_list, game_log, key: str):
+    if bucket_list:
+        return round(sum(bucket_list) / len(bucket_list), 1)
+    vals = [g[key] for g in (game_log or []) if g.get(key) is not None]
+    if vals:
+        return round(sum(vals) / len(vals), 1)
+    return None
+
+
 def compile_players(players_dict):
     out = []
     for name, p in players_dict.items():
@@ -439,6 +480,7 @@ def compile_players(players_dict):
         if games < MIN_PLAYER_GAMES:
             continue
         deaths = max(p["deaths"], 1)
+        game_log = sorted(p["gameLog"], key=lambda g: (g.get("date", ""), g.get("gameId", "")))
         out.append(
             {
                 "name": name,
@@ -452,9 +494,9 @@ def compile_players(players_dict):
                 "kda": round((p["kills"] + p["assists"]) / deaths, 2),
                 "kp": round(sum(p["kp"]) / len(p["kp"]), 1) if p["kp"] else 0,
                 "dmgShare": round(sum(p["dmgShare"]) / len(p["dmgShare"]), 1) if p["dmgShare"] else 0,
-                "gd15": round(sum(p["gd15"]) / len(p["gd15"]), 1) if p["gd15"] else 0,
-                "csd15": round(sum(p["csd15"]) / len(p["csd15"]), 1) if p["csd15"] else 0,
-                "xpd15": round(sum(p["xpd15"]) / len(p["xpd15"]), 1) if p["xpd15"] else 0,
+                "gd15": avg_lane_stat(p["gd15"], game_log, "gd15"),
+                "csd15": avg_lane_stat(p["csd15"], game_log, "csd15"),
+                "xpd15": avg_lane_stat(p["xpd15"], game_log, "xpd15"),
                 "dpm": round(sum(p["dpm"]) / len(p["dpm"]), 1) if p["dpm"] else 0,
                 "visionScore": round(sum(p["visionScore"]) / len(p["visionScore"]), 1)
                 if p["visionScore"]
@@ -462,11 +504,8 @@ def compile_players(players_dict):
                 "goldShare": round(sum(p["goldShare"]) / len(p["goldShare"]), 1) if p["goldShare"] else 0,
                 "firstBloodRate": round(sum(p["firstBloodGames"]) / games * 100, 1) if games else 0,
                 "objControl": round(sum(p["objControl"]) / len(p["objControl"]), 2) if p["objControl"] else 0,
-                **aggregate_advanced_from_gamelog(
-                    sorted(p["gameLog"], key=lambda g: (g.get("date", ""), g.get("gameId", ""))),
-                    games,
-                ),
-                "gameLog": sorted(p["gameLog"], key=lambda g: (g.get("date", ""), g.get("gameId", ""))),
+                **aggregate_advanced_from_gamelog(game_log, games),
+                "gameLog": game_log,
                 "championPool": [
                     {
                         "champion": champ,
@@ -773,7 +812,8 @@ def process_row(row, buckets: dict, team_to_league: dict[str, str]):
         t["kills"] += safe_int(row.get("kills", 0))
         t["deaths"] += safe_int(row.get("deaths", 0))
         t["assists"] += safe_int(row.get("assists", 0))
-        t["gd15"].append(safe_float(row.get("golddiffat15", 0)))
+        gd15, _, _ = resolve_at15_from_row(row)
+        append_if_present(t["gd15"], gd15)
         gl = safe_float(row.get("gamelength", 0))
         if gl > 0:
             t["gamelength"].append(gl)
@@ -839,9 +879,10 @@ def process_row(row, buckets: dict, team_to_league: dict[str, str]):
             kp_val = safe_float(row.get("killparticipation", 0)) * 100
         p["kp"].append(kp_val)
         p["dmgShare"].append(safe_float(row.get("damageshare", 0)) * 100)
-        p["gd15"].append(safe_float(row.get("golddiffat15", 0)))
-        p["csd15"].append(safe_float(row.get("csdiffat15", 0)))
-        p["xpd15"].append(safe_float(row.get("xpdiffat15", 0)))
+        gd15, csd15, xpd15 = resolve_at15_from_row(row)
+        append_if_present(p["gd15"], gd15)
+        append_if_present(p["csd15"], csd15)
+        append_if_present(p["xpd15"], xpd15)
         p["dpm"].append(safe_float(row.get("dpm", 0)))
         p["visionScore"].append(safe_float(row.get("visionscore", 0)))
         p["goldShare"].append(safe_float(row.get("earnedgoldshare", 0)) * 100)
@@ -898,9 +939,6 @@ def process_row(row, buckets: dict, team_to_league: dict[str, str]):
                 "kda": round((kills_g + assists_g) / deaths_g, 2),
                 "kp": round(kp_val, 1),
                 "dmgShare": round(safe_float(row.get("damageshare", 0)) * 100, 1),
-                "gd15": round(safe_float(row.get("golddiffat15", 0)), 1),
-                "csd15": round(safe_float(row.get("csdiffat15", 0)), 1),
-                "xpd15": round(safe_float(row.get("xpdiffat15", 0)), 1),
                 "dpm": round(safe_float(row.get("dpm", 0)), 1),
                 "visionScore": round(safe_float(row.get("visionscore", 0)), 1),
                 "goldShare": round(safe_float(row.get("earnedgoldshare", 0)) * 100, 1),
@@ -915,6 +953,12 @@ def process_row(row, buckets: dict, team_to_league: dict[str, str]):
                 "gpm": round(gpm, 1),
                 "gameLength": round(gl / 60, 1) if gl > 0 else None,
             }
+        if gd15 is not None:
+            entry["gd15"] = round(gd15, 1)
+        if csd15 is not None:
+            entry["csd15"] = round(csd15, 1)
+        if xpd15 is not None:
+            entry["xpd15"] = round(xpd15, 1)
         side_val = str(row.get("side", "")).strip().lower()
         if side_val:
             entry["side"] = side_val
@@ -950,7 +994,8 @@ def process_row(row, buckets: dict, team_to_league: dict[str, str]):
         c["kills"] += safe_int(row.get("kills", 0))
         c["deaths"] += safe_int(row.get("deaths", 0))
         c["assists"] += safe_int(row.get("assists", 0))
-        c["csd15"].append(safe_float(row.get("csdiffat15", 0)))
+        _, csd15_champ, _ = resolve_at15_from_row(row)
+        append_if_present(c["csd15"], csd15_champ)
         c["dpm"].append(safe_float(row.get("dpm", 0)))
         gl = safe_float(row.get("gamelength", 0))
         if gl > 0:
@@ -1068,7 +1113,7 @@ def ingest():
     try:
         from enrich_gol_advanced_stats import enrich_slices
 
-        print("Enriching advanced stats (objectives stolen from gol.gg)…")
+        print("Enriching advanced stats (gol.gg: objectives stolen + LPL at-15 lane diffs)…")
         enrich_slices(year="2026", season="Spring")
     except Exception as err:
         print(f"  WARNING: gol.gg enrichment skipped: {err}", file=sys.stderr)

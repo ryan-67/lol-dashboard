@@ -14,10 +14,24 @@ ROOT = Path(__file__).resolve().parent.parent
 CACHE_PATH = ROOT / "public" / "data" / "gol_game_cache.json"
 GOL_BASE = "https://gol.gg"
 USER_AGENT = "nucky-dashboard-ingest/1.0"
+CACHE_VERSION = 2
 
 ROW_LABELS = {
     "objectivesStolen": ("objectives stolen",),
+    "gd15": ("GD@15",),
+    "csd15": ("CSD@15",),
+    "xpd15": ("XPD@15",),
 }
+
+
+def _parse_signed_number(raw: str) -> float | None:
+    text = (raw or "").strip().replace(",", "")
+    if not text or text.lower() in {"n/a", "-"}:
+        return None
+    try:
+        return float(text)
+    except ValueError:
+        return None
 
 
 def _fetch(url: str, timeout: int = 25) -> str:
@@ -95,12 +109,19 @@ def parse_fullstats_html(html: str) -> dict:
             stats_by_row.get("objectivesStolen", [])
         ) else ""
         champ = champions[idx] if idx < len(champions) else ""
+        lane_stats: dict[str, float | None] = {}
+        for stat_key in ("gd15", "csd15", "xpd15"):
+            row_vals = stats_by_row.get(stat_key, [])
+            raw = row_vals[idx] if idx < len(row_vals) else ""
+            lane_stats[stat_key] = _parse_signed_number(raw)
+
         players.append(
             {
                 "name": name,
                 "champion": champ,
                 "championKey": _normalize_champion(champ),
                 "objectivesStolen": int(obj_raw) if str(obj_raw).isdigit() else 0,
+                **lane_stats,
             }
         )
 
@@ -121,14 +142,16 @@ def save_cache(cache: dict) -> None:
 def fetch_game_stats(game_id: str, cache: dict | None = None, delay_s: float = 0.15) -> dict:
     cache = cache if cache is not None else load_cache()
     key = str(game_id)
-    if key in cache:
-        return cache[key]
+    cached = cache.get(key)
+    if cached and cached.get("_cacheVersion") == CACHE_VERSION and cached.get("players"):
+        return cached
 
     url = f"{GOL_BASE}/game/stats/{game_id}/page-fullstats/"
     try:
         html = _fetch(url)
         parsed = parse_fullstats_html(html)
         parsed["golGameId"] = key
+        parsed["_cacheVersion"] = CACHE_VERSION
         cache[key] = parsed
         if delay_s:
             time.sleep(delay_s)

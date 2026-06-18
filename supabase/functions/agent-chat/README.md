@@ -12,7 +12,7 @@ Hosted on Supabase Edge Functions in production. Responsibilities:
 - **20-message context window** — `historyWindow.ts` trims last ~20 turns for multi-turn follow-ups
 - **Thread intent** (`threadIntent.ts`): follow-ups inherit prior question; never off-topic mid-conversation
 - **Top team semantics**: "top team" = top 4–5 by standings winrate; ADC fraud → dmg%/gold%
-- Always-on roster context when stats/RAG/roster questions need it; lightweight temporal-only block for pure theory chat
+- Always-on roster context from oe_slices (starters/subs by game count); mentioned-player roster block injected every turn
 - Temporal/world context (`client_now`, MSI 2026 calendar, known 2026 roster moves)
 - Deterministic analyst tools over `oe_slices` and `esports_schedules`
 - pgvector RAG via `match_documents` (multi-param RPC fallback)
