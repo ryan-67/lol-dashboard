@@ -651,6 +651,46 @@ def compile_champions(champs_dict, team_games: int, weekly_team_games: dict):
     return out
 
 
+def compile_roster_depth(players_dict):
+    """Full roster including subs (games >= 1), with starter/sub flags per team+role.
+
+    Unlike compile_players (MIN_PLAYER_GAMES floor for leaderboards), this keeps every
+    player who logged at least one game so substitutes (e.g. a 3-game sub jungler)
+    remain visible across the dashboard and to nuckyAI.
+    """
+    by_team_role: dict[tuple[str, str, str], list[dict]] = defaultdict(list)
+    for name, p in players_dict.items():
+        games = p["games"]
+        if games < 1:
+            continue
+        role = normalize_position(p["position"])
+        if role not in {"top", "jungle", "mid", "adc", "support"}:
+            continue
+        by_team_role[(p["team"], p["league"], role)].append(
+            {"name": name, "games": games}
+        )
+
+    out = []
+    for (team, league, role), members in by_team_role.items():
+        members.sort(key=lambda m: m["games"], reverse=True)
+        starter_games = members[0]["games"]
+        for idx, member in enumerate(members):
+            is_starter = idx == 0 and starter_games > 0
+            out.append(
+                {
+                    "name": member["name"],
+                    "team": team,
+                    "league": league,
+                    "position": role,
+                    "games": member["games"],
+                    "isStarter": is_starter,
+                    "isSub": not is_starter,
+                }
+            )
+    out.sort(key=lambda r: (r["team"], r["position"], -r["games"]))
+    return out
+
+
 def compile_matchups(game_teams):
     counts = defaultdict(lambda: {"games": 0, "winsA": 0, "winsB": 0})
     for sides in game_teams.values():
@@ -709,6 +749,7 @@ def compile_slice(store):
     backfill_game_log_turret_plates(store["players"], store["game_team_meta"])
     return {
         "players": compile_players(store["players"]),
+        "rosterDepth": compile_roster_depth(store["players"]),
         "teams": compile_teams(store["teams"]),
         "champions": compile_champions(
             store["champions"], store["team_games"], dict(store["weekly_team_games"])

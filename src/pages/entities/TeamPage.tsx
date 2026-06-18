@@ -15,7 +15,8 @@ import {
 } from '../../lib/entities'
 import { isDisplayableTeam } from '../../lib/teamAnalytics'
 import { isDisplayablePlayer, normalizePosition, ROLES } from '../../lib/playerRadar'
-import { playerKey } from '../../lib/playerAnalytics'
+import { getTeamRosterDepth } from '../../lib/mergeSlices'
+import type { Player } from '../../hooks/useDashboardData'
 import { formatGameDate, formatNum, formatPct } from '../../lib/format'
 import TeamRadarChart from '../../components/teams/TeamRadarChart'
 import {
@@ -64,11 +65,44 @@ export default function TeamPage() {
   const team = useMemo(() => mergeTeamsByCanonical(teams, slug), [teams, slug])
   const players = useMemo(() => (data?.players ?? []).filter(isDisplayablePlayer), [data])
 
-  const roster = useMemo(() => {
+  const roster = useMemo<Array<{ player?: Player; name: string; position: string; games: number; isSub: boolean }>>(() => {
     if (!team) return []
     const roleOrder = new Map(ROLES.map((role, index) => [role, index]))
-    return players
-      .filter((p) => teamMatchesCanonical(p.team, slug))
+    const teamPlayers = players.filter((p) => teamMatchesCanonical(p.team, slug))
+    const findPlayer = (name: string, role: string) =>
+      teamPlayers.find(
+        (p) =>
+          p.name.toLowerCase() === name.toLowerCase() &&
+          normalizePosition(p.position) === role,
+      ) ?? teamPlayers.find((p) => p.name.toLowerCase() === name.toLowerCase())
+
+    const depth = getTeamRosterDepth(team.name, data?.rosterDepth ?? [], teamPlayers)
+    const hasDepth = depth.starters.length > 0 && (data?.rosterDepth?.length ?? 0) > 0
+
+    if (hasDepth) {
+      const rows: Array<{ player?: Player; name: string; position: string; games: number; isSub: boolean }> = []
+      for (const starter of depth.starters) {
+        rows.push({
+          player: findPlayer(starter.name, starter.position),
+          name: starter.name,
+          position: starter.position,
+          games: starter.games,
+          isSub: false,
+        })
+        for (const sub of depth.subsByRole[starter.position] ?? []) {
+          rows.push({
+            player: findPlayer(sub.name, sub.position),
+            name: sub.name,
+            position: sub.position,
+            games: sub.games,
+            isSub: true,
+          })
+        }
+      }
+      return rows
+    }
+
+    return teamPlayers
       .sort((a, b) => {
         const ra = normalizePosition(a.position)
         const rb = normalizePosition(b.position)
@@ -77,7 +111,8 @@ export default function TeamPage() {
         if (oa !== ob) return oa - ob
         return a.name.localeCompare(b.name)
       })
-  }, [players, team, slug])
+      .map((p) => ({ player: p, name: p.name, position: p.position, games: p.games, isSub: false }))
+  }, [players, team, slug, data])
 
   const matchHistory = useMemo(
     () =>
@@ -217,35 +252,47 @@ export default function TeamPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {roster.map((p) => (
-                    <tr key={playerKey(p)}>
-                      <td>
-                        <EntityLink
-                          type="player"
-                          name={p.name}
-                          player={p}
-                          allPlayers={players}
-                          showIcon={false}
-                        />
-                      </td>
-                      <td>{p.position.toUpperCase()}</td>
-                      <td>{formatNum(p.kda, 2)}</td>
-                      <td>
-                        {p.gd15 > 0 ? '+' : ''}
-                        {formatNum(p.gd15, 1)}
-                      </td>
-                      <td>{formatPct(p.kp, 1)}</td>
-                      <td>{formatPct(p.dmgShare, 1)}</td>
-                      <td>{formatPct(p.goldShare, 1)}</td>
-                      <td>
-                        <div className="entity-champ-pool">
-                          {playerChampionIcons(p).map((champ) => (
-                            <ChampionIcon key={champ} name={champ} size={20} />
-                          ))}
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
+                  {roster.map((row) => {
+                    const p = row.player
+                    return (
+                      <tr key={`${row.name}|${row.position}|${row.isSub ? 'sub' : 'starter'}`}>
+                        <td>
+                          {p ? (
+                            <EntityLink
+                              type="player"
+                              name={row.name}
+                              player={p}
+                              allPlayers={players}
+                              showIcon={false}
+                            />
+                          ) : (
+                            <EntityLink type="player" name={row.name} />
+                          )}
+                          {row.isSub && (
+                            <span className="entity-roster-sub-badge" title={`${row.games} games`}>
+                              sub · {row.games}g
+                            </span>
+                          )}
+                        </td>
+                        <td>{row.position.toUpperCase()}</td>
+                        <td>{p ? formatNum(p.kda, 2) : '—'}</td>
+                        <td>
+                          {p ? `${p.gd15 > 0 ? '+' : ''}${formatNum(p.gd15, 1)}` : '—'}
+                        </td>
+                        <td>{p ? formatPct(p.kp, 1) : '—'}</td>
+                        <td>{p ? formatPct(p.dmgShare, 1) : '—'}</td>
+                        <td>{p ? formatPct(p.goldShare, 1) : '—'}</td>
+                        <td>
+                          <div className="entity-champ-pool">
+                            {p &&
+                              playerChampionIcons(p).map((champ) => (
+                                <ChampionIcon key={champ} name={champ} size={20} />
+                              ))}
+                          </div>
+                        </td>
+                      </tr>
+                    )
+                  })}
                 </tbody>
               </table>
             </div>

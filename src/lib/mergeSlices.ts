@@ -5,6 +5,7 @@ import type {
   Player,
   PlayerChampionPoolEntry,
   PlayerGameLog,
+  RosterDepthEntry,
   Team,
   TeamChampion,
 } from '../hooks/useDashboardData'
@@ -17,6 +18,7 @@ export interface DashboardSlice {
   champions: Champion[]
   matchups: Matchup[]
   teamChampions: TeamChampion[]
+  rosterDepth?: RosterDepthEntry[]
   weeklyTeamGames?: Record<string, number>
 }
 
@@ -615,6 +617,112 @@ function mergeTeamChampions(slices: DashboardSlice[]): TeamChampion[] {
     })
 }
 
+const ROSTER_ROLE_ORDER = ['top', 'jungle', 'mid', 'adc', 'support']
+
+function normalizeRosterRole(position: string): string {
+  const pos = position.toLowerCase()
+  if (pos === 'jng') return 'jungle'
+  if (pos === 'bot') return 'adc'
+  if (pos === 'sup') return 'support'
+  return pos
+}
+
+/** Aggregate full roster (starters + subs, games >= 1) across slices and re-derive starter/sub. */
+function mergeRosterDepth(slices: DashboardSlice[]): RosterDepthEntry[] {
+  const acc = new Map<string, RosterDepthEntry>()
+  for (const slice of slices) {
+    for (const entry of slice.rosterDepth ?? []) {
+      const role = normalizeRosterRole(entry.position)
+      const key = `${entry.name}|${entry.team}|${entry.league}|${role}`
+      const existing = acc.get(key)
+      if (existing) {
+        existing.games += entry.games ?? 0
+      } else {
+        acc.set(key, {
+          name: entry.name,
+          team: entry.team,
+          league: entry.league,
+          position: role,
+          games: entry.games ?? 0,
+          isStarter: false,
+          isSub: false,
+        })
+      }
+    }
+  }
+
+  // Re-derive starter/sub per (team, league, role) by game count after merging splits.
+  const byTeamRole = new Map<string, RosterDepthEntry[]>()
+  for (const entry of acc.values()) {
+    const slot = `${entry.team}|${entry.league}|${entry.position}`
+    const arr = byTeamRole.get(slot) ?? []
+    arr.push(entry)
+    byTeamRole.set(slot, arr)
+  }
+  for (const members of byTeamRole.values()) {
+    members.sort((a, b) => b.games - a.games)
+    members.forEach((member, idx) => {
+      member.isStarter = idx === 0 && member.games > 0
+      member.isSub = !member.isStarter
+    })
+  }
+
+  return [...acc.values()].sort(
+    (a, b) =>
+      a.team.localeCompare(b.team) ||
+      ROSTER_ROLE_ORDER.indexOf(a.position) - ROSTER_ROLE_ORDER.indexOf(b.position) ||
+      b.games - a.games,
+  )
+}
+
+export interface TeamRosterDepth {
+  starters: RosterDepthEntry[]
+  subsByRole: Record<string, RosterDepthEntry[]>
+}
+
+/**
+ * Resolve a team's roster (starters + subs by role). Prefers rosterDepth (includes subs
+ * with >=1 game); falls back to the games>=5 player list when rosterDepth is absent.
+ */
+export function getTeamRosterDepth(
+  teamName: string,
+  rosterDepth: RosterDepthEntry[],
+  fallbackPlayers: Player[] = [],
+): TeamRosterDepth {
+  const norm = (v: string) => v.toLowerCase().replace(/[^a-z0-9]/g, '')
+  const target = norm(teamName)
+  const matches = rosterDepth.filter((r) => norm(r.team) === target)
+
+  if (matches.length) {
+    const starters: RosterDepthEntry[] = []
+    const subsByRole: Record<string, RosterDepthEntry[]> = {}
+    for (const role of ROSTER_ROLE_ORDER) {
+      const atRole = matches
+        .filter((r) => r.position === role)
+        .sort((a, b) => b.games - a.games)
+      if (!atRole.length) continue
+      starters.push(atRole[0]!)
+      const subs = atRole.slice(1).filter((s) => s.games >= 1)
+      if (subs.length) subsByRole[role] = subs
+    }
+    return { starters, subsByRole }
+  }
+
+  // Fallback: build from analytics players (starters only; no sub visibility).
+  const starters = fallbackPlayers
+    .filter((p) => norm(p.team) === target)
+    .map<RosterDepthEntry>((p) => ({
+      name: p.name,
+      team: p.team,
+      league: p.league,
+      position: normalizeRosterRole(p.position),
+      games: p.games,
+      isStarter: true,
+      isSub: false,
+    }))
+  return { starters, subsByRole: {} }
+}
+
 export function mergeSlicesFromFilters(
   store: OEStore,
   leagues: string[],
@@ -635,6 +743,7 @@ export function mergeSlicesFromFilters(
       champions: [],
       matchups: [],
       teamChampions: [],
+      rosterDepth: [],
     }
   }
 
@@ -648,6 +757,7 @@ export function mergeSlicesFromFilters(
     champions: mergeChampions(slices),
     matchups: mergeMatchups(slices),
     teamChampions: mergeTeamChampions(slices),
+    rosterDepth: mergeRosterDepth(slices),
   }
 }
 
@@ -671,6 +781,7 @@ export function mergeSlices(
       champions: [],
       matchups: [],
       teamChampions: [],
+      rosterDepth: [],
     }
   }
 
@@ -684,5 +795,6 @@ export function mergeSlices(
     champions: mergeChampions(slices),
     matchups: mergeMatchups(slices),
     teamChampions: mergeTeamChampions(slices),
+    rosterDepth: mergeRosterDepth(slices),
   }
 }

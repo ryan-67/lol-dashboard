@@ -172,6 +172,16 @@ export interface TeamChampion {
   avgPickOrder?: number | null
 }
 
+export interface RosterDepthEntry {
+  name: string
+  team: string
+  league: string
+  position: string
+  games: number
+  isStarter: boolean
+  isSub: boolean
+}
+
 export interface DashboardData {
   meta: DashboardMeta
   players: Player[]
@@ -179,6 +189,7 @@ export interface DashboardData {
   champions: Champion[]
   matchups: Matchup[]
   teamChampions: TeamChampion[]
+  rosterDepth: RosterDepthEntry[]
 }
 
 export { DEFAULT_SPLIT } from '../lib/constants'
