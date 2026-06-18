@@ -52,7 +52,7 @@ function getFunctionUrl(): string {
 
 function mapHttpError(status: number): string {
   if (status === 401) return 'session expired — log in again.'
-  if (status === 403) return 'subscription required — upgrade to use nuckyAI.'
+  if (status === 403) return 'subscription required — upgrade to chat with nucky.'
   if (status === 429) return 'daily limit reached — try again tomorrow.'
   if (status >= 500) return 'server error — try again in a moment.'
   return `request failed (${status}). try again.`
@@ -66,8 +66,8 @@ function mapSseError(event: AgentErrorEvent): string {
     return event.message ?? `daily limit reached —${resetHint}`
   }
   if (event.code === 'unauthorized') return 'session expired — log in again.'
-  if (event.code === 'forbidden') return 'subscription required — upgrade to use nuckyAI.'
-  return event.message ?? 'nuckyAI hit an error. try again.'
+  if (event.code === 'forbidden') return 'subscription required — upgrade to chat with nucky.'
+  return event.message ?? 'nucky hit an error. try again.'
 }
 
 export function useAgentChat() {
@@ -190,7 +190,7 @@ export function useAgentChat() {
             ? err.message
             : err instanceof Error
               ? err.message
-              : 'nuckyAI is taking a nap. try again.'
+              : 'nucky is taking a nap. try again.'
         setStreamError(msg)
         onError?.(msg)
       } finally {

@@ -46,8 +46,8 @@ const MESSAGES: Record<ThinkingCategory, string[]> = {
   ],
   general: [
     'lemme take a look...',
-    'one sec, lemme pull that up for you...',
-    'hold on, checking what we have...',
+    'one sec, pulling that up...',
+    'hold on, checking what i\'ve got...',
   ],
 }
 

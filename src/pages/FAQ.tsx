@@ -13,17 +13,17 @@ const FAQ_ITEMS = [
       'Pick league, year, and split from the sticky header — filters apply everywhere. Overview highlights weekly standouts (Player of the Week, Team of the Week by role, hottest team, weekly recap). Players and Teams support radars, form charts, and compare flows. Matchups compares two teams head-to-head with team and lane radars. Click any player, team, or champion name to open its identity page.',
   },
   {
-    question: 'what is nuckyAI?',
+    question: 'what is nucky / nuckyAI?',
     answer:
-      'nuckyAI is the subscription analyst chat on nucky.gg. It streams answers grounded in the same pro-play database as the dashboard, plus retrieval-augmented context from Liquipedia, patch notes, Reddit, Kalshi tier-1 odds, and esports schedules. Deterministic tools handle matchups, rankings, champion meta, team form, and lane breakdowns before the model synthesizes a take.',
+      'nucky is the subscription analyst chat on nucky.gg — same name as the product voice users talk to ("hey nucky"). it streams answers grounded in the same pro-play database as the dashboard, plus weekly esports context from Liquipedia, patch notes, Reddit, Kalshi odds, and schedules. matchups and comparisons include inline radar charts like the dashboard.',
   },
   {
-    question: 'what makes nuckyAI different from things like chatgpt, claude, etc?',
+    question: 'what makes nucky different from chatgpt, claude, etc?',
     answer:
-      'Generic chatbots answer from training data alone. nuckyAI pulls live tier-1 stats from Oracle\'s Elixir (oe_slices), runs structured analyst tools on that data, and augments with a weekly-refreshed pgvector index over esports sources. Numbers, rosters, and meta context are tied to actual pro sources — not solo-queue sites or hallucinated match results.',
+      'generic chatbots guess from training data alone. nucky pulls verified tier-1 match stats when you ask for numbers, searches indexed esports sources for tournament news and meta, and knows the 2026 calendar (e.g. MSI qualifiers and dates) without inventing fake KDA lines. it stays in its lane — lolesports only — and says when it does not have data.',
   },
   {
-    question: 'why is nuckyAI subscription gated?',
+    question: 'why is nucky subscription gated?',
     answer:
       'Pro subscription ($9.99/mo via Stripe) covers LLM inference, embeddings, and infrastructure so response quality and refresh cadence stay reliable. The dashboard and analytics tabs remain free to browse.',
   },
@@ -42,7 +42,7 @@ export default function FAQ() {
     <div className="faq-shell page-section space-y-6">
       <section className="card">
         <h2 className="card-title">faq</h2>
-        <p className="card-subtitle mb-0">basic questions about nucky.gg and nuckyAI.</p>
+        <p className="card-subtitle mb-0">basic questions about nucky.gg and nucky.</p>
       </section>
 
       <section className="faq-list space-y-3">

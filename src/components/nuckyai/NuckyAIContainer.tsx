@@ -6,6 +6,7 @@ import { supabase } from '../../lib/supabaseClient'
 import { fetchSubscriptionState } from '../../lib/subscription'
 import { scrollEntrance } from '../../theme/animations'
 import { useAuth } from '../../context/AuthContext'
+import { useDashboard } from '../../context/DashboardContext'
 import ChatSidebar from './ChatSidebar'
 import ChatWindow from './ChatWindow'
 import { useAgentChat } from './useAgentChat'
@@ -14,6 +15,14 @@ import type { ConversationRow, MessageRow, ProfileRow } from './types'
 
 export default function NuckyAIContainer() {
   const { user } = useAuth()
+  const {
+    league,
+    year,
+    split,
+    selectedLeagues,
+    selectedYears,
+    selectedSplits,
+  } = useDashboard()
   const [profile, setProfile] = useState<ProfileRow | null>(null)
   const [isSubscribed, setIsSubscribed] = useState(false)
   const [conversations, setConversations] = useState<ConversationRow[]>([])
@@ -129,6 +138,18 @@ export default function NuckyAIContainer() {
     void loadMessages(fromQuery)
   }, [searchParams]) // eslint-disable-line react-hooks/exhaustive-deps -- only react to URL changes
 
+  const agentFilter = useMemo(
+    () => ({
+      league,
+      year,
+      split,
+      selectedLeagues,
+      selectedYears,
+      selectedSplits,
+    }),
+    [league, year, split, selectedLeagues, selectedYears, selectedSplits],
+  )
+
   const streamAssistant = useCallback(
     (message: string, options?: { skipUserAppend?: boolean }) => {
       const now = new Date().toISOString()
@@ -161,6 +182,7 @@ export default function NuckyAIContainer() {
       void sendMessage({
         message,
         conversationId: activeConversationId ?? undefined,
+        filter: agentFilter,
         onMetadata: (conversationId) => {
           setActiveConversationId(conversationId)
           const next = new URLSearchParams(searchParams)
@@ -229,7 +251,7 @@ export default function NuckyAIContainer() {
         },
       })
     },
-    [activeConversationId, loadConversations, searchParams, sendMessage, setSearchParams],
+    [activeConversationId, agentFilter, loadConversations, searchParams, sendMessage, setSearchParams],
   )
 
   const send = useCallback(
@@ -281,8 +303,8 @@ export default function NuckyAIContainer() {
   )
 
   const heading = useMemo(() => {
-    if (!profile) return 'nuckyAI'
-    return profile.username ? `nuckyAI — @${profile.username}` : 'nuckyAI'
+    if (!profile) return 'nucky'
+    return profile.username ? `nucky — @${profile.username}` : 'nucky'
   }, [profile])
 
   const subscribe = useCallback(async () => {
@@ -301,7 +323,7 @@ export default function NuckyAIContainer() {
   if (!user) {
     return (
       <div className="card nuckyai-shell">
-        <h2 className="card-title">nuckyAI</h2>
+        <h2 className="card-title">nucky</h2>
         <p className="text-secondary text-sm mt-3">login required.</p>
       </div>
     )
@@ -310,18 +332,18 @@ export default function NuckyAIContainer() {
   if (!isSubscribed) {
     return (
       <div className="card nuckyai-shell">
-        <h2 className="card-title">nuckyAI</h2>
+        <h2 className="card-title">nucky</h2>
         {toast && (
           <div className="mb-3 border border-[var(--border-subtle)] bg-[var(--bg-elevated)] px-3 py-2 text-xs text-[var(--text-secondary)]">
             {toast}
           </div>
         )}
         <div className="border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-4 mt-3 max-w-xl">
-          <h3 className="text-sm text-[var(--text-primary)] mb-2">unlock nuckyAI</h3>
+          <h3 className="text-sm text-[var(--text-primary)] mb-2">unlock nucky</h3>
           <ul className="list-disc pl-5 text-sm text-[var(--text-secondary)] space-y-1">
-            <li>RAG supported knowledge+statistics backed AI analyst</li>
-            <li>real-time stats context</li>
-            <li>predictions + matchup reads</li>
+            <li>your lolesports analyst — stats, matchups, MSI reads, patch meta</li>
+            <li>grounded pro play data + weekly esports context</li>
+            <li>charts and radar comparisons inline in chat</li>
           </ul>
           <div className="mt-3 text-xs text-[var(--text-tertiary)]">$9.99/mo pro subscription</div>
           <button type="button" className="btn mt-3" disabled={checkoutLoading} onClick={subscribe}>
