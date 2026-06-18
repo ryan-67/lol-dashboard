@@ -6,8 +6,8 @@ Hosted on Supabase Edge Functions in production. Responsibilities:
 
 - Authenticated SSE chat streaming
 - Scope routing: off-topic refusal, casual chat, stats, compare, series, general esports
-- Temporal/world context (`client_now`, MSI 2026 calendar, qualified teams, roster facts)
-- `rosterContext.ts` — OE-backed MSI team rosters + curated corrections (Viper→BLG, no reverse sweep wording)
+- Always-on `currentContext.ts`: full tier-1 rosters + player_team_index from oe_slices for current split
+- Temporal/world context (`client_now`, MSI 2026 calendar, known 2026 roster moves)
 - Intent classification and model routing (OpenRouter)
 - Deterministic analyst tools over `oe_slices` and `esports_schedules`
   - `player_stat`, `team_stat`, `team_rankings`, `team_roster`, `series_recap`
