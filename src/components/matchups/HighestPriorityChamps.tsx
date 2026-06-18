@@ -8,6 +8,7 @@ import {
 } from '../../lib/matchupAnalytics'
 import { roleLabel } from '../../lib/championAnalytics'
 import { scrollEntrance } from '../../theme/animations'
+import { TeamLogo } from '../entities'
 
 interface HighestPriorityChampsProps {
   teamChampions: TeamChampion[]
@@ -26,7 +27,10 @@ function PriorityTable({
 }) {
   return (
     <div className="unique-champs-list card" style={{ padding: 'var(--component-gap)' }}>
-      <h3 className="card-title">{title}</h3>
+      <h3 className="card-title entity-inline-row">
+        <TeamLogo name={title} size={20} />
+        <span>{title}</span>
+      </h3>
       {entries.length === 0 ? (
         <p className="text-secondary text-sm">Not enough pick data for this filter</p>
       ) : (

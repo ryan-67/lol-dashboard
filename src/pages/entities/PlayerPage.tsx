@@ -141,7 +141,7 @@ export default function PlayerPage() {
       </header>
 
       <div className="overview-grid overview-grid-2">
-        <PlayerRadarChart player={player} role={role} cohort={cohort} />
+        <PlayerRadarChart player={player} role={role} cohort={cohort} hideHeader />
         <PlayerChampionTable player={player} role={role} />
       </div>
 

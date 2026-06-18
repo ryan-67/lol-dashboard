@@ -374,11 +374,7 @@ function WeeklyRadar({
     },
   )
   return (
-    <ShareableChart
-      className="overview-weekly-radar"
-      title={`${player.name} — ${role.toUpperCase()} radar`}
-      subtitle={`${player.team} · weekly performance profile`}
-    >
+    <ShareableChart className="overview-weekly-radar">
       <ResponsiveContainer width="100%" height={compact ? 200 : 270}>
         <RadarChart data={data} cx="50%" cy="50%" outerRadius={compact ? '68%' : '72%'}>
           <PolarGrid stroke={CHART.grid} />
@@ -546,8 +542,9 @@ export default function Overview() {
                 <div className="overview-weekly-name">
                   <EntityLink type="player" name={playerOfWeek.base.name} player={playerOfWeek.base} allPlayers={filteredPlayers} showIcon={false} />
                 </div>
-                <div className="overview-weekly-meta">
-                  <EntityLink type="team" name={playerOfWeek.base.team} showIcon={false} /> ·{' '}
+                <div className="overview-weekly-meta entity-inline-row">
+                  <EntityLink type="team" name={playerOfWeek.base.team} />
+                  <span> · </span>
                   {playerOfWeek.role.toUpperCase()} · {playerOfWeek.weeklyGames.length}{' '}
                   {playerOfWeek.weeklyGames.length === 1 ? 'game' : 'games'} this week
                 </div>
@@ -612,7 +609,7 @@ export default function Overview() {
                             {' · '}{formatNum(perfScore * 100, 1)} perf · {formatNum(g.kda, 2)} KDA
                           </span>
                         <span className="text-secondary entity-inline-row">
-                          vs <EntityLink type="team" name={opp.team} showIcon={false} /> /{' '}
+                          vs <EntityLink type="team" name={opp.team} /> /{' '}
                           <EntityLink type="player" name={opp.player} allPlayers={filteredPlayers} showIcon={false} /> /{' '}
                           <ChampionEntityInline name={opp.champion} iconSize={16} />
                         </span>
@@ -629,19 +626,14 @@ export default function Overview() {
       <section className="card overview-hub-card">
         <h2 className="card-title">Team of the Week (Best 5 by role)</h2>
         <div className="overview-totw-grid">
-          {teamOfWeek.map((p) => {
-            const best = [...p.weeklyGames].sort((a, b) => b.kda - a.kda)[0]
-            const opp = best
-              ? opponentLaneInfo(filteredPlayers, p.base.team, p.role, best)
-              : null
-            return (
+          {teamOfWeek.map((p) => (
               <article key={`${p.base.name}-${p.role}`} className="overview-totw-card">
                 <div className="overview-weekly-name">
                   <EntityLink type="player" name={p.base.name} player={p.base} allPlayers={filteredPlayers} showIcon={false} />
                 </div>
-                <div className="overview-weekly-meta">
+                <div className="overview-weekly-meta entity-inline-row">
                   <EntityLink type="team" name={p.base.team} />
-                  {' · '}
+                  <span> · </span>
                   {p.role.toUpperCase()}
                 </div>
                 <WeeklyRadar
@@ -650,17 +642,8 @@ export default function Overview() {
                   cohort={weeklyPlayers.filter((row) => row.role === p.role).map((row) => row.weekly)}
                   compact
                 />
-                {best && (
-                  <div className="overview-mini-meta text-secondary">
-                    Best game: <ChampionEntityInline name={best.champion} iconSize={16} /> · {formatNum(best.kda, 2)} KDA · vs{' '}
-                    <EntityLink type="team" name={opp?.team ?? 'N/A'} showIcon={false} /> /{' '}
-                    <EntityLink type="player" name={opp?.player ?? 'N/A'} allPlayers={filteredPlayers} showIcon={false} /> /{' '}
-                    <ChampionEntityInline name={opp?.champion ?? 'N/A'} iconSize={16} />
-                  </div>
-                )}
               </article>
-            )
-          })}
+            ))}
         </div>
       </section>
 

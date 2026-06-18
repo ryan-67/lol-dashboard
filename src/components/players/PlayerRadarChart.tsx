@@ -26,6 +26,8 @@ interface PlayerRadarChartProps {
   role: RoleKey
   cohort: Player[]
   compact?: boolean
+  /** Hide card header when parent already shows player / team / role (e.g. Overview hub). */
+  hideHeader?: boolean
 }
 
 export default function PlayerRadarChart({
@@ -33,6 +35,7 @@ export default function PlayerRadarChart({
   role,
   cohort,
   compact = false,
+  hideHeader = false,
 }: PlayerRadarChartProps) {
   const chartRef = useRef<HTMLDivElement>(null)
   const color = PLAYERS_ROLE_COLORS[role]
@@ -64,15 +67,18 @@ export default function PlayerRadarChart({
 
   return (
     <ShareableChart className={compact ? 'radar-card radar-card-compact' : 'radar-card'}>
-      <div className="radar-card-header">
-        <h3 className="radar-card-title">
-          <EntityLink type="player" name={player.name} player={player} showIcon={false} />
-        </h3>
-        <p className="radar-card-subtitle">
-          <EntityLink type="team" name={player.team} showIcon={false} /> ·{' '}
-          <span style={{ color }}>{role.toUpperCase()}</span>
-        </p>
-      </div>
+      {!hideHeader && (
+        <div className="radar-card-header">
+          <h3 className="radar-card-title">
+            <EntityLink type="player" name={player.name} player={player} showIcon={false} />
+          </h3>
+          <p className="radar-card-subtitle entity-inline-row">
+            <EntityLink type="team" name={player.team} />
+            <span> · </span>
+            <span style={{ color }}>{role.toUpperCase()}</span>
+          </p>
+        </div>
+      )}
       <div ref={chartRef} className="radar-chart-wrap">
         <ResponsiveContainer width="100%" height={chartHeight}>
           <RadarChart data={data} cx="50%" cy="50%" outerRadius={compact ? '68%' : '72%'}>

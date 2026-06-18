@@ -5,27 +5,27 @@ const FAQ_ITEMS = [
   {
     question: 'what is nucky.gg?',
     answer:
-      'nucky.gg is a league of legends analytics dashboard focused on tier1 lolesports data, matchup context, and pro play insights.',
+      'nucky.gg is a tier-1 League of Legends esports analytics dashboard — Overview hub, Players, Teams, Champions, Matchups, and dedicated identity pages for players, teams, and champions. Stats come from Oracle\'s Elixir pro match data (LCK, LPL, LEC, LCS, plus MSI, Worlds, and First Stand), refreshed automatically when new OE CSVs land on Drive.',
   },
   {
     question: 'how do i use the dashboard?',
     answer:
-      'use the top tabs to move between overview, players, teams, champions, and matchups. each tab filters and visualizes the same core data from oracle\'s elixir.',
+      'Pick league, year, and split from the sticky header — filters apply everywhere. Overview highlights weekly standouts (Player of the Week, Team of the Week by role, hottest team, weekly recap). Players and Teams support radars, form charts, and compare flows. Matchups compares two teams head-to-head with team and lane radars. Click any player, team, or champion name to open its identity page.',
   },
   {
     question: 'what is nuckyAI?',
     answer:
-      'nuckyAI is the analyst chat layer. it combines live database stats with external context (patch/meta/news) to answer questions and generate takes quickly.',
+      'nuckyAI is the subscription analyst chat on nucky.gg. It streams answers grounded in the same pro-play database as the dashboard, plus retrieval-augmented context from Liquipedia, patch notes, Reddit, Kalshi tier-1 odds, and esports schedules. Deterministic tools handle matchups, rankings, champion meta, team form, and lane breakdowns before the model synthesizes a take.',
   },
   {
     question: 'what makes nuckyAI different from things like chatgpt, claude, etc?',
     answer:
-      'generic LLM chatbots answer from training data alone — nuckyAI is grounded in live pro-play data. every response pulls from oracle\'s elixir stats, deterministic analyst tools (matchups, rankings, form, schedules), and a pgvector RAG index over liquipedia, patch notes, reddit, and other sources that refreshes weekly. that means numbers, rosters, and meta context are tied to actual tier-1 esports sources, so nuckyAI has the context and understanding of lolesports without the hallunication potential of standard AI models.',
+      'Generic chatbots answer from training data alone. nuckyAI pulls live tier-1 stats from Oracle\'s Elixir (oe_slices), runs structured analyst tools on that data, and augments with a weekly-refreshed pgvector index over esports sources. Numbers, rosters, and meta context are tied to actual pro sources — not solo-queue sites or hallucinated match results.',
   },
   {
     question: 'why is nuckyAI subscription gated?',
     answer:
-      'subscription helps cover model and infrastructure cost while keeping response quality and update frequency stable.',
+      'Pro subscription ($9.99/mo via Stripe) covers LLM inference, embeddings, and infrastructure so response quality and refresh cadence stay reliable. The dashboard and analytics tabs remain free to browse.',
   },
 ]
 

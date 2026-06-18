@@ -8,6 +8,7 @@ import {
   TeamRadarComparison,
   HighestPriorityChamps,
 } from '../components/matchups'
+import { TeamLogo } from '../components/entities'
 
 export default function Matchups() {
   const { data, loading, filteredTeams, filteredPlayers, filteredChampions } = useDashboard()
@@ -106,7 +107,10 @@ export default function Matchups() {
           <div className="page-section card">
             <div className="matchup-summary">
               <div className="stat-tile text-center">
-                <div className="stat-value">{teamAData.name}</div>
+                <div className="stat-value entity-inline-row justify-center">
+                  <TeamLogo name={teamAData.name} size={28} />
+                  <span>{teamAData.name}</span>
+                </div>
                 <div className="text-secondary text-sm">{teamAData.league}</div>
                 <div className="mt-2 text-2xl font-medium text-accent">
                   <AnimatedCounter value={teamAData.winrate} suffix="%" />
@@ -132,7 +136,10 @@ export default function Matchups() {
               </div>
 
               <div className="stat-tile text-center">
-                <div className="stat-value">{teamBData.name}</div>
+                <div className="stat-value entity-inline-row justify-center">
+                  <TeamLogo name={teamBData.name} size={28} />
+                  <span>{teamBData.name}</span>
+                </div>
                 <div className="text-secondary text-sm">{teamBData.league}</div>
                 <div className="mt-2 text-2xl font-medium text-accent">
                   <AnimatedCounter value={teamBData.winrate} suffix="%" />

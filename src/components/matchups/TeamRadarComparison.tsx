@@ -12,6 +12,7 @@ import {
 import type { Team } from '../../hooks/useDashboardData'
 import { makeChartTooltipContent } from '../ui/ChartTooltip'
 import ShareableChart from '../ui/ShareableChart'
+import { TeamLogo } from '../entities'
 import { buildComparisonRadarData } from '../../lib/teamAnalytics'
 import { formatGameLength } from '../../lib/matchupAnalytics'
 import { animateRadarDraw, scrollEntrance } from '../../theme/animations'
@@ -82,8 +83,13 @@ export default function TeamRadarComparison({ teamA, teamB, cohort }: TeamRadarC
     <div ref={sectionRef} className="card page-section">
       <ShareableChart>
         <h2 className="card-title">Team Radar Comparison</h2>
-        <p className="card-subtitle">
-          {teamA.name} vs {teamB.name} — dashed line is cohort average
+        <p className="card-subtitle entity-inline-row">
+          <TeamLogo name={teamA.name} size={20} />
+          <span>{teamA.name}</span>
+          <span className="text-secondary"> vs </span>
+          <TeamLogo name={teamB.name} size={20} />
+          <span>{teamB.name}</span>
+          <span className="text-secondary"> — dashed line is cohort average</span>
         </p>
         <div ref={chartRef} className="radar-chart-wrap" style={{ minHeight: 360 }}>
         <ResponsiveContainer width="100%" height={360}>
@@ -126,19 +132,21 @@ export default function TeamRadarComparison({ teamA, teamB, cohort }: TeamRadarC
         </ResponsiveContainer>
       </div>
       <div className="matchup-radar-legend">
-        <span className="matchup-radar-legend-item">
+        <span className="matchup-radar-legend-item entity-inline-row">
           <span
             className="matchup-radar-legend-swatch"
             style={{ background: MATCHUP_COLORS.teamA }}
           />
-          {teamA.name}
+          <TeamLogo name={teamA.name} size={16} />
+          <span>{teamA.name}</span>
         </span>
-        <span className="matchup-radar-legend-item">
+        <span className="matchup-radar-legend-item entity-inline-row">
           <span
             className="matchup-radar-legend-swatch"
             style={{ background: MATCHUP_COLORS.teamB }}
           />
-          {teamB.name}
+          <TeamLogo name={teamB.name} size={16} />
+          <span>{teamB.name}</span>
         </span>
         <span className="matchup-radar-legend-item">
           <span
@@ -154,8 +162,14 @@ export default function TeamRadarComparison({ teamA, teamB, cohort }: TeamRadarC
       </ShareableChart>
       <div className="matchup-team-stats">
         <div className="matchup-team-stats-header">
-          <span className="matchup-stat-team matchup-stat-value-a">{teamA.name}</span>
-          <span className="matchup-stat-team matchup-stat-value-b">{teamB.name}</span>
+          <span className="matchup-stat-team matchup-stat-value-a entity-inline-row">
+            <TeamLogo name={teamA.name} size={18} />
+            <span>{teamA.name}</span>
+          </span>
+          <span className="matchup-stat-team matchup-stat-value-b entity-inline-row">
+            <TeamLogo name={teamB.name} size={18} />
+            <span>{teamB.name}</span>
+          </span>
         </div>
         <StatCell
           label="Win Rate"

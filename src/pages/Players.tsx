@@ -241,7 +241,7 @@ export default function Players() {
                         <EntityLink type="player" name={p.name} player={p} allPlayers={players} showIcon={false} />
                       </td>
                       <td className="text-secondary">
-                        <EntityLink type="team" name={p.team ?? '—'} showIcon={false} />
+                        <EntityLink type="team" name={p.team ?? '—'} />
                       </td>
                       <td className="text-secondary">{p.league ?? '—'}</td>
                       <td className="text-secondary uppercase">{p.position ?? '—'}</td>
