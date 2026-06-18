@@ -6,6 +6,9 @@ Hosted on Supabase Edge Functions in production. Responsibilities:
 
 - Authenticated SSE chat streaming
 - Scope routing: off-topic refusal, casual chat, stats, compare, series, general esports
+- **Thread intent** (`threadIntent.ts`): follow-ups and clarifications inherit prior question; never off-topic mid-conversation
+- **Top team semantics**: "top team" = top 4–5 by standings winrate; `player_rankings` filters pool + emits `top_teams_standings`
+- **ADC fraud scoring** (`playerScoring.ts`): dmg% + gold% carry impact, not just KDA/GD@15
 - Always-on `currentContext.ts`: full tier-1 rosters + player_team_index from oe_slices for current split
 - Temporal/world context (`client_now`, MSI 2026 calendar, known 2026 roster moves)
 - Intent classification and model routing (OpenRouter)
