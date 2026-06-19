@@ -2,6 +2,16 @@
 
 **nucky** edge function — not included in the public repository.
 
+## Architecture — 3-layer pipeline (`pipeline/`)
+
+`index.ts` is a thin orchestrator. The request flows through three strictly-bounded layers, each a typed module under `supabase/functions/agent-chat/pipeline/` (contracts in `pipeline/types.ts`). Conversation history threads through all three so follow-ups stay coherent.
+
+1. **Guardrail Router** (`pipeline/guardrail.ts`) — fast, lightweight cost firewall. A hard off-topic denylist (coding/homework/recipes/math/etc.) refuses non-LoL prompts in ~one regex test, before any LLM/tool/RAG spend. Ambiguous cases fall through to the nuanced `scope.ts` classifier (which itself only spends an LLM call on in-thread ambiguity). Returns `allowed:false` + an in-character refusal, or the resolved scope/thread for the next layer.
+2. **Tool Decider** (`pipeline/toolDecider.ts`) — decides WHERE to source data and fetches it, tiered: **Oracle's Elixir** (deterministic OE stat tools) → **RAG** (pgvector `documents`) → **web fallback** (Tavily over the Liquipedia/Leaguepedia/gol.gg/lolesports allowlist). Always grounds on the current day/split/year (`client_now` → WORLD_CONTEXT) unless filters/message name another. Returns a typed `Evidence` bundle (matchStats, externalContext, raw web snippets, compare chart, intent flags, source trace). Raw fetch only — no trust decisions here.
+3. **Synthesis** (`pipeline/synthesis.ts`) — cross-verifies web snippets into trusted facts (`factVerifier`), builds the grounded prompt, streams the final answer (deep macro/draft/matchup logic, casual voice), then **pushes newly verified facts back into the RAG base** (`ragWriteback`, fail-closed, after streaming).
+
+> Note: there is no PandaScore API client; "Leaguepedia/PandaScore" external data is reached through the Tavily allowlist (Leaguepedia/Liquipedia) and the `schedule_lookup` tool. Add a dedicated PandaScore client + key if first-party schedule/match data is needed later.
+
 Hosted on Supabase Edge Functions in production. Responsibilities:
 
 - Authenticated SSE chat streaming
