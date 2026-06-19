@@ -423,6 +423,9 @@ def slice_store():
         "game_team_meta": defaultdict(dict),
         "team_games": 0,
         "weekly_team_games": defaultdict(int),
+        # Guards against double-counting when the same game appears in more than one
+        # source CSV (overlapping dumps). Keyed by (gameid, entity).
+        "seen_rows": set(),
     }
 
 
@@ -837,6 +840,13 @@ def process_row(row, buckets: dict, team_to_league: dict[str, str]):
     if position == "team":
         if not team_name:
             return
+        # Skip duplicate game rows (same game present in multiple source CSVs) so
+        # game counts / aggregates aren't doubled.
+        if game_id:
+            dedup_key = (game_id, f"team:{team_name}")
+            if dedup_key in bucket["seen_rows"]:
+                return
+            bucket["seen_rows"].add(dedup_key)
         t = bucket["teams"][team_name]
         t["games"] += 1
         t["league"] = bucket_league
@@ -905,6 +915,12 @@ def process_row(row, buckets: dict, team_to_league: dict[str, str]):
         return
 
     if player_name:
+        # Skip duplicate game rows (same game across multiple source CSVs).
+        if game_id:
+            dedup_key = (game_id, f"player:{player_name}")
+            if dedup_key in bucket["seen_rows"]:
+                return
+            bucket["seen_rows"].add(dedup_key)
         p = bucket["players"][player_name]
         p["games"] += 1
         p["team"] = team_name
