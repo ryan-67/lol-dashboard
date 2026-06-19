@@ -1,16 +1,14 @@
-# agent-chat (proprietary)
+# agent-chat (nuckyAI)
 
-**nucky** edge function — not included in the public repository.
+**nucky** edge function — Supabase Edge Function powering nuckyAI on nucky.gg.
 
 ## Architecture — 3-layer pipeline (`pipeline/`)
 
 `index.ts` is a thin orchestrator. The request flows through three strictly-bounded layers, each a typed module under `supabase/functions/agent-chat/pipeline/` (contracts in `pipeline/types.ts`). Conversation history threads through all three so follow-ups stay coherent.
 
 1. **Guardrail Router** (`pipeline/guardrail.ts`) — fast, lightweight cost firewall. A hard off-topic denylist (coding/homework/recipes/math/etc.) refuses non-LoL prompts in ~one regex test, before any LLM/tool/RAG spend. Ambiguous cases fall through to the nuanced `scope.ts` classifier (which itself only spends an LLM call on in-thread ambiguity). Returns `allowed:false` + an in-character refusal, or the resolved scope/thread for the next layer.
-2. **Tool Decider** (`pipeline/toolDecider.ts`) — decides WHERE to source data and fetches it, tiered: **Oracle's Elixir** (deterministic OE stat tools) → **RAG** (pgvector `documents`) → **web fallback** (Tavily over the Liquipedia/Leaguepedia/gol.gg/lolesports allowlist). Always grounds on the current day/split/year (`client_now` → WORLD_CONTEXT) unless filters/message name another. Returns a typed `Evidence` bundle (matchStats, externalContext, raw web snippets, compare chart, intent flags, source trace). Raw fetch only — no trust decisions here.
-3. **Synthesis** (`pipeline/synthesis.ts`) — cross-verifies web snippets into trusted facts (`factVerifier`), builds the grounded prompt, streams the final answer (deep macro/draft/matchup logic, casual voice), then **pushes newly verified facts back into the RAG base** (`ragWriteback`, fail-closed, after streaming).
-
-> Note: there is no PandaScore API client; "Leaguepedia/PandaScore" external data is reached through the Tavily allowlist (Leaguepedia/Liquipedia) and the `schedule_lookup` tool. Add a dedicated PandaScore client + key if first-party schedule/match data is needed later.
+2. **Tool Decider** (`pipeline/toolDecider.ts`) — decides WHERE to source data and fetches it, tiered: **Oracle's Elixir** → **RAG** (pgvector) → **Tavily web fallback** (wiki-first: Leaguepedia/Liquipedia/Fandom, then gol.gg/lolesports). Intent-specific wiki queries for rosters, patch notes, tournament formats, and career facts. No PandaScore/GRID — OE + RAG + Tavily only.
+3. **Synthesis** (`pipeline/synthesis.ts`) — cross-verifies wiki snippets, injects **DEEP_ANALYSIS** blocks for matchup/draft/macro (stats woven into game knowledge, not raw dumps), streams the answer, then **writes verified facts to pgvector** via `writeBackVerifiedFacts` (retries + upsert dedupe, after streaming).
 
 Hosted on Supabase Edge Functions in production. Responsibilities:
 
@@ -26,13 +24,14 @@ Hosted on Supabase Edge Functions in production. Responsibilities:
   - `roster_follow_up` ("who was the sub jungler?") → role-depth tool, **never a radar chart**
 - **Top team semantics**: "top team" = top 4–5 by standings winrate; ADC fraud → dmg%/gold%
 - **Full roster depth (incl. subs)** from `oe_slices.rosterDepth` (games >= 1). `team_role_depth` tool + always-on `current_rosters`/`player_team_index` list subs labeled `(sub, Ng)`. Mentioned-player roster block injected every turn.
-- **Tiered knowledge** OE → RAG → **Tavily web fallback** (`tavilySearch.ts`): career/titles, roster gaps, factual general questions that OE/RAG can't answer trigger an allowlisted web search (liquipedia, lol/leaguepedia fandom, gol.gg, lolesports.com).
+- **Tiered knowledge** OE → RAG → **Tavily wiki-first fallback** (`tavilySearch.ts` → `searchTavilyWikiFirst`): career, roster swaps, patch notes, and tournament-format questions trigger Leaguepedia/Liquipedia-targeted queries; secondary domains backfill only when wiki results are thin. Snippets are wiki-ranked before verification.
+- **Deep analysis synthesis** (`prompts.ts` → `deepAnalysisBlock`): matchup/draft/macro/game-theory questions get structured synthesis instructions — OE stats as proof points woven into kit/macro/win-condition analysis, never raw stat dumps.
 - **Career routing is deterministic** (`scope.ts`): a titles/championships question (`isCareerQuestion`) short-circuits to `lolesports_general` / `needs_tools:false` / `needs_rag:true` **before** the LLM classifier, so mid-conversation career questions never get re-routed to stat tools. `index.ts` gates stat tools off entirely for career (`runTools = needs_tools && !careerIntent`) — titles answers never dump current-split KDA/GD@15.
 - **Career web trigger**: career questions web-search unless an existing `web_verified` chunk already covers the entity (not just "any RAG chunk exists"). Multi-entity questions ("chovy and faker") resolve each named entity and search/verify per entity; the Tavily query is career-targeted (derived championship terms + liquipedia/leaguepedia) rather than the raw chat message.
 - **Fact verification** (`factVerifier.ts`): web facts PASS with 2+ allowlisted sources agreeing or **1 authoritative Liquipedia/Leaguepedia match** (authoritative-single is trusted even if the noisy number-conflict heuristic fires). Conflict detection now requires a shared *metric noun* (titles/worlds/msi/…) with a different number, not just a shared player name. Fail-closed — unverified → nucky says it can't confirm (no hallucination).
 - **Anti-fabrication grounding** (`prompts.ts`, `stream.ts`): top-of-prompt HARD RULES forbid stating ANY number or named result (KDA/GD@15/%, series score, per-game champ, title/game count, roster, team, seed, date, venue, qualification) unless it's verbatim in MATCH_STATS/WORLD_CONTEXT/EXTERNAL_CONTEXT/WEB_VERIFIED. On correction with no verified data, nucky acknowledges and stops — never bluffs a new/third "corrected" version. Predictions/odds and series recaps fail-closed when the data isn't present. Synthesis temperature lowered (0.4 complex / 0.3 simple) to curb confident confabulation.
 - **Deterministic routing** (`scope.ts`, `threadIntent.ts`): series recaps ("what happened in T1 vs Gen.G series?") route to `lolesports_series` (no radar) before the LLM and before the compare heuristic, so "vs" no longer triggers a chart; career/history regex also catches "who won worlds 2020 / winner of …". Self-contained new questions (own topic + entity) are classified fresh instead of inheriting the prior turn's scope, fixing follow-ups that pulled the wrong tool/chart. `[NO_SERIES_DATA]` / `[NO_VERIFIED_SOURCE]` blocks force refusals when data is absent.
-- **Verified RAG write-back** (`ragWriteback.ts`): cross-verified **facts** (not opinions) embedded + inserted into `documents` (`source='web_verified'`, `content_kind='fact'`), TTL 30d roster / 90d career, deduped by fact hash. Reddit/community chunks stay tagged as opinion.
+- **Verified RAG write-back** (`ragWriteback.ts` → `writeBackVerifiedFacts`): cross-verified facts embedded (1536-dim, retried) and **upserted** into `documents` on `fact_hash` after the response streams. TTL 30d roster / 90d career. Failures logged to function logs; never break the chat stream.
 - **Chart gating** (`index.ts`): compare radar only on explicit compare/vs/radar intent (message or inherited topic) or `lolesports_compare` scope — never on roster/sub/career follow-ups.
 - Temporal/world context (`client_now`, MSI 2026 calendar)
 - Deterministic analyst tools over `oe_slices` and `esports_schedules`

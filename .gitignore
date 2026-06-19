@@ -27,9 +27,6 @@ supabase/config.toml
 # --- Proprietary SaaS backend (kept locally, not published) ---
 # See docs/PRIVATE_COMPONENTS.md
 
-supabase/functions/agent-chat/**
-!supabase/functions/agent-chat/README.md
-
 supabase/functions/stripe-checkout/**
 !supabase/functions/stripe-checkout/README.md
 supabase/functions/stripe-webhook/**

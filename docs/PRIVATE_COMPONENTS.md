@@ -6,7 +6,6 @@
 
 | Path | Why it is private |
 |------|-------------------|
-| `supabase/functions/agent-chat/` | nuckyAI orchestration: prompts, tool router, RAG/SQL tools, streaming, usage limits |
 | `supabase/functions/stripe-*` | Checkout, portal, webhook handlers |
 | `scripts/rag-indexer/src/` | Weekly embedding pipeline (Liquipedia, patch notes, Reddit, Kalshi, schedules) |
 | `supabase/migrations/` | Full Postgres schema, RLS, `match_documents`, subscriptions |
@@ -20,7 +19,7 @@ These paths are listed in `.gitignore`. Your local copies are unchanged when you
 - Client-side analytics engines (`src/lib/*`)
 - Oracle's Elixir ingest + Supabase seed scripts
 - Auth **client** integration (Supabase Auth + profile UI)
-- nuckyAI **client** shell (chat UI, streaming hook — calls hosted edge functions)
+- nuckyAI **client** shell (chat UI, streaming hook) + **agent-chat** edge function source (`supabase/functions/agent-chat/`, 3-layer pipeline)
 - FAQ, privacy policy, profile pages
 
 ## Restoring after clone
