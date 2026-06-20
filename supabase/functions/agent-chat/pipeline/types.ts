@@ -99,6 +99,9 @@ export interface Evidence {
   /** Live Kalshi market block for synthesis (empty if none). */
   kalshiOddsBlock: string;
 
+  /** True when message contains structured [DRAFT_EXTRACTED] from screenshot pipeline. */
+  draftScreenshotIntent: boolean;
+
   // synthesis mode
   analysisIntent: AnalysisIntent;
   resolvedSplit: string;

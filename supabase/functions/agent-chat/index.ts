@@ -16,6 +16,11 @@ import { decideAndFetch } from "./pipeline/toolDecider.ts";
 import { synthesize } from "./pipeline/synthesis.ts";
 import type { ImageAttachment, ResolvedFilters } from "./pipeline/types.ts";
 import { extractVisionContext } from "./helpers/visionExtract.ts";
+import {
+  extractDraftFromScreenshot,
+  formatDraftExtractionBlock,
+} from "./helpers/draftVisionMatch.ts";
+import { draftExtractionSummary } from "./helpers/draftVisionTypes.ts";
 
 interface ChatRequestBody extends DashboardFilters {
   message?: string;
@@ -253,14 +258,22 @@ Deno.serve(async (req) => {
           rosterSplitHint,
         };
 
-        // Vision: extract draft/picks from image attachments before routing.
+        // Vision: template-match draft screenshots, then LLM vision fallback.
         let pipelineMessage = message;
         if (attachments.length) {
-          const visionBlock = await extractVisionContext(openrouterApiKey, attachments);
-          if (visionBlock) {
-            pipelineMessage = message ? `${message}\n\n${visionBlock}` : visionBlock;
-          } else if (!message) {
-            pipelineMessage = "analyze this league of legends draft screenshot";
+          const draft = await extractDraftFromScreenshot(attachments, openrouterApiKey);
+          if (draft) {
+            const block = formatDraftExtractionBlock(draft);
+            pipelineMessage = message
+              ? `${message}\n\n${block}`
+              : `analyze this draft — ${draftExtractionSummary(draft)}\n\n${block}`;
+          } else {
+            const visionBlock = await extractVisionContext(openrouterApiKey, attachments);
+            if (visionBlock) {
+              pipelineMessage = message ? `${message}\n\n${visionBlock}` : visionBlock;
+            } else if (!message) {
+              pipelineMessage = "analyze this league of legends draft screenshot";
+            }
           }
         }
 

@@ -36,6 +36,8 @@ import {
 } from "../helpers/currentContext.ts";
 import type { Evidence, GuardrailResult, HistoryMessage, ResolvedFilters } from "./types.ts";
 import { detectAnalysisIntent } from "../helpers/prompts.ts";
+import { parseDraftExtractionBlock } from "../helpers/draftVisionTypes.ts";
+import { fetchDraftAnalysisContext } from "../helpers/draftContextFetch.ts";
 
 const CAREER_ENTITY_STOPWORDS = new Set([
   "LCK", "LPL", "LEC", "LCS", "MSI", "Worlds", "World", "Championship", "Championships",
@@ -316,6 +318,27 @@ export async function decideAndFetch(deps: DecideDeps): Promise<Evidence> {
   let analystToolNames: string[] = [];
   let hasWebVerifiedChunk = false;
 
+  const draftExtracted = parseDraftExtractionBlock(message);
+  const draftScreenshotIntent = Boolean(draftExtracted);
+
+  // ---- Draft screenshot: OE + RAG for extracted comp ----
+  if (draftExtracted) {
+    const draftCtx = await fetchDraftAnalysisContext(
+      serviceClient,
+      openrouterApiKey,
+      draftExtracted,
+      filters.league,
+      filters.split,
+    );
+    matchStats = draftCtx.matchStats;
+    externalContext = draftCtx.ragContext +
+      (externalContext ? `\n\n${externalContext}` : "");
+    analystToolNames = ["draft_screenshot_analysis"];
+    sources.oracleElixir = true;
+    if (draftCtx.ragContext.trim()) sources.rag = true;
+    runTools = true;
+  }
+
   // Verified Worlds winner / Finals MVP list (not in OE — curated historical record).
   if (worldsHistoryIntent) {
     const worlds = lookupWorldsHistory(message);
@@ -325,7 +348,7 @@ export async function decideAndFetch(deps: DecideDeps): Promise<Evidence> {
   }
 
   // ---- Source 1: Oracle's Elixir deterministic tools ----
-  if (runTools && !worldsHistoryIntent) {
+  if (runTools && !worldsHistoryIntent && !draftScreenshotIntent) {
     const analystCtx = await buildAnalystContext(
       serviceClient,
       queryForTools,
@@ -531,11 +554,13 @@ export async function decideAndFetch(deps: DecideDeps): Promise<Evidence> {
     if (sentimentSnippets.length) sources.sentiment = true;
   }
 
-  const analysisIntent = detectAnalysisIntent(
-    message,
-    scope.scope,
-    Object.keys(matchStats).length > 0,
-  );
+  const analysisIntent = draftScreenshotIntent
+    ? "draft"
+    : detectAnalysisIntent(
+      message,
+      scope.scope,
+      Object.keys(matchStats).length > 0,
+    );
 
   return {
     scope,
@@ -563,6 +588,7 @@ export async function decideAndFetch(deps: DecideDeps): Promise<Evidence> {
     sentimentSnippets,
     sentimentContext,
     kalshiOddsBlock,
+    draftScreenshotIntent,
     analysisIntent,
     resolvedSplit,
     league: filters.league,
