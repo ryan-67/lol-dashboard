@@ -130,6 +130,7 @@ export interface PromptContext {
   sentimentContext?: string;
   kalshiOddsBlock?: string;
   isClarification?: boolean;
+  isOddsQuestion?: boolean;
 }
 
 /** Developer-only instructions — never placed in the user message body. */
@@ -185,6 +186,16 @@ Your streamed reply is shown directly to the user. NEVER echo, quote, or restate
 
   if (ctx?.playerChampionIntent) parts.push(playerChampionBlock());
   if (ctx?.subjectiveIntent) parts.push(subjectiveSynthesisBlock());
+
+  if (ctx?.kalshiOddsBlock?.trim()) {
+    parts.push(
+      `[KALSHI_RULES]\nAnswer using ONLY the [KALSHI_ODDS] block in the user message. Cite team/outcome names and implied yes percentages. Do NOT invent odds or say data is in EXTERNAL_CONTEXT.`,
+    );
+  } else if (ctx?.isOddsQuestion) {
+    parts.push(
+      `[NO_KALSHI_ODDS]\nNo live Kalshi lines were fetched for this question. Say plainly you couldn't pull current Kalshi markets right now. Do NOT invent percentages or mention internal block/tag names (EXTERNAL_CONTEXT, MATCH_STATS, etc.).`,
+    );
+  }
 
   if (ctx?.webVerified?.trim()) {
     parts.push(

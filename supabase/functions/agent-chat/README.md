@@ -47,10 +47,12 @@ Persona: **nucky** — blunt lolesports fan who knows lane states, macro, draft 
 | --- | --- | --- |
 | `OPENROUTER_API_KEY` | Supabase | LLM classification, embeddings, synthesis |
 | `TAVILY_API_KEY` | Supabase (required for web fallback) | agent-time web search (server-only, never `VITE_`) |
+| `KALSHI_API_KEY` | Supabase (optional) | Kalshi trade API auth; public `/markets` + orderbook work without it |
 
 ```bash
 npx supabase secrets set OPENROUTER_API_KEY=...
 npx supabase secrets set TAVILY_API_KEY=...
+npx supabase secrets set KALSHI_API_KEY=...   # optional — improves rate limits
 ```
 
 Deploy after changes:

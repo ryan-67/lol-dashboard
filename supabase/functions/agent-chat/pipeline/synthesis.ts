@@ -11,6 +11,7 @@ import {
   detectAnalysisIntent,
   finalMessages,
 } from "../helpers/prompts.ts";
+import { isOddsQuestion } from "../helpers/kalshi.ts";
 import { streamFallback, streamFinalAnswer } from "../helpers/stream.ts";
 import { pickFinalModel } from "../helpers/classify.ts";
 import { extractCandidateFacts, verifyFact, type VerifiedFact } from "../helpers/factVerifier.ts";
@@ -103,6 +104,7 @@ export async function synthesize(deps: SynthesisDeps): Promise<SynthesisResult> 
     playerChampionIntent: evidence.playerChampionIntent,
     sentimentContext: evidence.sentimentContext,
     kalshiOddsBlock: evidence.kalshiOddsBlock,
+    isOddsQuestion: isOddsQuestion(message),
   };
 
   const finalModel = pickFinalModel(evidence.plan);

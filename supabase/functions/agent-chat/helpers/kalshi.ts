@@ -1,4 +1,4 @@
-/** Live Kalshi esports prediction markets (public market data API). */
+/** Live Kalshi esports prediction markets (Kalshi trade API v2). */
 
 const KALSHI_API_BASE = "https://api.elections.kalshi.com/trade-api/v2";
 
@@ -6,10 +6,12 @@ export interface KalshiMarketQuote {
   ticker: string;
   title: string;
   subtitle: string;
-  /** Implied yes probability 0–100 (from last price or mid of bid/ask, in cents). */
+  /** Implied yes probability 0–100. */
   yesPercent: number | null;
   eventTicker: string;
   url: string;
+  /** Where the price came from. */
+  priceSource: "market" | "orderbook" | "unavailable";
 }
 
 interface KalshiMarketsResponse {
@@ -21,24 +23,64 @@ interface KalshiMarketsResponse {
     yes_ask?: number;
     last_price?: number;
     event_ticker?: string;
+    status?: string;
+    series_ticker?: string;
   }>;
   cursor?: string;
+}
+
+interface KalshiOrderbookResponse {
+  orderbook_fp?: {
+    yes_dollars?: Array<[string, string]>;
+    no_dollars?: Array<[string, string]>;
+  };
+  orderbook?: {
+    yes?: Array<[number, number]>;
+    no?: Array<[number, number]>;
+  };
 }
 
 const ODDS_HINTS =
   /\b(odds|kalshi|prediction|predict|favorite|favou?rite|who wins|who's gonna win|who is gonna win|betting|market|implied|line)\b/i;
 
-const ESPORTS_HINTS =
-  /\b(league of legends|lol esports|lck|lpl|lec|lcs|msi|worlds|esports|t1|gen\.?g|g2|cloud9|blg|tes)\b/i;
+/** LoL-specific — avoid matching generic Kalshi "ESPORTS" multigame parlays. */
+const LOL_ESPORTS_HINTS =
+  /\b(league of legends|lol esports|mid-?season invitational|\bmsi\b|\bworlds\b|world championship|lck|lpl|lec|lcs)\b/i;
 
 const TEAM_TOKENS =
-  /\b(T1|Gen\.?G|G2|DK|DRX|HLE|KT|BLG|TES|JDG|WBG|C9|TL|FNC|100T|GAM|PSG|Cloud9|FlyQuest|Liquid|NRG)\b/gi;
+  /\b(T1|Gen\.?G|G2|DK|DRX|HLE|Hanwha|KT|BLG|Bilibili|TES|Top Esports|JDG|WBG|C9|Cloud9|TL|Liquid|FNC|Fnatic|100T|GAM|PSG|FlyQuest|NRG|LYON|Secret Whales|FURIA|DCG|GiantX)\b/gi;
+
+/** Kalshi series tickers for League of Legends markets. */
+const LOL_SERIES_BY_INTENT: Array<{ series: string[]; match: RegExp }> = [
+  {
+    series: ["KXLOL", "KXMIDSEASONINVITATIONAL", "KXMIDSEASONINVITATIONALB", "KXEWCRENNSPORT"],
+    match: /\b(msi|mid-?season invitational|mid season invitational)\b/i,
+  },
+  {
+    series: ["KXLEAGUE", "KXLEAGUEWORLDS", "KXLOL"],
+    match: /\b(worlds|world championship|worlds \d{4})\b/i,
+  },
+  {
+    series: ["KXLOL", "KXLOLGAME", "KXLOLGAMES", "KXLOLMAP", "KXLOLTOTAL", "KXLOLTOTALMAPS", "KXEWCLEAGUEOFLEGENDS"],
+    match: /\b(league of legends|lol esports|\blol\b)\b/i,
+  },
+];
+
+const DEFAULT_LOL_SERIES = ["KXLOL", "KXMIDSEASONINVITATIONAL", "KXLEAGUE", "KXLEAGUEWORLDS"];
 
 export function isOddsQuestion(message: string): boolean {
   return ODDS_HINTS.test(message);
 }
 
-function impliedYesPercent(m: {
+function kalshiAuthHeaders(apiKey?: string): HeadersInit {
+  const headers: Record<string, string> = { Accept: "application/json" };
+  if (apiKey?.trim()) {
+    headers.Authorization = `Bearer ${apiKey.trim()}`;
+  }
+  return headers;
+}
+
+function impliedYesFromMarket(m: {
   last_price?: number;
   yes_bid?: number;
   yes_ask?: number;
@@ -52,78 +94,207 @@ function impliedYesPercent(m: {
   return null;
 }
 
-function marketMatchesQuery(
+/** Derive yes mid-price (0–100 cents) from orderbook when market summary is empty. */
+async function impliedYesFromOrderbook(
+  ticker: string,
+  apiKey?: string,
+): Promise<number | null> {
+  try {
+    const res = await fetch(`${KALSHI_API_BASE}/markets/${encodeURIComponent(ticker)}/orderbook`, {
+      headers: kalshiAuthHeaders(apiKey),
+    });
+    if (!res.ok) return null;
+
+    const json = (await res.json()) as KalshiOrderbookResponse;
+    const fp = json.orderbook_fp;
+    if (fp?.yes_dollars?.length || fp?.no_dollars?.length) {
+      const yesBid = fp.yes_dollars?.length
+        ? Math.max(...fp.yes_dollars.map(([p]) => parseFloat(p)))
+        : null;
+      const noBid = fp.no_dollars?.length
+        ? Math.max(...fp.no_dollars.map(([p]) => parseFloat(p)))
+        : null;
+      const yesAsk = noBid != null ? 1 - noBid : null;
+      if (yesBid != null && yesAsk != null) {
+        return Math.round(((yesBid + yesAsk) / 2) * 100);
+      }
+      if (yesBid != null) return Math.round(yesBid * 100);
+      if (yesAsk != null) return Math.round(yesAsk * 100);
+    }
+
+    const ob = json.orderbook;
+    if (ob?.yes?.length || ob?.no?.length) {
+      const yesBid = ob.yes?.length ? Math.max(...ob.yes.map(([p]) => p)) : null;
+      const noBid = ob.no?.length ? Math.max(...ob.no.map(([p]) => p)) : null;
+      const yesAsk = noBid != null ? 100 - noBid : null;
+      if (yesBid != null && yesAsk != null) return Math.round((yesBid + yesAsk) / 2);
+      if (yesBid != null) return yesBid;
+      if (yesAsk != null) return yesAsk;
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+function resolveLoLSeries(message: string): string[] {
+  const out = new Set<string>();
+  for (const { series, match } of LOL_SERIES_BY_INTENT) {
+    if (match.test(message)) {
+      for (const s of series) out.add(s);
+    }
+  }
+  if (!out.size) {
+    for (const s of DEFAULT_LOL_SERIES) out.add(s);
+  }
+  return [...out];
+}
+
+function marketMatchesTeams(
   m: NonNullable<KalshiMarketsResponse["markets"]>[0],
-  tokens: string[],
+  teamTokens: string[],
 ): boolean {
+  if (!teamTokens.length) return true;
   const hay = `${m.title ?? ""} ${m.subtitle ?? ""} ${m.ticker ?? ""}`.toLowerCase();
-  if (!ESPORTS_HINTS.test(hay) && tokens.length === 0) return false;
-  if (tokens.length === 0) return ESPORTS_HINTS.test(hay);
-  return tokens.some((t) => hay.includes(t.toLowerCase()));
+  return teamTokens.some((t) => hay.includes(t.toLowerCase()));
+}
+
+function isLoLMarket(m: NonNullable<KalshiMarketsResponse["markets"]>[0]): boolean {
+  const hay = `${m.title ?? ""} ${m.subtitle ?? ""} ${m.ticker ?? ""} ${m.series_ticker ?? ""}`;
+  return LOL_ESPORTS_HINTS.test(hay) || /^KXLOL/i.test(m.ticker ?? "");
+}
+
+async function fetchSeriesMarkets(
+  seriesTicker: string,
+  apiKey?: string,
+): Promise<NonNullable<KalshiMarketsResponse["markets"]>> {
+  const params = new URLSearchParams({
+    status: "open",
+    series_ticker: seriesTicker,
+    limit: "100",
+  });
+  const res = await fetch(`${KALSHI_API_BASE}/markets?${params.toString()}`, {
+    headers: kalshiAuthHeaders(apiKey),
+  });
+  if (!res.ok) return [];
+  const json = (await res.json()) as KalshiMarketsResponse;
+  return json.markets ?? [];
+}
+
+async function enrichQuote(
+  m: NonNullable<KalshiMarketsResponse["markets"]>[0],
+  apiKey?: string,
+): Promise<KalshiMarketQuote | null> {
+  if (!m.ticker || !m.title) return null;
+
+  let yesPercent = impliedYesFromMarket(m);
+  let priceSource: KalshiMarketQuote["priceSource"] = yesPercent != null ? "market" : "unavailable";
+
+  if (yesPercent == null) {
+    yesPercent = await impliedYesFromOrderbook(m.ticker, apiKey);
+    if (yesPercent != null) priceSource = "orderbook";
+  }
+
+  return {
+    ticker: m.ticker,
+    title: m.title,
+    subtitle: String(m.subtitle ?? ""),
+    yesPercent,
+    eventTicker: String(m.event_ticker ?? ""),
+    url: `https://kalshi.com/markets/${encodeURIComponent(m.ticker)}`,
+    priceSource,
+  };
 }
 
 /**
- * Fetch open Kalshi markets and filter for LoL/esports + entities in the user message.
- * Public endpoint — no auth required; KALSHI_API_KEY reserved for future signed routes.
+ * Fetch Kalshi LoL/esports markets for the user's question.
+ * Uses series-targeted lookup (KXLOL for MSI) + orderbook fallback for live implied %.
  */
 export async function fetchEsportsMarketOdds(
   message: string,
-  _apiKey?: string,
+  apiKey?: string,
 ): Promise<{ block: string; markets: KalshiMarketQuote[] }> {
-  if (!isOddsQuestion(message) && !ESPORTS_HINTS.test(message)) {
+  if (!isOddsQuestion(message) && !LOL_ESPORTS_HINTS.test(message)) {
     return { block: "", markets: [] };
   }
 
   try {
-    const tokens = [...(message.match(TEAM_TOKENS) ?? [])].map((t) => t.trim());
-    const quotes: KalshiMarketQuote[] = [];
-    let cursor: string | undefined;
-    let pages = 0;
+    const teamTokens = [...(message.match(TEAM_TOKENS) ?? [])].map((t) => t.trim());
+    const seriesList = resolveLoLSeries(message);
+    const seenTickers = new Set<string>();
+    const rawMarkets: NonNullable<KalshiMarketsResponse["markets"]> = [];
 
-    while (pages < 3 && quotes.length < 8) {
-      const params = new URLSearchParams({
-        status: "open",
-        limit: "200",
-      });
-      if (cursor) params.set("cursor", cursor);
-
-      const res = await fetch(`${KALSHI_API_BASE}/markets?${params.toString()}`, {
-        headers: { Accept: "application/json" },
-      });
-      if (!res.ok) break;
-
-      const json = (await res.json()) as KalshiMarketsResponse;
-      for (const m of json.markets ?? []) {
-        if (!m.ticker || !m.title) continue;
-        if (!marketMatchesQuery(m, tokens)) continue;
-        const yesPercent = impliedYesPercent(m);
-        if (yesPercent == null) continue;
-        quotes.push({
-          ticker: m.ticker,
-          title: m.title,
-          subtitle: String(m.subtitle ?? ""),
-          yesPercent,
-          eventTicker: String(m.event_ticker ?? ""),
-          url: `https://kalshi.com/markets/${encodeURIComponent(m.ticker)}`,
-        });
-        if (quotes.length >= 8) break;
+    for (const series of seriesList) {
+      const batch = await fetchSeriesMarkets(series, apiKey);
+      for (const m of batch) {
+        if (!m.ticker || seenTickers.has(m.ticker)) continue;
+        if (!isLoLMarket(m)) continue;
+        if (!marketMatchesTeams(m, teamTokens)) continue;
+        seenTickers.add(m.ticker);
+        rawMarkets.push(m);
       }
-
-      cursor = json.cursor;
-      if (!cursor) break;
-      pages++;
     }
 
-    if (!quotes.length) return { block: "", markets: [] };
+    // Fallback: scan generic open markets only for explicit LoL titles (not ESPORTS parlays).
+    if (rawMarkets.length < 3) {
+      let cursor: string | undefined;
+      for (let page = 0; page < 2 && rawMarkets.length < 12; page++) {
+        const params = new URLSearchParams({ status: "open", limit: "200" });
+        if (cursor) params.set("cursor", cursor);
+        const res = await fetch(`${KALSHI_API_BASE}/markets?${params.toString()}`, {
+          headers: kalshiAuthHeaders(apiKey),
+        });
+        if (!res.ok) break;
+        const json = (await res.json()) as KalshiMarketsResponse;
+        for (const m of json.markets ?? []) {
+          if (!m.ticker || seenTickers.has(m.ticker)) continue;
+          if (!isLoLMarket(m)) continue;
+          if (!marketMatchesTeams(m, teamTokens)) continue;
+          seenTickers.add(m.ticker);
+          rawMarkets.push(m);
+        }
+        cursor = json.cursor;
+        if (!cursor) break;
+      }
+    }
 
-    const lines = quotes.map((q) => {
+    if (!rawMarkets.length) return { block: "", markets: [] };
+
+    const toEnrich = rawMarkets.slice(0, 16);
+    const quotes: KalshiMarketQuote[] = [];
+    const batchSize = 6;
+    for (let i = 0; i < toEnrich.length; i += batchSize) {
+      const batch = await Promise.all(
+        toEnrich.slice(i, i + batchSize).map((m) => enrichQuote(m, apiKey)),
+      );
+      for (const q of batch) {
+        if (q) quotes.push(q);
+      }
+    }
+
+    // Prefer markets with live prices; still list unavailable at end.
+    quotes.sort((a, b) => {
+      const aScore = a.yesPercent ?? -1;
+      const bScore = b.yesPercent ?? -1;
+      return bScore - aScore;
+    });
+
+    const priced = quotes.filter((q) => q.yesPercent != null);
+    const display = (priced.length ? priced : quotes).slice(0, 12);
+
+    if (!display.length) return { block: "", markets: [] };
+
+    const lines = display.map((q) => {
       const label = q.subtitle ? `${q.title} — ${q.subtitle}` : q.title;
-      return `- ${label}: yes ${q.yesPercent}% (${q.ticker})`;
+      if (q.yesPercent != null) {
+        return `- ${label}: yes ${q.yesPercent}% (${q.ticker}, ${q.priceSource})`;
+      }
+      return `- ${label}: no live price on book right now (${q.ticker})`;
     });
 
     return {
-      block: `[KALSHI_ODDS]\nLive Kalshi esports markets (implied yes %). Cite casually; do NOT invent odds beyond this block.\n${lines.join("\n")}`,
-      markets: quotes,
+      block: `[KALSHI_ODDS]\nLive Kalshi League of Legends markets (implied yes % from market or orderbook). Cite these numbers casually; do NOT invent odds beyond this block.\n${lines.join("\n")}`,
+      markets: display,
     };
   } catch {
     return { block: "", markets: [] };
