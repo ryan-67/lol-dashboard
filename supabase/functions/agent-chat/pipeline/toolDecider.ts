@@ -18,7 +18,15 @@ import { runPlayerCompare } from "../helpers/playerCompare.ts";
 import { routeTools } from "../helpers/toolRouter.ts";
 import { classifyIntent } from "../helpers/classify.ts";
 import { sqlQuery, vectorSearch } from "../helpers/tools.ts";
-import { searchTavilyWikiFirst, type TavilySearchIntent } from "../helpers/tavilySearch.ts";
+import {
+  formatSnippetsAsContext,
+  searchTavilyMetaFirst,
+  searchTavilySentiment,
+  searchTavilyStatsFirst,
+  searchTavilyWikiFirst,
+  type TavilySearchIntent,
+} from "../helpers/tavilySearch.ts";
+import { fetchEsportsMarketOdds, isOddsQuestion } from "../helpers/kalshi.ts";
 import { isCareerQuestion, isRosterDepthQuestion } from "../helpers/scope.ts";
 import {
   buildCurrentWorldContext,
@@ -78,23 +86,49 @@ const TOURNAMENT_HINTS =
   /\b(bracket|tournament format|groups? stage|swiss|single.?elim|double.?elim|play.?in|msi format|worlds format|first stand format|qualification format|seeding rules?)\b/i;
 const ROSTER_WEB_HINTS =
   /\b(roster|lineup|transfer|signed|joined|left|sub(?:stitute)?|backup player|who (?:is|are) on|who plays for)\b/i;
+const STATS_HEAVY_HINTS =
+  /\b(build|builds|item|items|rune|runes|skill order|pro build|pick rate|ban rate|pick.?ban|most picked|most banned|historical stats|career stats|stats page)\b/i;
+const MATCHUP_META_HINTS =
+  /\b(matchup|counter|good into|bad into|lane vs|patch meta|meta pick|tier list|win rate|wr%)\b/i;
+const SUBJECTIVE_HINTS =
+  /\b(clutch|goat|greatest|best player|best (?:mid|top|jungle|adc|support|laner)|of all time|all.?time|top 5|ever|legacy|hall of fame|debate|narrative|storyline)\b/i;
+
+export function isSubjectiveDebate(message: string): boolean {
+  return SUBJECTIVE_HINTS.test(message);
+}
+
+function oeSampleIsThin(matchStats: Record<string, unknown>): boolean {
+  const keys = Object.keys(matchStats);
+  if (!keys.length) return true;
+  const blob = JSON.stringify(matchStats);
+  if (/\"games\":\s*[0-4]\b/.test(blob)) return true;
+  if (/\"gamesPlayed\":\s*[0-4]\b/.test(blob)) return true;
+  if (/\"sampleSize\":\s*[0-9]\b/.test(blob)) return true;
+  return false;
+}
 
 function detectWebSearchIntent(
   message: string,
   inheritedTopic: string | null,
   careerIntent: boolean,
   rosterDepthIntent: boolean,
+  subjectiveIntent: boolean,
+  matchStats: Record<string, unknown>,
 ): TavilySearchIntent {
   const text = `${message} ${inheritedTopic ?? ""}`;
+  if (subjectiveIntent) return "subjective";
   if (careerIntent) return "career";
   if (rosterDepthIntent || ROSTER_WEB_HINTS.test(text)) return "roster";
+  if (STATS_HEAVY_HINTS.test(text)) return "stats";
   if (PATCH_HINTS.test(text)) return "patch";
   if (TOURNAMENT_HINTS.test(text)) return "tournament";
+  if (MATCHUP_META_HINTS.test(text) && oeSampleIsThin(matchStats)) return "matchup";
+  if (MATCHUP_META_HINTS.test(text)) return "meta";
   return "general";
 }
 
-/** Build Leaguepedia/Liquipedia-targeted queries for Tavily (not raw chat text). */
-function buildWikiQueries(
+/** Build domain-targeted Tavily queries (not raw chat text). */
+function buildTavilyQueries(
   intent: TavilySearchIntent,
   message: string,
   thread: GuardrailResult["thread"],
@@ -124,18 +158,49 @@ function buildWikiQueries(
             (e) => `${e} League of Legends esports current roster${scopeSuffix}${splitSuffix} liquipedia leaguepedia`,
           )
         : [`${baseQuery} League of Legends esports roster${scopeSuffix}${splitSuffix} liquipedia leaguepedia`];
+    case "stats":
+      return webEntities.length
+        ? webEntities.map((e) => `${e} League of Legends pro player stats gol.gg pick ban build`)
+        : [`${baseQuery} League of Legends esports pro stats gol.gg pick ban build${scopeSuffix}`];
+    case "matchup":
+    case "meta":
+      return [
+        `${baseQuery} League of Legends champion matchup patch meta u.gg leagueofgraphs`,
+        `${baseQuery} pro play pick rate gol.gg${scopeSuffix}`,
+      ];
     case "patch":
       return [
-        `${baseQuery} League of Legends patch notes liquipedia leaguepedia`,
-        `League of Legends patch notes recent changes liquipedia`,
+        `${baseQuery} League of Legends patch notes liquipedia u.gg`,
+        `League of Legends patch notes recent changes liquipedia leagueofgraphs`,
       ];
     case "tournament":
       return [
         `${baseQuery} League of Legends esports tournament format bracket liquipedia leaguepedia`,
         `${baseQuery} League of Legends esports schedule results liquipedia`,
       ];
+    case "subjective":
+      return webEntities.length
+        ? webEntities.map((e) => `${e} League of Legends esports reddit GOAT clutch greatest debate`)
+        : [`${baseQuery} League of Legends esports reddit community GOAT clutch greatest debate`];
     default:
       return [`${baseQuery} League of Legends esports liquipedia leaguepedia`];
+  }
+}
+
+async function runIntentSearch(
+  tavilyApiKey: string,
+  intent: TavilySearchIntent,
+  query: string,
+): Promise<import("../helpers/tavilySearch.ts").TavilyResult[]> {
+  switch (intent) {
+    case "stats":
+      return searchTavilyStatsFirst(tavilyApiKey, query, { maxResults: 6 });
+    case "matchup":
+    case "meta":
+    case "patch":
+      return searchTavilyMetaFirst(tavilyApiKey, query, { maxResults: 6 });
+    default:
+      return searchTavilyWikiFirst(tavilyApiKey, query, { maxResults: 6 });
   }
 }
 
@@ -184,6 +249,7 @@ export interface DecideDeps {
   serviceClient: SupabaseClient;
   openrouterApiKey: string;
   tavilyApiKey: string;
+  kalshiApiKey?: string;
   message: string;
   history: HistoryMessage[];
   guardrail: GuardrailResult;
@@ -216,11 +282,14 @@ export async function decideAndFetch(deps: DecideDeps): Promise<Evidence> {
   const careerIntent = isCareerQuestion(message) || (thread.isFollowUp && inheritedCareer);
   const rosterDepthIntent =
     isRosterDepthQuestion(message) || thread.followUpType === "roster_follow_up";
+  const subjectiveIntent = isSubjectiveDebate(message) ||
+    (thread.isFollowUp && thread.inheritedTopic ? isSubjectiveDebate(thread.inheritedTopic) : false);
 
-  const runTools = scope.needs_tools && !careerIntent;
+  let runTools = scope.needs_tools && !careerIntent;
+  if (subjectiveIntent && !careerIntent) runTools = true;
   const runRag = scope.needs_rag;
 
-  const sources = { oracleElixir: false, rag: false, web: false, schedule: false };
+  const sources = { oracleElixir: false, rag: false, web: false, schedule: false, kalshi: false, sentiment: false };
   let matchStats: Record<string, unknown> = {};
   let externalContext = "";
   let chartPrefix = "";
@@ -324,9 +393,18 @@ export async function decideAndFetch(deps: DecideDeps): Promise<Evidence> {
   }
 
   const chatOnly =
-    scope.scope === "lolesports_chat" && !runTools && !runRag && !externalContext;
+    scope.scope === "lolesports_chat" && !runTools && !runRag && !externalContext &&
+    !subjectiveIntent && !isOddsQuestion(message);
 
-  // ---- Source 3: Web fallback (Tavily) — wiki-first; verify in Layer 3 ----
+  // ---- Kalshi live odds (Layer 2 data source) ----
+  let kalshiOddsBlock = "";
+  if (isOddsQuestion(message) || scope.scope === "lolesports_general" && /\b(predict|favorite)\b/i.test(message)) {
+    const kalshi = await fetchEsportsMarketOdds(message, deps.kalshiApiKey);
+    kalshiOddsBlock = kalshi.block;
+    if (kalshi.markets.length) sources.kalshi = true;
+  }
+
+  // ---- Source 3: Web fallback (Tavily) — intent-specific domain targeting ----
   const hasExternal = externalContext.trim().length > 0;
   const hasUsefulStats = Object.keys(matchStats).length > 0;
   const factualGeneral = scope.scope === "lolesports_general";
@@ -335,25 +413,35 @@ export async function decideAndFetch(deps: DecideDeps): Promise<Evidence> {
     thread.inheritedTopic,
     careerIntent,
     rosterDepthIntent,
+    subjectiveIntent,
+    matchStats,
   );
   const patchIntent = webSearchIntent === "patch";
   const tournamentIntent = webSearchIntent === "tournament";
   const rosterWebIntent = webSearchIntent === "roster";
+  const statsWebIntent = webSearchIntent === "stats";
+  const metaThinSample = (webSearchIntent === "matchup" || webSearchIntent === "meta") &&
+    oeSampleIsThin(matchStats);
 
   const needWeb =
     Boolean(tavilyApiKey) &&
     !chatOnly &&
     scope.scope !== "lolesports_chat" &&
     (
+      subjectiveIntent ||
       (careerIntent && !hasWebVerifiedChunk) ||
       (rosterDepthIntent && !analystToolNames.includes("team_role_depth") && !hasExternal) ||
       (rosterWebIntent && !externalCoversIntent("roster", externalContext)) ||
       (patchIntent && !externalCoversIntent("patch", externalContext)) ||
       (tournamentIntent && !externalCoversIntent("tournament", externalContext)) ||
+      statsWebIntent ||
+      metaThinSample ||
       (factualGeneral && !hasExternal && !hasUsefulStats)
     );
 
   let webSnippets: Evidence["webSnippets"] = [];
+  let sentimentSnippets: Evidence["sentimentSnippets"] = [];
+  let sentimentContext = "";
   let webFactQuery = "";
   let webEntities: string[] = [];
 
@@ -362,9 +450,9 @@ export async function decideAndFetch(deps: DecideDeps): Promise<Evidence> {
       message,
       thread.inheritedTopic,
       mentionedPlayers,
-      webSearchIntent,
+      webSearchIntent === "subjective" ? "career" : webSearchIntent,
     );
-    const queries = buildWikiQueries(
+    const queries = buildTavilyQueries(
       webSearchIntent,
       message,
       thread,
@@ -375,11 +463,10 @@ export async function decideAndFetch(deps: DecideDeps): Promise<Evidence> {
 
     webSnippets = (
       await Promise.all(
-        queries.map((q) => searchTavilyWikiFirst(tavilyApiKey, q, { maxResults: 6 })),
+        queries.map((q) => runIntentSearch(tavilyApiKey, webSearchIntent, q)),
       )
     ).flat();
 
-    // Dedupe + cap; wiki domains already ranked first by searchTavilyWikiFirst.
     const seen = new Set<string>();
     webSnippets = webSnippets.filter((s) => {
       if (seen.has(s.url)) return false;
@@ -391,6 +478,22 @@ export async function decideAndFetch(deps: DecideDeps): Promise<Evidence> {
       ? `${message} — ${webSearchIntent}: ${webEntities.join(", ")}`
       : `${message} — ${webSearchIntent} (League of Legends esports)`;
     if (webSnippets.length) sources.web = true;
+  }
+
+  if (subjectiveIntent && tavilyApiKey) {
+    const sentimentQueries = buildTavilyQueries(
+      "subjective",
+      message,
+      thread,
+      buildWebEntities(message, thread.inheritedTopic, mentionedPlayers, "career"),
+      filters.league,
+      resolvedSplit,
+    ).slice(0, 2);
+    sentimentSnippets = (
+      await Promise.all(sentimentQueries.map((q) => searchTavilySentiment(tavilyApiKey, q)))
+    ).flat();
+    sentimentContext = formatSnippetsAsContext(sentimentSnippets, "community_sentiment");
+    if (sentimentSnippets.length) sources.sentiment = true;
   }
 
   const analysisIntent = detectAnalysisIntent(
@@ -405,6 +508,7 @@ export async function decideAndFetch(deps: DecideDeps): Promise<Evidence> {
     plan,
     careerIntent,
     rosterDepthIntent,
+    subjectiveIntent,
     chatOnly,
     worldBlock,
     mentionedRosterBlock,
@@ -418,6 +522,9 @@ export async function decideAndFetch(deps: DecideDeps): Promise<Evidence> {
     webFactQuery,
     webEntities,
     webSearchIntent,
+    sentimentSnippets,
+    sentimentContext,
+    kalshiOddsBlock,
     analysisIntent,
     resolvedSplit,
     league: filters.league,

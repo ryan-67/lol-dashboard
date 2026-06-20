@@ -123,6 +123,9 @@ export interface PromptContext {
   careerIntent?: boolean;
   /** When set, inject deep matchup/draft/macro synthesis instructions. */
   analysisIntent?: AnalysisIntent;
+  subjectiveIntent?: boolean;
+  sentimentContext?: string;
+  kalshiOddsBlock?: string;
 }
 
 /** Deep-analysis modes where stats must be woven into game knowledge, not dumped. */
@@ -202,6 +205,18 @@ Be specific: power spikes, ability interactions, map pressure, teamfight angles.
   }
 }
 
+/** Subjective GOAT/clutch/legacy debates — stats first, community narrative second. */
+export function subjectiveSynthesisBlock(): string {
+  return `[SUBJECTIVE_SYNTHESIS]
+The user wants a subjective/historical debate take (clutch, GOAT, greatest, legacy).
+Rules:
+1) ANCHOR ON STATS FIRST — use MATCH_STATS / Oracle numbers as the backbone of your argument when present.
+2) COMMUNITY SENTIMENT IS NARRATIVE ONLY — if [COMMUNITY_SENTIMENT] is present, use it for storyline ("reddit thinks…", "community argument is…"). Never treat reddit as verified fact.
+3) You MAY give a clear opinion, but cite stats inline as proof; label community vibes as opinion.
+4) Do NOT invent title counts, award counts, or career milestones not in WEB_VERIFIED / EXTERNAL_CONTEXT / MATCH_STATS.
+5) Sound like a sharp analyst in a discord call, not a Wikipedia article.`;
+}
+
 export function finalMessages(
   history: Array<{ role: "user" | "assistant" | "system"; content: string }>,
   userMessage: string,
@@ -254,6 +269,18 @@ export function finalMessages(
 
   if (externalContext?.trim()) {
     blocks.push(`[EXTERNAL_CONTEXT]\n${externalContext}`);
+  }
+
+  if (ctx?.kalshiOddsBlock?.trim()) {
+    blocks.push(ctx.kalshiOddsBlock.trim());
+  }
+
+  if (ctx?.sentimentContext?.trim()) {
+    blocks.push(`[COMMUNITY_SENTIMENT]\nOpinion/community narrative only — NOT verified fact.\n${ctx.sentimentContext}`);
+  }
+
+  if (ctx?.subjectiveIntent) {
+    blocks.push(subjectiveSynthesisBlock());
   }
 
   if (ctx?.webVerified?.trim()) {

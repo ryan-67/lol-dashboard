@@ -1,12 +1,9 @@
 // Layer 3 — Synthesis.
 //
 // Takes the raw evidence from the Tool Decider and:
-//   1. Cross-verifies web snippets into trusted facts (2+ allowlisted sources agree, or
-//      one authoritative Liquipedia/Leaguepedia line) → [WEB_VERIFIED] block.
-//   2. Generates the final grounded response — for matchup/draft asks, merges OE stats
-//      with actual game knowledge (synergies, win conditions, macro) via DEEP_ANALYSIS blocks.
-//   3. After the response streams, pushes newly verified facts into pgvector reliably
-//      (retries + upsert dedupe; failures logged, never break the user-facing stream).
+//   1. Cross-verifies web snippets into trusted facts (wiki/stats sources) → [WEB_VERIFIED].
+//   2. Generates grounded responses — DEEP_ANALYSIS + SUBJECTIVE_SYNTHESIS + KALSHI_ODDS blocks.
+//   3. After streaming, writes verified facts to pgvector (never reddit/sentiment snippets).
 
 import type { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
 import {
@@ -18,7 +15,7 @@ import { streamFinalAnswer } from "../helpers/stream.ts";
 import { pickFinalModel } from "../helpers/classify.ts";
 import { extractCandidateFacts, verifyFact, type VerifiedFact } from "../helpers/factVerifier.ts";
 import { writeBackVerifiedFacts } from "../helpers/ragWriteback.ts";
-import { rankWikiSnippets } from "../helpers/tavilySearch.ts";
+import { isSentimentDomain, rankSnippets } from "../helpers/tavilySearch.ts";
 import type { Evidence, HistoryMessage, SynthesisResult } from "./types.ts";
 
 export interface SynthesisDeps {
@@ -27,19 +24,19 @@ export interface SynthesisDeps {
   message: string;
   history: HistoryMessage[];
   evidence: Evidence;
-  /** chart block already streamed by the orchestrator; included for persisted text. */
   chartPrefix: string;
   writer: WritableStreamDefaultWriter<Uint8Array>;
 }
 
-/** Cross-verify raw web snippets; prefer wiki-domain sources for fact extraction. */
+/** Cross-verify factual web snippets; exclude reddit/sentiment from write-back. */
 async function crossVerify(
   apiKey: string,
   evidence: Evidence,
 ): Promise<{ block: string; verified: VerifiedFact[] }> {
-  if (!evidence.webSnippets.length) return { block: "", verified: [] };
+  const factSnippets = evidence.webSnippets.filter((s) => !isSentimentDomain(s.url));
+  if (!factSnippets.length) return { block: "", verified: [] };
 
-  const rankedSnippets = rankWikiSnippets(evidence.webSnippets);
+  const rankedSnippets = rankSnippets(factSnippets, "wiki");
   const candidates = await extractCandidateFacts(
     apiKey,
     rankedSnippets,
@@ -66,7 +63,6 @@ async function crossVerify(
   return { block: lines.join("\n"), verified };
 }
 
-/** Resolve analysis mode — tool decider hint, or re-detect from message + stats. */
 function resolveAnalysisIntent(evidence: Evidence, message: string) {
   return evidence.analysisIntent ??
     detectAnalysisIntent(message, evidence.scope.scope, Object.keys(evidence.matchStats).length > 0);
@@ -75,29 +71,32 @@ function resolveAnalysisIntent(evidence: Evidence, message: string) {
 export async function synthesize(deps: SynthesisDeps): Promise<SynthesisResult> {
   const { serviceClient, openrouterApiKey, message, history, evidence, chartPrefix, writer } = deps;
 
-  // 1. Cross-verification of wiki-targeted web data.
   const { block: webVerifiedBlock, verified } = await crossVerify(openrouterApiKey, evidence);
   const analysisIntent = resolveAnalysisIntent(evidence, message);
 
-  // 2. Assemble grounded prompt + generate (deep analysis blocks for matchup/draft/macro).
+  const promptCtx = {
+    league: evidence.league,
+    split: evidence.resolvedSplit,
+    year: evidence.year,
+    hasCompare: evidence.isCompare,
+    worldBlock: evidence.worldBlock,
+    scope: evidence.scope.scope,
+    isFollowUp: evidence.thread.isFollowUp,
+    followUpType: evidence.thread.followUpType,
+    hasMatchStats: Object.keys(evidence.matchStats).length > 0,
+    mentionedRosterBlock: evidence.mentionedRosterBlock,
+    webVerified: webVerifiedBlock,
+    careerIntent: evidence.careerIntent,
+    analysisIntent,
+    subjectiveIntent: evidence.subjectiveIntent,
+    sentimentContext: evidence.sentimentContext,
+    kalshiOddsBlock: evidence.kalshiOddsBlock,
+  };
+
   const finalModel = pickFinalModel(evidence.plan);
   const messages = evidence.chatOnly
     ? chatOnlyMessages(history, message, evidence.worldBlock, evidence.mentionedRosterBlock, analysisIntent)
-    : finalMessages(history, message, evidence.matchStats, evidence.externalContext, {
-        league: evidence.league,
-        split: evidence.resolvedSplit,
-        year: evidence.year,
-        hasCompare: evidence.isCompare,
-        worldBlock: evidence.worldBlock,
-        scope: evidence.scope.scope,
-        isFollowUp: evidence.thread.isFollowUp,
-        followUpType: evidence.thread.followUpType,
-        hasMatchStats: Object.keys(evidence.matchStats).length > 0,
-        mentionedRosterBlock: evidence.mentionedRosterBlock,
-        webVerified: webVerifiedBlock,
-        careerIntent: evidence.careerIntent,
-        analysisIntent,
-      });
+    : finalMessages(history, message, evidence.matchStats, evidence.externalContext, promptCtx);
 
   const answer = await streamFinalAnswer({
     apiKey: openrouterApiKey,
@@ -112,7 +111,6 @@ export async function synthesize(deps: SynthesisDeps): Promise<SynthesisResult> 
     assistantText = "couldn't get a clean read on that — try again or narrow the league/split.";
   }
 
-  // 3. Compound pgvector RAG after the user sees the full streamed response.
   if (verified.length) {
     await writeBackVerifiedFacts(
       serviceClient,

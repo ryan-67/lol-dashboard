@@ -14,12 +14,31 @@ import {
 import { runGuardrail } from "./pipeline/guardrail.ts";
 import { decideAndFetch } from "./pipeline/toolDecider.ts";
 import { synthesize } from "./pipeline/synthesis.ts";
-import type { ResolvedFilters } from "./pipeline/types.ts";
+import type { ImageAttachment, ResolvedFilters } from "./pipeline/types.ts";
+import { extractVisionContext } from "./helpers/visionExtract.ts";
 
 interface ChatRequestBody extends DashboardFilters {
   message?: string;
   conversation_id?: string;
   client_now?: string;
+  attachments?: ImageAttachment[];
+}
+
+function normalizeAttachments(raw: unknown): ImageAttachment[] {
+  if (!Array.isArray(raw)) return [];
+  return raw
+    .map((a) => {
+      if (!a || typeof a !== "object") return null;
+      const url = String((a as ImageAttachment).url ?? "").trim();
+      if (!url) return null;
+      return {
+        url,
+        mimeType: (a as ImageAttachment).mimeType,
+        name: (a as ImageAttachment).name,
+      };
+    })
+    .filter((a): a is ImageAttachment => Boolean(a))
+    .slice(0, 2);
 }
 
 const encoder = new TextEncoder();
@@ -121,7 +140,7 @@ Deno.serve(async (req) => {
   const authHeader = req.headers.get("authorization");
   const userClient = createUserClient(authHeader);
   const serviceClient = createServiceClient();
-  const { openrouterApiKey, tavilyApiKey } = getEnv();
+  const { openrouterApiKey, tavilyApiKey, kalshiApiKey } = getEnv();
 
   if (!openrouterApiKey) {
     return new Response(JSON.stringify({ error: "OPENROUTER_API_KEY not configured" }), {
@@ -153,8 +172,9 @@ Deno.serve(async (req) => {
   }
 
   const message = String(body.message ?? "").trim();
-  if (!message) {
-    return new Response(JSON.stringify({ error: "message is required" }), {
+  const attachments = normalizeAttachments(body.attachments);
+  if (!message && !attachments.length) {
+    return new Response(JSON.stringify({ error: "message or attachment is required" }), {
       status: 400,
       headers: { ...cors, "Content-Type": "application/json" },
     });
@@ -205,7 +225,7 @@ Deno.serve(async (req) => {
         const conversation = await resolveConversation(
           serviceClient,
           user.id,
-          message,
+          message || (attachments.length ? "[draft screenshot]" : ""),
           body.conversation_id,
         );
         conversationId = conversation.conversationId;
@@ -233,8 +253,19 @@ Deno.serve(async (req) => {
           rosterSplitHint,
         };
 
+        // Vision: extract draft/picks from image attachments before routing.
+        let pipelineMessage = message;
+        if (attachments.length) {
+          const visionBlock = await extractVisionContext(openrouterApiKey, attachments);
+          if (visionBlock) {
+            pipelineMessage = message ? `${message}\n\n${visionBlock}` : visionBlock;
+          } else if (!message) {
+            pipelineMessage = "analyze this league of legends draft screenshot";
+          }
+        }
+
         // ===== Layer 1: Guardrail Router (cheap refusal before any deep work) =====
-        const guardrail = await runGuardrail(openrouterApiKey, message, conversation.history);
+        const guardrail = await runGuardrail(openrouterApiKey, pipelineMessage, conversation.history);
         if (!guardrail.allowed) {
           assistantText = guardrail.refusal;
           await streamFallback(writer, assistantText);
@@ -246,7 +277,8 @@ Deno.serve(async (req) => {
           serviceClient,
           openrouterApiKey,
           tavilyApiKey,
-          message,
+          kalshiApiKey,
+          message: pipelineMessage,
           history: conversation.history,
           guardrail,
           filters,
@@ -262,7 +294,7 @@ Deno.serve(async (req) => {
         const synthesis = await synthesize({
           serviceClient,
           openrouterApiKey,
-          message,
+          message: pipelineMessage,
           history: conversation.history,
           evidence,
           chartPrefix: evidence.chartPrefix,
@@ -279,7 +311,7 @@ Deno.serve(async (req) => {
       } finally {
         if (conversationId) {
           try {
-            await persistMessages(serviceClient, user.id, conversationId, message, assistantText);
+            await persistMessages(serviceClient, user.id, conversationId, message || "[image attachment]", assistantText);
           } catch {
             // persistence failure shouldn't break the stream
           }

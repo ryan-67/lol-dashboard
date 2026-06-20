@@ -1,3 +1,9 @@
+export interface ChatAttachment {
+  url: string
+  mimeType?: string
+  name?: string
+}
+
 export interface ProfileRow {
   id: string
   username: string | null

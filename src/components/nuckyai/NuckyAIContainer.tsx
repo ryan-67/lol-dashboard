@@ -11,7 +11,7 @@ import ChatSidebar from './ChatSidebar'
 import ChatWindow from './ChatWindow'
 import { useAgentChat } from './useAgentChat'
 import { pickThinkingMessage } from '../../lib/nuckyThinking'
-import type { ConversationRow, MessageRow, ProfileRow } from './types'
+import type { ConversationRow, MessageRow, ProfileRow, ChatAttachment } from './types'
 
 export default function NuckyAIContainer() {
   const { user } = useAuth()
@@ -151,8 +151,11 @@ export default function NuckyAIContainer() {
   )
 
   const streamAssistant = useCallback(
-    (message: string, options?: { skipUserAppend?: boolean }) => {
+    (message: string, options?: { skipUserAppend?: boolean; attachment?: ChatAttachment | null }) => {
       const now = new Date().toISOString()
+      const displayMessage =
+        message.trim() ||
+        (options?.attachment?.name ? `[image: ${options.attachment.name}]` : '[draft screenshot]')
       pendingSendRef.current = true
 
       setMessages((prev) => {
@@ -163,13 +166,13 @@ export default function NuckyAIContainer() {
 
         const base = options?.skipUserAppend
           ? withoutLastAssistant
-          : [...withoutLastAssistant, { role: 'user' as const, content: message, created_at: now }]
+          : [...withoutLastAssistant, { role: 'user' as const, content: displayMessage, created_at: now }]
 
         return [
           ...base,
           {
             role: 'assistant' as const,
-            content: pickThinkingMessage(message),
+            content: pickThinkingMessage(displayMessage),
             created_at: now,
             retryable: false,
             thinking: true,
@@ -181,6 +184,7 @@ export default function NuckyAIContainer() {
 
       void sendMessage({
         message,
+        attachments: options?.attachment ? [options.attachment] : undefined,
         conversationId: activeConversationId ?? undefined,
         filter: agentFilter,
         onMetadata: (conversationId) => {
@@ -255,8 +259,8 @@ export default function NuckyAIContainer() {
   )
 
   const send = useCallback(
-    (message: string) => {
-      streamAssistant(message)
+    (message: string, attachment?: ChatAttachment | null) => {
+      streamAssistant(message, { attachment })
     },
     [streamAssistant],
   )

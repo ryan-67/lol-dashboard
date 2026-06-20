@@ -7,8 +7,8 @@
 `index.ts` is a thin orchestrator. The request flows through three strictly-bounded layers, each a typed module under `supabase/functions/agent-chat/pipeline/` (contracts in `pipeline/types.ts`). Conversation history threads through all three so follow-ups stay coherent.
 
 1. **Guardrail Router** (`pipeline/guardrail.ts`) — fast, lightweight cost firewall. A hard off-topic denylist (coding/homework/recipes/math/etc.) refuses non-LoL prompts in ~one regex test, before any LLM/tool/RAG spend. Ambiguous cases fall through to the nuanced `scope.ts` classifier (which itself only spends an LLM call on in-thread ambiguity). Returns `allowed:false` + an in-character refusal, or the resolved scope/thread for the next layer.
-2. **Tool Decider** (`pipeline/toolDecider.ts`) — decides WHERE to source data and fetches it, tiered: **Oracle's Elixir** → **RAG** (pgvector) → **Tavily web fallback** (wiki-first: Leaguepedia/Liquipedia/Fandom, then gol.gg/lolesports). Intent-specific wiki queries for rosters, patch notes, tournament formats, and career facts. No PandaScore/GRID — OE + RAG + Tavily only.
-3. **Synthesis** (`pipeline/synthesis.ts`) — cross-verifies wiki snippets, injects **DEEP_ANALYSIS** blocks for matchup/draft/macro (stats woven into game knowledge, not raw dumps), streams the answer, then **writes verified facts to pgvector** via `writeBackVerifiedFacts` (retries + upsert dedupe, after streaming).
+2. **Tool Decider** (`pipeline/toolDecider.ts`) — OE → RAG → **Tavily** (wiki / gol.gg stats / u.gg+leagueofgraphs meta / reddit sentiment) → **Kalshi** live odds. Subjective debates (GOAT/clutch/greatest) force OE stats + community sentiment search. Vision text is injected in `index.ts` before Layer 1 when the client sends image attachments.
+3. **Synthesis** (`pipeline/synthesis.ts`) — cross-verifies factual snippets (excludes reddit from write-back), injects `DEEP_ANALYSIS`, `SUBJECTIVE_SYNTHESIS`, and `[KALSHI_ODDS]` blocks, streams answer, upserts verified facts to pgvector.
 
 Hosted on Supabase Edge Functions in production. Responsibilities:
 

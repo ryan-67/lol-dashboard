@@ -2,12 +2,12 @@ import { useState } from 'react'
 import MessageList from './MessageList'
 import ChatInput from './ChatInput'
 import SuggestedPrompts from './SuggestedPrompts'
-import type { MessageRow } from './types'
+import type { ChatAttachment, MessageRow } from './types'
 
 interface ChatWindowProps {
   messages: MessageRow[]
   streaming: boolean
-  onSend: (message: string) => void
+  onSend: (message: string, attachment?: ChatAttachment | null) => void
   onRegenerate: () => void
   onRetry: () => void
   onStop: () => void
@@ -24,12 +24,14 @@ export default function ChatWindow({
   inputFocusTrigger,
 }: ChatWindowProps) {
   const [draft, setDraft] = useState('')
+  const [attachment, setAttachment] = useState<ChatAttachment | null>(null)
   const showConversation = messages.length > 0 || streaming
 
   const send = () => {
-    if (!draft.trim()) return
-    onSend(draft.trim())
+    if (!draft.trim() && !attachment) return
+    onSend(draft.trim(), attachment)
     setDraft('')
+    setAttachment(null)
   }
 
   return (
@@ -57,6 +59,8 @@ export default function ChatWindow({
         disabled={streaming}
         onStop={onStop}
         focusTrigger={inputFocusTrigger}
+        attachment={attachment}
+        onAttachmentChange={setAttachment}
       />
     </section>
   )

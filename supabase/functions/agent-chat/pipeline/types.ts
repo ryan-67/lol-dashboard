@@ -13,6 +13,13 @@ import type { IntentPlan } from "../helpers/classify.ts";
 import type { TavilyResult, TavilySearchIntent } from "../helpers/tavilySearch.ts";
 import type { AnalysisIntent } from "../helpers/prompts.ts";
 
+export interface ImageAttachment {
+  /** HTTPS URL or data:image/...;base64,... */
+  url: string;
+  mimeType?: string;
+  name?: string;
+}
+
 export interface HistoryMessage {
   role: "user" | "assistant" | "system";
   content: string;
@@ -50,6 +57,8 @@ export interface SourceTrace {
   rag: boolean;
   web: boolean;
   schedule: boolean;
+  kalshi: boolean;
+  sentiment: boolean;
 }
 
 export interface Evidence {
@@ -59,6 +68,7 @@ export interface Evidence {
   plan: IntentPlan;
   careerIntent: boolean;
   rosterDepthIntent: boolean;
+  subjectiveIntent: boolean;
   chatOnly: boolean;
 
   // grounded context
@@ -78,6 +88,13 @@ export interface Evidence {
   webFactQuery: string;
   webEntities: string[];
   webSearchIntent: TavilySearchIntent;
+
+  /** Reddit/community snippets — opinion only, never fact write-back. */
+  sentimentSnippets: TavilyResult[];
+  sentimentContext: string;
+
+  /** Live Kalshi market block for synthesis (empty if none). */
+  kalshiOddsBlock: string;
 
   // synthesis mode
   analysisIntent: AnalysisIntent;
