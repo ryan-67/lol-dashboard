@@ -5,7 +5,6 @@
 
 import ddragonManifest from "../data/ddragon-champions.json" with { type: "json" };
 import esportsLogos from "../data/esports-logos.json" with { type: "json" };
-import { decodePngAsync, rgbaToGrayTemplate } from "./draftImageDecode.ts";
 
 export interface GrayTemplate {
   id: string;
@@ -76,6 +75,12 @@ export function championIconUrl(key: string): string {
   return `https://ddragon.leagueoflegends.com/cdn/${manifest.version}/img/champion/${key}.png`;
 }
 
+export function championLoadingUrl(key: string): string {
+  return `https://ddragon.leagueoflegends.com/cdn/img/champion/loading/${key}_0.jpg`;
+}
+
+const PRIORITY_TEAM_SLUGS = ["t1", "geng", "gen-g", "hanwha-life-esports", "dplus-kia", "kt-rolster"];
+
 async function fetchImageTemplate(
   id: string,
   label: string,
@@ -85,7 +90,8 @@ async function fetchImageTemplate(
     const resp = await fetch(url, { signal: AbortSignal.timeout(8000) });
     if (!resp.ok) return null;
     const buf = new Uint8Array(await resp.arrayBuffer());
-    const { width, height, rgba } = await decodePngAsync(buf);
+    const { decodeImageToRgba, rgbaToGrayTemplate } = await import("./draftImageDecode.ts");
+    const { width, height, rgba } = await decodeImageToRgba(buf);
     return rgbaToGrayTemplate(id, label, rgba, width, height, TEMPLATE_SIZE);
   } catch {
     return null;
@@ -116,11 +122,13 @@ async function buildChampionCache(): Promise<Map<string, GrayTemplate>> {
     if (seen.has(key)) continue;
     seen.add(key);
     items.push({ id: key, label: name, url: championIconUrl(key) });
+    items.push({ id: `${key}-loading`, label: name, url: championLoadingUrl(key) });
   }
   for (const [name, key] of Object.entries(CHAMPION_OVERRIDES)) {
     if (seen.has(key)) continue;
     seen.add(key);
     items.push({ id: key, label: name, url: championIconUrl(key) });
+    items.push({ id: `${key}-loading`, label: name, url: championLoadingUrl(key) });
   }
   return fetchBatch(items);
 }
@@ -128,15 +136,25 @@ async function buildChampionCache(): Promise<Map<string, GrayTemplate>> {
 async function buildTeamCache(): Promise<Map<string, GrayTemplate>> {
   const items: Array<{ id: string; label: string; url: string }> = [];
   const seen = new Set<string>();
-  for (const [slug, url] of Object.entries(logos.teamsByEsportsSlug ?? {})) {
-    if (seen.has(url) || items.length >= MAX_TEAM_LOGOS) continue;
+
+  const addSlug = (slug: string, url: string) => {
+    if (seen.has(url) || items.length >= MAX_TEAM_LOGOS) return;
     seen.add(url);
     items.push({ id: slug, label: slug, url });
+  };
+
+  for (const slug of PRIORITY_TEAM_SLUGS) {
+    const url = logos.teamsByEsportsSlug?.[slug];
+    if (url) addSlug(slug, url);
     const alt = logos.teamsAltByEsportsSlug?.[slug];
-    if (alt && !seen.has(alt) && items.length < MAX_TEAM_LOGOS) {
-      seen.add(alt);
-      items.push({ id: `${slug}-alt`, label: slug, url: alt });
-    }
+    if (alt) addSlug(`${slug}-alt`, alt);
+  }
+
+  for (const [slug, url] of Object.entries(logos.teamsByEsportsSlug ?? {})) {
+    if (items.length >= MAX_TEAM_LOGOS) break;
+    addSlug(slug, url);
+    const alt = logos.teamsAltByEsportsSlug?.[slug];
+    if (alt && items.length < MAX_TEAM_LOGOS) addSlug(`${slug}-alt`, alt);
   }
   return fetchBatch(items);
 }

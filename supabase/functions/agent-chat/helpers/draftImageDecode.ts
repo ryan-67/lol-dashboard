@@ -129,6 +129,39 @@ export function rgbaToGrayFull(rgba: Uint8Array, width: number, height: number):
   return out;
 }
 
+/** Decode PNG/JPEG/WebP via createImageBitmap when PNG parse fails. */
+export async function decodeImageToRgba(
+  bytes: Uint8Array,
+): Promise<{ width: number; height: number; rgba: Uint8Array }> {
+  try {
+    return await decodePngAsync(bytes);
+  } catch {
+    // JPEG loading screens + some team logos
+    if (typeof createImageBitmap === "undefined") {
+      throw new Error("unsupported image format");
+    }
+    const blob = new Blob([bytes]);
+    const bitmap = await createImageBitmap(blob);
+    try {
+      if (typeof OffscreenCanvas !== "undefined") {
+        const canvas = new OffscreenCanvas(bitmap.width, bitmap.height);
+        const ctx = canvas.getContext("2d");
+        if (!ctx) throw new Error("no 2d context");
+        ctx.drawImage(bitmap, 0, 0);
+        const img = ctx.getImageData(0, 0, bitmap.width, bitmap.height);
+        return {
+          width: bitmap.width,
+          height: bitmap.height,
+          rgba: new Uint8Array(img.data.buffer.slice(0)),
+        };
+      }
+      throw new Error("no OffscreenCanvas");
+    } finally {
+      bitmap.close();
+    }
+  }
+}
+
 export function rgbaToGrayTemplate(
   id: string,
   label: string,

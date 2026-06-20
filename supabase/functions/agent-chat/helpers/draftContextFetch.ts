@@ -20,7 +20,11 @@ function normTeam(value: string): string {
 
 function resolveTeamInBundle(bundle: SliceBundle, teamName: string) {
   const target = normTeam(teamName);
+  const aliases = new Set([target]);
+  if (target === "t1") aliases.add("t1");
+  if (target === "geng" || target === "gengg") aliases.add("geng");
   return (
+    bundle.teams.find((t) => aliases.has(normTeam(t.name))) ??
     bundle.teams.find((t) => normTeam(t.name) === target) ??
     bundle.teams.find((t) => normTeam(t.name).includes(target) || target.includes(normTeam(t.name))) ??
     null
