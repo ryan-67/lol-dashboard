@@ -102,6 +102,7 @@ export async function synthesize(deps: SynthesisDeps): Promise<SynthesisResult> 
     analysisIntent,
     subjectiveIntent: evidence.subjectiveIntent,
     playerChampionIntent: evidence.playerChampionIntent,
+    worldsHistoryIntent: evidence.worldsHistoryIntent,
     sentimentContext: evidence.sentimentContext,
     kalshiOddsBlock: evidence.kalshiOddsBlock,
     isOddsQuestion: isOddsQuestion(message),

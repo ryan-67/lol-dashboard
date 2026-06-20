@@ -51,6 +51,7 @@ grounding (when MATCH_STATS / WORLD_CONTEXT is present):
 8) PREDICTIONS / FAVORITES / ODDS ("who's favored to win MSI?"): only use rosters, results, dates, venues, seeds, or odds that appear in EXTERNAL_CONTEXT / WEB_VERIFIED / WORLD_CONTEXT. you can give a conceptual lean ("the LPL #1 usually has the strongest macro") WITHOUT naming fake rosters or fake numbers. never fabricate a lineup, a start date, a host city, or an odds figure.
 9) SERIES / MATCH RECAPS: describe ONLY games present in MATCH_STATS series_recap (gameSequence). if gamesFound is 0 / no series data, say you don't have that series' game data — do NOT invent champions, scores, KDAs, or a winner. one wrong recap is bad; re-inventing it after a correction is worse (see H3).
 10) PLAYER + CHAMPION PERFORMANCE ("good/bad on Azir", "dogshit on Corki"): NEVER claim they're strong/weak on a champ without player_champion data in MATCH_STATS or career WR in WEB_VERIFIED. if gamesOnChampion is 0 in the split, say you don't have split games on that champ — don't argue from memory. if user corrects you, acknowledge and re-check stats; never double down (H3).
+11) WORLDS WINNERS / FINALS MVP LISTS: ONLY cite worlds_history in MATCH_STATS for winner + Finals MVP per year. Finals MVP is the official award — never substitute the star player from memory (2019: Tian not Doinb; 2022: Kingen not Zeka). Do not claim "liquipedia verified" unless WEB_VERIFIED says so.
 
 synthesis (critical — how you use data):
 - weave stats into natural sentences. NO markdown tables, NO bullet lists of raw numbers.
@@ -131,6 +132,7 @@ export interface PromptContext {
   kalshiOddsBlock?: string;
   isClarification?: boolean;
   isOddsQuestion?: boolean;
+  worldsHistoryIntent?: boolean;
 }
 
 /** Developer-only instructions — never placed in the user message body. */
@@ -186,6 +188,7 @@ Your streamed reply is shown directly to the user. NEVER echo, quote, or restate
 
   if (ctx?.playerChampionIntent) parts.push(playerChampionBlock());
   if (ctx?.subjectiveIntent) parts.push(subjectiveSynthesisBlock());
+  if (ctx?.worldsHistoryIntent) parts.push(worldsHistoryBlock());
 
   if (ctx?.kalshiOddsBlock?.trim()) {
     parts.push(
@@ -205,7 +208,7 @@ Your streamed reply is shown directly to the user. NEVER echo, quote, or restate
 
   const hasVerifiedCareerSource =
     Boolean(ctx?.webVerified?.trim()) || /\[web_verified/i.test(externalContext ?? "");
-  if (ctx?.careerIntent && !hasVerifiedCareerSource) {
+  if (ctx?.careerIntent && !hasVerifiedCareerSource && !ctx?.worldsHistoryIntent) {
     parts.push(
       `[NO_VERIFIED_SOURCE]\nNo verified title/championship count is available for this question. Do NOT state a specific number from memory or estimate one. Say plainly you can't confirm the exact count right now. You may add non-numeric context only if it's literally in EXTERNAL_CONTEXT.`,
     );
@@ -348,6 +351,17 @@ Rules:
 2) If gamesOnChampion is 0, say you have no split games on that champ in the current filter — do NOT claim they're good/bad from memory.
 3) Career/all-time champ WR only from WEB_VERIFIED or gol.gg snippets — not training data.
 4) Give a direct take AFTER the numbers. If stats support the user correcting you, agree with them.`;
+}
+
+/** Worlds winners + Finals MVP lists — must cite worlds_history tool output exactly. */
+export function worldsHistoryBlock(): string {
+  return `[WORLDS_HISTORY]
+The user wants Worlds winners and/or Finals MVP by year.
+Rules:
+1) Use ONLY worlds_history in MATCH_STATS — cite team and finalsMvp exactly as listed.
+2) Finals MVP = official Riot Finals MVP award. Common mistakes to AVOID: 2019 MVP is Tian (not Doinb); 2021 MVP is Scout (not Flandre); 2022 MVP is Kingen (not Zeka).
+3) Include every year in the champions array — do not stop early or say later years are unavailable if they appear in MATCH_STATS.
+4) Do NOT claim "verified from liquipedia" unless WEB_VERIFIED explicitly contains that fact. The worlds_history block is the source.`;
 }
 
 export function finalMessages(

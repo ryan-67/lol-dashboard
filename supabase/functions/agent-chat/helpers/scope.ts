@@ -3,6 +3,7 @@ import { MODEL_JSON } from "./models.ts";
 import { completeOnce } from "./openrouter.ts";
 import { HISTORY_WINDOW } from "./historyWindow.ts";
 import { resolveThreadIntent, shouldTreatAsLolesports } from "./threadIntent.ts";
+import { isWorldsHistoryQuestion } from "./worldsHistory.ts";
 
 export type ConversationScope =
   | "off_topic"
@@ -135,6 +136,18 @@ function heuristicScope(message: string): ScopePlan {
       needs_charts: false,
       needs_snapshot: false,
       reason: "game theory — baseline knowledge only",
+    };
+  }
+
+  // Worlds winner / Finals MVP historical lists — verified lookup + wiki fallback.
+  if (isWorldsHistoryQuestion(message)) {
+    return {
+      scope: "lolesports_general",
+      needs_tools: true,
+      needs_rag: true,
+      needs_charts: false,
+      needs_snapshot: false,
+      reason: "worlds history — verified lookup + RAG/web",
     };
   }
 
@@ -300,6 +313,18 @@ export async function classifyScope(
       needs_charts: false,
       needs_snapshot: false,
       reason: "no lolesports signal",
+    };
+  }
+
+  // Worlds winner/MVP lists — verified lookup, not generic career RAG-only path.
+  if (isWorldsHistoryQuestion(message)) {
+    return {
+      scope: "lolesports_general",
+      needs_tools: true,
+      needs_rag: true,
+      needs_charts: false,
+      needs_snapshot: false,
+      reason: "worlds history override — verified lookup + RAG/web",
     };
   }
 

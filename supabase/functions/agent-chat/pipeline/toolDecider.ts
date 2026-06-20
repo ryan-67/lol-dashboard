@@ -28,6 +28,7 @@ import {
 } from "../helpers/tavilySearch.ts";
 import { fetchEsportsMarketOdds, isOddsQuestion } from "../helpers/kalshi.ts";
 import { isCareerQuestion, isPlayerChampionPerformanceAsk, isRosterDepthQuestion } from "../helpers/scope.ts";
+import { isWorldsHistoryQuestion, lookupWorldsHistory } from "../helpers/worldsHistory.ts";
 import {
   buildCurrentWorldContext,
   formatMentionedRosterBlock,
@@ -146,6 +147,12 @@ function buildTavilyQueries(
   switch (intent) {
     case "career": {
       const careerTopic = careerTitleTerms(`${message} ${thread.inheritedTopic ?? ""}`);
+      if (/\b(worlds|world championship|finals mvp)\b/i.test(message)) {
+        return [
+          "League of Legends World Championship winners finals MVP list liquipedia",
+          "Worlds season 8 2018 through 2025 champion finals MVP liquipedia leaguepedia",
+        ];
+      }
       return webEntities.length
         ? webEntities.map(
             (e) => `${e} League of Legends esports ${careerTopic} liquipedia leaguepedia`,
@@ -290,9 +297,14 @@ export async function decideAndFetch(deps: DecideDeps): Promise<Evidence> {
     (thread.isFollowUp && thread.inheritedTopic
       ? isPlayerChampionPerformanceAsk(thread.inheritedTopic)
       : false);
+  const worldsHistoryIntent =
+    isWorldsHistoryQuestion(message) ||
+    (thread.isFollowUp && thread.inheritedTopic
+      ? isWorldsHistoryQuestion(thread.inheritedTopic)
+      : false);
 
   let runTools = scope.needs_tools && !careerIntent;
-  if (subjectiveIntent || playerChampionIntent) runTools = true;
+  if (subjectiveIntent || playerChampionIntent || worldsHistoryIntent) runTools = true;
   if (thread.isClarification) runTools = true;
   const runRag = scope.needs_rag;
 
@@ -304,8 +316,16 @@ export async function decideAndFetch(deps: DecideDeps): Promise<Evidence> {
   let analystToolNames: string[] = [];
   let hasWebVerifiedChunk = false;
 
+  // Verified Worlds winner / Finals MVP list (not in OE — curated historical record).
+  if (worldsHistoryIntent) {
+    const worlds = lookupWorldsHistory(message);
+    matchStats = { tools: [{ tool: worlds.tool, ...worlds.data }] };
+    analystToolNames = [worlds.tool];
+    sources.oracleElixir = true;
+  }
+
   // ---- Source 1: Oracle's Elixir deterministic tools ----
-  if (runTools) {
+  if (runTools && !worldsHistoryIntent) {
     const analystCtx = await buildAnalystContext(
       serviceClient,
       queryForTools,
@@ -525,6 +545,7 @@ export async function decideAndFetch(deps: DecideDeps): Promise<Evidence> {
     rosterDepthIntent,
     subjectiveIntent,
     playerChampionIntent,
+    worldsHistoryIntent,
     chatOnly,
     worldBlock,
     worldRulesBlock,
