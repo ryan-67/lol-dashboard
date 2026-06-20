@@ -15,8 +15,8 @@ If the image is NOT a LoL esports draft/game screen, reply exactly: not a league
 Do not guess champions or teams you cannot read.`;
 
 const MAX_ATTACHMENTS = 2;
-/** ~3MB base64 cap per image to stay within edge payload limits. */
-const MAX_B64_CHARS = 4_000_000;
+/** Base64 data-URL cap per image (~3.5MB binary after client-side compression). */
+const MAX_B64_CHARS = 5_000_000;
 
 function normalizeImageUrl(att: ImageAttachment): string | null {
   const url = att.url?.trim();

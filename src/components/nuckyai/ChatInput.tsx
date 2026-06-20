@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { MAX_IMAGE_ACCEPT_BYTES, prepareImageAttachment } from '../../lib/compressImage'
 import type { ChatAttachment } from './types'
 
 interface ChatInputProps {
@@ -12,7 +13,8 @@ interface ChatInputProps {
   onAttachmentChange: (attachment: ChatAttachment | null) => void
 }
 
-const MAX_IMAGE_BYTES = 3 * 1024 * 1024
+const ERROR_DISMISS_MS = 6000
+const maxMbLabel = Math.round(MAX_IMAGE_ACCEPT_BYTES / (1024 * 1024))
 
 export default function ChatInput({
   value,
@@ -27,6 +29,7 @@ export default function ChatInput({
   const ref = useRef<HTMLTextAreaElement>(null)
   const fileRef = useRef<HTMLInputElement>(null)
   const [attachmentError, setAttachmentError] = useState<string | null>(null)
+  const [preparingImage, setPreparingImage] = useState(false)
 
   useEffect(() => {
     const el = ref.current
@@ -44,48 +47,41 @@ export default function ChatInput({
     if (!attachment) setAttachmentError(null)
   }, [attachment])
 
+  useEffect(() => {
+    if (!attachmentError) return
+    const timer = window.setTimeout(() => setAttachmentError(null), ERROR_DISMISS_MS)
+    return () => window.clearTimeout(timer)
+  }, [attachmentError])
+
+  const dismissError = () => setAttachmentError(null)
+
   const onPickFile = () => {
-    if (disabled) return
+    if (disabled || preparingImage) return
     setAttachmentError(null)
     fileRef.current?.click()
   }
 
-  const onFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const onFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     e.target.value = ''
     if (!file) return
 
-    const isImage =
-      file.type.startsWith('image/') ||
-      /\.(png|jpe?g|gif|webp|bmp|svg)$/i.test(file.name)
+    setPreparingImage(true)
+    setAttachmentError(null)
 
-    if (!isImage) {
-      setAttachmentError('images only — png, jpg, gif, webp')
-      return
-    }
-    if (file.size > MAX_IMAGE_BYTES) {
-      setAttachmentError('image too large — max 3MB')
+    const result = await prepareImageAttachment(file)
+    setPreparingImage(false)
+
+    if (!result.ok) {
+      setAttachmentError(result.error)
       return
     }
 
-    const reader = new FileReader()
-    reader.onerror = () => {
-      setAttachmentError('could not read that file — try another image')
-    }
-    reader.onload = () => {
-      const url = String(reader.result ?? '')
-      if (!url.startsWith('data:image/')) {
-        setAttachmentError('could not load image preview')
-        return
-      }
-      setAttachmentError(null)
-      onAttachmentChange({
-        url,
-        mimeType: file.type || 'image/png',
-        name: file.name,
-      })
-    }
-    reader.readAsDataURL(file)
+    onAttachmentChange({
+      url: result.dataUrl,
+      mimeType: result.mimeType,
+      name: result.name,
+    })
   }
 
   return (
@@ -129,8 +125,23 @@ export default function ChatInput({
         </div>
       )}
       {attachmentError && (
-        <p className="mb-2 text-xs text-[rgb(220,38,38)] font-[family-name:var(--font-mono)]">
-          {attachmentError}
+        <div className="mb-2 flex items-start justify-between gap-2 border border-[rgb(220,38,38)] bg-[rgba(220,38,38,0.06)] px-2 py-1.5">
+          <p className="text-xs text-[rgb(220,38,38)] font-[family-name:var(--font-mono)]">
+            {attachmentError}
+          </p>
+          <button
+            type="button"
+            className="text-xs text-[rgb(220,38,38)] hover:text-[var(--text-primary)] shrink-0 font-[family-name:var(--font-mono)]"
+            onClick={dismissError}
+            aria-label="dismiss error"
+          >
+            dismiss
+          </button>
+        </div>
+      )}
+      {preparingImage && (
+        <p className="mb-2 text-xs text-[var(--text-tertiary)] font-[family-name:var(--font-mono)]">
+          compressing screenshot…
         </p>
       )}
       <div className="flex items-end gap-2">
@@ -139,13 +150,13 @@ export default function ChatInput({
           type="file"
           accept="image/*"
           className="hidden"
-          onChange={onFileChange}
+          onChange={(e) => void onFileChange(e)}
         />
         <button
           type="button"
-          title="attach draft screenshot"
+          title={`attach draft screenshot (up to ${maxMbLabel}MB)`}
           className="border border-[var(--border-subtle)] px-2 py-2 text-xs text-[var(--text-secondary)] hover:border-[var(--accent)] hover:text-[var(--accent)] disabled:opacity-50 font-[family-name:var(--font-mono)] shrink-0"
-          disabled={disabled}
+          disabled={disabled || preparingImage}
           onClick={onPickFile}
         >
           img
@@ -168,7 +179,7 @@ export default function ChatInput({
         <button
           type="button"
           className="btn min-w-[84px] shrink-0"
-          disabled={disabled || (!value.trim() && !attachment)}
+          disabled={disabled || preparingImage || (!value.trim() && !attachment)}
           onClick={onSend}
         >
           send
