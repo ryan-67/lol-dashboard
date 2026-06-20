@@ -6,6 +6,51 @@ function sseLine(payload: string): string {
   return `data: ${payload}\n\n`;
 }
 
+/** Extract incremental or cumulative text from an OpenRouter SSE chunk. */
+function extractStreamPiece(json: unknown): { mode: "delta" | "cumulative"; text: string } | null {
+  const choice = (json as { choices?: Array<{ delta?: { content?: string; text?: string }; message?: { content?: string } }> })?.choices?.[0];
+  if (!choice) return null;
+
+  const deltaContent = choice.delta?.content ?? choice.delta?.text;
+  if (typeof deltaContent === "string" && deltaContent.length > 0) {
+    return { mode: "delta", text: deltaContent };
+  }
+
+  const messageContent = choice.message?.content;
+  if (typeof messageContent === "string" && messageContent.length > 0) {
+    return { mode: "cumulative", text: messageContent };
+  }
+
+  return null;
+}
+
+/**
+ * Normalize provider stream chunks to NEW text only.
+ * Some models send cumulative message.content instead of delta slices — track position
+ * so we never re-emit prior tokens (prevents roster/stat block duplication in UI).
+ */
+function appendStreamPiece(
+  fullText: string,
+  piece: { mode: "delta" | "cumulative"; text: string },
+): { fullText: string; emit: string } {
+  if (piece.mode === "delta") {
+    return { fullText: fullText + piece.text, emit: piece.text };
+  }
+
+  // Cumulative: only emit the suffix beyond what we've already streamed.
+  if (piece.text.startsWith(fullText)) {
+    const emit = piece.text.slice(fullText.length);
+    return { fullText: piece.text, emit };
+  }
+
+  // Provider reset or mismatch — emit only if not already contained.
+  if (fullText.endsWith(piece.text) || fullText.includes(piece.text)) {
+    return { fullText, emit: "" };
+  }
+
+  return { fullText: fullText + piece.text, emit: piece.text };
+}
+
 async function streamWithModel(args: {
   apiKey: string;
   model: string;
@@ -22,12 +67,9 @@ async function streamWithModel(args: {
   const upstream = await openRouterStream(args.apiKey, {
     model: args.model,
     messages: args.messages,
-    // Low temperature: this is a grounded analyst, not a creative writer. Higher
-    // values caused confident confabulation of stats/rosters/series that aren't in
-    // the provided context. Keep just enough warmth for the casual voice.
     temperature: args.plan.complexity === "complex" ? 0.4 : 0.3,
     max_tokens: args.maxTokens ?? 1000,
-    frequency_penalty: args.frequencyPenalty ?? 0.35,
+    frequency_penalty: args.frequencyPenalty ?? 0.3,
     stream: true,
   });
 
@@ -51,12 +93,15 @@ async function streamWithModel(args: {
 
       try {
         const json = JSON.parse(data);
-        const delta = json?.choices?.[0]?.delta?.content;
-        if (typeof delta === "string" && delta.length > 0) {
-          fullText += delta;
-          args.onToken?.(delta);
-          await args.writer.write(encoder.encode(sseLine(JSON.stringify({ type: "chunk", chunk: delta }))));
-        }
+        const piece = extractStreamPiece(json);
+        if (!piece) continue;
+
+        const { fullText: next, emit } = appendStreamPiece(fullText, piece);
+        fullText = next;
+        if (!emit) continue;
+
+        args.onToken?.(emit);
+        await args.writer.write(encoder.encode(sseLine(JSON.stringify({ type: "chunk", chunk: emit }))));
       } catch {
         // ignore malformed chunk
       }

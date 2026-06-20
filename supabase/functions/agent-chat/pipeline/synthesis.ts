@@ -11,11 +11,12 @@ import {
   detectAnalysisIntent,
   finalMessages,
 } from "../helpers/prompts.ts";
-import { streamFinalAnswer } from "../helpers/stream.ts";
+import { streamFallback, streamFinalAnswer } from "../helpers/stream.ts";
 import { pickFinalModel } from "../helpers/classify.ts";
 import { extractCandidateFacts, verifyFact, type VerifiedFact } from "../helpers/factVerifier.ts";
 import { writeBackVerifiedFacts } from "../helpers/ragWriteback.ts";
 import { isSentimentDomain, rankSnippets } from "../helpers/tavilySearch.ts";
+import { shouldRefuseForeignEntity, foreignEntityRefusal } from "../helpers/entityGuard.ts";
 import type { Evidence, HistoryMessage, SynthesisResult } from "./types.ts";
 
 export interface SynthesisDeps {
@@ -71,6 +72,14 @@ function resolveAnalysisIntent(evidence: Evidence, message: string) {
 export async function synthesize(deps: SynthesisDeps): Promise<SynthesisResult> {
   const { serviceClient, openrouterApiKey, message, history, evidence, chartPrefix, writer } = deps;
 
+  // Pre-generation guard: refuse foreign-game entities before stats synthesis.
+  const foreignHit = shouldRefuseForeignEntity(message);
+  if (foreignHit) {
+    const refusal = foreignEntityRefusal(foreignHit);
+    await streamFallback(writer, refusal);
+    return { assistantText: chartPrefix + refusal };
+  }
+
   const { block: webVerifiedBlock, verified } = await crossVerify(openrouterApiKey, evidence);
   const analysisIntent = resolveAnalysisIntent(evidence, message);
 
@@ -79,7 +88,8 @@ export async function synthesize(deps: SynthesisDeps): Promise<SynthesisResult> 
     split: evidence.resolvedSplit,
     year: evidence.year,
     hasCompare: evidence.isCompare,
-    worldBlock: evidence.worldBlock,
+    worldDataBlock: evidence.worldBlock,
+    worldRulesBlock: evidence.worldRulesBlock,
     scope: evidence.scope.scope,
     isFollowUp: evidence.thread.isFollowUp,
     followUpType: evidence.thread.followUpType,
@@ -97,7 +107,14 @@ export async function synthesize(deps: SynthesisDeps): Promise<SynthesisResult> 
 
   const finalModel = pickFinalModel(evidence.plan);
   const messages = evidence.chatOnly
-    ? chatOnlyMessages(history, message, evidence.worldBlock, evidence.mentionedRosterBlock, analysisIntent)
+    ? chatOnlyMessages(
+      history,
+      message,
+      evidence.worldBlock,
+      evidence.mentionedRosterBlock,
+      analysisIntent,
+      evidence.worldRulesBlock,
+    )
     : finalMessages(history, message, evidence.matchStats, evidence.externalContext, promptCtx);
 
   const answer = await streamFinalAnswer({
@@ -107,7 +124,7 @@ export async function synthesize(deps: SynthesisDeps): Promise<SynthesisResult> 
     plan: evidence.plan,
     writer,
     maxTokens: evidence.subjectiveIntent ? 650 : 1000,
-    frequencyPenalty: evidence.subjectiveIntent ? 0.85 : 0.35,
+    frequencyPenalty: evidence.subjectiveIntent ? 0.5 : 0.3,
   });
 
   let assistantText = chartPrefix + answer;

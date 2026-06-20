@@ -74,6 +74,7 @@ export interface Evidence {
 
   // grounded context
   worldBlock: string;
+  worldRulesBlock: string;
   mentionedRosterBlock: string;
   mentionedPlayers: MentionedPlayer[];
   matchStats: Record<string, unknown>;

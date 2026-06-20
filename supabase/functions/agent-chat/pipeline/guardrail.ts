@@ -11,6 +11,7 @@
 //      LLM call on ambiguous in-thread cases) and refuse if it lands on off_topic.
 
 import { classifyScope, offTopicRefusal } from "../helpers/scope.ts";
+import { shouldRefuseForeignEntity, foreignEntityRefusal } from "../helpers/entityGuard.ts";
 import { resolveThreadIntent, shouldTreatAsLolesports } from "../helpers/threadIntent.ts";
 import type { GuardrailResult, HistoryMessage } from "./types.ts";
 
@@ -31,6 +32,24 @@ export async function runGuardrail(
   history: HistoryMessage[],
 ): Promise<GuardrailResult> {
   const thread = resolveThreadIntent(message, history);
+
+  const foreignHit = shouldRefuseForeignEntity(message);
+  if (foreignHit) {
+    return {
+      allowed: false,
+      refusal: foreignEntityRefusal(foreignHit),
+      scope: {
+        scope: "off_topic",
+        needs_tools: false,
+        needs_rag: false,
+        needs_charts: false,
+        needs_snapshot: false,
+        reason: `foreign game entity: ${foreignHit.term}`,
+      },
+      thread,
+      queryForTools: thread.effectiveMessage,
+    };
+  }
 
   // Fast path: obvious off-topic with no LoL signal and no active LoL thread → refuse
   // immediately. No scope LLM call, no tools, no RAG. This is the main cost saver.

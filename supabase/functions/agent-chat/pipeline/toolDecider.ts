@@ -268,7 +268,8 @@ export async function decideAndFetch(deps: DecideDeps): Promise<Evidence> {
     deps.clientNow,
     filters.rosterSplitHint,
   );
-  const worldBlock = currentCtx.worldBlock;
+  const worldBlock = currentCtx.worldDataBlock;
+  const worldRulesBlock = currentCtx.worldRulesBlock;
   let resolvedSplit = filters.split ?? currentCtx.split;
 
   const mentionedPlayers = lookupPlayersInMessage(
@@ -526,6 +527,7 @@ export async function decideAndFetch(deps: DecideDeps): Promise<Evidence> {
     playerChampionIntent,
     chatOnly,
     worldBlock,
+    worldRulesBlock,
     mentionedRosterBlock,
     mentionedPlayers,
     matchStats,

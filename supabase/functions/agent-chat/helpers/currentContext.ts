@@ -90,7 +90,11 @@ function rosterLines(roster: RosterDepthEntry[], teamName: string, league: strin
 
 export interface CurrentContextResult {
   temporal: TemporalContext;
+  /** Factual roster/index data only (user message). */
   worldBlock: string;
+  worldDataBlock: string;
+  /** Developer grounding rules (system message only). */
+  worldRulesBlock: string;
   split: string;
   playerTeamIndex: Record<string, PlayerTeamRecord>;
 }
@@ -146,18 +150,23 @@ export async function buildCurrentWorldContext(
     )
     .join("\n");
 
-  const worldBlock = `${temporal.block}
-default_data_scope: CURRENT SPLIT ONLY — ${split}. Unless the user explicitly asks about a past year/split, use ${split} data only.
-training_data_warning: Your pretrained roster memory is STALE and WRONG. NEVER assign players to teams from memory. ALWAYS verify every player-team claim against player_team_index or current_rosters below — including subs with split time listed by game count.
-roster_rule: starter = most games at role on team in ${split} match data. Subs are labeled (sub, Ng). If two players share a role, cite both with game counts — do not guess from old transfers.
+  const worldDataBlock = `${temporal.block}
+[DATA_SCOPE] current_split: ${split}
 current_rosters (${split}, from match data):
 ${rosterLinesOut.join("\n")}
-player_team_index (${split}, 1+ games incl. subs — authoritative):
-${indexLines}
-per_game_stats_rule: Do NOT cite specific game stats unless they appear in MATCH_STATS. Do NOT invent GD@15, KDA lines, or betting odds.
-`;
+player_team_index (${split}, 1+ games incl. subs):
+${indexLines}`;
 
-  return { temporal, worldBlock, split, playerTeamIndex };
+  const worldRulesBlock = `[GROUNDING_RULES]
+default_data_scope: CURRENT SPLIT ONLY — ${split}. Unless the user explicitly asks about a past year/split, use ${split} data only.
+training_data_warning: Pretrained roster memory is STALE. NEVER assign players to teams from memory. Verify every player-team claim against player_team_index or current_rosters below — including subs with split time listed by game count.
+roster_rule: starter = most games at role on team in ${split} match data. Subs are labeled (sub, Ng). If two players share a role, cite both with game counts — do not guess from old transfers.
+per_game_stats_rule: Do NOT cite specific game stats unless they appear in MATCH_STATS. Do NOT invent GD@15, KDA lines, or betting odds.
+foreign_entity_rule: If the user names a champion/hero from another game (e.g. Invoker from Dota), refuse — do NOT invent League stats for it.`;
+
+  const worldBlock = worldDataBlock;
+
+  return { temporal, worldBlock, worldDataBlock, worldRulesBlock, split, playerTeamIndex };
 }
 
 /** Resolve players mentioned in the user message against verified roster index */
@@ -186,7 +195,7 @@ export function formatMentionedRosterBlock(players: PlayerTeamRecord[]): string 
     (p) =>
       `- ${p.name}: ${p.team} (${p.league}, ${p.position}, ${p.games}g${
         p.isStarter ? ", starter" : ", sub"
-      }) — use this team, not training memory`,
+      })`,
   );
   return `[MENTIONED_PLAYERS_ROSTER]\n${lines.join("\n")}`;
 }
