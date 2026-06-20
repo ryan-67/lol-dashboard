@@ -27,6 +27,7 @@ export interface MessageRow {
   retryable?: boolean
   /** True while waiting for first streamed token — shows thinking copy, hides actions */
   thinking?: boolean
+  attachments?: ChatAttachment[]
 }
 
 export interface ChartDataset {

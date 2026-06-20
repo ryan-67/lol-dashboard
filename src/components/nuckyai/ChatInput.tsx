@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
-import { MAX_IMAGE_ACCEPT_BYTES, prepareImageAttachment } from '../../lib/compressImage'
+import { prepareChatAttachment } from '../../lib/prepareAttachment'
+import { MAX_IMAGE_ACCEPT_BYTES } from '../../lib/compressImage'
+import ChatAttachmentPreview from './ChatAttachmentPreview'
 import type { ChatAttachment } from './types'
 
 interface ChatInputProps {
@@ -69,7 +71,7 @@ export default function ChatInput({
     setPreparingImage(true)
     setAttachmentError(null)
 
-    const result = await prepareImageAttachment(file)
+    const result = await prepareChatAttachment(file)
     setPreparingImage(false)
 
     if (!result.ok) {
@@ -77,11 +79,7 @@ export default function ChatInput({
       return
     }
 
-    onAttachmentChange({
-      url: result.dataUrl,
-      mimeType: result.mimeType,
-      name: result.name,
-    })
+    onAttachmentChange(result.attachment)
   }
 
   return (
@@ -98,31 +96,12 @@ export default function ChatInput({
         </div>
       )}
       {attachment && (
-        <div className="mb-2 border border-[var(--border-subtle)] bg-[var(--bg-base)] p-2">
-          <div className="flex items-start gap-3">
-            <img
-              src={attachment.url}
-              alt={attachment.name ?? 'attached draft screenshot'}
-              className="max-h-28 max-w-[160px] object-contain border border-[var(--border-subtle)] bg-[var(--bg-surface)]"
-            />
-            <div className="flex-1 min-w-0">
-              <p className="text-xs font-[family-name:var(--font-mono)] text-[var(--accent)] truncate">
-                {attachment.name ?? 'draft screenshot'}
-              </p>
-              <p className="text-[10px] text-[var(--text-tertiary)] mt-1">
-                attached — add your question below, then send
-              </p>
-              <button
-                type="button"
-                className="mt-2 text-xs text-[var(--text-secondary)] hover:text-[var(--accent)] font-[family-name:var(--font-mono)]"
-                onClick={() => onAttachmentChange(null)}
-                disabled={disabled}
-              >
-                remove image
-              </button>
-            </div>
-          </div>
-        </div>
+        <ChatAttachmentPreview
+          attachment={attachment}
+          variant="input"
+          onRemove={() => onAttachmentChange(null)}
+          removeDisabled={disabled}
+        />
       )}
       {attachmentError && (
         <div className="mb-2 flex items-start justify-between gap-2 border border-[rgb(220,38,38)] bg-[rgba(220,38,38,0.06)] px-2 py-1.5">
@@ -141,20 +120,20 @@ export default function ChatInput({
       )}
       {preparingImage && (
         <p className="mb-2 text-xs text-[var(--text-tertiary)] font-[family-name:var(--font-mono)]">
-          compressing screenshot…
+          preparing attachment…
         </p>
       )}
       <div className="flex items-end gap-2">
         <input
           ref={fileRef}
           type="file"
-          accept="image/*"
+          accept="image/*,.pdf,.txt,.csv"
           className="hidden"
           onChange={(e) => void onFileChange(e)}
         />
         <button
           type="button"
-          title={`attach draft screenshot (up to ${maxMbLabel}MB)`}
+          title={`attach file (images up to ${maxMbLabel}MB)`}
           className="border border-[var(--border-subtle)] px-2 py-2 text-xs text-[var(--text-secondary)] hover:border-[var(--accent)] hover:text-[var(--accent)] disabled:opacity-50 font-[family-name:var(--font-mono)] shrink-0"
           disabled={disabled || preparingImage}
           onClick={onPickFile}

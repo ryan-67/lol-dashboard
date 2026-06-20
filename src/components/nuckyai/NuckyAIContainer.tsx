@@ -166,7 +166,15 @@ export default function NuckyAIContainer() {
 
         const base = options?.skipUserAppend
           ? withoutLastAssistant
-          : [...withoutLastAssistant, { role: 'user' as const, content: displayMessage, created_at: now }]
+          : [
+              ...withoutLastAssistant,
+              {
+                role: 'user' as const,
+                content: displayMessage,
+                created_at: now,
+                attachments: options?.attachment ? [options.attachment] : undefined,
+              },
+            ]
 
         return [
           ...base,

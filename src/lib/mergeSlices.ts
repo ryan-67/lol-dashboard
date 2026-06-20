@@ -153,9 +153,10 @@ export function selectSliceKeys(
   split: string,
   year?: string,
 ): string[] {
-  const isAll = split === 'all' || split === 'ALL'
-  const splits = isAll
-    ? store.meta.splits.filter((s) => !year || s.startsWith(`${year} `))
+  const isAllSplit = split === 'all' || split === 'ALL'
+  const isAllYear = !year || year === 'ALL' || year === 'all'
+  const splits = isAllSplit
+    ? store.meta.splits.filter((s) => isAllYear || s.startsWith(`${year} `))
     : [split]
   const leagues =
     league === 'All Tier 1' ? [...TIER1_LEAGUES] : [league]

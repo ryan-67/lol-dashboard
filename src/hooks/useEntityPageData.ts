@@ -130,6 +130,11 @@ export function useEntityPageData(hasDataForSplit: (data: DashboardData) => bool
 
   const setYear = useCallback(
     (year: string) => {
+      if (year === 'ALL') {
+        setFilters((f) => ({ ...f, year: 'ALL' }))
+        setFallbackNotice(null)
+        return
+      }
       const nextSplits = catalog?.splits.filter((s) => s.startsWith(`${year} `)) ?? []
       const newest = splitsNewestFirst(nextSplits)[0]
       setFilters((f) => ({

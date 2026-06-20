@@ -5,6 +5,13 @@ import type { ImageAttachment } from "../pipeline/types.ts";
 const EXTRACT_SYSTEM = `You analyze League of Legends esports draft or in-game screenshots.
 Extract ONLY what is visible. Plain text, no JSON.
 
+Champion identification (critical):
+- Each pick/ban slot shows a square champion portrait icon. Read the icon carefully — do not guess from color or shape alone.
+- Use official LoL champion names exactly (e.g. Azir, Renekton, Nautilus, Varus, Kalista, Poppy).
+- Distinguish similar icons: Azir vs Taliyah, Renekton vs Nasus, Nautilus vs Blitzcrank, Varus vs Ashe, etc.
+- If an icon is partially obscured or unreadable, write "unknown" for that slot — never invent a champion.
+- List picks and bans in the order shown on screen (top-to-bottom or left-to-right as displayed).
+
 Include when visible:
 - Blue/Red side and team names
 - Champion picks and bans (in order if shown)
@@ -54,7 +61,7 @@ export async function extractVisionContext(
     const content: Array<{ type: string; text?: string; image_url?: { url: string } }> = [
       {
         type: "text",
-        text: "Extract the draft/picks/bans and sides from this LoL esports screenshot.",
+        text: "Carefully read each champion portrait icon in this LoL esports draft screenshot. Identify every pick and ban by icon, in order. Extract sides, teams, and tournament context.",
       },
     ];
     for (const url of images) {
