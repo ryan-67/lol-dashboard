@@ -1,11 +1,29 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useDashboard, DEFAULT_YEAR } from '../context/DashboardContext'
 import { buildStoreFromSliceRows, fetchOESlices } from '../lib/loadOEStore'
-import { mergeDataForFilters, type EntityFilterState } from '../lib/entities/resolvers'
+import { entityFetchFilters, mergeDataForFilters, type EntityFilterState, isLifetimeYearFilter } from '../lib/entities/resolvers'
 import type { DashboardData } from '../hooks/useDashboardData'
 import { leagueLabelToLeagues } from '../hooks/useDashboardData'
 import type { OEStore } from '../lib/mergeSlices'
 import { pickNewestSplitWithData, splitsNewestFirst, yearFromSplitLabel } from '../lib/splitSelection'
+
+async function tryLifetimeFilters(
+  catalog: NonNullable<ReturnType<typeof useDashboard>['catalog']>,
+  league: string,
+  hasData: (data: DashboardData) => boolean,
+): Promise<{ filters: EntityFilterState; notice: string | null } | null> {
+  const rows = await fetchOESlices({
+    leagues: leagueLabelToLeagues(league),
+    years: ['ALL'],
+    splits: ['ALL'],
+    catalogSplits: catalog.splits,
+  })
+  const store = buildStoreFromSliceRows(catalog, rows)
+  const lifetimeFilters: EntityFilterState = { league, year: 'ALL', split: 'ALL' }
+  const data = mergeDataForFilters(store, lifetimeFilters)
+  if (!hasData(data)) return null
+  return { filters: lifetimeFilters, notice: null }
+}
 
 async function findBestSplit(
   catalogSplits: string[],
@@ -15,6 +33,11 @@ async function findBestSplit(
   catalog: NonNullable<ReturnType<typeof useDashboard>['catalog']>,
   hasData: (data: DashboardData) => boolean,
 ): Promise<{ filters: EntityFilterState; notice: string | null }> {
+  if (isLifetimeYearFilter(globalYear)) {
+    const lifetime = await tryLifetimeFilters(catalog, league, hasData)
+    if (lifetime) return lifetime
+  }
+
   const trySplit = async (split: string): Promise<boolean> => {
     const year = yearFromSplitLabel(split, globalYear)
     const rows = await fetchOESlices({
@@ -103,10 +126,11 @@ export function useEntityPageData(hasDataForSplit: (data: DashboardData) => bool
     let cancelled = false
     void (async () => {
       setLoading(true)
+      const { years, splits } = entityFetchFilters(filters)
       const rows = await fetchOESlices({
         leagues: leagueLabelToLeagues(filters.league),
-        years: filters.year === 'ALL' ? ['ALL'] : [filters.year],
-        splits: filters.split === 'ALL' ? ['ALL'] : [filters.split],
+        years,
+        splits,
         catalogSplits: catalog.splits,
       })
       if (cancelled) return
@@ -130,8 +154,8 @@ export function useEntityPageData(hasDataForSplit: (data: DashboardData) => bool
 
   const setYear = useCallback(
     (year: string) => {
-      if (year === 'ALL') {
-        setFilters((f) => ({ ...f, year: 'ALL' }))
+      if (isLifetimeYearFilter(year)) {
+        setFilters((f) => ({ ...f, year: 'ALL', split: 'ALL' }))
         setFallbackNotice(null)
         return
       }

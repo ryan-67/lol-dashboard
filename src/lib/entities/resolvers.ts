@@ -171,12 +171,31 @@ export interface EntityFilterState {
   split: string
 }
 
+/** YEAR=ALL means lifetime — aggregate every split the entity actually has data for. */
+export function isLifetimeYearFilter(year: string): boolean {
+  return year === 'ALL' || year === 'all'
+}
+
+export function entityFetchFilters(filters: EntityFilterState): {
+  years: string[]
+  splits: string[]
+  merge: EntityFilterState
+} {
+  const lifetime = isLifetimeYearFilter(filters.year)
+  return {
+    years: lifetime ? ['ALL'] : [filters.year],
+    splits: lifetime || filters.split === 'ALL' ? ['ALL'] : [filters.split],
+    merge: lifetime ? { ...filters, split: 'ALL' } : filters,
+  }
+}
+
 export function mergeDataForFilters(
   store: OEStore,
   filters: EntityFilterState,
 ): DashboardData {
-  const split = filters.split === 'ALL' ? 'all' : filters.split
-  return mergeSlices(store, filters.league, split, filters.year)
+  const { merge } = entityFetchFilters(filters)
+  const split = merge.split === 'ALL' ? 'all' : merge.split
+  return mergeSlices(store, merge.league, split, merge.year)
 }
 
 export function playerHasData(data: DashboardData, playerName: string): boolean {
