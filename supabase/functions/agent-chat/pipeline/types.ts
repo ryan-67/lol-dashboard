@@ -69,6 +69,7 @@ export interface Evidence {
   careerIntent: boolean;
   rosterDepthIntent: boolean;
   subjectiveIntent: boolean;
+  playerChampionIntent: boolean;
   chatOnly: boolean;
 
   // grounded context

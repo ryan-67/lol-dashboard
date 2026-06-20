@@ -13,6 +13,8 @@ interface ChatRequest {
   temperature?: number;
   stream?: boolean;
   max_tokens?: number;
+  frequency_penalty?: number;
+  presence_penalty?: number;
 }
 
 interface EmbeddingResponse {

@@ -280,9 +280,10 @@ export async function searchTavilySentiment(
 export function formatSnippetsAsContext(
   snippets: TavilyResult[],
   label: string,
+  maxContentLen = 500,
 ): string {
   if (!snippets.length) return "";
   return snippets
-    .map((s) => `[${label} — ${urlDomain(s.url)}] ${s.title}: ${s.content.slice(0, 500)}`)
+    .map((s) => `[${label} — ${urlDomain(s.url)}] ${s.title}: ${s.content.slice(0, maxContentLen)}`)
     .join("\n\n");
 }

@@ -499,6 +499,85 @@ export async function runScheduleLookup(
   };
 }
 
+function extractChampionFromMessage(message: string, champions: SliceBundle["champions"]): string | null {
+  const lower = message.toLowerCase();
+  const sorted = [...champions].sort((a, b) => b.name.length - a.name.length);
+  for (const c of sorted) {
+    if (lower.includes(c.name.toLowerCase())) return c.name;
+  }
+  return null;
+}
+
+function resolvePlayerFromMessage(message: string, players: MergedPlayer[]): MergedPlayer | null {
+  const lower = message.toLowerCase();
+  for (const [alias, canonical] of Object.entries(PLAYER_ALIASES)) {
+    if (lower.includes(alias)) {
+      const p = resolvePlayer(canonical, players);
+      if (p) return p;
+    }
+  }
+  for (const p of players) {
+    if (p.games < 1) continue;
+    if (lower.includes(p.name.toLowerCase())) return p;
+  }
+  return null;
+}
+
+/** Per-champion split stats from OE gameLog — required before claiming good/bad on a champ. */
+export function runPlayerChampionStat(message: string, bundle: SliceBundle): ToolResult | null {
+  const champion = extractChampionFromMessage(message, bundle.champions);
+  if (!champion) return null;
+
+  const player = resolvePlayerFromMessage(message, bundle.players);
+  if (!player) return null;
+
+  const performanceIntent =
+    /\b(dogshit|dog shit|trash|bad at|good at|winrate|win rate|stats?|notorious|garbage|ass|mid on|weak|strong|pick rate|refuses?|won't pick|how is|how's|diff|int|goat|fraud|overrated|underrated)\b/i
+      .test(message) ||
+    /'s\s/.test(message) ||
+    /\bon\s+[a-z]/i.test(message);
+
+  if (!performanceIntent) return null;
+
+  const champGames = (player.gameLog ?? []).filter(
+    (g) => g.champion.toLowerCase() === champion.toLowerCase(),
+  );
+  const allGames = player.gameLog ?? [];
+  const champWins = champGames.filter((g) => g.result === 1).length;
+  const allWins = allGames.filter((g) => g.result === 1).length;
+
+  const winrate = (wins: number, total: number) =>
+    total > 0 ? Math.round((wins / total) * 1000) / 10 : null;
+
+  return {
+    tool: "player_champion",
+    data: {
+      split: bundle.split,
+      league: bundle.league,
+      player: player.name,
+      team: player.team,
+      position: player.position,
+      champion,
+      gamesOnChampion: champGames.length,
+      winsOnChampion: champWins,
+      lossesOnChampion: champGames.length - champWins,
+      winrateOnChampion: winrate(champWins, champGames.length),
+      splitGamesOverall: allGames.length || player.games,
+      splitWinrateOverall: winrate(allWins, allGames.length),
+      recentOnChampion: champGames.slice(-5).map((g) => ({
+        date: g.date,
+        result: g.result === 1 ? "W" : "L",
+        kda: g.kda,
+        gd15: g.gd15,
+      })),
+      source: "oe_slices.gameLog",
+      note: champGames.length
+        ? "current split filter only — cite these numbers for split WR on this champ"
+        : "no games on this champion in current split filter — say so; career WR needs gol.gg/WEB_VERIFIED",
+    },
+  };
+}
+
 function extractPlayerName(message: string): string | null {
   const lower = message.toLowerCase();
   for (const [alias, canonical] of Object.entries(PLAYER_ALIASES)) {
@@ -827,6 +906,7 @@ export async function buildAnalystContext(
   const tools: ToolResult[] = [];
 
   const candidates = [
+    runPlayerChampionStat(message, bundle),
     runMentionedPlayers(message, bundle),
     runPlayerStat(message, bundle),
     runTeamStat(message, bundle),

@@ -13,6 +13,8 @@ async function streamWithModel(args: {
   plan: IntentPlan;
   onToken?: (token: string) => void;
   writer: WritableStreamDefaultWriter<Uint8Array>;
+  maxTokens?: number;
+  frequencyPenalty?: number;
 }): Promise<string> {
   const encoder = new TextEncoder();
   let fullText = "";
@@ -24,7 +26,8 @@ async function streamWithModel(args: {
     // values caused confident confabulation of stats/rosters/series that aren't in
     // the provided context. Keep just enough warmth for the casual voice.
     temperature: args.plan.complexity === "complex" ? 0.4 : 0.3,
-    max_tokens: 1000,
+    max_tokens: args.maxTokens ?? 1000,
+    frequency_penalty: args.frequencyPenalty ?? 0.35,
     stream: true,
   });
 
@@ -71,6 +74,8 @@ export async function streamFinalAnswer(args: {
   plan: IntentPlan;
   onToken?: (token: string) => void;
   writer: WritableStreamDefaultWriter<Uint8Array>;
+  maxTokens?: number;
+  frequencyPenalty?: number;
 }): Promise<string> {
   try {
     return await streamWithModel({ ...args, model: args.model });

@@ -35,7 +35,11 @@ const STATS =
   /\b(winrate|win rate|kda|csd@?15|gd@?15|xpd@?15|dpm|stats?|rank|record|kills?|deaths?|assists?|damage|gd15|most picked|best|worst|who has|how is|objective|form|streak|dmg%|gold%|dmg share|gold share)\b/i;
 
 const OPINION =
-  /\b(fraudulent|fraud|frauds?|bum|bums|inters?|trash|overrated|underrated|goat|1v9|cosplay|flop|grief|griefing|exposed|malding)\b/i;
+  /\b(fraudulent|fraud|frauds?|bum|bums|inters?|trash|dogshit|dog shit|ass|garbage|overrated|underrated|goat|1v9|cosplay|flop|grief|griefing|exposed|malding|bad at|good at|notorious|weak at|weak on|strong at|strong on|mid on|refuses? to pick|won't pick|never picks?)\b/i;
+
+/** Common pro-play champions — used to route player+champion performance takes to stats tools. */
+const PRO_CHAMPION =
+  /\b(azir|corki|orianna|syndra|ahri|ksante|rumble|gnar|jayce|yone|akali|sylas|viktor|taliyah|annie|ryze|mel|aurora|varus|ezreal|jinx|kaisa|xayah|aphelios|zeri|smolder|lucian|caitlyn|ashe|jhin|kalista|senna|miss fortune|mf|thresh|nautilus|rell|leona|rakan|lulu|nami|braum|blitzcrank|maokai|sejuani|vi|wukong|jarvan|lee sin|graves|nidalee|kindred|viego|nocturne|poppy|ornn|sion|aatrox|camille|gwen|fiora|yasuo|irelia|galio|twisted fate|tf|lux|zoe|vex|neeko|hwei|ambessa)\b/i;
 
 const COMPARE =
   /\b(compare|vs\.?|versus|radar|head.?to.?head|h2h|matchup analysis|lane matchup)\b/i;
@@ -74,6 +78,17 @@ export function isCareerQuestion(message: string): boolean {
 /** Exported for orchestration — roster depth questions need tools, never charts. */
 export function isRosterDepthQuestion(message: string): boolean {
   return ROSTER_DEPTH.test(message);
+}
+
+/** Player + champion performance take ("knight's azir is dogshit") — needs champ-specific stats. */
+export function isPlayerChampionPerformanceAsk(message: string): boolean {
+  if (!PRO_CHAMPION.test(message)) return false;
+  if (OPINION.test(message)) return true;
+  if (/\b(winrate|win rate|stats?|record|games on|pick rate|how is|how's|how many games)\b/i.test(message)) {
+    return true;
+  }
+  return /\b(knight|faker|chovy|canyon|oner|zeus|keria|peyz|gumayusi|ruler|caps)\b/i.test(message) ||
+    /\b([A-Z][a-z]+(?:'s)?\s+(?:on\s+)?(?:azir|corki|orianna|syndra|ahri))\b/.test(message);
 }
 
 /** Exported for classifyIntent — skip data fetches for theory questions */
@@ -156,6 +171,17 @@ function heuristicScope(message: string): ScopePlan {
       needs_charts: false,
       needs_snapshot: false,
       reason: "roster query — team_roster tool, no chart",
+    };
+  }
+
+  if (isPlayerChampionPerformanceAsk(message)) {
+    return {
+      scope: "lolesports_stats",
+      needs_tools: true,
+      needs_rag: true,
+      needs_charts: false,
+      needs_snapshot: false,
+      reason: "player+champion performance — champ stats + gol.gg fallback",
     };
   }
 

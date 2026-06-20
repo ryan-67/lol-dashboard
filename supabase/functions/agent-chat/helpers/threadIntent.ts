@@ -5,7 +5,7 @@ const LOLESPORTS_SIGNAL =
 
 /** User is correcting / redefining the prior answer's terms. */
 const CLARIFICATION =
-  /\b(doesn'?t count|does not count|don'?t count|isn'?t a top|not a top|not what i|that'?s wrong|that is wrong|i mean|i meant|by that i mean|top team refers|exclude|not including|re-?answer|try again|wrong team|bottom team|mid-?table|actually)\b/i;
+  /\b(doesn'?t count|does not count|don'?t count|isn'?t a top|not a top|not what i|that'?s wrong|that is wrong|you'?re wrong|ur wrong|u r wrong|what u talk|what you talk|cross-?check|fix ur|fix your|knowledge base|u need to|you need to|incorrect|not true|i mean|i meant|by that i mean|top team refers|exclude|not including|re-?answer|try again|wrong team|bottom team|mid-?table|actually|\d+\.?\d*\s*%\s*(?:winrate|win rate|wr))\b/i;
 
 /** Explicit pivot markers — strong signal the user is continuing the prior topic. */
 const PARALLEL_MARKER =
@@ -121,7 +121,7 @@ export function resolveThreadIntent(
       `Original question: ${priorUserQuestion}`,
       `Your prior answer (summary): ${lastAssistantSnippet(history)}`,
       `User refinement: ${message}`,
-      `Re-run analysis with the refinement applied. If they redefine terms (e.g. "top team" = top 4-5 in standings), use that definition.`,
+      `Re-run analysis with the refinement applied. If they dispute your prior answer or supply stats, acknowledge the mistake, verify via MATCH_STATS/WEB_VERIFIED, and do NOT double down from memory. If they redefine terms (e.g. "top team" = top 4-5 in standings), use that definition.`,
     ].join("\n");
 
     return {

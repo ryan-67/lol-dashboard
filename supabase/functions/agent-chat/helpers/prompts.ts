@@ -50,6 +50,7 @@ grounding (when MATCH_STATS / WORLD_CONTEXT is present):
 7) follow-ups: if refining ("I meant standings") re-answer with the new criteria; if pivoting ("how about faker?") answer the SAME topic for the new entity. never treat as off-topic. if the pivoted entity has no data in the blocks, say so — don't invent it.
 8) PREDICTIONS / FAVORITES / ODDS ("who's favored to win MSI?"): only use rosters, results, dates, venues, seeds, or odds that appear in EXTERNAL_CONTEXT / WEB_VERIFIED / WORLD_CONTEXT. you can give a conceptual lean ("the LPL #1 usually has the strongest macro") WITHOUT naming fake rosters or fake numbers. never fabricate a lineup, a start date, a host city, or an odds figure.
 9) SERIES / MATCH RECAPS: describe ONLY games present in MATCH_STATS series_recap (gameSequence). if gamesFound is 0 / no series data, say you don't have that series' game data — do NOT invent champions, scores, KDAs, or a winner. one wrong recap is bad; re-inventing it after a correction is worse (see H3).
+10) PLAYER + CHAMPION PERFORMANCE ("good/bad on Azir", "dogshit on Corki"): NEVER claim they're strong/weak on a champ without player_champion data in MATCH_STATS or career WR in WEB_VERIFIED. if gamesOnChampion is 0 in the split, say you don't have split games on that champ — don't argue from memory. if user corrects you, acknowledge and re-check stats; never double down (H3).
 
 synthesis (critical — how you use data):
 - weave stats into natural sentences. NO markdown tables, NO bullet lists of raw numbers.
@@ -124,8 +125,10 @@ export interface PromptContext {
   /** When set, inject deep matchup/draft/macro synthesis instructions. */
   analysisIntent?: AnalysisIntent;
   subjectiveIntent?: boolean;
+  playerChampionIntent?: boolean;
   sentimentContext?: string;
   kalshiOddsBlock?: string;
+  isClarification?: boolean;
 }
 
 /** Deep-analysis modes where stats must be woven into game knowledge, not dumped. */
@@ -210,11 +213,22 @@ export function subjectiveSynthesisBlock(): string {
   return `[SUBJECTIVE_SYNTHESIS]
 The user wants a subjective/historical debate take (clutch, GOAT, greatest, legacy).
 Rules:
-1) ANCHOR ON STATS FIRST — use MATCH_STATS / Oracle numbers as the backbone of your argument when present.
-2) COMMUNITY SENTIMENT IS NARRATIVE ONLY — if [COMMUNITY_SENTIMENT] is present, use it for storyline ("reddit thinks…", "community argument is…"). Never treat reddit as verified fact.
+1) ANCHOR ON STATS FIRST — use MATCH_STATS / Oracle numbers as the backbone when present.
+2) COMMUNITY SENTIMENT IS NARRATIVE ONLY — if [COMMUNITY_SENTIMENT] is present, you may add AT MOST two short sentences summarizing the vibe. Never treat reddit as verified fact. Never repeat the same phrase or loop meta-language about "community argument" / "reddit thinks".
 3) You MAY give a clear opinion, but cite stats inline as proof; label community vibes as opinion.
 4) Do NOT invent title counts, award counts, or career milestones not in WEB_VERIFIED / EXTERNAL_CONTEXT / MATCH_STATS.
-5) Sound like a sharp analyst in a discord call, not a Wikipedia article.`;
+5) Sound like a sharp analyst in a discord call, not a Wikipedia article. Answer the user's actual question in 2-6 paragraphs max.`;
+}
+
+/** Player+champion performance — must cite player_champion tool output. */
+export function playerChampionBlock(): string {
+  return `[PLAYER_CHAMPION]
+The user is debating how good/bad a pro is on a specific champion.
+Rules:
+1) Look for player_champion in MATCH_STATS — cite gamesOnChampion, winrateOnChampion, splitWinrateOverall if present.
+2) If gamesOnChampion is 0, say you have no split games on that champ in the current filter — do NOT claim they're good/bad from memory.
+3) Career/all-time champ WR only from WEB_VERIFIED or gol.gg snippets — not training data.
+4) Give a direct take AFTER the numbers. If stats support the user correcting you, agree with them.`;
 }
 
 export function finalMessages(
@@ -236,8 +250,8 @@ export function finalMessages(
 
   if (ctx?.isFollowUp) {
     const followUp =
-      ctx.followUpType === "clarification"
-        ? `User is correcting/refining the prior answer. Acknowledge the correction and re-answer with the updated criteria.`
+      ctx.followUpType === "clarification" || ctx.isClarification
+        ? `User is correcting/refining the prior answer. Acknowledge if you were wrong. Re-answer using MATCH_STATS/WEB_VERIFIED only — do NOT double down from memory or repeat template phrases.`
         : `User is pivoting to a new entity but the SAME topic as before. Answer that same topic for the new entity — do not switch to current-split stats unless the topic was stats.`;
     blocks.push(`[FOLLOW_UP]\n${followUp}`);
   }
@@ -276,7 +290,13 @@ export function finalMessages(
   }
 
   if (ctx?.sentimentContext?.trim()) {
-    blocks.push(`[COMMUNITY_SENTIMENT]\nOpinion/community narrative only — NOT verified fact.\n${ctx.sentimentContext}`);
+    blocks.push(
+      `[COMMUNITY_SENTIMENT]\nOpinion/community narrative only — NOT verified fact. Summarize briefly (max 2 sentences); do not echo these snippets verbatim or loop.\n${ctx.sentimentContext}`,
+    );
+  }
+
+  if (ctx?.playerChampionIntent) {
+    blocks.push(playerChampionBlock());
   }
 
   if (ctx?.subjectiveIntent) {
@@ -311,7 +331,7 @@ export function finalMessages(
     }
   }
 
-  const latestPrompt = `${blocks.join("\n\n")}\n\n[USER]\n${userMessage}`.trim();
+  const latestPrompt = `${blocks.join("\n\n")}\n\n---\nUser question:\n${userMessage}`.trim();
 
   return [
     { role: "system", content: NUCKY_SYSTEM_PROMPT },
@@ -337,7 +357,7 @@ export function chatOnlyMessages(
     ...trimConversationHistory(history),
     {
       role: "user",
-      content: `${prefix}\n\n[USER]\n${userMessage}`,
+      content: `${prefix}\n\n---\nUser question:\n${userMessage}`,
     },
   ];
 }

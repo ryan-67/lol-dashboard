@@ -83,12 +83,14 @@ export async function synthesize(deps: SynthesisDeps): Promise<SynthesisResult> 
     scope: evidence.scope.scope,
     isFollowUp: evidence.thread.isFollowUp,
     followUpType: evidence.thread.followUpType,
+    isClarification: evidence.thread.isClarification,
     hasMatchStats: Object.keys(evidence.matchStats).length > 0,
     mentionedRosterBlock: evidence.mentionedRosterBlock,
     webVerified: webVerifiedBlock,
     careerIntent: evidence.careerIntent,
     analysisIntent,
     subjectiveIntent: evidence.subjectiveIntent,
+    playerChampionIntent: evidence.playerChampionIntent,
     sentimentContext: evidence.sentimentContext,
     kalshiOddsBlock: evidence.kalshiOddsBlock,
   };
@@ -104,6 +106,8 @@ export async function synthesize(deps: SynthesisDeps): Promise<SynthesisResult> 
     messages,
     plan: evidence.plan,
     writer,
+    maxTokens: evidence.subjectiveIntent ? 650 : 1000,
+    frequencyPenalty: evidence.subjectiveIntent ? 0.85 : 0.35,
   });
 
   let assistantText = chartPrefix + answer;

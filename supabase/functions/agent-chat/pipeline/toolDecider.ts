@@ -27,7 +27,7 @@ import {
   type TavilySearchIntent,
 } from "../helpers/tavilySearch.ts";
 import { fetchEsportsMarketOdds, isOddsQuestion } from "../helpers/kalshi.ts";
-import { isCareerQuestion, isRosterDepthQuestion } from "../helpers/scope.ts";
+import { isCareerQuestion, isPlayerChampionPerformanceAsk, isRosterDepthQuestion } from "../helpers/scope.ts";
 import {
   buildCurrentWorldContext,
   formatMentionedRosterBlock,
@@ -284,9 +284,15 @@ export async function decideAndFetch(deps: DecideDeps): Promise<Evidence> {
     isRosterDepthQuestion(message) || thread.followUpType === "roster_follow_up";
   const subjectiveIntent = isSubjectiveDebate(message) ||
     (thread.isFollowUp && thread.inheritedTopic ? isSubjectiveDebate(thread.inheritedTopic) : false);
+  const playerChampionIntent =
+    isPlayerChampionPerformanceAsk(message) ||
+    (thread.isFollowUp && thread.inheritedTopic
+      ? isPlayerChampionPerformanceAsk(thread.inheritedTopic)
+      : false);
 
   let runTools = scope.needs_tools && !careerIntent;
-  if (subjectiveIntent && !careerIntent) runTools = true;
+  if (subjectiveIntent || playerChampionIntent) runTools = true;
+  if (thread.isClarification) runTools = true;
   const runRag = scope.needs_rag;
 
   const sources = { oracleElixir: false, rag: false, web: false, schedule: false, kalshi: false, sentiment: false };
@@ -419,7 +425,7 @@ export async function decideAndFetch(deps: DecideDeps): Promise<Evidence> {
   const patchIntent = webSearchIntent === "patch";
   const tournamentIntent = webSearchIntent === "tournament";
   const rosterWebIntent = webSearchIntent === "roster";
-  const statsWebIntent = webSearchIntent === "stats";
+  const statsWebIntent = webSearchIntent === "stats" || playerChampionIntent;
   const metaThinSample = (webSearchIntent === "matchup" || webSearchIntent === "meta") &&
     oeSampleIsThin(matchStats);
 
@@ -492,7 +498,15 @@ export async function decideAndFetch(deps: DecideDeps): Promise<Evidence> {
     sentimentSnippets = (
       await Promise.all(sentimentQueries.map((q) => searchTavilySentiment(tavilyApiKey, q)))
     ).flat();
-    sentimentContext = formatSnippetsAsContext(sentimentSnippets, "community_sentiment");
+    const seenSent = new Set<string>();
+    sentimentSnippets = sentimentSnippets
+      .filter((s) => {
+        if (seenSent.has(s.url)) return false;
+        seenSent.add(s.url);
+        return true;
+      })
+      .slice(0, 2);
+    sentimentContext = formatSnippetsAsContext(sentimentSnippets, "community_sentiment", 220);
     if (sentimentSnippets.length) sources.sentiment = true;
   }
 
@@ -509,6 +523,7 @@ export async function decideAndFetch(deps: DecideDeps): Promise<Evidence> {
     careerIntent,
     rosterDepthIntent,
     subjectiveIntent,
+    playerChampionIntent,
     chatOnly,
     worldBlock,
     mentionedRosterBlock,

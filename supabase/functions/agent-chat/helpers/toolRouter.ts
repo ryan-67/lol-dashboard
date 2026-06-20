@@ -50,6 +50,7 @@ const SQL_COVERING_TOOLS = new Set([
   "series_recap",
   "champion_meta",
   "champion_pool_compare",
+  "player_champion",
   "team_form",
   "lane_matchup",
   "schedule_lookup",
