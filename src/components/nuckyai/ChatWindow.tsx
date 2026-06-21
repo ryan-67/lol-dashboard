@@ -45,7 +45,7 @@ export default function ChatWindow({
       ) : (
         <div className="flex-1 overflow-y-auto p-4">
           <div className="border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-4 max-w-2xl">
-            <p className="text-sm text-[var(--text-primary)]">hey — what should nucky look at today?</p>
+            <p className="text-sm text-[var(--text-primary)]">ask nucky...</p>
             <SuggestedPrompts onPick={onSend} />
           </div>
         </div>

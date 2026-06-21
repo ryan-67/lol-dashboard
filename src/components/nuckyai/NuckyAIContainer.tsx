@@ -310,6 +310,32 @@ export default function NuckyAIContainer() {
     [activeConversationId, beginNewChat, user],
   )
 
+  const renameConversation = useCallback(
+    async (conversationId: string, title: string) => {
+      if (!user) return
+      const trimmed = title.trim()
+      if (!trimmed) return
+
+      const { error } = await supabase
+        .from('conversations')
+        .update({ title: trimmed, updated_at: new Date().toISOString() })
+        .eq('id', conversationId)
+        .eq('user_id', user.id)
+
+      if (error) {
+        setToast('could not rename chat. try again.')
+        return
+      }
+
+      setConversations((prev) =>
+        prev.map((c) =>
+          c.id === conversationId ? { ...c, title: trimmed, updated_at: new Date().toISOString() } : c,
+        ),
+      )
+    },
+    [user],
+  )
+
   const heading = useMemo(() => {
     if (!profile) return 'nucky'
     return profile.username ? `nucky — @${profile.username}` : 'nucky'
@@ -393,6 +419,7 @@ export default function NuckyAIContainer() {
           onSelect={selectConversation}
           onNewChat={beginNewChat}
           onDelete={(id) => void deleteConversation(id)}
+          onRename={(id, title) => void renameConversation(id, title)}
           mobileOpen={mobileSidebarOpen}
           onCloseMobile={() => setMobileSidebarOpen(false)}
         />

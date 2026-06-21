@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { ConversationRow } from './types'
 
 interface ChatSidebarProps {
@@ -8,6 +8,7 @@ interface ChatSidebarProps {
   onSelect: (id: string) => void
   onNewChat: () => void
   onDelete: (id: string) => void
+  onRename: (id: string, title: string) => void
   mobileOpen: boolean
   onCloseMobile: () => void
 }
@@ -23,6 +24,16 @@ function relativeDate(value: string): string {
   return `${days}d`
 }
 
+function MenuDotsIcon() {
+  return (
+    <span className="chat-sidebar-menu-dots" aria-hidden="true">
+      <span />
+      <span />
+      <span />
+    </span>
+  )
+}
+
 export default function ChatSidebar({
   conversations,
   loading = false,
@@ -30,11 +41,45 @@ export default function ChatSidebar({
   onSelect,
   onNewChat,
   onDelete,
+  onRename,
   mobileOpen,
   onCloseMobile,
 }: ChatSidebarProps) {
+  const [menuOpenId, setMenuOpenId] = useState<string | null>(null)
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
+  const [renameId, setRenameId] = useState<string | null>(null)
+  const [renameValue, setRenameValue] = useState('')
+  const menuRef = useRef<HTMLDivElement>(null)
+  const renameInputRef = useRef<HTMLInputElement>(null)
+
   const pendingConversation = conversations.find((c) => c.id === confirmDeleteId)
+  const renamingConversation = conversations.find((c) => c.id === renameId)
+
+  useEffect(() => {
+    if (!menuOpenId) return
+    const onPointerDown = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setMenuOpenId(null)
+      }
+    }
+    document.addEventListener('mousedown', onPointerDown)
+    return () => document.removeEventListener('mousedown', onPointerDown)
+  }, [menuOpenId])
+
+  useEffect(() => {
+    if (!renameId) return
+    renameInputRef.current?.focus()
+    renameInputRef.current?.select()
+  }, [renameId])
+
+  const submitRename = () => {
+    if (!renameId) return
+    const next = renameValue.trim()
+    if (!next) return
+    onRename(renameId, next)
+    setRenameId(null)
+    setRenameValue('')
+  }
 
   const panel = (
     <aside className="w-[280px] border-r border-[var(--border-subtle)] bg-[var(--bg-surface)] flex flex-col h-full relative">
@@ -65,6 +110,7 @@ export default function ChatSidebar({
         {!loading &&
           conversations.map((conversation) => {
             const active = conversation.id === activeConversationId
+            const menuOpen = menuOpenId === conversation.id
             return (
               <div
                 key={conversation.id}
@@ -89,24 +135,114 @@ export default function ChatSidebar({
                     {relativeDate(conversation.updated_at || conversation.created_at)}
                   </div>
                 </button>
-                <button
-                  type="button"
-                  className="chat-delete-btn shrink-0 px-2 text-[var(--text-tertiary)] hover:text-[var(--text-primary)]"
-                  aria-label={`Delete ${conversation.title}`}
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    setConfirmDeleteId(conversation.id)
-                  }}
-                >
-                  ×
-                </button>
+                <div className="relative shrink-0" ref={menuOpen ? menuRef : undefined}>
+                  <button
+                    type="button"
+                    className="chat-sidebar-menu-btn"
+                    aria-label={`Options for ${conversation.title}`}
+                    aria-expanded={menuOpen}
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      setMenuOpenId(menuOpen ? null : conversation.id)
+                    }}
+                  >
+                    <MenuDotsIcon />
+                  </button>
+                  {menuOpen && (
+                    <div className="chat-sidebar-menu" role="menu">
+                      <button
+                        type="button"
+                        role="menuitem"
+                        className="chat-sidebar-menu-item"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          setMenuOpenId(null)
+                          setRenameId(conversation.id)
+                          setRenameValue(conversation.title)
+                        }}
+                      >
+                        rename
+                      </button>
+                      <button
+                        type="button"
+                        role="menuitem"
+                        className="chat-sidebar-menu-item chat-sidebar-menu-item--danger"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          setMenuOpenId(null)
+                          setConfirmDeleteId(conversation.id)
+                        }}
+                      >
+                        delete
+                      </button>
+                    </div>
+                  )}
+                </div>
               </div>
             )
           })}
       </div>
 
+      {renameId && (
+        <div
+          className="chat-sidebar-rename"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="chat-rename-title"
+        >
+          <p id="chat-rename-title" className="text-sm text-[var(--text-primary)] mb-3">
+            rename chat
+          </p>
+          {renamingConversation && (
+            <p className="text-xs text-[var(--text-tertiary)] mb-2 truncate">
+              was: {renamingConversation.title}
+            </p>
+          )}
+          <input
+            ref={renameInputRef}
+            type="text"
+            value={renameValue}
+            onChange={(e) => setRenameValue(e.target.value)}
+            className="chat-sidebar-rename-input"
+            maxLength={120}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') submitRename()
+              if (e.key === 'Escape') {
+                setRenameId(null)
+                setRenameValue('')
+              }
+            }}
+          />
+          <div className="flex gap-2 mt-3">
+            <button
+              type="button"
+              className="btn flex-1"
+              onClick={() => {
+                setRenameId(null)
+                setRenameValue('')
+              }}
+            >
+              cancel
+            </button>
+            <button
+              type="button"
+              className="btn flex-1"
+              disabled={!renameValue.trim()}
+              onClick={submitRename}
+            >
+              save
+            </button>
+          </div>
+        </div>
+      )}
+
       {confirmDeleteId && (
-        <div className="chat-delete-confirm" role="dialog" aria-modal="true" aria-labelledby="chat-delete-title">
+        <div
+          className="chat-delete-confirm"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="chat-delete-title"
+        >
           <p id="chat-delete-title" className="text-sm text-[var(--text-primary)] mb-3">
             are you sure you want to delete this chat?
           </p>
@@ -121,7 +257,7 @@ export default function ChatSidebar({
             </button>
             <button
               type="button"
-              className="btn flex-1"
+              className="btn flex-1 chat-sidebar-menu-item--danger"
               onClick={() => {
                 onDelete(confirmDeleteId)
                 setConfirmDeleteId(null)

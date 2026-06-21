@@ -2,7 +2,7 @@ const PROMPTS = [
   'analyze the next lck matchup',
   'compare T1 vs Gen.G stats',
   "who's the most overrated player this split?",
-  '(geng: ambessa wukong annie senna alistar, t1: olaf xinzhao anivia jhin karma)',
+  'draft analysis for geng: ambessa wukong annie ezreal neeko, t1: sion xinzhao anivia caitlyn karma',
 ] as const
 
 interface SuggestedPromptsProps {

@@ -2209,13 +2209,111 @@ b,
 }
 
 /* nuckyAI chat sidebar */
-.chat-delete-btn {
+.chat-sidebar-menu-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 100%;
+  min-height: 44px;
   border: none;
+  border-left: 1px solid var(--border-subtle);
   background: transparent;
-  font-size: 18px;
-  line-height: 1;
+  color: var(--text-tertiary);
   cursor: pointer;
   font-family: inherit;
+  transition: color 0.15s ease, background 0.15s ease;
+}
+
+.chat-sidebar-menu-btn:hover,
+.chat-sidebar-menu-btn[aria-expanded='true'] {
+  color: var(--accent);
+  background: var(--bg-base);
+}
+
+.chat-sidebar-menu-dots {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  width: 12px;
+}
+
+.chat-sidebar-menu-dots span {
+  display: block;
+  width: 3px;
+  height: 3px;
+  background: currentColor;
+}
+
+.chat-sidebar-menu {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  z-index: 20;
+  min-width: 120px;
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-elevated);
+}
+
+.chat-sidebar-menu-item {
+  display: block;
+  width: 100%;
+  padding: 8px 12px;
+  border: none;
+  border-bottom: 1px solid var(--border-subtle);
+  background: transparent;
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  text-align: left;
+  cursor: pointer;
+  transition: color 0.15s ease, background 0.15s ease;
+}
+
+.chat-sidebar-menu-item:last-child {
+  border-bottom: none;
+}
+
+.chat-sidebar-menu-item:hover {
+  color: var(--accent);
+  background: var(--bg-base);
+}
+
+.chat-sidebar-menu-item--danger {
+  color: rgb(220, 38, 38);
+}
+
+.chat-sidebar-menu-item--danger:hover {
+  color: rgb(220, 38, 38);
+  background: rgba(220, 38, 38, 0.06);
+}
+
+.chat-sidebar-rename {
+  position: absolute;
+  left: 8px;
+  right: 8px;
+  bottom: 8px;
+  z-index: 10;
+  padding: 12px;
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-elevated);
+}
+
+.chat-sidebar-rename-input {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-base);
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  font-size: 13px;
+  outline: none;
+}
+
+.chat-sidebar-rename-input:focus {
+  border-color: var(--accent);
 }
 
 .chat-delete-confirm {

@@ -353,8 +353,8 @@ export default function MessageBubble({
         )}
         {!isThinking && relativeTime(message.created_at) && (
           <div
-            className={`mt-1 text-[11px] text-[var(--text-tertiary)] ${
-              isAssistant ? 'opacity-70 group-hover:opacity-100 transition-opacity' : ''
+            className={`mt-1.5 text-[11px] text-[var(--text-tertiary)] font-[family-name:var(--font-mono)] ${
+              isAssistant ? '' : 'text-right'
             }`}
           >
             {relativeTime(message.created_at)}

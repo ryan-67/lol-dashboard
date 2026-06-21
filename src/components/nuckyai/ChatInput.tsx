@@ -49,7 +49,7 @@ export default function ChatInput({
           ref={ref}
           value={value}
           onChange={(e) => onChange(e.target.value)}
-          placeholder="ask nuckyAI... (draft: team: champ1 champ2 ... , team: ...)"
+          placeholder="ask nucky..."
           disabled={disabled}
           rows={1}
           className="w-full resize-none border border-[var(--border-subtle)] bg-[var(--bg-base)] px-3 py-2 text-sm text-[var(--text-primary)] outline-none focus:border-[var(--accent)] disabled:opacity-60 font-[family-name:var(--font-mono)]"
