@@ -110,6 +110,37 @@ export function buildTeamComparisonStatRows(
   })
 }
 
+/** Axis scaling for individual stat mini-charts. */
+export type StatAxisKind = 'percent' | 'count' | 'duration'
+
+export const STAT_AXIS_KIND: Record<string, StatAxisKind> = {
+  winrate: 'percent',
+  blueWr: 'percent',
+  redWr: 'percent',
+  firstBlood: 'percent',
+  dragons: 'count',
+  barons: 'count',
+  towers: 'count',
+  gameLength: 'duration',
+}
+
+export function statChartYDomain(values: number[], kind: StatAxisKind): [number, number] {
+  const max = values.length ? Math.max(...values) : 0
+  if (kind === 'percent') return [0, 100]
+  if (kind === 'duration') {
+    const ceiling = max > 0 ? Math.ceil(max * 1.08) : 3600
+    return [0, ceiling]
+  }
+  const ceiling = max > 0 ? Math.ceil(max * 1.25 * 10) / 10 : 1
+  return [0, Math.max(ceiling, 0.5)]
+}
+
+export function statChartTickFormat(value: number, kind: StatAxisKind): string {
+  if (kind === 'percent') return `${value}%`
+  if (kind === 'duration') return formatGameLength(value)
+  return value % 1 === 0 ? String(value) : value.toFixed(1)
+}
+
 export function teamRecordLabel(team: Team): string {
   return `${team.wins}W-${team.losses}L`
 }

@@ -5,14 +5,21 @@ import {
   BarChart,
   CartesianGrid,
   Cell,
-  Legend,
+  LabelList,
   ResponsiveContainer,
   Tooltip,
   XAxis,
   YAxis,
 } from 'recharts'
 import type { Team } from '../../hooks/useDashboardData'
-import { buildTeamComparisonStatRows, teamRecordLabel } from '../../lib/teamComparisonAnalytics'
+import {
+  STAT_AXIS_KIND,
+  buildTeamComparisonStatRows,
+  statChartTickFormat,
+  statChartYDomain,
+  teamRecordLabel,
+  type StatAxisKind,
+} from '../../lib/teamComparisonAnalytics'
 import { teamKey } from '../../lib/teamAnalytics'
 import { radarColorForTeam } from '../../lib/entities/teamBrandColor'
 import { makeChartTooltipContent } from '../ui/ChartTooltip'
@@ -26,45 +33,87 @@ interface TeamComparisonStatsChartProps {
   players: import('../../hooks/useDashboardData').Player[]
 }
 
-const statsTooltip = makeChartTooltipContent(
+const miniChartTooltip = makeChartTooltipContent(
   (props) => {
-    const row = props.payload?.[0]?.payload as { label?: string }
-    return row?.label
+    const row = props.payload?.[0]?.payload as { name?: string }
+    return row?.name
   },
   (props) => {
-    if (!props.payload?.length) return []
-    const row = props.payload[0]?.payload as Record<string, string | number>
-    return props.payload
-      .filter((item) => String(item.dataKey ?? '').match(/^team\d+Norm$/))
-      .map((item) => {
-        const match = String(item.dataKey ?? '').match(/^team(\d+)Norm$/)
-        const index = match ? Number(match[1]) : 0
-        return {
-          label: String(item.name ?? ''),
-          value: String(row[`team${index}Label`] ?? '—'),
-        }
-      })
+    const row = props.payload?.[0]?.payload as { formatted?: string }
+    if (!row) return []
+    return [{ label: 'Value', value: row.formatted ?? '—' }]
   },
 )
 
+function StatMiniChart({
+  label,
+  metric,
+  teams,
+  row,
+  colors,
+}: {
+  label: string
+  metric: string
+  teams: Team[]
+  row: Record<string, string | number>
+  colors: string[]
+}) {
+  const axisKind: StatAxisKind = STAT_AXIS_KIND[metric] ?? 'count'
+  const chartData = teams.map((team, index) => ({
+    name: team.name,
+    value: Number(row[`team${index}`] ?? 0),
+    formatted: String(row[`team${index}Label`] ?? '—'),
+    fill: colors[index] ?? '#c5a059',
+  }))
+  const yDomain = statChartYDomain(
+    chartData.map((d) => d.value),
+    axisKind,
+  )
+
+  return (
+    <div className="team-stat-mini-chart card">
+      <h4 className="team-stat-mini-chart-title">{label}</h4>
+      <ResponsiveContainer width="100%" height={148}>
+        <BarChart data={chartData} margin={{ top: 18, right: 8, left: 4, bottom: 0 }}>
+          <CartesianGrid stroke={CHART.grid} strokeDasharray="3 3" vertical={false} />
+          <XAxis
+            dataKey="name"
+            stroke={CHART.axis}
+            tick={{ fill: CHART.tick, fontSize: 9, fontFamily: CHART.fontFamily }}
+            interval={0}
+            angle={-18}
+            textAnchor="end"
+            height={48}
+          />
+          <YAxis
+            domain={yDomain}
+            stroke={CHART.axis}
+            tick={{ fill: CHART.tick, fontSize: 9, fontFamily: CHART.fontFamily }}
+            tickFormatter={(v) => statChartTickFormat(Number(v), axisKind)}
+            width={44}
+          />
+          <Tooltip content={miniChartTooltip} />
+          <Bar dataKey="value" radius={0}>
+            {chartData.map((entry) => (
+              <Cell key={entry.name} fill={entry.fill} />
+            ))}
+            <LabelList
+              dataKey="formatted"
+              position="top"
+              fill={CHART.accent}
+              fontSize={9}
+              fontFamily={CHART.fontFamily}
+            />
+          </Bar>
+        </BarChart>
+      </ResponsiveContainer>
+    </div>
+  )
+}
+
 export default function TeamComparisonStatsChart({ teams, players }: TeamComparisonStatsChartProps) {
   const sectionRef = useRef<HTMLDivElement>(null)
-  const data = useMemo(() => buildTeamComparisonStatRows(teams, players), [teams, players])
-
-  const chartData = useMemo(() => {
-    return data.map((row) => {
-      const values = teams.map((_, index) => Number(row[`team${index}`] ?? 0))
-      const min = Math.min(...values)
-      const max = Math.max(...values)
-      const normalized: Record<string, string | number> = { ...row }
-      teams.forEach((_, index) => {
-        const raw = Number(row[`team${index}`] ?? 0)
-        normalized[`team${index}Norm`] =
-          max === min ? 50 : ((raw - min) / (max - min)) * 100
-      })
-      return normalized
-    })
-  }, [data, teams])
+  const statRows = useMemo(() => buildTeamComparisonStatRows(teams, players), [teams, players])
 
   const colors = useMemo(
     () => teams.map((team) => radarColorForTeam(team.name, team.league)),
@@ -92,44 +141,17 @@ export default function TeamComparisonStatsChart({ teams, players }: TeamCompari
           </div>
         ))}
       </div>
-      <div className="player-chart-body" style={{ minHeight: 320 }}>
-        <ResponsiveContainer width="100%" height={320}>
-          <BarChart data={chartData} layout="vertical" margin={{ top: 8, right: 24, left: 96, bottom: 8 }}>
-            <CartesianGrid stroke={CHART.grid} strokeDasharray="3 3" />
-            <XAxis
-              type="number"
-              stroke={CHART.axis}
-              tick={{ fill: CHART.tick, fontSize: CHART.fontSize, fontFamily: CHART.fontFamily }}
-            />
-            <YAxis
-              type="category"
-              dataKey="label"
-              width={92}
-              stroke={CHART.axis}
-              tick={{ fill: CHART.tick, fontSize: 11, fontFamily: CHART.fontFamily }}
-            />
-            <Tooltip content={statsTooltip} />
-            <Legend
-              wrapperStyle={{
-                fontFamily: CHART.fontFamily,
-                fontSize: CHART.fontSize,
-                color: CHART.tick,
-              }}
-            />
-            {teams.map((team, index) => (
-              <Bar
-                key={teamKey(team)}
-                dataKey={`team${index}Norm`}
-                name={`${team.name} (${team.league})`}
-                fill={colors[index]}
-              >
-                {chartData.map((row) => (
-                  <Cell key={`${row.metric}-${teamKey(team)}`} fill={colors[index]} />
-                ))}
-              </Bar>
-            ))}
-          </BarChart>
-        </ResponsiveContainer>
+      <div className="team-stat-charts-grid">
+        {statRows.map((row) => (
+          <StatMiniChart
+            key={row.metric}
+            label={row.label}
+            metric={row.metric}
+            teams={teams}
+            row={row}
+            colors={colors}
+          />
+        ))}
       </div>
     </ShareableChart>
   )

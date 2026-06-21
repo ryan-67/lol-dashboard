@@ -1959,7 +1959,7 @@ b,
   position: absolute;
   top: calc(100% + 4px);
   left: 0;
-  z-index: 20;
+  z-index: 50;
   display: flex;
   flex-direction: column;
   width: min(420px, 100vw - 2 * var(--padding-x-mobile));
@@ -2669,9 +2669,16 @@ b,
 
 /* Team comparison section */
 .team-comparison-section {
+  position: relative;
+  z-index: 30;
+  overflow: visible;
   margin-top: var(--section-gap);
   padding-top: var(--section-gap);
   border-top: 1px solid var(--border-subtle);
+}
+
+.team-comparison-section .player-dropdown {
+  z-index: 40;
 }
 
 .team-comparison-records {
@@ -2684,6 +2691,39 @@ b,
 .team-comparison-record {
   gap: 8px;
   flex-wrap: wrap;
+}
+
+.team-stat-charts-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--component-gap);
+  margin-top: var(--component-gap);
+}
+
+@media (min-width: 540px) {
+  .team-stat-charts-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 960px) {
+  .team-stat-charts-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+.team-stat-mini-chart {
+  padding: 12px;
+  min-width: 0;
+}
+
+.team-stat-mini-chart-title {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin: 0 0 8px;
 }
 
 .team-priority-champ-list {
