@@ -4,7 +4,8 @@ import type { Champion, Team, TeamChampion } from '../../hooks/useDashboardData'
 import { computeTeamPriorityChamps } from '../../lib/matchupAnalytics'
 import { teamKey } from '../../lib/teamAnalytics'
 import { scrollEntranceStagger } from '../../theme/animations'
-import { TeamLogo, ChampionEntityInline } from '../entities'
+import { ChampionEntityInline } from '../entities'
+import TeamComparisonTeamLabel from './TeamComparisonTeamLabel'
 import ShareableChart from '../ui/ShareableChart'
 
 interface TeamComparisonPriorityChampsProps {
@@ -53,10 +54,7 @@ export default function TeamComparisonPriorityChamps({
       <div ref={gridRef} className="overview-grid overview-grid-2">
         {byTeam.map(({ team, entries }) => (
           <ShareableChart key={teamKey(team)} className="card team-priority-card">
-            <h4 className="card-title entity-inline-row">
-              <TeamLogo name={team.name} size={20} />
-              <span>{team.name}</span>
-            </h4>
+            <TeamComparisonTeamLabel team={team} as="heading" />
             {entries.length === 0 ? (
               <p className="text-secondary text-sm">Not enough pick data</p>
             ) : (

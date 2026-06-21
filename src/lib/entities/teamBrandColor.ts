@@ -1,5 +1,18 @@
 import { leagueColor } from '../teamAnalytics'
-import { teamBrandColorFromName } from './assets'
+import { resolveEsportsTeamSlug, teamBrandColorFromName } from './assets'
+
+/** Final radar colors that bypass generic muting (slug → hex). */
+const RADAR_COLOR_OVERRIDES: Record<string, string> = {
+  /** Classic DWG/DK turquoise — pre–Dplus rebrand identity. */
+  'dwg-kia': '#3ebfb4',
+  /** Stronger HLE orange, still muted for charcoal UI. */
+  'hanwha-life-esports': '#e07038',
+}
+
+function radarColorOverride(teamName: string): string | null {
+  const slug = resolveEsportsTeamSlug(teamName)
+  return RADAR_COLOR_OVERRIDES[slug] ?? null
+}
 
 /** Primary brand color from synced LoL Esports logo manifest, else league color. */
 export function teamBrandColor(teamName: string, league?: string): string {
@@ -39,6 +52,9 @@ function mixHex(a: string, b: string, weightB: number): string {
  * Avoids near-black primaries by falling back to league color, then lightens slightly.
  */
 export function mutedTeamBrandColor(teamName: string, league?: string): string {
+  const override = radarColorOverride(teamName)
+  if (override) return override
+
   let color = teamBrandColor(teamName, league)
   const rgb = parseHex(color)
   if (rgb && relativeLuminance(rgb.r, rgb.g, rgb.b) < 0.06) {

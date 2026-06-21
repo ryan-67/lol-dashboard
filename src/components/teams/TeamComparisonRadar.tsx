@@ -8,7 +8,6 @@ import {
   PolarRadiusAxis,
   ResponsiveContainer,
   Tooltip,
-  Legend,
 } from 'recharts'
 import type { Team } from '../../hooks/useDashboardData'
 import {
@@ -18,6 +17,7 @@ import {
 import { radarColorForTeam } from '../../lib/entities/teamBrandColor'
 import { makeChartTooltipContent } from '../ui/ChartTooltip'
 import ShareableChart from '../ui/ShareableChart'
+import TeamComparisonTeamLabel from './TeamComparisonTeamLabel'
 import { animateRadarDraw } from '../../theme/animations'
 import { CHART } from '../../theme/chartTheme'
 
@@ -91,13 +91,6 @@ export default function TeamComparisonRadar({ teams, cohort, embedded = false }:
             />
             <PolarRadiusAxis angle={90} domain={[0, 100]} tick={false} axisLine={false} />
             <Tooltip content={comparisonRadarTooltip} />
-            <Legend
-              wrapperStyle={{
-                fontFamily: CHART.fontFamily,
-                fontSize: CHART.fontSize,
-                color: CHART.tick,
-              }}
-            />
             <Radar
               name="Cohort average"
               dataKey="avgNorm"
@@ -123,6 +116,31 @@ export default function TeamComparisonRadar({ teams, cohort, embedded = false }:
             })}
           </RadarChart>
         </ResponsiveContainer>
+      </div>
+      <div className="matchup-radar-legend">
+        {teams.map((team) => {
+          const color = radarColorForTeam(team.name, team.league)
+          return (
+            <span key={teamKey(team)} className="matchup-radar-legend-item entity-inline-row">
+              <span
+                className="matchup-radar-legend-swatch"
+                style={{ background: color }}
+              />
+              <TeamComparisonTeamLabel team={team} logoSize={16} />
+              <span className="text-secondary"> · {team.league}</span>
+            </span>
+          )
+        })}
+        <span className="matchup-radar-legend-item">
+          <span
+            className="matchup-radar-legend-swatch"
+            style={{
+              background: 'transparent',
+              borderBottom: '2px dashed rgba(240, 236, 226, 0.35)',
+            }}
+          />
+          Cohort average
+        </span>
       </div>
     </ShareableChart>
   )

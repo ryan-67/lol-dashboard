@@ -24,7 +24,7 @@ import { teamKey } from '../../lib/teamAnalytics'
 import { radarColorForTeam } from '../../lib/entities/teamBrandColor'
 import { makeChartTooltipContent } from '../ui/ChartTooltip'
 import ShareableChart from '../ui/ShareableChart'
-import { TeamLogo } from '../entities'
+import TeamComparisonTeamLabel from './TeamComparisonTeamLabel'
 import { scrollEntrance } from '../../theme/animations'
 import { CHART } from '../../theme/chartTheme'
 
@@ -134,8 +134,7 @@ export default function TeamComparisonStatsChart({ teams, players }: TeamCompari
       <div className="team-comparison-records">
         {teams.map((team) => (
           <div key={teamKey(team)} className="team-comparison-record entity-inline-row">
-            <TeamLogo name={team.name} size={18} />
-            <span className="font-medium">{team.name}</span>
+            <TeamComparisonTeamLabel team={team} logoSize={18} className="font-medium" />
             <span className="text-accent">{teamRecordLabel(team)}</span>
             <span className="text-secondary"> · {team.winrate.toFixed(1)}% WR</span>
           </div>

@@ -10,7 +10,7 @@ import { teamKey } from '../../lib/teamAnalytics'
 import { roleLabel } from '../../lib/championAnalytics'
 import { makeChartTooltipContent } from '../ui/ChartTooltip'
 import ShareableChart from '../ui/ShareableChart'
-import { TeamLogo } from '../entities'
+import TeamComparisonTeamLabel from './TeamComparisonTeamLabel'
 import { scrollEntranceStagger } from '../../theme/animations'
 import { CHART } from '../../theme/chartTheme'
 
@@ -109,10 +109,7 @@ export default function TeamComparisonSharePies({ teams, players }: TeamComparis
       <div ref={gridRef} className="overview-grid overview-grid-2">
         {teamRosters.map(({ team, roster }) => (
           <ShareableChart key={teamKey(team)} className="card team-share-card">
-            <h4 className="card-title entity-inline-row">
-              <TeamLogo name={team.name} size={20} />
-              <span>{team.name}</span>
-            </h4>
+            <TeamComparisonTeamLabel team={team} as="heading" />
             <div className="team-share-pie-row">
               <SharePie title="DMG%" data={buildPlayerShareSlices(roster, 'dmgShare')} />
               <SharePie title="GOLD%" data={buildPlayerShareSlices(roster, 'goldShare')} />
