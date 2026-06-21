@@ -7,6 +7,8 @@ const RADAR_COLOR_OVERRIDES: Record<string, string> = {
   'dwg-kia': '#3ebfb4',
   /** Stronger HLE orange, still muted for charcoal UI. */
   'hanwha-life-esports': '#e07038',
+  /** Kiwoom DRX royal blue from classic DRX identity. */
+  drx: '#4060d8',
 }
 
 function radarColorOverride(teamName: string): string | null {

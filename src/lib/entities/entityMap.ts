@@ -106,7 +106,7 @@ export const TEAM_ENTITIES: TeamEntityDef[] = [
   },
   {
     canonicalName: 'DRX',
-    oeNames: ['DRX'],
+    oeNames: ['DRX', 'Kiwoom DRX', 'Kiwoom BRX'],
     abbreviations: ['DRX'],
     slug: 'drx',
     esportsSlug: 'drx',
