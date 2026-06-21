@@ -14,36 +14,17 @@ import {
 import { runGuardrail } from "./pipeline/guardrail.ts";
 import { decideAndFetch } from "./pipeline/toolDecider.ts";
 import { synthesize } from "./pipeline/synthesis.ts";
-import type { ImageAttachment, ResolvedFilters } from "./pipeline/types.ts";
-import { extractVisionContext } from "./helpers/visionExtract.ts";
+import type { ResolvedFilters } from "./pipeline/types.ts";
+import { extractDraftFromText, looksLikeDraftTextInput } from "./helpers/draftTextParse.ts";
 import {
-  extractDraftFromScreenshot,
+  draftExtractionSummary,
   formatDraftExtractionBlock,
-} from "./helpers/draftVisionMatch.ts";
-import { draftExtractionSummary } from "./helpers/draftVisionTypes.ts";
+} from "./helpers/draftTypes.ts";
 
 interface ChatRequestBody extends DashboardFilters {
   message?: string;
   conversation_id?: string;
   client_now?: string;
-  attachments?: ImageAttachment[];
-}
-
-function normalizeAttachments(raw: unknown): ImageAttachment[] {
-  if (!Array.isArray(raw)) return [];
-  return raw
-    .map((a) => {
-      if (!a || typeof a !== "object") return null;
-      const url = String((a as ImageAttachment).url ?? "").trim();
-      if (!url) return null;
-      return {
-        url,
-        mimeType: (a as ImageAttachment).mimeType,
-        name: (a as ImageAttachment).name,
-      };
-    })
-    .filter((a): a is ImageAttachment => Boolean(a))
-    .slice(0, 2);
 }
 
 const encoder = new TextEncoder();
@@ -177,9 +158,8 @@ Deno.serve(async (req) => {
   }
 
   const message = String(body.message ?? "").trim();
-  const attachments = normalizeAttachments(body.attachments);
-  if (!message && !attachments.length) {
-    return new Response(JSON.stringify({ error: "message or attachment is required" }), {
+  if (!message) {
+    return new Response(JSON.stringify({ error: "message is required" }), {
       status: 400,
       headers: { ...cors, "Content-Type": "application/json" },
     });
@@ -230,7 +210,7 @@ Deno.serve(async (req) => {
         const conversation = await resolveConversation(
           serviceClient,
           user.id,
-          message || (attachments.length ? "[draft screenshot]" : ""),
+          message,
           body.conversation_id,
         );
         conversationId = conversation.conversationId;
@@ -258,23 +238,17 @@ Deno.serve(async (req) => {
           rosterSplitHint,
         };
 
-        // Vision: template-match draft screenshots, then LLM vision fallback.
+        // Text draft input: parse team:champ lists and inject structured extraction.
         let pipelineMessage = message;
-        if (attachments.length) {
-          const draft = await extractDraftFromScreenshot(attachments, openrouterApiKey);
-          if (draft) {
-            const block = formatDraftExtractionBlock(draft);
-            pipelineMessage = message
-              ? `${message}\n\n${block}`
-              : `analyze this draft — ${draftExtractionSummary(draft)}\n\n${block}`;
-          } else {
-            const visionBlock = await extractVisionContext(openrouterApiKey, attachments);
-            if (visionBlock) {
-              pipelineMessage = message ? `${message}\n\n${visionBlock}` : visionBlock;
-            } else if (!message) {
-              pipelineMessage = "analyze this league of legends draft screenshot";
-            }
-          }
+        const draft = extractDraftFromText(message);
+        if (draft && !message.includes("[DRAFT_EXTRACTED]")) {
+          const block = formatDraftExtractionBlock(draft);
+          const draftOnly =
+            looksLikeDraftTextInput(message) &&
+            message.replace(/\([^)]+\)/g, "").trim().length < 8;
+          pipelineMessage = draftOnly
+            ? `analyze this draft — ${draftExtractionSummary(draft)}\n\n${block}`
+            : `${message}\n\n${block}`;
         }
 
         // ===== Layer 1: Guardrail Router (cheap refusal before any deep work) =====
@@ -324,7 +298,7 @@ Deno.serve(async (req) => {
       } finally {
         if (conversationId) {
           try {
-            await persistMessages(serviceClient, user.id, conversationId, message || "[image attachment]", assistantText);
+            await persistMessages(serviceClient, user.id, conversationId, message, assistantText);
           } catch {
             // persistence failure shouldn't break the stream
           }

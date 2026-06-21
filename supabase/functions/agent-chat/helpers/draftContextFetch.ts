@@ -4,7 +4,7 @@
  */
 
 import type { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
-import type { DraftExtraction } from "./draftVisionTypes.ts";
+import type { DraftExtraction } from "./draftTypes.ts";
 import {
   fetchSliceBundle,
   getTeamRosterDepth,
@@ -213,7 +213,7 @@ function buildDraftToolPayload(
   }
 
   return {
-    tool: "draft_screenshot_analysis",
+    tool: "draft_text_analysis",
     extraction: draft,
     teams: teamBlocks,
     headToHead: h2h,
@@ -267,8 +267,4 @@ export async function fetchDraftAnalysisContext(
     .join("\n\n");
 
   return { matchStats, ragContext };
-}
-
-export function isDraftScreenshotMessage(message: string): boolean {
-  return message.includes("[DRAFT_EXTRACTED]");
 }

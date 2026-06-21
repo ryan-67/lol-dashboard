@@ -11,7 +11,7 @@ import ChatSidebar from './ChatSidebar'
 import ChatWindow from './ChatWindow'
 import { useAgentChat } from './useAgentChat'
 import { pickThinkingMessage } from '../../lib/nuckyThinking'
-import type { ConversationRow, MessageRow, ProfileRow, ChatAttachment } from './types'
+import type { ConversationRow, MessageRow, ProfileRow } from './types'
 
 export default function NuckyAIContainer() {
   const { user } = useAuth()
@@ -151,11 +151,9 @@ export default function NuckyAIContainer() {
   )
 
   const streamAssistant = useCallback(
-    (message: string, options?: { skipUserAppend?: boolean; attachment?: ChatAttachment | null }) => {
+    (message: string, options?: { skipUserAppend?: boolean }) => {
       const now = new Date().toISOString()
-      const displayMessage =
-        message.trim() ||
-        (options?.attachment?.name ? `[image: ${options.attachment.name}]` : '[draft screenshot]')
+      const displayMessage = message.trim()
       pendingSendRef.current = true
 
       setMessages((prev) => {
@@ -172,7 +170,6 @@ export default function NuckyAIContainer() {
                 role: 'user' as const,
                 content: displayMessage,
                 created_at: now,
-                attachments: options?.attachment ? [options.attachment] : undefined,
               },
             ]
 
@@ -192,7 +189,6 @@ export default function NuckyAIContainer() {
 
       void sendMessage({
         message,
-        attachments: options?.attachment ? [options.attachment] : undefined,
         conversationId: activeConversationId ?? undefined,
         filter: agentFilter,
         onMetadata: (conversationId) => {
@@ -267,8 +263,8 @@ export default function NuckyAIContainer() {
   )
 
   const send = useCallback(
-    (message: string, attachment?: ChatAttachment | null) => {
-      streamAssistant(message, { attachment })
+    (message: string) => {
+      streamAssistant(message)
     },
     [streamAssistant],
   )

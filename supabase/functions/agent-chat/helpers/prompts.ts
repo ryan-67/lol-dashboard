@@ -133,7 +133,7 @@ export interface PromptContext {
   isClarification?: boolean;
   isOddsQuestion?: boolean;
   worldsHistoryIntent?: boolean;
-  draftScreenshotIntent?: boolean;
+  draftAnalysisIntent?: boolean;
 }
 
 /** Developer-only instructions — never placed in the user message body. */
@@ -190,7 +190,7 @@ Your streamed reply is shown directly to the user. NEVER echo, quote, or restate
   if (ctx?.playerChampionIntent) parts.push(playerChampionBlock());
   if (ctx?.subjectiveIntent) parts.push(subjectiveSynthesisBlock());
   if (ctx?.worldsHistoryIntent) parts.push(worldsHistoryBlock());
-  if (ctx?.draftScreenshotIntent) parts.push(draftScreenshotSynthesisBlock());
+  if (ctx?.draftAnalysisIntent) parts.push(draftTextSynthesisBlock());
 
   if (ctx?.kalshiOddsBlock?.trim()) {
     parts.push(
@@ -366,14 +366,14 @@ Rules:
 4) Do NOT claim "verified from liquipedia" unless WEB_VERIFIED explicitly contains that fact. The worlds_history block is the source.`;
 }
 
-/** Broadcast draft screenshot — structured extraction + grounded prediction. */
-export function draftScreenshotSynthesisBlock(): string {
-  return `[DRAFT_SCREENSHOT_ANALYSIS]
-The user uploaded a draft/champ-select screenshot. [DRAFT_EXTRACTED] in the user message is the parsed comp — treat champion names and team sides as authoritative. Do NOT invent picks not in that JSON.
+/** Text draft input — structured extraction + grounded prediction. */
+export function draftTextSynthesisBlock(): string {
+  return `[DRAFT_TEXT_ANALYSIS]
+The user pasted a draft comp in text form. [DRAFT_EXTRACTED] in the user message is the parsed comp — treat champion names and team sides as authoritative. Do NOT invent picks not in that JSON.
 
 Structure your answer:
 1) comp read — what each side drafted, comp identity (engage/poke/scaling/pick/split), key synergies and gaps.
-2) player-champion edges — cite playerChampionProficiency / winrateOnChampion from MATCH_STATS draft_screenshot_analysis when present; weight recent splits heavier.
+2) player-champion edges — cite playerChampionProficiency / winrateOnChampion from MATCH_STATS draft_text_analysis when present; weight recent splits heavier.
 3) meta/patch — use championMeta + EXTERNAL_CONTEXT for pick/ban strength; cite presence/winrate when in MATCH_STATS.
 4) win conditions — how each side wins early/mid/late, objective setup, side selection if known.
 5) prediction — who is favored and why (comp + stats + form). Give a clear lean (% optional only if Kalshi/MATCH_STATS has odds). If data is thin, say so — still give a conceptual lean from comp logic.

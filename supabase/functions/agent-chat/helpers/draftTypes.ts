@@ -1,11 +1,8 @@
-/** Structured draft extracted from a broadcast / champ-select screenshot. */
+/** Structured draft extracted from user text input. */
 export interface DraftTeamSide {
-  /** Resolved team name when logo match succeeds; otherwise "blue"|"red" side label. */
   team: string;
   side: "left" | "right";
-  /** LoL Esports slug when logo matched. */
   esportsSlug?: string;
-  logoMatchScore?: number;
   champions: DraftChampionPick[];
 }
 
@@ -17,10 +14,9 @@ export interface DraftChampionPick {
 }
 
 export interface DraftExtraction {
-  method: "template_match" | "llm_vision_fallback";
+  method: "text_input";
   confidence: number;
   teams: [DraftTeamSide, DraftTeamSide];
-  /** ISO timestamp */
   extractedAt: string;
   notes?: string;
 }

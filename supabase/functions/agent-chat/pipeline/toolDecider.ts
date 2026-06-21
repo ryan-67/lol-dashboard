@@ -36,7 +36,7 @@ import {
 } from "../helpers/currentContext.ts";
 import type { Evidence, GuardrailResult, HistoryMessage, ResolvedFilters } from "./types.ts";
 import { detectAnalysisIntent } from "../helpers/prompts.ts";
-import { parseDraftExtractionBlock } from "../helpers/draftVisionTypes.ts";
+import { parseDraftExtractionBlock } from "../helpers/draftTypes.ts";
 import { fetchDraftAnalysisContext } from "../helpers/draftContextFetch.ts";
 
 const CAREER_ENTITY_STOPWORDS = new Set([
@@ -319,9 +319,9 @@ export async function decideAndFetch(deps: DecideDeps): Promise<Evidence> {
   let hasWebVerifiedChunk = false;
 
   const draftExtracted = parseDraftExtractionBlock(message);
-  const draftScreenshotIntent = Boolean(draftExtracted);
+  const draftAnalysisIntent = Boolean(draftExtracted);
 
-  // ---- Draft screenshot: OE + RAG for extracted comp ----
+  // ---- Text draft input: OE + RAG for parsed comp ----
   if (draftExtracted) {
     const draftCtx = await fetchDraftAnalysisContext(
       serviceClient,
@@ -333,7 +333,7 @@ export async function decideAndFetch(deps: DecideDeps): Promise<Evidence> {
     matchStats = draftCtx.matchStats;
     externalContext = draftCtx.ragContext +
       (externalContext ? `\n\n${externalContext}` : "");
-    analystToolNames = ["draft_screenshot_analysis"];
+    analystToolNames = ["draft_text_analysis"];
     sources.oracleElixir = true;
     if (draftCtx.ragContext.trim()) sources.rag = true;
     runTools = true;
@@ -348,7 +348,7 @@ export async function decideAndFetch(deps: DecideDeps): Promise<Evidence> {
   }
 
   // ---- Source 1: Oracle's Elixir deterministic tools ----
-  if (runTools && !worldsHistoryIntent && !draftScreenshotIntent) {
+  if (runTools && !worldsHistoryIntent && !draftAnalysisIntent) {
     const analystCtx = await buildAnalystContext(
       serviceClient,
       queryForTools,
@@ -554,7 +554,7 @@ export async function decideAndFetch(deps: DecideDeps): Promise<Evidence> {
     if (sentimentSnippets.length) sources.sentiment = true;
   }
 
-  const analysisIntent = draftScreenshotIntent
+  const analysisIntent = draftAnalysisIntent
     ? "draft"
     : detectAnalysisIntent(
       message,
@@ -588,7 +588,7 @@ export async function decideAndFetch(deps: DecideDeps): Promise<Evidence> {
     sentimentSnippets,
     sentimentContext,
     kalshiOddsBlock,
-    draftScreenshotIntent,
+    draftAnalysisIntent,
     analysisIntent,
     resolvedSplit,
     league: filters.league,

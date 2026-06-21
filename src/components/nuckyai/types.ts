@@ -1,9 +1,3 @@
-export interface ChatAttachment {
-  url: string
-  mimeType?: string
-  name?: string
-}
-
 export interface ProfileRow {
   id: string
   username: string | null
@@ -27,7 +21,6 @@ export interface MessageRow {
   retryable?: boolean
   /** True while waiting for first streamed token — shows thinking copy, hides actions */
   thinking?: boolean
-  attachments?: ChatAttachment[]
 }
 
 export interface ChartDataset {

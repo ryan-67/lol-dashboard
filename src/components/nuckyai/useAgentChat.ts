@@ -1,6 +1,6 @@
 import { useCallback, useRef, useState } from 'react'
 import { supabase } from '../../lib/supabaseClient'
-import type { MessageRow, ChatAttachment } from './types'
+import type { MessageRow } from './types'
 
 export interface AgentFilterContext {
   league?: string
@@ -15,7 +15,6 @@ interface SendMessageArgs {
   message: string
   conversationId?: string
   filter?: AgentFilterContext
-  attachments?: ChatAttachment[]
   onMetadata?: (conversationId: string) => void
   onChunk?: (chunk: string) => void
   onDone?: () => void
@@ -87,7 +86,6 @@ export function useAgentChat() {
       message,
       conversationId,
       filter,
-      attachments,
       onMetadata,
       onChunk,
       onDone,
@@ -126,7 +124,6 @@ export function useAgentChat() {
             selectedYears: filter?.selectedYears,
             selectedSplits: filter?.selectedSplits,
             client_now: new Date().toISOString(),
-            attachments: attachments?.length ? attachments : undefined,
           }),
           signal: controller.signal,
         })

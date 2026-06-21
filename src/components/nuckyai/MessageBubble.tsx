@@ -19,7 +19,6 @@ import ClipboardToast from '../ui/ClipboardToast'
 import { extractPlainTextFromAssistantMessage } from '../../lib/extractPlainTextFromMessage'
 import { formatMessageTimestamp } from '../../lib/formatMessageTimestamp'
 import { CHART, CHART_TOOLTIP_PROPS } from '../../theme/chartTheme'
-import ChatAttachmentPreview from './ChatAttachmentPreview'
 
 interface MessageBubbleProps {
   message: MessageRow
@@ -299,24 +298,8 @@ export default function MessageBubble({
           <p className="text-sm text-[var(--text-secondary)] italic animate-pulse">{message.content}</p>
         ) : (
           <>
-        {!isAssistant && message.attachments?.length ? (
-          <div className="space-y-2">
-            {message.attachments.map((att, idx) => (
-              <ChatAttachmentPreview
-                key={`${att.url.slice(0, 32)}-${idx}`}
-                attachment={att}
-                variant="message"
-              />
-            ))}
-          </div>
-        ) : null}
         {blocks.map((block, idx) => {
           if (block.type === 'text') {
-            const isAttachmentPlaceholder =
-              !isAssistant &&
-              Boolean(message.attachments?.length) &&
-              /^\[(?:image: .+|draft screenshot)\]$/.test(block.content.trim())
-            if (isAttachmentPlaceholder) return null
             return <div key={`t-${idx}`}>{renderText(block.content)}</div>
           }
           if (block.type === 'chart') {

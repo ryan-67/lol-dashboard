@@ -13,13 +13,6 @@ import type { IntentPlan } from "../helpers/classify.ts";
 import type { TavilyResult, TavilySearchIntent } from "../helpers/tavilySearch.ts";
 import type { AnalysisIntent } from "../helpers/prompts.ts";
 
-export interface ImageAttachment {
-  /** HTTPS URL or data:image/...;base64,... */
-  url: string;
-  mimeType?: string;
-  name?: string;
-}
-
 export interface HistoryMessage {
   role: "user" | "assistant" | "system";
   content: string;
@@ -99,8 +92,8 @@ export interface Evidence {
   /** Live Kalshi market block for synthesis (empty if none). */
   kalshiOddsBlock: string;
 
-  /** True when message contains structured [DRAFT_EXTRACTED] from screenshot pipeline. */
-  draftScreenshotIntent: boolean;
+  /** True when message contains structured [DRAFT_EXTRACTED] from text draft input. */
+  draftAnalysisIntent: boolean;
 
   // synthesis mode
   analysisIntent: AnalysisIntent;
