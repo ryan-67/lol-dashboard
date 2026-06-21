@@ -247,7 +247,7 @@ export function normalizeTeamDisplayName(
     c9: "Cloud9",
     tl: "Team Liquid",
     fly: "FlyQuest",
-    100t: "100 Thieves",
+    "100t": "100 Thieves",
     lgd: "LGD Gaming",
     blg: "Bilibili Gaming",
     jdg: "JD Gaming",
