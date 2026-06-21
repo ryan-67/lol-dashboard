@@ -1,29 +1,30 @@
 /**
- * Template-match + vision JSON draft extraction for LCK broadcast screenshots.
- * Layouts: draft overlay (final round bar) and in-game spectator HUD.
+ * Template-match + vision JSON draft extraction for tier-1 esports broadcasts.
+ * Uses adaptive region scanning + parametric layout variants (not one fixed UI map).
  */
 
 import type { ImageAttachment } from "../pipeline/types.ts";
 import type { DraftChampionPick, DraftExtraction, DraftTeamSide } from "./draftVisionTypes.ts";
 import {
-  ddragonKeyForChampion,
   ensureDraftTemplateCache,
+  getEsportsNameIndex,
   resolveTeamFromSlug,
   type GrayTemplate,
 } from "./draftAssetCache.ts";
 import {
-  ALL_LAYOUTS,
-  detectLikelyLayout,
-  INGAME_HUD_BOTTOM_SLOTS,
+  allLayoutVariants,
+  detectLikelyFamily,
   normalizeTeamDisplayName,
-  type LayoutProfile,
-  type SlotRoi,
+  type LayoutVariant,
 } from "./draftLayoutProfiles.ts";
+import {
+  adaptiveScanChampions,
+  adaptiveScanLogos,
+  matchFixedSlots,
+} from "./draftVisionScan.ts";
 import { extractVisionDraftJson } from "./visionExtract.ts";
 
-const MIN_CHAMP_SCORE = 0.32;
-const MIN_LOGO_SCORE = 0.32;
-const TEMPLATE_SIZE = 48;
+const MAX_VARIANTS_TO_TRY = 12;
 
 function normalizeImageUrl(att: ImageAttachment): string | null {
   const url = att.url?.trim();
@@ -50,122 +51,19 @@ async function loadScreenshotGray(
   return { pixels: rgbaToGrayFull(rgba, width, height), width, height };
 }
 
-function cropGray(
-  src: Uint8Array,
-  srcW: number,
-  srcH: number,
-  roi: SlotRoi,
-  targetSize: number,
-): Uint8Array {
-  const left = Math.max(0, Math.floor(roi.x0 * srcW));
-  const top = Math.max(0, Math.floor(roi.y0 * srcH));
-  const right = Math.min(srcW, Math.ceil(roi.x1 * srcW));
-  const bottom = Math.min(srcH, Math.ceil(roi.y1 * srcH));
-  const cw = Math.max(1, right - left);
-  const ch = Math.max(1, bottom - top);
-  const out = new Uint8Array(targetSize * targetSize);
-  for (let y = 0; y < targetSize; y++) {
-    for (let x = 0; x < targetSize; x++) {
-      const sx = left + Math.floor((x / targetSize) * cw);
-      const sy = top + Math.floor((y / targetSize) * ch);
-      out[y * targetSize + x] = src[sy * srcW + sx] ?? 0;
-    }
-  }
-  return out;
-}
-
-function normalizedCorrelation(a: Uint8Array, b: Uint8Array): number {
-  const n = Math.min(a.length, b.length);
-  if (!n) return 0;
-  let sum = 0;
-  let sumA = 0;
-  let sumB = 0;
-  let sumAA = 0;
-  let sumBB = 0;
-  for (let i = 0; i < n; i++) {
-    const ai = a[i]! / 255;
-    const bi = b[i]! / 255;
-    sum += ai * bi;
-    sumA += ai;
-    sumB += bi;
-    sumAA += ai * ai;
-    sumBB += bi * bi;
-  }
-  const denom = Math.sqrt((n * sumAA - sumA * sumA) * (n * sumBB - sumB * sumB));
-  return denom > 1e-6 ? (n * sum - sumA * sumB) / denom : 0;
-}
-
-function bestTemplateMatch(
-  roi: Uint8Array,
-  size: number,
-  templates: Map<string, GrayTemplate>,
-): { id: string; label: string; score: number } {
-  let best = { id: "", label: "", score: -1 };
-  for (const tpl of templates.values()) {
-    if (tpl.width !== size || tpl.height !== size) continue;
-    const score = normalizedCorrelation(roi, tpl.pixels);
-    if (score > best.score) {
-      const baseId = tpl.id.replace(/-loading$/, "");
-      best = { id: baseId, label: tpl.label, score };
-    }
-  }
-  return best;
-}
-
-function matchSlots(
-  gray: Uint8Array,
-  width: number,
-  height: number,
-  slots: SlotRoi[],
-  templates: Map<string, GrayTemplate>,
-): DraftChampionPick[] {
-  const picks: DraftChampionPick[] = [];
-  const used = new Set<string>();
-
-  for (let slot = 0; slot < slots.length; slot++) {
-    const roi = cropGray(gray, width, height, slots[slot]!, TEMPLATE_SIZE);
-    const hit = bestTemplateMatch(roi, TEMPLATE_SIZE, templates);
-    if (hit.score >= MIN_CHAMP_SCORE && !used.has(hit.id)) {
-      used.add(hit.id);
-      picks.push({
-        name: hit.label,
-        ddragonKey: hit.id,
-        confidence: Math.round(hit.score * 1000) / 1000,
-        slot: slot + 1,
-      });
-    }
-  }
-  return picks;
-}
-
-function matchTeamLogo(
-  gray: Uint8Array,
-  width: number,
-  height: number,
-  rois: SlotRoi[],
-  templates: Map<string, GrayTemplate>,
-): { slug: string; score: number } | null {
-  let best: { slug: string; score: number } | null = null;
-  for (const roi of rois) {
-    const patch = cropGray(gray, width, height, roi, TEMPLATE_SIZE);
-    const hit = bestTemplateMatch(patch, TEMPLATE_SIZE, templates);
-    if (hit.score >= MIN_LOGO_SCORE) {
-      const slug = hit.id.replace(/-alt$/, "");
-      if (!best || hit.score > best.score) best = { slug, score: hit.score };
-    }
-  }
-  return best;
-}
-
 function buildTeamSide(
   side: "left" | "right",
   champions: DraftChampionPick[],
   logo: { slug: string; score: number } | null,
+  nameIndex: Record<string, string>,
 ): DraftTeamSide {
   const fromLogo = logo ? resolveTeamFromSlug(logo.slug) : null;
   return {
     side,
-    team: normalizeTeamDisplayName(fromLogo ?? (side === "left" ? "Blue Side" : "Red Side")),
+    team: normalizeTeamDisplayName(
+      fromLogo ?? (side === "left" ? "Blue Side" : "Red Side"),
+      nameIndex,
+    ),
     esportsSlug: logo?.slug,
     logoMatchScore: logo ? Math.round(logo.score * 1000) / 1000 : undefined,
     champions,
@@ -181,32 +79,24 @@ function extractionScore(draft: DraftExtraction): number {
         0,
       ) / count
       : 0;
-  const namedTeams = draft.teams.every(
-    (t) => !/blue side|red side/i.test(t.team),
-  );
-  return count * 10 + avg * 5 + (namedTeams ? 8 : 0) + (draft.method === "llm_vision_fallback" ? 3 : 0);
+  const namedTeams = draft.teams.every((t) => !/blue side|red side/i.test(t.team));
+  // Vision JSON generalizes better across leagues — slight preference
+  const visionBoost = draft.method === "llm_vision_fallback" ? 6 : 0;
+  return count * 10 + avg * 5 + (namedTeams ? 8 : 0) + visionBoost;
 }
 
-function matchWithLayout(
+function matchWithVariant(
   gray: Uint8Array,
   width: number,
   height: number,
-  layout: LayoutProfile,
+  variant: LayoutVariant,
   champTpl: Map<string, GrayTemplate>,
   teamTpl: Map<string, GrayTemplate>,
+  nameIndex: Record<string, string>,
 ): DraftExtraction {
-  let leftChamps = matchSlots(gray, width, height, layout.leftChampionSlots, champTpl);
-  let rightChamps = matchSlots(gray, width, height, layout.rightChampionSlots, champTpl);
-
-  if (layout.id === "ingame_hud" && leftChamps.length + rightChamps.length < 8) {
-    const bottomLeft = matchSlots(gray, width, height, INGAME_HUD_BOTTOM_SLOTS.left, champTpl);
-    const bottomRight = matchSlots(gray, width, height, INGAME_HUD_BOTTOM_SLOTS.right, champTpl);
-    if (bottomLeft.length > leftChamps.length) leftChamps = bottomLeft;
-    if (bottomRight.length > rightChamps.length) rightChamps = bottomRight;
-  }
-
-  const leftLogo = matchTeamLogo(gray, width, height, layout.logoRois.left, teamTpl);
-  const rightLogo = matchTeamLogo(gray, width, height, layout.logoRois.right, teamTpl);
+  const leftChamps = matchFixedSlots(gray, width, height, variant.leftChampionSlots, champTpl);
+  const rightChamps = matchFixedSlots(gray, width, height, variant.rightChampionSlots, champTpl);
+  const logos = adaptiveScanLogos(gray, width, height, teamTpl);
   const allPicks = [...leftChamps, ...rightChamps];
   const avgConf = allPicks.length
     ? allPicks.reduce((s, p) => s + p.confidence, 0) / allPicks.length
@@ -216,11 +106,38 @@ function matchWithLayout(
     method: "template_match",
     confidence: Math.round(avgConf * 1000) / 1000,
     teams: [
-      buildTeamSide("left", leftChamps, leftLogo),
-      buildTeamSide("right", rightChamps, rightLogo),
+      buildTeamSide("left", leftChamps, logos.left, nameIndex),
+      buildTeamSide("right", rightChamps, logos.right, nameIndex),
     ],
     extractedAt: new Date().toISOString(),
-    notes: `${layout.id} template — ${allPicks.length}/10 champions`,
+    notes: `${variant.family}/${variant.variantId} — ${allPicks.length}/10 champions`,
+  };
+}
+
+function matchAdaptive(
+  gray: Uint8Array,
+  width: number,
+  height: number,
+  champTpl: Map<string, GrayTemplate>,
+  teamTpl: Map<string, GrayTemplate>,
+  nameIndex: Record<string, string>,
+): DraftExtraction {
+  const scanned = adaptiveScanChampions(gray, width, height, champTpl);
+  const logos = adaptiveScanLogos(gray, width, height, teamTpl);
+  const allPicks = [...scanned.left, ...scanned.right];
+  const avgConf = allPicks.length
+    ? allPicks.reduce((s, p) => s + p.confidence, 0) / allPicks.length
+    : 0;
+
+  return {
+    method: "template_match",
+    confidence: Math.round(avgConf * 1000) / 1000,
+    teams: [
+      buildTeamSide("left", scanned.left, logos.left, nameIndex),
+      buildTeamSide("right", scanned.right, logos.right, nameIndex),
+    ],
+    extractedAt: new Date().toISOString(),
+    notes: `adaptive_scan — ${allPicks.length}/10 champions`,
   };
 }
 
@@ -228,18 +145,16 @@ function mergeExtractions(a: DraftExtraction, b: DraftExtraction): DraftExtracti
   if (extractionScore(b) > extractionScore(a)) [a, b] = [b, a];
   const primary = a;
   const secondary = b;
+  const nameIndex = getEsportsNameIndex();
 
-  const mergeSide = (
-    pri: DraftTeamSide,
-    sec: DraftTeamSide,
-  ): DraftTeamSide => {
+  const mergeSide = (pri: DraftTeamSide, sec: DraftTeamSide): DraftTeamSide => {
     const champs = pri.champions.length >= sec.champions.length ? pri.champions : sec.champions;
     const team = /blue side|red side/i.test(pri.team) && !/blue side|red side/i.test(sec.team)
       ? sec.team
       : pri.team;
     return {
       ...pri,
-      team: normalizeTeamDisplayName(team),
+      team: normalizeTeamDisplayName(team, nameIndex),
       champions: champs.slice(0, 5),
       esportsSlug: pri.esportsSlug ?? sec.esportsSlug,
     };
@@ -256,6 +171,13 @@ function mergeExtractions(a: DraftExtraction, b: DraftExtraction): DraftExtracti
   };
 }
 
+function pickVariantSample(family: ReturnType<typeof detectLikelyFamily>): LayoutVariant[] {
+  const all = allLayoutVariants();
+  const preferred = all.filter((v) => v.family === family);
+  const other = all.filter((v) => v.family !== family);
+  return [...preferred, ...other].slice(0, MAX_VARIANTS_TO_TRY);
+}
+
 export async function extractDraftFromScreenshot(
   attachments: ImageAttachment[],
   openrouterApiKey?: string,
@@ -263,19 +185,28 @@ export async function extractDraftFromScreenshot(
   const url = attachments.map(normalizeImageUrl).find(Boolean);
   if (!url) return null;
 
+  const nameIndex = getEsportsNameIndex();
   let templateBest: DraftExtraction | null = null;
 
   try {
     const { champions: champTpl, teams: teamTpl } = await ensureDraftTemplateCache();
     if (champTpl.size >= 20) {
       const { pixels, width, height } = await loadScreenshotGray(url);
-      const likely = detectLikelyLayout(pixels, width, height);
-      const ordered = ALL_LAYOUTS.sort((a, b) =>
-        a.id === likely ? -1 : b.id === likely ? 1 : 0
-      );
+      const family = detectLikelyFamily(pixels, width, height);
 
-      for (const layout of ordered) {
-        const result = matchWithLayout(pixels, width, height, layout, champTpl, teamTpl);
+      const adaptive = matchAdaptive(pixels, width, height, champTpl, teamTpl, nameIndex);
+      templateBest = adaptive;
+
+      for (const variant of pickVariantSample(family)) {
+        const result = matchWithVariant(
+          pixels,
+          width,
+          height,
+          variant,
+          champTpl,
+          teamTpl,
+          nameIndex,
+        );
         if (!templateBest || extractionScore(result) > extractionScore(templateBest)) {
           templateBest = result;
         }

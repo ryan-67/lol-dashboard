@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""OpenCV draft screenshot matcher — supports draft overlay + in-game HUD layouts."""
+"""OpenCV draft screenshot matcher — league-agnostic adaptive scan + layout variants."""
 
 from __future__ import annotations
 
@@ -18,29 +18,32 @@ DDRAGON_MANIFEST = ROOT / "src" / "data" / "ddragon-champions.json"
 ESPORTS_MANIFEST = ROOT / "src" / "data" / "esports-logos.json"
 
 TEMPLATE_SIZE = 48
-MIN_CHAMP_SCORE = 0.32
-MIN_LOGO_SCORE = 0.32
-MAX_TEAM_LOGOS = 80
+MIN_CHAMP_SCORE = 0.34
+MIN_LOGO_SCORE = 0.34
+MAX_TEAM_LOGOS = 150
+GRID_STEP = 0.055
+PATCH_SIZE = 0.072
+MAX_CELLS = 48
 
-DRAFT_OVERLAY = {
-    "left_champs": [(0.01, 0.68, 0.09, 0.84), (0.085, 0.68, 0.165, 0.84), (0.16, 0.68, 0.24, 0.84),
-                    (0.235, 0.68, 0.315, 0.84), (0.31, 0.68, 0.39, 0.84)],
-    "right_champs": [(0.61, 0.68, 0.69, 0.84), (0.685, 0.68, 0.765, 0.84), (0.76, 0.68, 0.84, 0.84),
-                     (0.835, 0.68, 0.915, 0.84), (0.91, 0.68, 0.99, 0.84)],
-    "left_logos": [(0.38, 0.72, 0.46, 0.88), (0.02, 0.02, 0.14, 0.12)],
-    "right_logos": [(0.54, 0.72, 0.62, 0.88), (0.86, 0.02, 0.98, 0.12)],
+LOGO_SCAN_ZONES = [
+    (0, 0, 0.38, 0.14),
+    (0.62, 0, 1, 0.14),
+    (0.28, 0, 0.72, 0.12),
+    (0.22, 0.62, 0.78, 0.96),
+    (0, 0.58, 0.38, 0.96),
+    (0.62, 0.58, 1, 0.96),
+]
+
+CHAMPION_SCAN_REGIONS = {
+    "left": (0, 0.06, 0.48, 0.94),
+    "right": (0.52, 0.06, 1, 0.94),
 }
 
-INGAME_HUD = {
-    "left_champs": [(0.0, 0.1, 0.095, 0.19), (0.0, 0.19, 0.095, 0.28), (0.0, 0.28, 0.095, 0.37),
-                    (0.0, 0.37, 0.095, 0.46), (0.0, 0.46, 0.095, 0.55)],
-    "right_champs": [(0.905, 0.1, 1.0, 0.19), (0.905, 0.19, 1.0, 0.28), (0.905, 0.28, 1.0, 0.37),
-                     (0.905, 0.37, 1.0, 0.46), (0.905, 0.46, 1.0, 0.55)],
-    "left_logos": [(0.06, 0.0, 0.16, 0.09), (0.0, 0.0, 0.12, 0.08)],
-    "right_logos": [(0.84, 0.0, 0.94, 0.09), (0.88, 0.0, 0.99, 0.08)],
-}
-
-LAYOUTS = {"draft_overlay": DRAFT_OVERLAY, "ingame_hud": INGAME_HUD}
+PRIORITY_TEAM_SLUGS = [
+    "t1", "geng", "hanwha-life-esports", "dplus-kia", "kt-rolster", "drx",
+    "bilibili-gaming", "jd-gaming", "top-esports", "weibo-gaming", "g2-esports",
+    "fnatic", "cloud9", "team-liquid", "flyquest", "100-thieves",
+]
 
 
 def load_json(path: Path) -> dict:
@@ -85,6 +88,124 @@ def crop_rel(img: np.ndarray, x0: float, y0: float, x1: float, y1: float, size: 
     return cv2.resize(gray, (size, size), interpolation=cv2.INTER_AREA)
 
 
+def horizontal_row(x0: float, x1: float, y0: float, y1: float, count: int = 5) -> list[tuple]:
+    inset = 0.02
+    width = x1 - x0
+    slot_w = (width - inset * 2) / count
+    return [
+        (x0 + inset + i * slot_w, y0, x0 + inset + (i + 1) * slot_w, y1)
+        for i in range(count)
+    ]
+
+
+def vertical_col(x0: float, x1: float, y0: float, y1: float, count: int = 5) -> list[tuple]:
+    inset = 0.02
+    height = y1 - y0
+    slot_h = (height - inset * 2) / count
+    return [
+        (x0, y0 + inset + i * slot_h, x1, y0 + inset + (i + 1) * slot_h)
+        for i in range(count)
+    ]
+
+
+def generate_draft_variants() -> list[tuple[str, list, list]]:
+    variants = []
+    y_bands = [(0.52, 0.72), (0.58, 0.78), (0.64, 0.84), (0.68, 0.88), (0.72, 0.92)]
+    splits = [(0, 0.38, 0.62, 1), (0, 0.4, 0.6, 1), (0, 0.42, 0.58, 1), (0.02, 0.36, 0.64, 0.98)]
+    for i, (y0, y1) in enumerate(y_bands):
+        for lx0, lx1, rx0, rx1 in splits:
+            variants.append((
+                f"draft_y{i}",
+                horizontal_row(lx0, lx1, y0, y1),
+                horizontal_row(rx0, rx1, y0, y1),
+            ))
+    return variants
+
+
+def generate_hud_variants() -> list[tuple[str, list, list]]:
+    variants = []
+    y_ranges = [(0.08, 0.58), (0.1, 0.6), (0.12, 0.62), (0.06, 0.52)]
+    for i, (y0, y1) in enumerate(y_ranges):
+        variants.append((f"hud_v{i}_narrow", vertical_col(0, 0.09, y0, y1), vertical_col(0.91, 1, y0, y1)))
+        variants.append((f"hud_v{i}_wide", vertical_col(0, 0.13, y0, y1), vertical_col(0.87, 1, y0, y1)))
+    for i, (y0, y1) in enumerate([(0.82, 0.96), (0.86, 0.98), (0.78, 0.94)]):
+        variants.append((
+            f"hud_bottom_{i}",
+            horizontal_row(0.12, 0.48, y0, y1),
+            horizontal_row(0.52, 0.88, y0, y1),
+        ))
+    return variants
+
+
+def grid_cells(x0: float, y0: float, x1: float, y1: float):
+    count = 0
+    y = y0
+    while y + PATCH_SIZE <= y1 and count < MAX_CELLS:
+        x = x0
+        while x + PATCH_SIZE <= x1 and count < MAX_CELLS:
+            yield (x, y, x + PATCH_SIZE, y + PATCH_SIZE)
+            x += GRID_STEP
+            count += 1
+        y += GRID_STEP
+
+
+def cluster_picks(hits: list[dict], max_picks: int = 5) -> list[dict]:
+    sorted_hits = sorted(hits, key=lambda h: h["score"], reverse=True)
+    chosen: list[dict] = []
+    min_dist = 0.06
+    for hit in sorted_hits:
+        if any(c["id"] == hit["id"] for c in chosen):
+            continue
+        if any(np.hypot(c["cx"] - hit["cx"], c["cy"] - hit["cy"]) < min_dist for c in chosen):
+            continue
+        chosen.append(hit)
+        if len(chosen) >= max_picks:
+            break
+    if len(chosen) > 1:
+        x_spread = max(h["cx"] for h in chosen) - min(h["cx"] for h in chosen)
+        y_spread = max(h["cy"] for h in chosen) - min(h["cy"] for h in chosen)
+        horizontal = x_spread >= y_spread
+        chosen.sort(key=lambda h: h["cx"] if horizontal else h["cy"])
+    return [
+        {"name": h["label"], "ddragonKey": h["id"], "confidence": round(h["score"], 3), "slot": i + 1}
+        for i, h in enumerate(chosen)
+    ]
+
+
+def adaptive_scan_champions(gray: np.ndarray, templates: dict) -> tuple[list, list]:
+    hits: list[dict] = []
+    for side, (x0, y0, x1, y1) in CHAMPION_SCAN_REGIONS.items():
+        for cell in grid_cells(x0, y0, x1, y1):
+            roi = crop_rel(gray, *cell, TEMPLATE_SIZE)
+            key, label, score = best_match(roi, templates)
+            if score >= MIN_CHAMP_SCORE:
+                cx = (cell[0] + cell[2]) / 2
+                cy = (cell[1] + cell[3]) / 2
+                hits.append({"id": key, "label": label, "score": score, "cx": cx, "cy": cy, "side": side})
+    left = cluster_picks([h for h in hits if h["side"] == "left"])
+    right = cluster_picks([h for h in hits if h["side"] == "right"])
+    return left, right
+
+
+def adaptive_scan_logos(gray: np.ndarray, templates: dict) -> tuple[tuple[str, float] | None, tuple[str, float] | None]:
+    hits: list[tuple[str, float, float]] = []
+    for zone in LOGO_SCAN_ZONES:
+        for cell in grid_cells(*zone):
+            roi = crop_rel(gray, *cell, TEMPLATE_SIZE)
+            key, _label, score = best_match(roi, templates)
+            if score >= MIN_LOGO_SCORE:
+                slug = re.sub(r"-alt$", "", key)
+                cx = (cell[0] + cell[2]) / 2
+                hits.append((slug, score, cx))
+    if not hits:
+        return None, None
+    hits.sort(key=lambda h: h[1], reverse=True)
+    left = [h for h in hits if h[2] < 0.5]
+    right = [h for h in hits if h[2] >= 0.5]
+    pick = lambda arr: (arr[0][0], arr[0][1]) if arr else None
+    return pick(left), pick(right)
+
+
 def load_champion_templates(manifest: dict) -> dict[str, tuple[str, np.ndarray]]:
     version = manifest["version"]
     templates: dict[str, tuple[str, np.ndarray]] = {}
@@ -107,8 +228,7 @@ def load_champion_templates(manifest: dict) -> dict[str, tuple[str, np.ndarray]]
 def load_team_templates(manifest: dict) -> dict[str, tuple[str, np.ndarray]]:
     templates: dict[str, tuple[str, np.ndarray]] = {}
     count = 0
-    priority = ["t1", "geng", "hanwha-life-esports", "dplus-kia"]
-    slugs = priority + [s for s in manifest.get("teamsByEsportsSlug", {}) if s not in priority]
+    slugs = PRIORITY_TEAM_SLUGS + [s for s in manifest.get("teamsByEsportsSlug", {}) if s not in PRIORITY_TEAM_SLUGS]
     for slug in slugs:
         if count >= MAX_TEAM_LOGOS:
             break
@@ -128,9 +248,12 @@ def load_team_templates(manifest: dict) -> dict[str, tuple[str, np.ndarray]]:
 
 def slug_to_display(slug: str, manifest: dict) -> str:
     slug = re.sub(r"-alt$", "", slug)
-    aliases = {"t1": "T1", "geng": "Gen.G", "gen": "Gen.G"}
-    if slug in aliases:
-        return aliases[slug]
+    abbrev = {
+        "t1": "T1", "geng": "Gen.G", "gen": "Gen.G", "g2": "G2 Esports",
+        "c9": "Cloud9", "tl": "Team Liquid", "blg": "Bilibili Gaming",
+    }
+    if slug in abbrev:
+        return abbrev[slug]
     for norm, es_slug in manifest.get("nameToEsportsSlug", {}).items():
         if es_slug == slug:
             return norm
@@ -148,38 +271,38 @@ def match_slots(gray: np.ndarray, slots: list, templates: dict) -> list[dict]:
     return picks
 
 
-def match_logo(gray: np.ndarray, rois: list, templates: dict) -> tuple[str, float] | None:
-    best = None
-    for x0, y0, x1, y1 in rois:
-        roi = crop_rel(gray, x0, y0, x1, y1, TEMPLATE_SIZE)
-        key, _label, score = best_match(roi, templates)
-        if score >= MIN_LOGO_SCORE:
-            slug = re.sub(r"-alt$", "", key)
-            if best is None or score > best[1]:
-                best = (slug, score)
-    return best
-
-
-def extract_layout(gray: np.ndarray, layout: dict, layout_id: str, champ_tpl: dict, team_tpl: dict, esports: dict) -> dict:
-    left = match_slots(gray, layout["left_champs"], champ_tpl)
-    right = match_slots(gray, layout["right_champs"], champ_tpl)
-    left_logo = match_logo(gray, layout["left_logos"], team_tpl)
-    right_logo = match_logo(gray, layout["right_logos"], team_tpl)
-    all_picks = left + right
+def build_result(
+    left_champs: list,
+    right_champs: list,
+    left_logo,
+    right_logo,
+    esports: dict,
+    notes: str,
+) -> dict:
+    all_picks = left_champs + right_champs
     avg = sum(p["confidence"] for p in all_picks) / len(all_picks) if all_picks else 0
 
     def side(s, champs, logo):
         team = slug_to_display(logo[0], esports) if logo else ("Blue Side" if s == "left" else "Red Side")
-        return {"team": team, "side": s, "esportsSlug": logo[0] if logo else None,
-                "logoMatchScore": round(logo[1], 3) if logo else None, "champions": champs}
+        return {
+            "team": team, "side": s, "esportsSlug": logo[0] if logo else None,
+            "logoMatchScore": round(logo[1], 3) if logo else None, "champions": champs,
+        }
 
     return {
         "method": "template_match",
         "confidence": round(avg, 3),
-        "teams": [side("left", left, left_logo), side("right", right, right_logo)],
+        "teams": [side("left", left_champs, left_logo), side("right", right_champs, right_logo)],
         "extractedAt": datetime.now(timezone.utc).isoformat(),
-        "notes": f"{layout_id} — {len(all_picks)}/10 champions",
+        "notes": notes,
     }
+
+
+def score_result(result: dict) -> float:
+    left, right = result["teams"]
+    count = len(left["champions"]) + len(right["champions"])
+    named = all(not re.search(r"blue side|red side", t["team"], re.I) for t in result["teams"])
+    return count * 10 + result["confidence"] * 5 + (8 if named else 0)
 
 
 def extract_draft(image_path: Path) -> dict:
@@ -193,15 +316,31 @@ def extract_draft(image_path: Path) -> dict:
     team_tpl = load_team_templates(esports)
 
     best = None
-    best_score = -1
-    for layout_id, layout in LAYOUTS.items():
-        result = extract_layout(gray, layout, layout_id, champ_tpl, team_tpl, esports)
-        count = len(result["teams"][0]["champions"]) + len(result["teams"][1]["champions"])
-        score = count * 10 + result["confidence"] * 5
-        if score > best_score:
-            best_score = score
+    best_score = -1.0
+
+    left_c, right_c = adaptive_scan_champions(gray, champ_tpl)
+    left_l, right_l = adaptive_scan_logos(gray, team_tpl)
+    adaptive = build_result(left_c, right_c, left_l, right_l, esports, "adaptive_scan")
+    adaptive_score = score_result(adaptive)
+    if adaptive_score > best_score:
+        best_score = adaptive_score
+        best = adaptive
+
+    for variant_id, left_slots, right_slots in generate_draft_variants() + generate_hud_variants():
+        result = build_result(
+            match_slots(gray, left_slots, champ_tpl),
+            match_slots(gray, right_slots, champ_tpl),
+            left_l,
+            right_l,
+            esports,
+            variant_id,
+        )
+        s = score_result(result)
+        if s > best_score:
+            best_score = s
             best = result
-    return best or extract_layout(gray, DRAFT_OVERLAY, "draft_overlay", champ_tpl, team_tpl, esports)
+
+    return best or adaptive
 
 
 def main() -> int:

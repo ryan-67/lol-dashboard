@@ -1,7 +1,10 @@
 # Draft screenshot vision (OpenCV)
 
-Local OpenCV template matcher for broadcast draft screenshots. Mirrors the
-in-edge Deno matcher in `supabase/functions/agent-chat/helpers/draftVisionMatch.ts`.
+Local OpenCV template matcher for broadcast draft / in-game HUD screenshots.
+Uses **adaptive grid scan** + parametric layout variants (not fixed to one league/year).
+Mirrors the Deno matcher in `supabase/functions/agent-chat/helpers/draftVisionMatch.ts`.
+
+Works across LCK, LPL, LEC, LCS, MSI, Worlds — UI layouts differ; vision JSON in production is the primary path for champion names.
 
 ## Setup
 

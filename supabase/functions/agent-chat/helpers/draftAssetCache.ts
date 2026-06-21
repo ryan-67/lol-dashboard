@@ -56,8 +56,16 @@ let teamTemplates: Map<string, GrayTemplate> | null = null;
 let cachePromise: Promise<void> | null = null;
 
 const TEMPLATE_SIZE = 48;
-const MAX_TEAM_LOGOS = 80;
+const MAX_TEAM_LOGOS = 150;
 const MAX_CONCURRENT_FETCH = 12;
+
+/** Current + historical tier-1 orgs — loaded first, not LCK-only. */
+const PRIORITY_TEAM_SLUGS = [
+  "t1", "geng", "hanwha-life-esports", "dplus-kia", "kt-rolster", "drx", "bnk-fearx",
+  "bilibili-gaming", "jd-gaming", "top-esports", "weibo-gaming", "lng-esports", "lgd-gaming",
+  "g2-esports", "fnatic", "mad-lions", "team-heretics-lec", "team-vitality", "team-bds",
+  "cloud9", "team-liquid", "flyquest", "100-thieves", "shopify-rebellion",
+];
 
 function normalizeName(value: string): string {
   return value.toLowerCase().replace(/[^a-z0-9]+/g, "");
@@ -79,7 +87,9 @@ export function championLoadingUrl(key: string): string {
   return `https://ddragon.leagueoflegends.com/cdn/img/champion/loading/${key}_0.jpg`;
 }
 
-const PRIORITY_TEAM_SLUGS = ["t1", "geng", "gen-g", "hanwha-life-esports", "dplus-kia", "kt-rolster"];
+export function getEsportsNameIndex(): Record<string, string> {
+  return logos.nameToEsportsSlug ?? {};
+}
 
 async function fetchImageTemplate(
   id: string,

@@ -20,15 +20,21 @@ function normTeam(value: string): string {
 
 function resolveTeamInBundle(bundle: SliceBundle, teamName: string) {
   const target = normTeam(teamName);
-  const aliases = new Set([target]);
-  if (target === "t1") aliases.add("t1");
-  if (target === "geng" || target === "gengg") aliases.add("geng");
-  return (
-    bundle.teams.find((t) => aliases.has(normTeam(t.name))) ??
-    bundle.teams.find((t) => normTeam(t.name) === target) ??
-    bundle.teams.find((t) => normTeam(t.name).includes(target) || target.includes(normTeam(t.name))) ??
-    null
-  );
+  if (!target || /blueside|redside/.test(target)) return null;
+
+  const exact = bundle.teams.find((t) => normTeam(t.name) === target);
+  if (exact) return exact;
+
+  // Prefix / substring match handles abbreviations (BLG, G2, C9) vs full OE names
+  const fuzzy = bundle.teams.filter((t) => {
+    const n = normTeam(t.name);
+    return n.includes(target) || target.includes(n);
+  });
+  if (fuzzy.length === 1) return fuzzy[0]!;
+  if (fuzzy.length > 1) {
+    return fuzzy.sort((a, b) => normTeam(a.name).length - normTeam(b.name).length)[0]!;
+  }
+  return null;
 }
 
 function championMeta(bundle: SliceBundle, names: string[]) {
