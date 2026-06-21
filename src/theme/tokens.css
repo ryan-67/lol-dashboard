@@ -2666,3 +2666,66 @@ b,
     opacity: 0;
   }
 }
+
+/* Team comparison section */
+.team-comparison-section {
+  margin-top: var(--section-gap);
+  padding-top: var(--section-gap);
+  border-top: 1px solid var(--border-subtle);
+}
+
+.team-comparison-records {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: var(--component-gap);
+}
+
+.team-comparison-record {
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.team-priority-champ-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.team-priority-champ-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.team-share-pie-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--component-gap);
+}
+
+.team-share-pie {
+  min-width: 0;
+}
+
+.champion-axis-tick {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+@media (max-width: 720px) {
+  .team-share-pie-row {
+    grid-template-columns: 1fr;
+  }
+}

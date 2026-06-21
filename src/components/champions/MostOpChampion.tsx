@@ -9,6 +9,7 @@ import {
   type OpChampionEntry,
 } from '../../lib/championAnalytics'
 import { scrollEntrance } from '../../theme/animations'
+import { ChampionEntityInline } from '../entities'
 
 interface MostOpChampionProps {
   champions: Champion[]
@@ -58,7 +59,9 @@ function SpotlightCard({
         </span>
         <div className="op-score-label">OP Score</div>
         <div className="op-score-value">{opScore.toFixed(2)}</div>
-        <h2 className="op-champion-name">{champion.name}</h2>
+        <h2 className="op-champion-name">
+          <ChampionEntityInline name={champion.name} iconSize={22} />
+        </h2>
       </div>
       <div className="op-stat-pills">
         <StatPill
@@ -115,7 +118,9 @@ export default function MostOpChampion({ champions }: MostOpChampionProps) {
             {runners.map((entry, index) => (
               <li key={entry.champion.name} className="op-runner-row">
                 <span className="text-tertiary">#{index + 2}</span>
-                <span className="font-medium">{entry.champion.name}</span>
+                <span className="font-medium">
+                  <ChampionEntityInline name={entry.champion.name} iconSize={18} />
+                </span>
                 <span className="text-accent">{entry.opScore.toFixed(2)}</span>
               </li>
             ))}

@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useGSAP } from '@gsap/react'
-import { useAuth } from '../context/AuthContext'
 import { useDashboard } from '../context/DashboardContext'
 import type { Team } from '../hooks/useDashboardData'
 import { formatNum, formatPct } from '../lib/format'
@@ -11,22 +10,20 @@ import {
   teamsForScope,
 } from '../lib/teamAnalytics'
 import {
-  TeamComparisonRadar,
-  TeamFavoriteRadarGrid,
   TeamFilterBar,
+  TeamRadarGrid,
   TeamScatterPlot,
+  TeamComparisonSection,
 } from '../components/teams'
 import SortableTh from '../components/ui/SortableTh'
 import { EntityLink, LeagueLogo } from '../components/entities'
 import { scrollEntranceStagger, refreshScrollTrigger } from '../theme/animations'
-import { supabase } from '../lib/supabaseClient'
 
 export default function Teams() {
-  const { user } = useAuth()
-  const { filteredTeams, league, split } = useDashboard()
+  const { filteredTeams, filteredPlayers, filteredChampions, data, league, split } =
+    useDashboard()
   const [scope, setScope] = useState<TeamScope>('top')
   const [compareKeys, setCompareKeys] = useState<string[]>([])
-  const [favoriteTeamName, setFavoriteTeamName] = useState<string | null>(null)
   const [showTable, setShowTable] = useState(false)
   const [sortKey, setSortKey] = useState<keyof Team>('winrate')
   const [sortDesc, setSortDesc] = useState(true)
@@ -36,62 +33,21 @@ export default function Teams() {
     [filteredTeams],
   )
 
-  useEffect(() => {
-    async function loadFavoriteTeam() {
-      if (!user) {
-        setFavoriteTeamName(null)
-        return
-      }
-      const { data } = await supabase
-        .from('profiles')
-        .select('favorite_team')
-        .eq('id', user.id)
-        .maybeSingle()
-      setFavoriteTeamName((data?.favorite_team as string | null) ?? null)
-    }
-    void loadFavoriteTeam()
-  }, [user])
-
-  const teamByKey = useMemo(() => {
-    const map = new Map<string, Team>()
-    teams.forEach((t) => map.set(teamKey(t), t))
-    return map
-  }, [teams])
-
-  const compareTeams = useMemo(
-    () =>
-      compareKeys
-        .map((k) => teamByKey.get(k))
-        .filter((t): t is Team => Boolean(t)),
-    [compareKeys, teamByKey],
-  )
-
   const scopeTeams = useMemo(() => teamsForScope(teams, scope), [teams, scope])
-
-  const showComparison = compareTeams.length >= 1
+  const allTier1Selected = league === 'All Tier 1'
 
   const radarGridRef = useRef<HTMLDivElement>(null)
 
   useGSAP(
     () => {
-      if (!showComparison) {
-        scrollEntranceStagger(radarGridRef.current, '.radar-card')
-      }
+      scrollEntranceStagger(radarGridRef.current, '.radar-card')
     },
-    { scope: radarGridRef, dependencies: [scope, league, split, showComparison, favoriteTeamName] },
+    { scope: radarGridRef, dependencies: [scope, league, split, teams.length] },
   )
 
   useEffect(() => {
     requestAnimationFrame(() => refreshScrollTrigger())
-  }, [scope, league, split, showTable, showComparison, compareKeys.length, favoriteTeamName])
-
-  const radarCohort = useMemo(() => {
-    if (compareTeams.length >= 1) {
-      const leagues = new Set(compareTeams.map((t) => t.league))
-      return teams.filter((t) => leagues.has(t.league))
-    }
-    return teams
-  }, [compareTeams, teams])
+  }, [scope, league, split, showTable, compareKeys.length])
 
   const sorted = useMemo(() => {
     return [...scopeTeams].sort((a, b) => {
@@ -116,27 +72,24 @@ export default function Teams() {
 
   return (
     <div className="page-section">
-      <TeamFilterBar
-        teams={teams}
-        scope={scope}
-        onScopeChange={setScope}
-        compareKeys={compareKeys}
-        onCompareChange={setCompareKeys}
-      />
+      <TeamFilterBar scope={scope} onScopeChange={setScope} />
 
-      {showComparison ? (
-        <TeamComparisonRadar teams={compareTeams} cohort={radarCohort} />
-      ) : teams.length === 0 ? (
+      {teams.length === 0 ? (
         <div className="empty-state">No teams match the current filters.</div>
       ) : (
         <div ref={radarGridRef}>
-          <TeamFavoriteRadarGrid
-            teams={teams}
-            favoriteTeamName={favoriteTeamName}
-            allTeams={teams}
-          />
+          <TeamRadarGrid teams={teams} scope={scope} allTier1Selected={allTier1Selected} />
         </div>
       )}
+
+      <TeamComparisonSection
+        teams={teams}
+        compareKeys={compareKeys}
+        onCompareChange={setCompareKeys}
+        players={filteredPlayers}
+        teamChampions={data?.teamChampions ?? []}
+        champions={filteredChampions}
+      />
 
       <TeamScatterPlot teams={scopeTeams} />
 

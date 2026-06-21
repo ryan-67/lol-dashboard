@@ -15,6 +15,7 @@ import type { Champion } from '../../hooks/useDashboardData'
 import { useDashboard } from '../../context/DashboardContext'
 import { makeChartTooltipContent } from '../ui/ChartTooltip'
 import ShareableChart from '../ui/ShareableChart'
+import ChampionAxisTick from '../ui/ChampionAxisTick'
 import { scrollEntrance } from '../../theme/animations'
 import { CHART } from '../../theme/chartTheme'
 
@@ -68,7 +69,7 @@ export default function PresenceBarChart({ champions }: PresenceBarChartProps) {
       <p className="card-subtitle">Top 20 by presence — pick rate (gold) vs ban rate (dim)</p>
       <div className="h-[520px]">
         <ResponsiveContainer width="100%" height="100%">
-          <BarChart data={data} layout="vertical" margin={{ top: 8, right: 24, left: 88, bottom: 8 }}>
+          <BarChart data={data} layout="vertical" margin={{ top: 8, right: 24, left: 96, bottom: 8 }}>
             <CartesianGrid stroke={CHART.grid} strokeDasharray="3 3" />
             <XAxis
               type="number"
@@ -80,9 +81,9 @@ export default function PresenceBarChart({ champions }: PresenceBarChartProps) {
             <YAxis
               type="category"
               dataKey="name"
-              width={84}
+              width={92}
               stroke={CHART.axis}
-              tick={{ fill: CHART.tick, fontSize: 11, fontFamily: CHART.fontFamily }}
+              tick={<ChampionAxisTick />}
             />
             <Tooltip content={presenceBarTooltip} />
             <Legend

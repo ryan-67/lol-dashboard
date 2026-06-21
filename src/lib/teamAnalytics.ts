@@ -231,6 +231,17 @@ export function teamsForScope(teams: Team[], scope: TeamScope): Team[] {
   return scope === 'top' ? bestTeamPerLeague(teams) : teams
 }
 
+/** Teams to show in the main radar grid on the Teams tab. */
+export function teamsForRadarDisplay(
+  teams: Team[],
+  scope: TeamScope,
+  allTier1Selected: boolean,
+): Team[] {
+  if (scope === 'all') return teams
+  if (allTier1Selected) return bestTeamPerTier1League(teams)
+  return rankTeams(teams, 4)
+}
+
 export function defaultCompareKeys(teams: Team[], scope: TeamScope): string[] {
   return teamsForScope(teams, scope).map(teamKey)
 }

@@ -16,7 +16,8 @@ import { TeamLogo } from '../entities'
 import { buildComparisonRadarData } from '../../lib/teamAnalytics'
 import { formatGameLength } from '../../lib/matchupAnalytics'
 import { animateRadarDraw, scrollEntrance } from '../../theme/animations'
-import { CHART, MATCHUP_COLORS, MATCHUP_RADAR_STYLE } from '../../theme/chartTheme'
+import { CHART } from '../../theme/chartTheme'
+import { radarColorForTeam } from '../../lib/entities/teamBrandColor'
 
 interface TeamRadarComparisonProps {
   teamA: Team
@@ -64,6 +65,8 @@ export default function TeamRadarComparison({ teamA, teamB, cohort }: TeamRadarC
   const sectionRef = useRef<HTMLDivElement>(null)
   const chartRef = useRef<HTMLDivElement>(null)
   const data = buildComparisonRadarData([teamA, teamB], cohort)
+  const colorA = radarColorForTeam(teamA.name, teamA.league)
+  const colorB = radarColorForTeam(teamB.name, teamB.league)
 
   useGSAP(
     () => {
@@ -113,20 +116,20 @@ export default function TeamRadarComparison({ teamA, teamB, cohort }: TeamRadarC
             <Radar
               name={teamA.name}
               dataKey="team0Norm"
-              stroke={MATCHUP_RADAR_STYLE.teamA.stroke}
-              fill={MATCHUP_RADAR_STYLE.teamA.fill}
-              fillOpacity={MATCHUP_RADAR_STYLE.teamA.fillOpacity}
+              stroke={colorA}
+              fill={colorA}
+              fillOpacity={0.12}
               strokeWidth={2}
-              dot={{ r: 3, fill: MATCHUP_RADAR_STYLE.teamA.stroke, strokeWidth: 0 }}
+              dot={{ r: 3, fill: colorA, strokeWidth: 0 }}
             />
             <Radar
               name={teamB.name}
               dataKey="team1Norm"
-              stroke={MATCHUP_RADAR_STYLE.teamB.stroke}
-              fill={MATCHUP_RADAR_STYLE.teamB.fill}
-              fillOpacity={MATCHUP_RADAR_STYLE.teamB.fillOpacity}
+              stroke={colorB}
+              fill={colorB}
+              fillOpacity={0.12}
               strokeWidth={2}
-              dot={{ r: 3, fill: MATCHUP_RADAR_STYLE.teamB.stroke, strokeWidth: 0 }}
+              dot={{ r: 3, fill: colorB, strokeWidth: 0 }}
             />
           </RadarChart>
         </ResponsiveContainer>
@@ -135,7 +138,7 @@ export default function TeamRadarComparison({ teamA, teamB, cohort }: TeamRadarC
         <span className="matchup-radar-legend-item entity-inline-row">
           <span
             className="matchup-radar-legend-swatch"
-            style={{ background: MATCHUP_COLORS.teamA }}
+            style={{ background: colorA }}
           />
           <TeamLogo name={teamA.name} size={16} />
           <span>{teamA.name}</span>
@@ -143,7 +146,7 @@ export default function TeamRadarComparison({ teamA, teamB, cohort }: TeamRadarC
         <span className="matchup-radar-legend-item entity-inline-row">
           <span
             className="matchup-radar-legend-swatch"
-            style={{ background: MATCHUP_COLORS.teamB }}
+            style={{ background: colorB }}
           />
           <TeamLogo name={teamB.name} size={16} />
           <span>{teamB.name}</span>

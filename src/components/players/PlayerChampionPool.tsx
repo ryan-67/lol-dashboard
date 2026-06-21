@@ -15,11 +15,12 @@ import {
 import type { Player } from '../../hooks/useDashboardData'
 import { makeChartTooltipContent } from '../ui/ChartTooltip'
 import ShareableChart from '../ui/ShareableChart'
+import ChampionAxisTick from '../ui/ChampionAxisTick'
 import {
   buildChampionPoolBars,
   playerKey,
-  PLAYER_CHART_COLORS,
 } from '../../lib/playerAnalytics'
+import { radarColorForPlayer } from '../../lib/entities/teamBrandColor'
 import { scrollEntrance } from '../../theme/animations'
 import { CHART } from '../../theme/chartTheme'
 
@@ -102,7 +103,7 @@ export default function PlayerChampionPool({ players }: PlayerChampionPoolProps)
           <BarChart
             data={chartData}
             layout="vertical"
-            margin={{ top: 8, right: 24, left: 72, bottom: 8 }}
+            margin={{ top: 8, right: 24, left: 96, bottom: 8 }}
           >
             <CartesianGrid stroke={CHART.grid} strokeDasharray="3 3" />
             <XAxis
@@ -113,9 +114,9 @@ export default function PlayerChampionPool({ players }: PlayerChampionPoolProps)
             <YAxis
               type="category"
               dataKey="champion"
-              width={68}
+              width={92}
               stroke={CHART.axis}
-              tick={{ fill: CHART.tick, fontSize: 11, fontFamily: CHART.fontFamily }}
+              tick={<ChampionAxisTick />}
             />
             <Tooltip content={poolTooltip} />
             {players.length > 1 && (
@@ -127,19 +128,21 @@ export default function PlayerChampionPool({ players }: PlayerChampionPoolProps)
                 }}
               />
             )}
-            {players.map((player, index) => (
+            {players.map((player, index) => {
+              const playerColor = radarColorForPlayer(player.team, player.league)
+              return (
               <Bar
                 key={playerKey(player)}
                 dataKey={`games_${index}`}
                 name={player.name}
-                fill={PLAYER_CHART_COLORS[index % PLAYER_CHART_COLORS.length]}
+                fill={playerColor}
               >
                 {chartData.map((row, rowIndex) => {
                   const wr = Number(row[`wr_${index}`] ?? 0)
                   const fill =
                     wr < 50
                       ? 'rgba(140, 115, 64, 0.35)'
-                      : (PLAYER_CHART_COLORS[index % PLAYER_CHART_COLORS.length] as string)
+                      : playerColor
                   return <Cell key={`${row.champion}-${rowIndex}`} fill={fill} />
                 })}
                 <LabelList
@@ -151,7 +154,7 @@ export default function PlayerChampionPool({ players }: PlayerChampionPoolProps)
                   fontFamily={CHART.fontFamily}
                 />
               </Bar>
-            ))}
+            )})}
           </BarChart>
         </ResponsiveContainer>
       </div>

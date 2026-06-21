@@ -10,7 +10,7 @@ import {
 } from 'recharts'
 import type { RadarChartPayload } from './types'
 import ShareableChart from '../ui/ShareableChart'
-import { COMPARISON_COLORS, leagueColor } from '../../lib/teamAnalytics'
+import { radarColorForTeam } from '../../lib/entities/teamBrandColor'
 import { makeChartTooltipContent } from '../ui/ChartTooltip'
 import { CHART } from '../../theme/chartTheme'
 
@@ -93,8 +93,7 @@ export default function NuckyRadarChart({ payload }: { payload: RadarChartPayloa
               dot={false}
             />
             {payload.teams.map((team, index) => {
-              const color =
-                COMPARISON_COLORS[index % COMPARISON_COLORS.length] ?? leagueColor(team.league)
+              const color = radarColorForTeam(team.name, team.league)
               return (
                 <Radar
                   key={`${team.name}|${team.league}`}

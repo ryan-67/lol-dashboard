@@ -9,6 +9,7 @@ import {
   roleLabel,
 } from '../../lib/championAnalytics'
 import { scrollEntrance } from '../../theme/animations'
+import { ChampionEntityInline } from '../entities'
 
 interface RisingFallingChampionsProps {
   champions: Champion[]
@@ -36,7 +37,9 @@ function TrendList({
           {entries.map((entry) => (
             <li key={entry.champion.name} className="trend-row">
               <div className="trend-row-main">
-                <span className="font-medium">{entry.champion.name}</span>
+                <span className="font-medium">
+                  <ChampionEntityInline name={entry.champion.name} iconSize={18} />
+                </span>
                 <span
                   className="role-badge"
                   style={{ color: roleColor(entry.role), borderColor: roleColor(entry.role) }}

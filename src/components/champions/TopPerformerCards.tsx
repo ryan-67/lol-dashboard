@@ -4,6 +4,7 @@ import type { Champion } from '../../hooks/useDashboardData'
 import { bestByRole, roleColor, roleLabel } from '../../lib/championAnalytics'
 import { scrollEntranceStagger } from '../../theme/animations'
 import ShareableChart from '../ui/ShareableChart'
+import { ChampionEntityInline } from '../entities'
 
 interface TopPerformerCardsProps {
   champions: Champion[]
@@ -56,7 +57,9 @@ export default function TopPerformerCards({ champions }: TopPerformerCardsProps)
               </div>
               {champion ? (
                 <>
-                  <div className="performer-card-name">{champion.name}</div>
+                  <div className="performer-card-name">
+                    <ChampionEntityInline name={champion.name} iconSize={20} />
+                  </div>
                   <div className="performer-card-stats">
                     <span className="text-accent">{champion.winrate.toFixed(1)}% WR</span>
                     <span className="text-secondary"> · {champion.avgKda.toFixed(2)} KDA</span>

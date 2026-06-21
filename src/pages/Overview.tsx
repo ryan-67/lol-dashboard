@@ -11,7 +11,6 @@ import {
   computeChampionOfWeekScores,
 } from '../lib/championOfWeekScore'
 import {
-  PLAYERS_ROLE_COLORS,
   ROLE_METRICS,
   buildRadarSeries,
   computeGameScore,
@@ -19,6 +18,7 @@ import {
   normalizePosition,
   playersForRole,
 } from '../lib/playerRadar'
+import { radarColorForPlayer } from '../lib/entities/teamBrandColor'
 import { aggregateAdvancedFromGameLog } from '../lib/advancedStats'
 import { findTeamByName } from '../lib/teamAnalytics'
 import TeamRadarChart from '../components/teams/TeamRadarChart'
@@ -357,7 +357,7 @@ function WeeklyRadar({
   compact?: boolean
 }) {
   const data = buildRadarSeries(player, role, cohort)
-  const color = PLAYERS_ROLE_COLORS[role]
+  const color = radarColorForPlayer(player.team, player.league)
   const tooltipContent = makeChartTooltipContent(
     () => player.name,
     (props) => {

@@ -13,8 +13,8 @@ import type { Player } from '../../hooks/useDashboardData'
 import { makeChartTooltipContent } from '../ui/ChartTooltip'
 import ShareableChart from '../ui/ShareableChart'
 import { EntityLink } from '../entities'
+import { radarColorForPlayer } from '../../lib/entities/teamBrandColor'
 import {
-  PLAYERS_ROLE_COLORS,
   buildRadarSeries,
   type RoleKey,
 } from '../../lib/playerRadar'
@@ -38,7 +38,7 @@ export default function PlayerRadarChart({
   hideHeader = false,
 }: PlayerRadarChartProps) {
   const chartRef = useRef<HTMLDivElement>(null)
-  const color = PLAYERS_ROLE_COLORS[role]
+  const color = radarColorForPlayer(player.team, player.league)
   const data = buildRadarSeries(player, role, cohort)
   const chartHeight = compact ? 200 : 260
 

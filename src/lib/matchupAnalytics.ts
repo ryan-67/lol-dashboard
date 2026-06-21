@@ -165,6 +165,29 @@ function computePriorityScore(
   }
 }
 
+export function computeTeamPriorityChamps(
+  teamChampions: TeamChampion[],
+  teams: Team[],
+  teamName: string,
+  championsByName: Map<string, Champion>,
+  limit = 10,
+): PriorityChampionEntry[] {
+  const teamGames = teamTotalGames(teams, teamName)
+  return teamChampions
+    .filter((row) => row.team === teamName && row.picks >= 2)
+    .map((row) => {
+      const champ = championsByName.get(row.champion)
+      const role = champ ? roleForChampion(champ) : null
+      return {
+        champion: row.champion,
+        role,
+        ...computePriorityScore(row, teamGames),
+      }
+    })
+    .sort((a, b) => b.priorityScore - a.priorityScore)
+    .slice(0, limit)
+}
+
 export function computeHighestPriorityChamps(
   teamChampions: TeamChampion[],
   teams: Team[],
@@ -173,26 +196,9 @@ export function computeHighestPriorityChamps(
   championsByName: Map<string, Champion>,
   limit = 10,
 ): { teamA: PriorityChampionEntry[]; teamB: PriorityChampionEntry[] } {
-  const buildForTeam = (teamName: string): PriorityChampionEntry[] => {
-    const teamGames = teamTotalGames(teams, teamName)
-    return teamChampions
-      .filter((row) => row.team === teamName && row.picks >= 2)
-      .map((row) => {
-        const champ = championsByName.get(row.champion)
-        const role = champ ? roleForChampion(champ) : null
-        return {
-          champion: row.champion,
-          role,
-          ...computePriorityScore(row, teamGames),
-        }
-      })
-      .sort((a, b) => b.priorityScore - a.priorityScore)
-      .slice(0, limit)
-  }
-
   return {
-    teamA: buildForTeam(teamA),
-    teamB: buildForTeam(teamB),
+    teamA: computeTeamPriorityChamps(teamChampions, teams, teamA, championsByName, limit),
+    teamB: computeTeamPriorityChamps(teamChampions, teams, teamB, championsByName, limit),
   }
 }
 
