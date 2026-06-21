@@ -255,7 +255,9 @@ export function useDashboardData(): UseDashboardDataReturn {
       const rows = await fetchOESlices({
         leagues: expandSelectedLeagues(selectedLeagues),
         years: selectedYears,
-        splits: selectedSplits,
+        // Load all splits for selected year(s) so weekly hub includes playoffs;
+        // dashboard tab filters still apply selected split at merge time.
+        splits: ['ALL'],
         catalogSplits: meta.splits,
       })
       const nextStore = buildStoreFromSliceRows(meta, rows)

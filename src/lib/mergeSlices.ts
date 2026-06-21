@@ -762,6 +762,22 @@ export function mergeSlicesFromFilters(
   }
 }
 
+/** All split labels for selected year(s) — used by Overview weekly hub (includes playoffs). */
+export function resolveSplitsForYear(store: OEStore, years: string[]): string[] {
+  if (years.includes('ALL')) return [...store.meta.splits]
+  return store.meta.splits.filter((s) => years.some((y) => s.startsWith(`${y} `)))
+}
+
+/** Weekly hub uses every split in the selected year(s), not just the dashboard split filter. */
+export function mergeWeeklyHubFromFilters(
+  store: OEStore,
+  leagues: string[],
+  years: string[],
+): DashboardData {
+  const splits = resolveSplitsForYear(store, years)
+  return mergeSlicesFromFilters(store, leagues, years, splits.length ? splits : ['ALL'])
+}
+
 export function mergeSlices(
   store: OEStore,
   league: string,

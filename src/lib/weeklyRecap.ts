@@ -10,6 +10,8 @@ import {
   findGameAdvancedHighlights,
   formatAdvancedOutlierLine,
 } from './advancedStats'
+import { parseDate as parseCalendarDate } from './weeklyWindow'
+import { formatGameDate } from './format'
 
 export type { SeriesFacts }
 
@@ -158,8 +160,13 @@ class RecapLedger {
 }
 
 function parseDate(value: string): Date | null {
-  const d = new Date(value)
-  return Number.isNaN(d.getTime()) ? null : d
+  return parseCalendarDate(value)
+}
+
+function startOfDay(date: Date): Date {
+  const out = new Date(date)
+  out.setHours(0, 0, 0, 0)
+  return out
 }
 
 function daysBetween(a: string, b: string): number {
@@ -169,8 +176,6 @@ function daysBetween(a: string, b: string): number {
   return Math.abs(da.getTime() - db.getTime()) / (1000 * 60 * 60 * 24)
 }
 
-import { formatGameDate } from './format'
-
 export function formatRecapDate(iso: string): string {
   return formatGameDate(iso)
 }
@@ -178,7 +183,8 @@ export function formatRecapDate(iso: string): string {
 function inWindow(log: PlayerGameLog, window: WeeklyRecapWindow): boolean {
   const d = parseDate(log.date)
   if (!d) return false
-  return d >= window.start && d <= window.end
+  const day = startOfDay(d)
+  return day >= window.start && day <= window.end
 }
 
 function playerLabel(name: string): string {

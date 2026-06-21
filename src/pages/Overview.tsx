@@ -26,7 +26,7 @@ import { EntityLink, ChampionEntityInline } from '../components/entities'
 import WeeklyRecap from '../components/overview/WeeklyRecap'
 import { buildWeeklyRecapLines } from '../lib/weeklyRecap'
 import { fetchCachedWeeklyRecapLines } from '../lib/loadWeeklyRecap'
-import { getWeeklyWindow, inWeeklyWindow, type WeeklyWindow } from '../lib/weeklyWindow'
+import { getWeeklyWindow, inWeeklyWindow, localIsoDate, type WeeklyWindow } from '../lib/weeklyWindow'
 import { CHART } from '../theme/chartTheme'
 import {
   scrollEntranceStagger,
@@ -412,7 +412,9 @@ export default function Overview() {
   const {
     filteredPlayers,
     filteredTeams,
-    filteredChampions,
+    weeklyHubPlayers,
+    weeklyHubTeams,
+    weeklyHubChampions,
     loading,
     league,
     split,
@@ -423,12 +425,12 @@ export default function Overview() {
   const rootRef = useRef<HTMLDivElement>(null)
 
   const weeklyWindow = useMemo(
-    () => getWeeklyWindow(filteredPlayers, year, split),
-    [filteredPlayers, year, split],
+    () => getWeeklyWindow(weeklyHubPlayers, year, split),
+    [weeklyHubPlayers, year, split],
   )
   const weeklyPlayers = useMemo(
-    () => (weeklyWindow ? getWeeklyPlayers(filteredPlayers, weeklyWindow) : []),
-    [filteredPlayers, weeklyWindow],
+    () => (weeklyWindow ? getWeeklyPlayers(weeklyHubPlayers, weeklyWindow) : []),
+    [weeklyHubPlayers, weeklyWindow],
   )
 
   const playerOfWeek = useMemo(() => {
@@ -446,31 +448,31 @@ export default function Overview() {
   }, [weeklyPlayers])
 
   const hottestTeams = useMemo(
-    () => calculateHottestTeams(weeklyPlayers, filteredTeams.map((t) => ({ name: t.name, winrate: t.winrate }))),
-    [weeklyPlayers, filteredTeams],
+    () => calculateHottestTeams(weeklyPlayers, weeklyHubTeams.map((t) => ({ name: t.name, winrate: t.winrate }))),
+    [weeklyPlayers, weeklyHubTeams],
   )
   const hottestTeam = hottestTeams[0] ?? null
   const hottestTeamEntity = useMemo(
-    () => (hottestTeam ? findTeamByName(filteredTeams, hottestTeam.team) : null),
-    [hottestTeam, filteredTeams],
+    () => (hottestTeam ? findTeamByName(weeklyHubTeams, hottestTeam.team) : null),
+    [hottestTeam, weeklyHubTeams],
   )
 
   const championOpResult = useMemo(() => {
     if (!weeklyWindow) return { top: null, runners: [] }
     const stats = buildWeeklyChampionStatsFromPlayers(
       weeklyPlayers,
-      filteredChampions,
-      { start: weeklyWindow.key, end: weeklyWindow.end.toISOString().slice(0, 10) },
+      weeklyHubChampions,
+      { start: weeklyWindow.key, end: localIsoDate(weeklyWindow.end) },
     )
     return computeChampionOfWeekScores(stats)
-  }, [weeklyPlayers, filteredChampions, weeklyWindow])
+  }, [weeklyPlayers, weeklyHubChampions, weeklyWindow])
 
   const templateRecapLines = useMemo(
     () =>
       weeklyWindow
-        ? buildWeeklyRecapLines(filteredPlayers, filteredTeams, weeklyWindow, league)
+        ? buildWeeklyRecapLines(weeklyHubPlayers, weeklyHubTeams, weeklyWindow, league)
         : [],
-    [filteredPlayers, filteredTeams, weeklyWindow, league],
+    [weeklyHubPlayers, weeklyHubTeams, weeklyWindow, league],
   )
 
   const [cachedRecapLines, setCachedRecapLines] = useState<typeof templateRecapLines>([])
@@ -526,8 +528,8 @@ export default function Overview() {
           lines={weeklyRecapLines}
           windowLabel={weeklyWindow.label}
           leagueLabel={league}
-          players={filteredPlayers}
-          champions={filteredChampions}
+          players={weeklyHubPlayers}
+          champions={weeklyHubChampions}
         />
       )}
 
@@ -625,6 +627,9 @@ export default function Overview() {
 
       <section className="card overview-hub-card">
         <h2 className="card-title">Team of the Week (Best 5 by role)</h2>
+        {!teamOfWeek.length ? (
+          <p className="text-secondary">No weekly game log data for this filter.</p>
+        ) : (
         <div className="overview-totw-grid">
           {teamOfWeek.map((p) => (
               <article key={`${p.base.name}-${p.role}`} className="overview-totw-card">
@@ -645,6 +650,7 @@ export default function Overview() {
               </article>
             ))}
         </div>
+        )}
       </section>
 
       <section className="card overview-hub-card">

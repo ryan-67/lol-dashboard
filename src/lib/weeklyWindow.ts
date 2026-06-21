@@ -11,9 +11,22 @@ export interface WeeklyWindow {
 
 export function parseDate(value: string): Date | null {
   if (!value) return null
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(value.trim())
+  if (m) {
+    const d = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]))
+    return Number.isNaN(d.getTime()) ? null : d
+  }
   const parsed = new Date(value)
   if (Number.isNaN(parsed.getTime())) return null
   return parsed
+}
+
+/** Local calendar YYYY-MM-DD (avoids UTC shift from toISOString). */
+export function localIsoDate(date: Date): string {
+  const y = date.getFullYear()
+  const m = String(date.getMonth() + 1).padStart(2, '0')
+  const d = String(date.getDate()).padStart(2, '0')
+  return `${y}-${m}-${d}`
 }
 
 function startOfDay(date: Date): Date {
@@ -29,7 +42,7 @@ function endOfDay(date: Date): Date {
 }
 
 function isoDate(date: Date): string {
-  return date.toISOString().slice(0, 10)
+  return localIsoDate(date)
 }
 
 import { formatDateRange } from './format'
@@ -49,16 +62,16 @@ export function getWeeklyWindow(
   dates.sort((a, b) => a.getTime() - b.getTime())
   const latestDataDate = dates[dates.length - 1]!
   const today = startOfDay(now)
+  const latestDay = startOfDay(latestDataDate)
   const daysSinceLatest =
-    (today.getTime() - startOfDay(latestDataDate).getTime()) / (1000 * 60 * 60 * 24)
+    (today.getTime() - latestDay.getTime()) / (1000 * 60 * 60 * 24)
   const isCurrentContext = daysSinceLatest <= 14
 
   const anchorEnd = isCurrentContext ? endOfDay(today) : endOfDay(latestDataDate)
   const start = startOfDay(new Date(anchorEnd))
   start.setDate(start.getDate() - 6)
 
-  const dataStale =
-    isCurrentContext && startOfDay(latestDataDate).getTime() < today.getTime()
+  const dataStale = isCurrentContext && latestDay.getTime() < today.getTime()
 
   return {
     start,
@@ -73,7 +86,8 @@ export function getWeeklyWindow(
 export function inWeeklyWindow(log: PlayerGameLog, window: WeeklyWindow): boolean {
   const d = parseDate(log.date)
   if (!d) return false
-  return d >= window.start && d <= window.end
+  const day = startOfDay(d)
+  return day >= window.start && day <= window.end
 }
 
 export function windowToWeeklyRecapWindow(window: WeeklyWindow) {

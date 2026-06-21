@@ -13,7 +13,7 @@ import {
   splitSeasonLabel,
   isAllTier1Selected,
 } from '../hooks/useDashboardData'
-import { mergeSlicesFromFilters, TIER1_LEAGUES, type OEStoreMeta } from '../lib/mergeSlices'
+import { mergeSlicesFromFilters, mergeWeeklyHubFromFilters, TIER1_LEAGUES, type OEStoreMeta } from '../lib/mergeSlices'
 
 interface DashboardContextValue {
   data: DashboardData | null
@@ -39,6 +39,11 @@ interface DashboardContextValue {
   filteredPlayers: Player[]
   filteredTeams: Team[]
   filteredChampions: Champion[]
+
+  /** All splits in selected year(s) — for Overview weekly hub (includes playoffs). */
+  weeklyHubPlayers: Player[]
+  weeklyHubTeams: Team[]
+  weeklyHubChampions: Champion[]
 
   leagues: string[]
   years: string[]
@@ -133,6 +138,15 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
   const filteredTeams = data?.teams ?? []
   const filteredChampions = data?.champions ?? []
 
+  const weeklyHubData = useMemo(() => {
+    if (!store) return null
+    return mergeWeeklyHubFromFilters(store, selectedLeagues, selectedYears)
+  }, [store, selectedLeagues, selectedYears])
+
+  const weeklyHubPlayers = weeklyHubData?.players ?? []
+  const weeklyHubTeams = weeklyHubData?.teams ?? []
+  const weeklyHubChampions = weeklyHubData?.champions ?? []
+
   return (
     <DashboardContext.Provider
       value={{
@@ -156,6 +170,9 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
         filteredPlayers,
         filteredTeams,
         filteredChampions,
+        weeklyHubPlayers,
+        weeklyHubTeams,
+        weeklyHubChampions,
         leagues,
         years,
         splits: splitOptions,
