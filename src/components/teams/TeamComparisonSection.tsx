@@ -8,6 +8,7 @@ import TeamComparisonRadar from './TeamComparisonRadar'
 import TeamComparisonStatsChart from './TeamComparisonStatsChart'
 import TeamComparisonPriorityChamps from './TeamComparisonPriorityChamps'
 import TeamComparisonSharePies from './TeamComparisonSharePies'
+import TeamScatterPlot from './TeamScatterPlot'
 
 interface TeamComparisonSectionProps {
   teams: Team[]
@@ -65,6 +66,7 @@ export default function TeamComparisonSection({
       ) : (
         <>
           <TeamComparisonRadar teams={compareTeams} cohort={radarCohort} embedded />
+          <TeamScatterPlot teams={compareTeams} embedded />
           <TeamComparisonStatsChart teams={compareTeams} players={players} />
           <TeamComparisonPriorityChamps
             teams={compareTeams}

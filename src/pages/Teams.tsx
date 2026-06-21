@@ -12,7 +12,6 @@ import {
 import {
   TeamFilterBar,
   TeamRadarGrid,
-  TeamScatterPlot,
   TeamComparisonSection,
 } from '../components/teams'
 import SortableTh from '../components/ui/SortableTh'
@@ -90,8 +89,6 @@ export default function Teams() {
         teamChampions={data?.teamChampions ?? []}
         champions={filteredChampions}
       />
-
-      <TeamScatterPlot teams={scopeTeams} />
 
       <div className="players-table-toggle">
         <button type="button" className="btn" onClick={() => setShowTable((v) => !v)}>

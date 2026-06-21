@@ -12,7 +12,7 @@ import {
   Cell,
 } from 'recharts'
 import type { Team } from '../../hooks/useDashboardData'
-import { leagueColor } from '../../lib/teamAnalytics'
+import { radarColorForTeam } from '../../lib/entities/teamBrandColor'
 import ShareableChart from '../ui/ShareableChart'
 import { makeChartTooltipContent } from '../ui/ChartTooltip'
 import { scrollEntrance } from '../../theme/animations'
@@ -42,9 +42,11 @@ const teamScatterTooltip = makeChartTooltipContent(
 
 interface TeamScatterPlotProps {
   teams: Team[]
+  /** When true, render as a nested comparison chart (no page-section wrapper). */
+  embedded?: boolean
 }
 
-export default function TeamScatterPlot({ teams }: TeamScatterPlotProps) {
+export default function TeamScatterPlot({ teams, embedded = false }: TeamScatterPlotProps) {
   const sectionRef = useRef<HTMLDivElement>(null)
   const [activeKey, setActiveKey] = useState<string | null>(null)
 
@@ -64,9 +66,21 @@ export default function TeamScatterPlot({ teams }: TeamScatterPlotProps) {
   )
 
   return (
-    <ShareableChart ref={sectionRef} className="card page-section">
-      <h2 className="card-title">Win Rate vs Early Game Gold</h2>
-      <p className="card-subtitle">X = avg Gold Diff@15 · Y = win rate · dot size = games played</p>
+    <ShareableChart
+      ref={sectionRef}
+      className={embedded ? 'card player-chart-card' : 'card page-section'}
+    >
+      {embedded ? (
+        <>
+          <h3 className="card-title">Win Rate vs Early Game Gold</h3>
+          <p className="card-subtitle">X = avg Gold Diff@15 · Y = win rate · dot size = games played</p>
+        </>
+      ) : (
+        <>
+          <h2 className="card-title">Win Rate vs Early Game Gold</h2>
+          <p className="card-subtitle">X = avg Gold Diff@15 · Y = win rate · dot size = games played</p>
+        </>
+      )}
       <div className="h-80">
         <ResponsiveContainer width="100%" height="100%">
           <ScatterChart margin={{ top: 8, right: 24, left: 8, bottom: 8 }}>
@@ -101,7 +115,7 @@ export default function TeamScatterPlot({ teams }: TeamScatterPlotProps) {
             >
               {data.map((entry) => {
                 const isActive = activeKey === entry.key
-                const base = leagueColor(entry.league)
+                const base = radarColorForTeam(entry.name, entry.league)
                 return (
                   <Cell
                     key={entry.key}
