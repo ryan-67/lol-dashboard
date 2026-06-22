@@ -13,6 +13,7 @@ interface WeeklyRecapProps {
   leagueLabel: string
   players: Player[]
   champions: Champion[]
+  title?: string
 }
 
 function RecapScoreRow({ line }: { line: WeeklyRecapLine }) {
@@ -101,6 +102,7 @@ export default function WeeklyRecap({
   leagueLabel,
   players,
   champions,
+  title = 'Weekly Recap',
 }: WeeklyRecapProps) {
   const ref = useRef<HTMLDivElement>(null)
 
@@ -111,7 +113,7 @@ export default function WeeklyRecap({
 
   return (
     <section ref={ref} className="card overview-hub-card">
-      <h2 className="card-title">Weekly Recap</h2>
+      <h2 className="card-title">{title}</h2>
       <p className="card-subtitle">
         {windowLabel} · Series summaries from {leagueLabel}
       </p>

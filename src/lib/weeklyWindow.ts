@@ -1,5 +1,12 @@
 import type { Player, PlayerGameLog } from '../hooks/useDashboardData'
 
+export type HubPeriod = 'weekly' | 'monthly'
+
+export const HUB_PERIOD_DAYS: Record<HubPeriod, number> = {
+  weekly: 7,
+  monthly: 30,
+}
+
 export interface WeeklyWindow {
   start: Date
   end: Date
@@ -47,13 +54,13 @@ function isoDate(date: Date): string {
 
 import { formatDateRange } from './format'
 
-/** Rolling 7-day window ending on today when in current season; otherwise anchored to latest data. */
-export function getWeeklyWindow(
+/** Rolling N-day window ending on today when in current season; otherwise anchored to latest data. */
+export function getHubWindow(
   players: Player[],
-  _year: string,
-  _split: string,
+  period: HubPeriod,
   now: Date = new Date(),
 ): WeeklyWindow | null {
+  const dayCount = HUB_PERIOD_DAYS[period]
   const dates = players
     .flatMap((p) => p.gameLog ?? [])
     .map((g) => parseDate(g.date))
@@ -69,7 +76,7 @@ export function getWeeklyWindow(
 
   const anchorEnd = isCurrentContext ? endOfDay(today) : endOfDay(latestDataDate)
   const start = startOfDay(new Date(anchorEnd))
-  start.setDate(start.getDate() - 6)
+  start.setDate(start.getDate() - (dayCount - 1))
 
   const dataStale = isCurrentContext && latestDay.getTime() < today.getTime()
 
@@ -83,7 +90,21 @@ export function getWeeklyWindow(
   }
 }
 
+/** @deprecated use getHubWindow(players, 'weekly') */
+export function getWeeklyWindow(
+  players: Player[],
+  _year: string,
+  _split: string,
+  now: Date = new Date(),
+): WeeklyWindow | null {
+  return getHubWindow(players, 'weekly', now)
+}
+
 export function inWeeklyWindow(log: PlayerGameLog, window: WeeklyWindow): boolean {
+  return inHubWindow(log, window)
+}
+
+export function inHubWindow(log: PlayerGameLog, window: WeeklyWindow): boolean {
   const d = parseDate(log.date)
   if (!d) return false
   const day = startOfDay(d)

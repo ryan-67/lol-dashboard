@@ -1,13 +1,13 @@
 #!/usr/bin/env node
 /**
- * Generate AI weekly recap lines for new series and upsert to Supabase.
+ * Generate AI recap lines for new series in the past 30 days and upsert to Supabase.
  * Run after OE ingest/seed in CI or locally.
  *
  * Env: SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, OPENROUTER_API_KEY
  * Optional: RECAP_LLM_MODEL, RECAP_YEAR, RECAP_DRY_RUN=1, RECAP_REGENERATE=1
  */
 import { collectSeriesBriefs } from '../../src/lib/weeklyRecap.ts'
-import { getWeeklyWindow, windowToWeeklyRecapWindow } from '../../src/lib/weeklyWindow.ts'
+import { getHubWindow, windowToWeeklyRecapWindow } from '../../src/lib/weeklyWindow.ts'
 import {
   createServiceClient,
   currentYear,
@@ -29,7 +29,7 @@ async function main(): Promise<void> {
 
   console.log(`Loading tier-1 OE data for ${year}...`)
   let { players, teams } = await loadTier1Data(client, year)
-  const window = getWeeklyWindow(players, year, 'ALL')
+  const window = getHubWindow(players, 'monthly')
   if (!window) {
     console.log('No game log dates — nothing to recap.')
     return
@@ -41,14 +41,14 @@ async function main(): Promise<void> {
   if (!briefs.length && client && process.env.RECAP_FROM_SUPABASE !== '1') {
     console.log('No series from local shards — loading fresh oe_slices from Supabase...')
     ;({ players, teams } = await loadTier1DataFromSupabase(client, year))
-    const retryWindow = getWeeklyWindow(players, year, 'ALL')
+    const retryWindow = getHubWindow(players, 'monthly')
     if (retryWindow) {
       recapWindow = windowToWeeklyRecapWindow(retryWindow)
       briefs = collectSeriesBriefs(players, teams, recapWindow)
     }
   }
 
-  console.log(`Weekly window ${window.label}: ${briefs.length} series`)
+  console.log(`Monthly window ${window.label}: ${briefs.length} series`)
 
   if (!briefs.length) return
 

@@ -24,9 +24,17 @@ import { findTeamByName } from '../lib/teamAnalytics'
 import TeamRadarChart from '../components/teams/TeamRadarChart'
 import { EntityLink, ChampionEntityInline } from '../components/entities'
 import WeeklyRecap from '../components/overview/WeeklyRecap'
+import OverviewHubToggle from '../components/overview/OverviewHubToggle'
 import { buildWeeklyRecapLines } from '../lib/weeklyRecap'
 import { fetchCachedWeeklyRecapLines } from '../lib/loadWeeklyRecap'
-import { getWeeklyWindow, inWeeklyWindow, localIsoDate, type WeeklyWindow } from '../lib/weeklyWindow'
+import {
+  getHubWindow,
+  inHubWindow,
+  localIsoDate,
+  HUB_PERIOD_DAYS,
+  type HubPeriod,
+  type WeeklyWindow,
+} from '../lib/weeklyWindow'
 import { CHART } from '../theme/chartTheme'
 import {
   scrollEntranceStagger,
@@ -50,6 +58,67 @@ import {
   PERFORMANCE_SCORE_HINT,
   TEAM_SCORE_HINT,
 } from '../lib/metricHints'
+
+const HUB_COPY = {
+  weekly: {
+    hubTitle: 'Weekly Tier-1 Hub',
+    periodDays: HUB_PERIOD_DAYS.weekly,
+    recapTitle: 'Weekly Recap',
+    playerTitle: 'Player of the Week',
+    teamTitle: 'Team of the Week (Best 5 by role)',
+    championTitle: 'Champion of the Week',
+    topGamesTitle: 'Top 3 games this week (by performance score)',
+    noPlayerData: 'No weekly game log data for this filter.',
+    noTeamData: 'Not enough weekly team data.',
+    noChampionData: 'No champion weekly sample for this filter.',
+    recapLimit: 8,
+    gamesLabel: (count: number) =>
+      `${count} ${count === 1 ? 'game' : 'games'} this week`,
+    statWr: 'Weekly WR',
+    statKda: 'Weekly avg KDA',
+    statGd: 'Weekly avg GD@15',
+    statObj: 'Weekly avg Obj Control',
+  },
+  monthly: {
+    hubTitle: 'Monthly Tier-1 Hub',
+    periodDays: HUB_PERIOD_DAYS.monthly,
+    recapTitle: 'Monthly Recap',
+    playerTitle: 'Player of the Month',
+    teamTitle: 'Team of the Month (Best 5 by role)',
+    championTitle: 'Champion of the Month',
+    topGamesTitle: 'Top 3 games this month (by performance score)',
+    noPlayerData: 'No monthly game log data for this filter.',
+    noTeamData: 'Not enough monthly team data.',
+    noChampionData: 'No champion monthly sample for this filter.',
+    recapLimit: 24,
+    gamesLabel: (count: number) =>
+      `${count} ${count === 1 ? 'game' : 'games'} this month`,
+    statWr: 'Monthly WR',
+    statKda: 'Monthly avg KDA',
+    statGd: 'Monthly avg GD@15',
+    statObj: 'Monthly avg Obj Control',
+  },
+} as const satisfies Record<
+  HubPeriod,
+  {
+    hubTitle: string
+    periodDays: number
+    recapTitle: string
+    playerTitle: string
+    teamTitle: string
+    championTitle: string
+    topGamesTitle: string
+    noPlayerData: string
+    noTeamData: string
+    noChampionData: string
+    recapLimit: number
+    gamesLabel: (count: number) => string
+    statWr: string
+    statKda: string
+    statGd: string
+    statObj: string
+  }
+>
 
 interface WeeklyPlayer {
   base: Player
@@ -139,7 +208,7 @@ function getWeeklyPlayers(
   for (const player of players) {
     const role = normalizePosition(player.position)
     if (!role) continue
-    const logs = (player.gameLog ?? []).filter((g) => inWeeklyWindow(g, window))
+    const logs = (player.gameLog ?? []).filter((g) => inHubWindow(g, window))
     if (!logs.length) continue
     const weekly = createWeeklyPlayerSnapshot(player, logs)
     const cohort = playersForRole(players, role)
@@ -418,19 +487,20 @@ export default function Overview() {
     loading,
     league,
     split,
-    year,
     lastUpdated,
     selectedLeagues,
   } = useDashboard()
   const rootRef = useRef<HTMLDivElement>(null)
+  const [hubPeriod, setHubPeriod] = useState<HubPeriod>('weekly')
+  const copy = HUB_COPY[hubPeriod]
 
-  const weeklyWindow = useMemo(
-    () => getWeeklyWindow(weeklyHubPlayers, year, split),
-    [weeklyHubPlayers, year, split],
+  const hubWindow = useMemo(
+    () => getHubWindow(weeklyHubPlayers, hubPeriod),
+    [weeklyHubPlayers, hubPeriod],
   )
   const weeklyPlayers = useMemo(
-    () => (weeklyWindow ? getWeeklyPlayers(weeklyHubPlayers, weeklyWindow) : []),
-    [weeklyHubPlayers, weeklyWindow],
+    () => (hubWindow ? getWeeklyPlayers(weeklyHubPlayers, hubWindow) : []),
+    [weeklyHubPlayers, hubWindow],
   )
 
   const playerOfWeek = useMemo(() => {
@@ -458,40 +528,43 @@ export default function Overview() {
   )
 
   const championOpResult = useMemo(() => {
-    if (!weeklyWindow) return { top: null, runners: [] }
+    if (!hubWindow) return { top: null, runners: [] }
     const stats = buildWeeklyChampionStatsFromPlayers(
       weeklyPlayers,
       weeklyHubChampions,
-      { start: weeklyWindow.key, end: localIsoDate(weeklyWindow.end) },
+      { start: hubWindow.key, end: localIsoDate(hubWindow.end) },
     )
     return computeChampionOfWeekScores(stats)
-  }, [weeklyPlayers, weeklyHubChampions, weeklyWindow])
+  }, [weeklyPlayers, weeklyHubChampions, hubWindow])
 
-  const templateRecapLines = useMemo(
-    () =>
-      weeklyWindow
-        ? buildWeeklyRecapLines(weeklyHubPlayers, weeklyHubTeams, weeklyWindow, league)
-        : [],
-    [weeklyHubPlayers, weeklyHubTeams, weeklyWindow, league],
-  )
+  const templateRecapLines = useMemo(() => {
+    if (!hubWindow) return []
+    return buildWeeklyRecapLines(weeklyHubPlayers, weeklyHubTeams, hubWindow, league).slice(
+      0,
+      copy.recapLimit,
+    )
+  }, [weeklyHubPlayers, weeklyHubTeams, hubWindow, league, copy.recapLimit])
 
   const [cachedRecapLines, setCachedRecapLines] = useState<typeof templateRecapLines>([])
 
   useEffect(() => {
-    if (!weeklyWindow) {
+    if (!hubWindow) {
       setCachedRecapLines([])
       return
     }
     let cancelled = false
-    void fetchCachedWeeklyRecapLines(weeklyWindow.start, weeklyWindow.end, selectedLeagues).then(
-      (lines) => {
-        if (!cancelled) setCachedRecapLines(lines)
-      },
-    )
+    void fetchCachedWeeklyRecapLines(
+      hubWindow.start,
+      hubWindow.end,
+      selectedLeagues,
+      copy.recapLimit,
+    ).then((lines) => {
+      if (!cancelled) setCachedRecapLines(lines)
+    })
     return () => {
       cancelled = true
     }
-  }, [weeklyWindow, selectedLeagues])
+  }, [hubWindow, selectedLeagues, copy.recapLimit])
 
   const weeklyRecapLines =
     cachedRecapLines.length > 0 ? cachedRecapLines : templateRecapLines
@@ -501,7 +574,7 @@ export default function Overview() {
       scrollEntranceStagger(rootRef.current, '.overview-hub-card')
       refreshScrollTrigger()
     },
-    { dependencies: [loading, league, split, weeklyPlayers.length] },
+    { dependencies: [loading, league, split, hubPeriod, weeklyPlayers.length] },
   )
 
   if (loading) {
@@ -510,33 +583,36 @@ export default function Overview() {
 
   return (
     <div ref={rootRef} className="overview-hub">
+      <OverviewHubToggle value={hubPeriod} onChange={setHubPeriod} />
+
       <section className="card overview-hub-card">
-        <h2 className="card-title">Weekly Tier-1 Hub</h2>
+        <h2 className="card-title">{copy.hubTitle}</h2>
         <p className="card-subtitle">
           League: <span className="text-accent">{league}</span> · Split:{' '}
           <span className="text-accent">{split}</span>
-          {weeklyWindow ? ` · Past 7 days: ${weeklyWindow.label}` : ''}
-          {weeklyWindow?.dataStale && weeklyWindow.latestDataDate
-            ? ` · Data through ${formatGameDate(weeklyWindow.latestDataDate, { year: 'numeric' })}`
+          {hubWindow ? ` · Past ${copy.periodDays} days: ${hubWindow.label}` : ''}
+          {hubWindow?.dataStale && hubWindow.latestDataDate
+            ? ` · Data through ${formatGameDate(hubWindow.latestDataDate, { year: 'numeric' })}`
             : ''}
           {lastUpdated ? ` · Refreshed ${formatRefreshTimestamp(lastUpdated)}` : ''}
         </p>
       </section>
 
-      {weeklyWindow && (
+      {hubWindow && (
         <WeeklyRecap
           lines={weeklyRecapLines}
-          windowLabel={weeklyWindow.label}
+          windowLabel={hubWindow.label}
           leagueLabel={league}
           players={weeklyHubPlayers}
           champions={weeklyHubChampions}
+          title={copy.recapTitle}
         />
       )}
 
       <section className="card overview-hub-card">
-        <h2 className="card-title">Player of the Week</h2>
+        <h2 className="card-title">{copy.playerTitle}</h2>
         {!playerOfWeek ? (
-          <p className="text-secondary">No weekly game log data for this filter.</p>
+          <p className="text-secondary">{copy.noPlayerData}</p>
         ) : (
           <>
             <div className="overview-weekly-head">
@@ -547,8 +623,7 @@ export default function Overview() {
                 <div className="overview-weekly-meta entity-inline-row">
                   <EntityLink type="team" name={playerOfWeek.base.team} />
                   <span> · </span>
-                  {playerOfWeek.role.toUpperCase()} · {playerOfWeek.weeklyGames.length}{' '}
-                  {playerOfWeek.weeklyGames.length === 1 ? 'game' : 'games'} this week
+                  {playerOfWeek.role.toUpperCase()} · {copy.gamesLabel(playerOfWeek.weeklyGames.length)}
                 </div>
               </div>
               <div className="overview-weekly-highlight">
@@ -580,7 +655,7 @@ export default function Overview() {
               cohort={weeklyPlayers.filter((p) => p.role === playerOfWeek.role).map((p) => p.weekly)}
             />
             <div className="overview-best-games">
-              <h3 className="card-title">Top 3 games this week (by performance score)</h3>
+              <h3 className="card-title">{copy.topGamesTitle}</h3>
               <ul>
                 {(() => {
                   const roleCohort = weeklyPlayers
@@ -626,9 +701,9 @@ export default function Overview() {
       </section>
 
       <section className="card overview-hub-card">
-        <h2 className="card-title">Team of the Week (Best 5 by role)</h2>
+        <h2 className="card-title">{copy.teamTitle}</h2>
         {!teamOfWeek.length ? (
-          <p className="text-secondary">No weekly game log data for this filter.</p>
+          <p className="text-secondary">{copy.noPlayerData}</p>
         ) : (
         <div className="overview-totw-grid">
           {teamOfWeek.map((p) => (
@@ -656,7 +731,7 @@ export default function Overview() {
       <section className="card overview-hub-card">
         <h2 className="card-title">Hottest Team 🔥</h2>
         {!hottestTeam ? (
-          <p className="text-secondary">Not enough weekly team data.</p>
+          <p className="text-secondary">{copy.noTeamData}</p>
         ) : (
           <div className="overview-hottest-layout">
             <div className="overview-hottest-grid">
@@ -669,10 +744,10 @@ export default function Overview() {
                 value={formatNum(hottestTeam.impressiveness, 1)}
               />
               <div className="overview-hottest-stats">
-                <div>Weekly WR: {formatPct(hottestTeam.weeklyWinrate, 1)}</div>
-                <div>Weekly avg KDA: {formatNum(hottestTeam.weeklyAvgKda, 2)}</div>
-                <div>Weekly avg GD@15: {formatNum(hottestTeam.weeklyAvgGd15, 1)}</div>
-                <div>Weekly avg Obj Control: {formatNum(hottestTeam.weeklyObjControl, 2)}</div>
+                <div>{copy.statWr}: {formatPct(hottestTeam.weeklyWinrate, 1)}</div>
+                <div>{copy.statKda}: {formatNum(hottestTeam.weeklyAvgKda, 2)}</div>
+                <div>{copy.statGd}: {formatNum(hottestTeam.weeklyAvgGd15, 1)}</div>
+                <div>{copy.statObj}: {formatNum(hottestTeam.weeklyObjControl, 2)}</div>
                 <div>Opponent split WR avg: {formatPct(hottestTeam.avgOpponentSplitWinrate, 1)}</div>
                 <div>Upset wins bonus: {hottestTeam.upsetWins}</div>
               </div>
@@ -687,9 +762,9 @@ export default function Overview() {
       </section>
 
       <section className="card overview-hub-card">
-        <h2 className="card-title">Champion of the Week</h2>
+        <h2 className="card-title">{copy.championTitle}</h2>
         {!championOpResult.top ? (
-          <p className="text-secondary">No champion weekly sample for this filter.</p>
+          <p className="text-secondary">{copy.noChampionData}</p>
         ) : (
           <div className="overview-champion-week">
             <div className="overview-weekly-name">

@@ -49,6 +49,7 @@ export async function fetchCachedWeeklyRecapLines(
   windowStart: Date,
   windowEnd: Date,
   selectedLeagues: string[],
+  limit = 8,
 ): Promise<WeeklyRecapLine[]> {
   if (!isSupabaseConfigured) return []
 
@@ -69,7 +70,7 @@ export async function fetchCachedWeeklyRecapLines(
     .gte('series_date', start)
     .lte('series_date', end)
     .order('series_date', { ascending: false })
-    .limit(24)
+    .limit(Math.max(limit, 24))
 
   if (leagues?.length) {
     query = query.in('league', leagues)
@@ -82,5 +83,5 @@ export async function fetchCachedWeeklyRecapLines(
     return []
   }
 
-  return ((data ?? []) as RecapRow[]).map(rowToLine).slice(0, 8)
+  return ((data ?? []) as RecapRow[]).map(rowToLine).slice(0, limit)
 }

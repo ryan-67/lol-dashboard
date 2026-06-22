@@ -458,6 +458,10 @@ b,
   gap: var(--component-gap);
 }
 
+.overview-hub-toggle {
+  margin-bottom: 0;
+}
+
 .overview-recap-list {
   list-style: none;
   margin: 0;
