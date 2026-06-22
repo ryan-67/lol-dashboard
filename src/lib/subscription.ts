@@ -2,6 +2,7 @@ import { supabase } from './supabaseClient'
 
 export interface SubscriptionProfile {
   is_subscribed?: boolean | null
+  plan?: string | null
   username?: string | null
 }
 
@@ -16,7 +17,7 @@ export function isUserSubscribed(
   const hasActiveSub =
     Array.isArray(subscriptions) &&
     subscriptions.some((row) => row.status === 'active' || row.status === 'trialing')
-  return Boolean(profile?.is_subscribed) || hasActiveSub
+  return Boolean(profile?.is_subscribed) || profile?.plan === 'pro' || hasActiveSub
 }
 
 export async function fetchSubscriptionState(userId: string): Promise<{
@@ -24,7 +25,7 @@ export async function fetchSubscriptionState(userId: string): Promise<{
   isSubscribed: boolean
 }> {
   const [{ data: profile }, { data: subscriptions }] = await Promise.all([
-    supabase.from('profiles').select('is_subscribed, username').eq('id', userId).maybeSingle(),
+    supabase.from('profiles').select('is_subscribed, plan, username').eq('id', userId).maybeSingle(),
     supabase
       .from('subscriptions')
       .select('status')

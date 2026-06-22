@@ -16,6 +16,18 @@ async function authHeaders(): Promise<Record<string, string>> {
   }
 }
 
+export async function syncStripeSubscription(sessionId?: string): Promise<{ isSubscribed: boolean }> {
+  const response = await fetch(`${getFunctionBase()}/functions/v1/stripe-sync`, {
+    method: 'POST',
+    headers: await authHeaders(),
+    body: JSON.stringify(sessionId ? { session_id: sessionId } : {}),
+  })
+  if (!response.ok) {
+    throw new Error(`sync failed (${response.status})`)
+  }
+  return (await response.json()) as { isSubscribed: boolean }
+}
+
 export async function startStripeCheckout(): Promise<string> {
   const priceId = (import.meta.env.VITE_STRIPE_PRICE_ID ?? '').trim()
   if (!priceId) throw new Error('missing VITE_STRIPE_PRICE_ID')
@@ -28,7 +40,7 @@ export async function startStripeCheckout(): Promise<string> {
   if (!response.ok) {
     throw new Error(`checkout failed (${response.status})`)
   }
-  const payload = (await response.json()) as { url?: string }
+  const payload = (await response.json()) as { url?: string; alreadySubscribed?: boolean }
   if (!payload.url) throw new Error('missing checkout url')
   return payload.url
 }

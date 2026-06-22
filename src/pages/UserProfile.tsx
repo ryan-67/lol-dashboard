@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useGSAP } from '@gsap/react'
 import { useAuth } from '../context/AuthContext'
 import { useDashboard } from '../context/DashboardContext'
-import { openStripePortal, startStripeCheckout } from '../lib/billing'
+import { openStripePortal, startStripeCheckout, syncStripeSubscription } from '../lib/billing'
 import { getAuthRedirectUrl } from '../lib/authRedirect'
 import { supabase } from '../lib/supabaseClient'
 import { scrollEntrance, scrollEntranceStagger } from '../theme/animations'
@@ -74,9 +74,37 @@ export default function UserProfile() {
       .limit(1)
       .maybeSingle()
 
-    const row = (data as ProfileSettingsRow | null) ?? null
-    const subRow = (subData as SubscriptionRow | null) ?? null
-    const activeSub = subRow?.status === 'active' || subRow?.status === 'trialing'
+    let row = (data as ProfileSettingsRow | null) ?? null
+    let subRow = (subData as SubscriptionRow | null) ?? null
+    let activeSub = subRow?.status === 'active' || subRow?.status === 'trialing'
+
+    if (!activeSub && !row?.is_subscribed && row?.plan !== 'pro') {
+      try {
+        const synced = await syncStripeSubscription()
+        if (synced.isSubscribed) {
+          const [{ data: refreshed }, { data: refreshedSub }] = await Promise.all([
+            supabase
+              .from('profiles')
+              .select('username, favorite_player, favorite_team, is_subscribed, plan, timezone')
+              .eq('id', user.id)
+              .maybeSingle(),
+            supabase
+              .from('subscriptions')
+              .select('status, current_period_end, cancel_at_period_end')
+              .eq('user_id', user.id)
+              .in('status', ['active', 'trialing'])
+              .order('created_at', { ascending: false })
+              .limit(1)
+              .maybeSingle(),
+          ])
+          row = (refreshed as ProfileSettingsRow | null) ?? row
+          subRow = (refreshedSub as SubscriptionRow | null) ?? subRow
+          activeSub = subRow?.status === 'active' || subRow?.status === 'trialing'
+        }
+      } catch {
+        // Stripe sync is best-effort; profile still loads from DB.
+      }
+    }
 
     setUsername(row?.username ?? '')
     setFavoritePlayer(row?.favorite_player ?? '')

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useGSAP } from '@gsap/react'
 import { useSearchParams } from 'react-router-dom'
-import { startStripeCheckout } from '../../lib/billing'
+import { startStripeCheckout, syncStripeSubscription } from '../../lib/billing'
 import { supabase } from '../../lib/supabaseClient'
 import { fetchSubscriptionState } from '../../lib/subscription'
 import { scrollEntrance } from '../../theme/animations'
@@ -108,15 +108,38 @@ export default function NuckyAIContainer() {
   )
 
   useEffect(() => {
-    void loadProfile()
-    void loadConversations()
-  }, [loadProfile, loadConversations])
+    void (async () => {
+      if (!user) {
+        setProfile(null)
+        setIsSubscribed(false)
+        return
+      }
+      const state = await fetchSubscriptionState(user.id)
+      if (!state.isSubscribed) {
+        try {
+          await syncStripeSubscription()
+        } catch (err) {
+          console.warn('[nuckyAI] stripe sync failed', err)
+        }
+      }
+      await loadProfile()
+      await loadConversations()
+    })()
+  }, [user, loadProfile, loadConversations])
 
   useEffect(() => {
     const checkout = searchParams.get('checkout')
     if (checkout === 'success') {
+      const sessionId = searchParams.get('session_id')
+      void (async () => {
+        try {
+          await syncStripeSubscription(sessionId ?? undefined)
+        } catch (err) {
+          console.warn('[nuckyAI] checkout sync failed', err)
+        }
+        await loadProfile()
+      })()
       setToast('welcome to nuckyAI')
-      void loadProfile()
       const next = new URLSearchParams(searchParams)
       next.delete('checkout')
       next.delete('session_id')
@@ -337,14 +360,20 @@ export default function NuckyAIContainer() {
   )
 
   const heading = useMemo(() => {
-    if (!profile) return 'nucky'
-    return profile.username ? `nucky — @${profile.username}` : 'nucky'
+    if (!profile) return 'nuckyAI'
+    return profile.username ? `nuckyAI — @${profile.username}` : 'nuckyAI'
   }, [profile])
 
   const subscribe = useCallback(async () => {
     if (!user) return
     setCheckoutLoading(true)
     try {
+      const synced = await syncStripeSubscription()
+      if (synced.isSubscribed) {
+        await loadProfile()
+        setToast('welcome to nuckyAI')
+        return
+      }
       const url = await startStripeCheckout()
       window.location.assign(url)
     } catch {
@@ -352,12 +381,12 @@ export default function NuckyAIContainer() {
     } finally {
       setCheckoutLoading(false)
     }
-  }, [user])
+  }, [user, loadProfile])
 
   if (!user) {
     return (
       <div className="card nuckyai-shell">
-        <h2 className="card-title">nucky</h2>
+        <h2 className="card-title">nuckyAI</h2>
         <p className="text-secondary text-sm mt-3">login required.</p>
       </div>
     )
@@ -366,14 +395,14 @@ export default function NuckyAIContainer() {
   if (!isSubscribed) {
     return (
       <div className="card nuckyai-shell">
-        <h2 className="card-title">nucky</h2>
+        <h2 className="card-title">nuckyAI</h2>
         {toast && (
           <div className="mb-3 border border-[var(--border-subtle)] bg-[var(--bg-elevated)] px-3 py-2 text-xs text-[var(--text-secondary)]">
             {toast}
           </div>
         )}
         <div className="border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-4 mt-3 max-w-xl">
-          <h3 className="text-sm text-[var(--text-primary)] mb-2">unlock nucky</h3>
+          <h3 className="text-sm text-[var(--text-primary)] mb-2">unlock nuckyAI</h3>
           <ul className="list-disc pl-5 text-sm text-[var(--text-secondary)] space-y-1">
             <li>your lolesports analyst — stats, matchups, MSI reads, patch meta</li>
             <li>grounded pro play data + weekly esports context</li>
