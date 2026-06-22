@@ -14,6 +14,12 @@ import {
 } from './advancedStats'
 import { parseDate as parseCalendarDate } from './weeklyWindow'
 import { formatGameDate } from './format'
+import {
+  compareSeriesGames,
+  groupGamesIntoSeries,
+  isValidSeriesScore,
+  seriesKey,
+} from './seriesGrouping'
 
 export type { SeriesFacts }
 
@@ -177,13 +183,6 @@ function startOfDay(date: Date): Date {
   return out
 }
 
-function daysBetween(a: string, b: string): number {
-  const da = parseDate(a)
-  const db = parseDate(b)
-  if (!da || !db) return 999
-  return Math.abs(da.getTime() - db.getTime()) / (1000 * 60 * 60 * 24)
-}
-
 export function formatRecapDate(iso: string): string {
   return formatGameDate(iso)
 }
@@ -275,7 +274,7 @@ function collectWeeklyGames(players: Player[], window: WeeklyRecapWindow): Parse
     }
   }
 
-  return games.sort((a, b) => a.date.localeCompare(b.date))
+  return games.sort(compareSeriesGames)
 }
 
 function collectTeamGames(players: Player[], team: string): TeamGameRecord[] {
@@ -302,36 +301,26 @@ function collectTeamGames(players: Player[], team: string): TeamGameRecord[] {
   return games.sort((a, b) => a.date.localeCompare(b.date) || a.id.localeCompare(b.id))
 }
 
-function groupTeamSeriesHistory(games: TeamGameRecord[]): HistoricalSeries[] {
+function groupTeamSeriesHistory(games: TeamGameRecord[], team: string): HistoricalSeries[] {
   if (!games.length) return []
-  const out: HistoricalSeries[] = []
-  let bucket: TeamGameRecord[] = [games[0]!]
 
-  for (let i = 1; i < games.length; i++) {
-    const g = games[i]!
-    const last = bucket[bucket.length - 1]!
-    const sameOpp = g.opponent === last.opponent
-    const closeDates = daysBetween(last.date, g.date) <= 5
-    if (sameOpp && closeDates) {
-      bucket.push(g)
-    } else {
-      out.push(summarizeHistoricalSeries(bucket))
-      bucket = [g]
+  const chrono = games.map((g) => ({
+    id: g.id,
+    date: g.date,
+    winner: g.won ? team : g.opponent,
+    loser: g.won ? g.opponent : team,
+  }))
+
+  return groupGamesIntoSeries(chrono).map((bucket) => {
+    const opponent = bucket.teamA === team ? bucket.teamB : bucket.teamA
+    const wins = bucket.games.filter((g) => g.winner === team).length
+    return {
+      opponent,
+      wins,
+      losses: bucket.games.length - wins,
+      lastDate: bucket.games[bucket.games.length - 1]!.date,
     }
-  }
-  out.push(summarizeHistoricalSeries(bucket))
-  return out
-}
-
-function summarizeHistoricalSeries(games: TeamGameRecord[]): HistoricalSeries {
-  const wins = games.filter((g) => g.won).length
-  const losses = games.length - wins
-  return {
-    opponent: games[0]!.opponent,
-    wins,
-    losses,
-    lastDate: games[games.length - 1]!.date,
-  }
+  })
 }
 
 function countSeriesWinStreak(
@@ -370,20 +359,8 @@ function findStarPlayer(players: Player[], team: string): Player | null {
   )
 }
 
-function seriesKey(a: string, b: string): string {
-  return [a, b].sort((x, y) => x.localeCompare(y)).join('|')
-}
-
 function groupSeries(games: ParsedGame[]): SeriesBucket[] {
-  const map = new Map<string, SeriesBucket>()
-  for (const g of games) {
-    const key = seriesKey(g.winner, g.loser)
-    const [teamA, teamB] = [g.winner, g.loser].sort((a, b) => a.localeCompare(b))
-    const bucket = map.get(key) ?? { teamA, teamB, games: [] }
-    bucket.games.push(g)
-    map.set(key, bucket)
-  }
-  return [...map.values()]
+  return groupGamesIntoSeries(games)
 }
 
 function splitWinrate(teams: Team[], name: string): number {
@@ -1173,8 +1150,8 @@ function summarizeSeries(
   const blowout = domWins >= 2 && vicWins === 0
   const upset = upsetFromWr(domSplitWr, vicSplitWr)
 
-  const domHistory = groupTeamSeriesHistory(collectTeamGames(players, dominant))
-  const vicHistory = groupTeamSeriesHistory(collectTeamGames(players, victim))
+  const domHistory = groupTeamSeriesHistory(collectTeamGames(players, dominant), dominant)
+  const vicHistory = groupTeamSeriesHistory(collectTeamGames(players, victim), victim)
   const seriesStreak =
     countSeriesWinStreak(domHistory, firstGameDate, victim) +
     (domWins > vicWins ? 1 : 0)
@@ -1286,11 +1263,14 @@ export function buildWeeklyRecapLines(
   for (let i = 0; i < series.length; i++) {
     const bucket = series[i]!
     if (bucket.games.length < 1) continue
-    const line = summarizeSeries(bucket, teams, players, weekCounts, i, ledger)
-    if (!line) continue
 
     const winsA = bucket.games.filter((g) => g.winner === bucket.teamA).length
     const winsB = bucket.games.length - winsA
+    if (!isValidSeriesScore(winsA, winsB)) continue
+
+    const line = summarizeSeries(bucket, teams, players, weekCounts, i, ledger)
+    if (!line) continue
+
     const dominant = winsA >= winsB ? bucket.teamA : bucket.teamB
     const victim = dominant === bucket.teamA ? bucket.teamB : bucket.teamA
     const domWins = Math.max(winsA, winsB)
@@ -1391,19 +1371,27 @@ export function collectSeriesBriefs(
 
     const winsA = bucket.games.filter((g) => g.winner === bucket.teamA).length
     const winsB = bucket.games.length - winsA
+    if (!isValidSeriesScore(winsA, winsB)) {
+      console.warn(
+        `Skipping invalid series score ${Math.max(winsA, winsB)}-${Math.min(winsA, winsB)} ` +
+          `(${bucket.teamA} vs ${bucket.teamB}, ${bucket.games.length} games)`,
+      )
+      continue
+    }
+
     const dominant = winsA >= winsB ? bucket.teamA : bucket.teamB
     const victim = dominant === bucket.teamA ? bucket.teamB : bucket.teamA
     const domWins = Math.max(winsA, winsB)
     const vicWins = Math.min(winsA, winsB)
 
-    const ordered = [...bucket.games].sort((a, b) => a.date.localeCompare(b.date))
+    const ordered = [...bucket.games].sort(compareSeriesGames)
     const latestDate = ordered[ordered.length - 1]?.date ?? bucket.games[0]!.date
     const firstGameDate = ordered[0]!.date
     const firstLoss = vicWins > 0 ? ordered.findIndex((g) => g.winner === victim) : -1
     const reverseSweep = vicWins > 0 && domWins > vicWins && firstLoss === 0
 
-    const domHistory = groupTeamSeriesHistory(collectTeamGames(players, dominant))
-    const vicHistory = groupTeamSeriesHistory(collectTeamGames(players, victim))
+    const domHistory = groupTeamSeriesHistory(collectTeamGames(players, dominant), dominant)
+    const vicHistory = groupTeamSeriesHistory(collectTeamGames(players, victim), victim)
     const seriesStreak =
       countSeriesWinStreak(domHistory, firstGameDate, victim) + (domWins > vicWins ? 1 : 0)
     const victimSlump = countSeriesLossStreak(vicHistory, firstGameDate)
