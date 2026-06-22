@@ -9,6 +9,8 @@ import {
   findAdvancedOutliers,
   findGameAdvancedHighlights,
   formatAdvancedOutlierLine,
+  dmgGoldRatioFromGame,
+  dmgPerGoldFromGame,
 } from './advancedStats'
 import { parseDate as parseCalendarDate } from './weeklyWindow'
 import { formatGameDate } from './format'
@@ -55,8 +57,14 @@ interface GamePlayer {
   role: RoleKey | null
   kda: number
   gd15: number
+  xpd15: number
+  csd15: number
   kp: number
   dmgShare: number
+  goldShare: number
+  kaPerMin: number
+  dmgGoldRatio: number
+  dmgPerGold: number
   won: boolean
 }
 
@@ -250,8 +258,14 @@ function collectWeeklyGames(players: Player[], window: WeeklyRecapWindow): Parse
             role: normalizePosition(p.position),
             kda: pg.kda,
             gd15: pg.gd15,
+            xpd15: pg.xpd15 ?? 0,
+            csd15: pg.csd15 ?? 0,
             kp: pg.kp ?? 0,
             dmgShare: pg.dmgShare ?? 0,
+            goldShare: pg.goldShare ?? 0,
+            kaPerMin: pg.kaPerMin ?? 0,
+            dmgGoldRatio: dmgGoldRatioFromGame(pg) ?? 0,
+            dmgPerGold: dmgPerGoldFromGame(pg),
             won: pg.result === 1,
           })
         }

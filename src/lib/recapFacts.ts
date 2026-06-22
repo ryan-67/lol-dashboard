@@ -13,9 +13,23 @@ export interface PlayerPerformanceFact {
   avgKda: number
   avgDmg: number
   avgGd15: number
+  avgXpd15: number
+  avgCsd15: number
   avgKp: number
+  avgGoldShare: number
+  avgKaPerMin: number
+  avgDmgGoldRatio: number
+  avgDmgPerGold: number
   champions: string[]
+  /** Role-weighted stat callouts the LLM should cite instead of defaulting to KDA. */
   notes: string[]
+}
+
+export interface SeriesParticipant {
+  ign: string
+  team: string
+  role: RoleKey | null
+  champions: string[]
 }
 
 export interface GameResultFact {
@@ -62,6 +76,8 @@ export interface SeriesFacts {
   loserStinkers: PlayerPerformanceFact[]
   gameFlow: GameResultFact[]
   narrativeHints: string[]
+  /** Full series roster with exact ign spellings for LLM entity grounding. */
+  participants: SeriesParticipant[]
   /** @deprecated use loserStinkers */
   loserHorrors: string[]
   /** @deprecated use winnerStars */
@@ -77,8 +93,14 @@ interface GamePlayer {
   role: RoleKey | null
   kda: number
   gd15: number
+  xpd15: number
+  csd15: number
   kp: number
   dmgShare: number
+  goldShare: number
+  kaPerMin: number
+  dmgGoldRatio: number
+  dmgPerGold: number
   won: boolean
 }
 
@@ -115,11 +137,21 @@ function upsetFromWr(dom: number, vic: number): boolean {
   return dom + 8 < vic
 }
 
+type PlayerAgg = PlayerPerformanceFact & {
+  _kda: number
+  _dmg: number
+  _gd: number
+  _xpd: number
+  _csd: number
+  _kp: number
+  _gold: number
+  _ka: number
+  _dmgGold: number
+  _dmgPerGold: number
+}
+
 function aggregateSeriesPlayerStats(bucket: SeriesBucket): PlayerPerformanceFact[] {
-  const map = new Map<
-    string,
-    PlayerPerformanceFact & { _kda: number; _dmg: number; _gd: number; _kp: number }
-  >()
+  const map = new Map<string, PlayerAgg>()
 
   for (const g of bucket.games) {
     for (const p of g.players) {
@@ -133,32 +165,58 @@ function aggregateSeriesPlayerStats(bucket: SeriesBucket): PlayerPerformanceFact
         avgKda: 0,
         avgDmg: 0,
         avgGd15: 0,
+        avgXpd15: 0,
+        avgCsd15: 0,
         avgKp: 0,
+        avgGoldShare: 0,
+        avgKaPerMin: 0,
+        avgDmgGoldRatio: 0,
+        avgDmgPerGold: 0,
         champions: [],
         notes: [],
         _kda: 0,
         _dmg: 0,
         _gd: 0,
+        _xpd: 0,
+        _csd: 0,
         _kp: 0,
+        _gold: 0,
+        _ka: 0,
+        _dmgGold: 0,
+        _dmgPerGold: 0,
       }
       cur.games++
       if (p.won) cur.wins++
       cur._kda += p.kda
       cur._dmg += p.dmgShare
       cur._gd += p.gd15
+      cur._xpd += p.xpd15
+      cur._csd += p.csd15
       cur._kp += p.kp
+      cur._gold += p.goldShare
+      cur._ka += p.kaPerMin
+      cur._dmgGold += p.dmgGoldRatio
+      cur._dmgPerGold += p.dmgPerGold
       if (p.champion && !cur.champions.includes(p.champion)) cur.champions.push(p.champion)
       map.set(key, cur)
     }
   }
 
-  return [...map.values()].map(({ _kda, _dmg, _gd, _kp, ...s }) => ({
-    ...s,
-    avgKda: _kda / s.games,
-    avgDmg: _dmg / s.games,
-    avgGd15: _gd / s.games,
-    avgKp: _kp / s.games,
-  }))
+  return [...map.values()].map(
+    ({ _kda, _dmg, _gd, _xpd, _csd, _kp, _gold, _ka, _dmgGold, _dmgPerGold, ...s }) => ({
+      ...s,
+      avgKda: _kda / s.games,
+      avgDmg: _dmg / s.games,
+      avgGd15: _gd / s.games,
+      avgXpd15: _xpd / s.games,
+      avgCsd15: _csd / s.games,
+      avgKp: _kp / s.games,
+      avgGoldShare: _gold / s.games,
+      avgKaPerMin: _ka / s.games,
+      avgDmgGoldRatio: _dmgGold / s.games,
+      avgDmgPerGold: _dmgPerGold / s.games,
+    }),
+  )
 }
 
 function lostLaneEveryGame(bucket: SeriesBucket, playerName: string): boolean {
@@ -185,31 +243,137 @@ function wonLaneEveryGame(bucket: SeriesBucket, playerName: string): boolean {
   return true
 }
 
+function fmtSigned(n: number, digits = 0): string {
+  const v = n.toFixed(digits)
+  return n > 0 ? `+${v}` : v
+}
+
+function isStandoutByRole(p: PlayerPerformanceFact): boolean {
+  switch (p.role) {
+    case 'top':
+      return p.avgGd15 >= 80 || p.avgCsd15 >= 10 || p.notes.some((n) => n.includes('outlaned'))
+    case 'jungle':
+      return p.avgKp >= 68 || p.avgKaPerMin >= 0.14 || p.notes.some((n) => n.includes('outjungled'))
+    case 'mid':
+      return p.avgDmg >= 27 || p.avgDmgGoldRatio >= 1.15
+    case 'adc':
+      return p.avgDmg >= 27 || (p.avgKda >= 4 && p.avgDmg >= 24) || p.avgDmgGoldRatio >= 1.15
+    case 'support':
+      return p.avgKp >= 72 || p.avgKaPerMin >= 0.12
+    default:
+      return p.avgDmg >= 28 || p.avgKda >= 4
+  }
+}
+
+function isConcernByRole(p: PlayerPerformanceFact): boolean {
+  if (p.notes.some((n) => n.includes('stinker') || n.includes('lost lane') || n.includes('outjungled by'))) {
+    return true
+  }
+  switch (p.role) {
+    case 'top':
+      return p.avgGd15 <= -80 || p.avgCsd15 <= -10
+    case 'jungle':
+      return p.avgKp <= 48 || p.avgKaPerMin <= 0.08
+    case 'mid':
+      return p.avgDmg <= 22 || p.avgDmgGoldRatio <= 0.85
+    case 'adc':
+      return p.avgKda <= 2.2 || p.avgDmg <= 22 || p.avgDmgGoldRatio <= 0.85
+    case 'support':
+      return p.avgKp <= 55
+    default:
+      return p.avgKda < 2.2
+  }
+}
+
+function playerImpactScore(p: PlayerPerformanceFact): number {
+  switch (p.role) {
+    case 'top':
+      return p.avgGd15 * 0.35 + p.avgCsd15 * 8 + p.avgXpd15 * 0.15
+    case 'jungle':
+      return p.avgKp * 0.55 + p.avgKaPerMin * 120 + p.avgGd15 * 0.05
+    case 'mid':
+      return p.avgDmg * 0.55 + p.avgDmgGoldRatio * 18 + p.avgDmgPerGold * 8
+    case 'adc':
+      return p.avgDmg * 0.45 + p.avgDmgGoldRatio * 14 + p.avgKda * 0.25
+    case 'support':
+      return p.avgKp * 0.45 + p.avgKaPerMin * 100
+    default:
+      return p.avgDmg * 0.5 + p.avgKda * 0.3
+  }
+}
+
 function annotatePlayer(
   p: PlayerPerformanceFact,
   bucket: SeriesBucket,
   seriesWinner: string,
 ): PlayerPerformanceFact {
   const notes: string[] = []
-  if (p.avgKda >= 5) notes.push(`${p.avgKda.toFixed(1)} kda — popoff`)
-  else if (p.avgKda >= 3.5) notes.push(`${p.avgKda.toFixed(1)} kda — strong`)
-  else if (p.avgKda < 2) notes.push(`${p.avgKda.toFixed(1)} kda — stinker`)
+  const role = p.role
 
-  if (p.avgDmg >= 30) notes.push(`${p.avgDmg.toFixed(0)}% dmg share`)
-  if (p.avgKp >= 75) notes.push(`${p.avgKp.toFixed(0)}% kp`)
   if (p.champions.length) notes.push(`champs: ${p.champions.join(', ')}`)
 
   if (wonLaneEveryGame(bucket, p.name)) {
-    const verb = p.role === 'jungle' ? 'outjungled' : 'outlaned'
+    const verb = role === 'jungle' ? 'outjungled' : 'outlaned'
     notes.push(`${verb} lane opponent every game`)
   }
   if (lostLaneEveryGame(bucket, p.name)) {
-    const verb = p.role === 'jungle' ? 'outjungled by' : 'lost lane to'
+    const verb = role === 'jungle' ? 'outjungled by' : 'lost lane to'
     notes.push(`${verb} opponent every game`)
   }
 
-  if (p.team === seriesWinner && p.wins >= 2 && p.avgDmg >= 28 && p.avgKda >= 3.2) {
-    notes.push('series carry')
+  switch (role) {
+    case 'top': {
+      if (p.avgGd15 >= 120) notes.push(`${fmtSigned(p.avgGd15)} gd@15 avg — lane kingdom`)
+      else if (p.avgGd15 >= 50) notes.push(`${fmtSigned(p.avgGd15)} gd@15 avg — won lane`)
+      else if (p.avgGd15 <= -100) notes.push(`${fmtSigned(p.avgGd15)} gd@15 avg — got gapped`)
+      if (Math.abs(p.avgXpd15) >= 80) notes.push(`${fmtSigned(p.avgXpd15)} xpd@15 avg`)
+      if (Math.abs(p.avgCsd15) >= 8) notes.push(`${fmtSigned(p.avgCsd15, 1)} cs@15 diff avg`)
+      break
+    }
+    case 'jungle': {
+      if (p.avgKp >= 72) notes.push(`${p.avgKp.toFixed(0)}% kp — early facilitator`)
+      else if (p.avgKp <= 45) notes.push(`${p.avgKp.toFixed(0)}% kp — low early impact`)
+      if (p.avgKaPerMin >= 0.16) notes.push(`${p.avgKaPerMin.toFixed(2)} k+a/min — active map`)
+      else if (p.avgKaPerMin <= 0.08) notes.push(`${p.avgKaPerMin.toFixed(2)} k+a/min — pretty inactive`)
+      break
+    }
+    case 'mid': {
+      if (p.avgDmg >= 30) notes.push(`${p.avgDmg.toFixed(0)}% dmg share — hard carry`)
+      else if (p.avgDmg >= 25) notes.push(`${p.avgDmg.toFixed(0)}% dmg share — strong`)
+      else if (p.avgDmg <= 20) notes.push(`${p.avgDmg.toFixed(0)}% dmg share — quiet`)
+      if (p.avgDmgGoldRatio >= 1.2) notes.push(`${p.avgDmgGoldRatio.toFixed(2)} dmg%/gold% — efficient carry`)
+      else if (p.avgDmgGoldRatio > 0 && p.avgDmgGoldRatio <= 0.85) {
+        notes.push(`${p.avgDmgGoldRatio.toFixed(2)} dmg%/gold% — ate gold, low impact`)
+      }
+      if (p.avgDmgPerGold >= 0.01) notes.push(`${p.avgDmgPerGold.toFixed(3)} dmg/gold`)
+      break
+    }
+    case 'adc': {
+      if (p.avgDmg >= 30) notes.push(`${p.avgDmg.toFixed(0)}% dmg share — hard carry`)
+      else if (p.avgDmg <= 22) notes.push(`${p.avgDmg.toFixed(0)}% dmg share — low output`)
+      if (p.avgKda >= 5) notes.push(`${p.avgKda.toFixed(1)} kda — clean positioning`)
+      else if (p.avgKda < 2) notes.push(`${p.avgKda.toFixed(1)} kda — dying too much`)
+      if (p.avgDmgGoldRatio >= 1.2) notes.push(`${p.avgDmgGoldRatio.toFixed(2)} dmg%/gold% — efficient`)
+      else if (p.avgDmgGoldRatio > 0 && p.avgDmgGoldRatio <= 0.85) {
+        notes.push(`${p.avgDmgGoldRatio.toFixed(2)} dmg%/gold% — resource hog`)
+      }
+      break
+    }
+    case 'support': {
+      if (p.avgKp >= 75) notes.push(`${p.avgKp.toFixed(0)}% kp — everywhere`)
+      else if (p.avgKp <= 52) notes.push(`${p.avgKp.toFixed(0)}% kp — low presence`)
+      if (p.avgKaPerMin >= 0.14) notes.push(`${p.avgKaPerMin.toFixed(2)} k+a/min`)
+      break
+    }
+    default: {
+      if (p.avgDmg >= 28) notes.push(`${p.avgDmg.toFixed(0)}% dmg share`)
+      if (p.avgKda >= 4) notes.push(`${p.avgKda.toFixed(1)} kda`)
+      else if (p.avgKda < 2) notes.push(`${p.avgKda.toFixed(1)} kda — stinker`)
+    }
+  }
+
+  if (p.team === seriesWinner && p.wins >= 2 && isStandoutByRole(p)) {
+    notes.push('series standout')
   }
 
   return { ...p, notes: [...new Set(notes)] }
@@ -364,33 +528,23 @@ export function buildSeriesFacts(
   const messySeries = vicWins >= 2 && domWins >= 2 && bucket.games.length >= 4
 
   const winnerStars = winPlayers
-    .filter(
-      (p) =>
-        p.notes.some((n) => n.includes('carry') || n.includes('popoff') || n.includes('strong')) ||
-        p.avgKda >= 3.5 ||
-        p.avgDmg >= 28,
-    )
-    .sort((a, b) => b.avgKda * 0.4 + b.avgDmg * 0.6 - (a.avgKda * 0.4 + a.avgDmg * 0.6))
+    .filter((p) => isStandoutByRole(p) || p.notes.some((n) => n.includes('standout')))
+    .sort((a, b) => playerImpactScore(b) - playerImpactScore(a))
     .slice(0, 4)
 
   const winnerConcerns = winPlayers
-    .filter(
-      (p) =>
-        p.notes.some((n) => n.includes('stinker') || n.includes('lost lane') || n.includes('outjungled by')) ||
-        p.avgKda < 2.3 ||
-        lostLaneEveryGame(bucket, p.name),
-    )
-    .sort((a, b) => a.avgKda - b.avgKda)
+    .filter((p) => isConcernByRole(p))
+    .sort((a, b) => playerImpactScore(a) - playerImpactScore(b))
     .slice(0, 3)
 
   const loserStinkers = losePlayers
-    .filter((p) => p.avgKda < 2.2 || p.notes.some((n) => n.includes('stinker')))
-    .sort((a, b) => a.avgKda - b.avgKda)
+    .filter((p) => isConcernByRole(p))
+    .sort((a, b) => playerImpactScore(a) - playerImpactScore(b))
     .slice(0, 3)
 
   const loserBrightSpots = losePlayers
-    .filter((p) => p.avgKda >= 3 || p.avgDmg >= 28)
-    .sort((a, b) => b.avgKda * 0.5 + b.avgDmg * 0.5 - (a.avgKda * 0.5 + a.avgDmg * 0.5))
+    .filter((p) => isStandoutByRole(p))
+    .sort((a, b) => playerImpactScore(b) - playerImpactScore(a))
     .slice(0, 2)
 
   const topCarry = winnerStars[0] ?? null
@@ -429,6 +583,13 @@ export function buildSeriesFacts(
   const laneDuelPlayer = laneDuel
     ? playerStats.find((p) => p.name === laneDuel.dominator)
     : null
+
+  const participants: SeriesParticipant[] = playerStats.map((p) => ({
+    ign: p.name.toLowerCase(),
+    team: p.team,
+    role: p.role,
+    champions: p.champions.map((c) => c.toLowerCase()),
+  }))
 
   return {
     winner: winnerCanon,
@@ -471,6 +632,7 @@ export function buildSeriesFacts(
     loserStinkers,
     gameFlow,
     narrativeHints,
+    participants,
     loserHorrors: loserStinkers.map((p) => p.name),
     highlights: winnerStars,
     loserStandout: loserBrightSpots[0]

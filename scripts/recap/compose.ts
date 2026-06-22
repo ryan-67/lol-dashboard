@@ -5,6 +5,12 @@ import { factsToPromptJson } from '../../src/lib/recapFacts.ts'
 import { recapTeamTag } from '../../src/lib/recapTeamTag.ts'
 import { teamSearchAbbreviation } from '../../src/lib/entities/entityMap.ts'
 import { resolveTeamCanonicalName } from '../../src/lib/entities/slugs.ts'
+import {
+  buildRecapEntityGlossary,
+  collectAllowedIgns,
+  detectPlayerNameHallucination,
+  glossaryToPromptJson,
+} from '../../src/lib/recapEntityGlossary.ts'
 import { generateRecapJson } from './openrouter.ts'
 
 const WINNER_TOKEN = '{{WINNER}}'
@@ -17,19 +23,31 @@ Voice: lowercase, blunt, casual fan energy (twitch/reddit/x). NOT corporate broa
 Your job: one cohesive recap (2–3 sentences, ~250–380 chars) that:
 1. Opens with STAKES / CONTEXT when [EXTERNAL_CONTEXT] supports it (MSI qualification, title race, slump, revenge, playoffs) — cite only if RAG/context mentions it
 2. States the series outcome clearly with exact score from facts.score
-3. PRAISE standouts using facts.winnerStars / laneDuel / topCarry — cite real stats & champs from facts
-4. BLUNTLY call out underperformers — facts.winnerConcerns (won but int'd), facts.loserStinkers, facts.leadBlownBy choke jobs. Be direct ("stinker", "lost lane every game", "might be the weak point")
+3. PRAISE standouts using facts.winnerStars / laneDuel / topCarry — cite role-relevant stats from their notes (NOT default KDA for every player)
+4. BLUNTLY call out underperformers — facts.winnerConcerns, facts.loserStinkers, facts.leadBlownBy. Be direct ("stinker", "lost lane every game", "might be the weak point")
 5. Optional closing question or implication when natural
 
-Team references: use ONLY the tokens {{WINNER}} and {{LOSER}} (never raw team names or abbrevs). UI renders logos from these tokens.
-Player names: lowercase ign only.
-Jungle: "outjungled" never "outlaned". Use facts.laneDuel.advantageVerb when relevant.
+ENTITY RULES (critical):
+- [ENTITY_GLOSSARY] lists exact player ign and champion spellings for THIS series
+- Player names: use ONLY ign strings from glossary, lowercase, exact spelling — never conjugate, pluralize, or morph (Perfect ≠ perfecting, ShowMaker ≠ showmaking)
+- Champion names: exact glossary spelling, lowercase
+- Team references: use ONLY tokens {{WINNER}} and {{LOSER}} (never raw team names or abbrevs)
+
+ROLE-SPECIFIC STATS (cite from facts.*.notes — do NOT lean on KDA alone):
+- top: gd@15, xpd@15, cs@15 diff — laning gaps matter most
+- jungle: kp % and k+a/min — early map influence; say "outjungled" never "outlaned"
+- mid: dmg share %, dmg%/gold%, dmg/gold — carry impact vs resource usage
+- adc: dmg share % AND kda (positioning/deaths) plus dmg%/gold% when notable
+- support: kp % and k+a/min
+- KDA alone is weak signal (winners inflate KDA) — prefer the role stats above
+- Use facts.laneDuel.advantageVerb when relevant
+
 Use ONLY numbers/stats from [FACTS]. RAG may add narrative stakes but cannot contradict facts.
 
 Style examples (structure + vibe only):
-- "{{WINNER}} continues their good form, taking down {{LOSER}} 3-1 to qualify for MSI 2026 - zeka had great series, outlaning faker every game and having massive carry performances on ryze and yone. gumayusi lost lane every game tho - he might be the only weak point in this dominant {{WINNER}} team"
-- "{{WINNER}} looks like title contenders once again, sweeping {{LOSER}} 3-0 despite tarzan outjungling xun in games 1 and 2. knight's ahri looks unstoppable yet again (13.7 kda)"
-- "messy series as {{LOSER}} choke a 2-0 lead, getting reverse swept by {{WINNER}} - showmaker tried his best but siwoo and smash had some stinker performances"
+- "{{WINNER}} continues their good form, taking down {{LOSER}} 3-1 to qualify for MSI 2026 - zeka had great series, outlaning faker every game with +420 gd@15 avg on ryze and yone. gumayusi lost lane every game tho (-180 gd@15) - he might be the only weak point in this dominant {{WINNER}} team"
+- "{{WINNER}} looks like title contenders once again, sweeping {{LOSER}} 3-0 despite tarzan outjungling xun in games 1 and 2 (78% kp, 0.18 k+a/min). knight's ahri looks unstoppable yet again (32% dmg share, 1.35 dmg%/gold%)"
+- "messy series as {{LOSER}} choke a 2-0 lead, getting reverse swept by {{WINNER}} - showmaker tried his best but siwoo and smash had some stinker performances (sub-20% dmg share)"
 
 Output JSON only:
 { "narrative": "full recap with {{WINNER}} and {{LOSER}} tokens" }`
@@ -112,7 +130,7 @@ function parseNarrative(raw: unknown): string {
   return narrative
 }
 
-function validateLine(segments: WeeklyRecapSegment[], brief: SeriesBrief): void {
+function validateLine(segments: WeeklyRecapSegment[], brief: SeriesBrief, narrative: string): void {
   const plain = segments.map((s) => (s.kind === 'text' ? s.value : s.label)).join('')
   if (!plain.includes(brief.facts.score)) {
     console.warn(`  score ${brief.facts.score} not found in: ${plain}`)
@@ -121,6 +139,36 @@ function validateLine(segments: WeeklyRecapSegment[], brief: SeriesBrief): void 
   if (teamSegs.length < 2) {
     throw new Error('Narrative missing team tokens — need {{WINNER}} and {{LOSER}}')
   }
+
+  const nameErr = detectPlayerNameHallucination(narrative, collectAllowedIgns(brief.facts))
+  if (nameErr) throw new Error(nameErr)
+}
+
+function buildUserPrompt(brief: SeriesBrief, ragContext: string, correction?: string): string {
+  const factsJson = factsToPromptJson(brief.facts)
+  const glossaryJson = glossaryToPromptJson(buildRecapEntityGlossary(brief.facts))
+
+  const parts = [
+    `[FACTS]
+${factsJson}`,
+    `[ENTITY_GLOSSARY — exact spellings only; never alter player igns]
+${glossaryJson}`,
+    `[EXTERNAL_CONTEXT — reddit threads, liquipedia, standings/playoffs narrative; use for stakes/implications only]
+${ragContext || '(none — lean on facts.narrativeHints and stats)'}`,
+  ]
+
+  if (correction) {
+    parts.push(`[CORRECTION — previous draft rejected]
+${correction}`)
+  }
+
+  parts.push(
+    `Write the full recap for this ${brief.facts.league} series. Winner={{WINNER}} (${brief.facts.winnerAbbr}), Loser={{LOSER}} (${brief.facts.loserAbbr}), score ${brief.facts.score}.
+Must include {{WINNER}} and {{LOSER}} at least once each. Call out at least one standout AND one concern/stinker when facts support it.
+Cite role-relevant stats from facts.*.notes — avoid listing KDA for every player.`,
+  )
+
+  return parts.join('\n\n')
 }
 
 export async function generateAiRecapLine(
@@ -128,40 +176,45 @@ export async function generateAiRecapLine(
   ragContext: string,
   model?: string,
 ): Promise<{ line: WeeklyRecapLine; plainText: string; model: string }> {
-  const factsJson = factsToPromptJson(brief.facts)
-  const userPrompt = `[FACTS]
-${factsJson}
+  const resolvedModel = model ?? process.env.RECAP_LLM_MODEL ?? 'google/gemini-2.5-flash'
+  let correction: string | undefined
+  let lastErr: Error | null = null
 
-[EXTERNAL_CONTEXT — reddit threads, liquipedia, standings/playoffs narrative; use for stakes/implications only]
-${ragContext || '(none — lean on facts.narrativeHints and stats)'}
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      const userPrompt = buildUserPrompt(brief, ragContext, correction)
+      const raw = await generateRecapJson(SYSTEM_PROMPT, userPrompt, resolvedModel)
+      const parsed = JSON.parse(raw) as unknown
+      const narrative = parseNarrative(parsed)
+      const segments = hydrateNarrative(narrative, brief)
+      validateLine(segments, brief, narrative)
 
-Write the full recap for this ${brief.facts.league} series. Winner={{WINNER}} (${brief.facts.winnerAbbr}), Loser={{LOSER}} (${brief.facts.loserAbbr}), score ${brief.facts.score}.
-Must include {{WINNER}} and {{LOSER}} at least once each. Call out at least one standout AND one concern/stinker when facts support it.`
-
-  const raw = await generateRecapJson(SYSTEM_PROMPT, userPrompt, model)
-  const parsed = JSON.parse(raw) as unknown
-  const narrative = parseNarrative(parsed)
-  const segments = hydrateNarrative(narrative, brief)
-  validateLine(segments, brief)
-
-  const line: WeeklyRecapLine = {
-    id: brief.seriesId,
-    date: brief.date,
-    dateLabel: brief.dateLabel,
-    segments,
-    score: {
-      winner: brief.facts.winner,
-      loser: brief.facts.loser,
-      winnerAbbr: brief.facts.winnerAbbr,
-      loserAbbr: brief.facts.loserAbbr,
-      score: brief.facts.score,
-    },
+      const line: WeeklyRecapLine = {
+        id: brief.seriesId,
+        date: brief.date,
+        dateLabel: brief.dateLabel,
+        segments,
+        score: {
+          winner: brief.facts.winner,
+          loser: brief.facts.loser,
+          winnerAbbr: brief.facts.winnerAbbr,
+          loserAbbr: brief.facts.loserAbbr,
+          score: brief.facts.score,
+        },
+      }
+      return {
+        line,
+        plainText: recapLineToText(line),
+        model: resolvedModel,
+      }
+    } catch (err) {
+      lastErr = err instanceof Error ? err : new Error(String(err))
+      correction = lastErr.message
+      if (attempt === 0) console.warn(`  recap validation retry: ${correction}`)
+    }
   }
-  return {
-    line,
-    plainText: recapLineToText(line),
-    model: model ?? process.env.RECAP_LLM_MODEL ?? 'google/gemini-2.5-flash',
-  }
+
+  throw lastErr ?? new Error('AI recap generation failed')
 }
 
 export function briefToTemplateLine(brief: SeriesBrief): WeeklyRecapLine {
