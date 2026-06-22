@@ -4,12 +4,8 @@ import { resolveConversation, persistMessages } from "./helpers/conversation.ts"
 import { corsHeaders } from "./helpers/cors.ts";
 import { createServiceClient, createUserClient, getEnv } from "./helpers/clients.ts";
 import { streamFallback } from "./helpers/stream.ts";
-import {
-  resolveLeagueFromFilters,
-  resolveSplitFromFilters,
-  resolveYearFromFilters,
-  type DashboardFilters,
-} from "./helpers/oeData.ts";
+import type { DashboardFilters } from "./helpers/oeData.ts";
+import { resolveAgentFilters } from "./helpers/agentFilters.ts";
 // 3-layer pipeline: Guardrail Router → Tool Decider → Synthesis.
 import { runGuardrail } from "./pipeline/guardrail.ts";
 import { decideAndFetch } from "./pipeline/toolDecider.ts";
@@ -231,12 +227,10 @@ Deno.serve(async (req) => {
           selectedYears: body.selectedYears,
           selectedSplits: body.selectedSplits,
         };
-        const filters: ResolvedFilters = {
-          league: resolveLeagueFromFilters(dashboardFilters),
-          split: resolveSplitFromFilters(dashboardFilters),
-          year: resolveYearFromFilters(dashboardFilters),
-          rosterSplitHint,
-        };
+        const filters: ResolvedFilters = resolveAgentFilters(message, dashboardFilters);
+        if (rosterSplitHint && !filters.rosterSplitHint) {
+          filters.rosterSplitHint = rosterSplitHint;
+        }
 
         // Text draft input: parse team:champ lists and inject structured extraction.
         let pipelineMessage = message;

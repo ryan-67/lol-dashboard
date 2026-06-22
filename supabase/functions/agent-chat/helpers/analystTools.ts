@@ -16,7 +16,7 @@ const TEAM_ALIASES: Record<string, string> = {
   hle: "Hanwha Life Esports",
   drx: "DRX",
   kt: "KT Rolster",
-  dk: "Dplus KIA",
+  dk: "Dplus Kia",
   g2: "G2 Esports",
   c9: "Cloud9",
   tl: "Team Liquid",
@@ -34,6 +34,12 @@ const PLAYER_ALIASES: Record<string, string> = {
   ruler: "Ruler",
   caps: "Caps",
   knight: "Knight",
+  smash: "Smash",
+  aiming: "Aiming",
+  showmaker: "ShowMaker",
+  bdd: "Bdd",
+  zeka: "Zeka",
+  kanavi: "Kanavi",
 };
 
 export interface ToolResult {
@@ -89,7 +95,7 @@ function normalizeRole(position: string): string | null {
   if (pos === "top") return "top";
   if (pos === "jungle" || pos === "jng") return "jungle";
   if (pos === "mid") return "mid";
-  if (pos === "adc" || pos === "bot") return "adc";
+  if (pos === "adc" || pos === "adcs" || pos === "bot") return "adc";
   if (pos === "support" || pos === "sup") return "support";
   return null;
 }
@@ -164,10 +170,97 @@ function resolveRankingLeague(message: string): string | null {
   return leagueMatch ? leagueMatch[1]!.toUpperCase() : null;
 }
 
+function playerSharePayload(p: MergedPlayer) {
+  return {
+    name: p.name,
+    team: p.team,
+    league: p.league,
+    position: p.position,
+    games: p.games,
+    kda: p.kda,
+    gd15: p.gd15,
+    dmgShare: p.dmgShare,
+    goldShare: p.goldShare,
+    dmgGoldRatio: p.dmgGoldRatio,
+  };
+}
+
+function isTeamShareCompareAsk(message: string, bundle: SliceBundle): boolean {
+  if (
+    !/(dmg%|dmg share|damage share|gold%|gold share|dmg\/gold|dmg%\/gold%|carry impact)/i.test(
+      message,
+    )
+  ) {
+    return false;
+  }
+  if (!/\b(compare|among|between|vs\.?|versus)\b/i.test(message)) return false;
+  return extractTeams(message, bundle.teams).length >= 2;
+}
+
+/** Per-team starter stats for a role — authoritative dmg%/gold% for multi-team compare asks. */
+export function runTeamRoleShareCompare(
+  message: string,
+  bundle: SliceBundle,
+): ToolResult | null {
+  if (!isTeamShareCompareAsk(message, bundle)) return null;
+
+  let roleFilter: string | null = null;
+  const roleMatch = message.match(/\b(top|jungle|jng|mid|adcs?|bot|support|sup)\b/i);
+  if (roleMatch) roleFilter = normalizeRole(roleMatch[1]!);
+  if (!roleFilter && /\badcs?\b/i.test(message)) roleFilter = "adc";
+  if (!roleFilter) return null;
+
+  const teams = extractTeams(message, bundle.teams);
+  if (teams.length < 2) return null;
+
+  const leaguesMentioned = ["LCK", "LPL", "LEC", "LCS"].filter((lg) =>
+    new RegExp(`\\b${lg}\\b`, "i").test(message),
+  );
+  const leagueFilter = leaguesMentioned.length === 1 ? leaguesMentioned[0]! : null;
+
+  const entries: Array<Record<string, unknown>> = [];
+  for (const team of teams) {
+    if (leagueFilter && team.league.toUpperCase() !== leagueFilter) continue;
+
+    const depth = getTeamRosterDepth(bundle, team.name, roleFilter);
+    const starter = depth.starters.find((s) => s.position === roleFilter);
+    if (!starter) continue;
+    const player =
+      bundle.players.find((p) => p.name === starter.name && p.team === depth.team) ??
+      bundle.players.find((p) => p.name === starter.name);
+    if (!player || player.games < 3) continue;
+    entries.push({
+      ...playerSharePayload(player),
+      role: roleFilter,
+    });
+  }
+
+  if (entries.length < 2) return null;
+
+  entries.sort(
+    (a, b) => Number(b.dmgGoldRatio ?? 0) - Number(a.dmgGoldRatio ?? 0),
+  );
+
+  return {
+    tool: "team_role_share_compare",
+    data: {
+      split: bundle.split,
+      league: bundle.league,
+      role: roleFilter ?? "per-team-starter",
+      players: entries,
+      note:
+        "AUTHORITATIVE oe_slices split stats — cite dmgShare, goldShare, and dmgGoldRatio exactly as listed. dmgGoldRatio = dmgShare ÷ goldShare.",
+      source: "oe_slices.players",
+    },
+  };
+}
+
 export function runPlayerRankings(
   message: string,
   bundle: SliceBundle,
 ): ToolResult | null {
+  if (isTeamShareCompareAsk(message, bundle)) return null;
+
   if (
     !/\b(overrated|underrated|best|worst|top|rank|mvp|goat|fraudulent|fraud|frauds?|bum|bums|inters?|trash|flop|underperform|exposed|mid\b|adc|bot|support|jungle)\b/i
       .test(message)
@@ -176,8 +269,9 @@ export function runPlayerRankings(
   }
 
   let roleFilter: string | null = null;
-  const roleMatch = message.match(/\b(top|jungle|jng|mid|adc|bot|support|sup)\b/i);
-  if (roleMatch) roleFilter = normalizeRole(roleMatch[1]);
+  const roleMatch = message.match(/\b(top|jungle|jng|mid|adcs?|bot|support|sup)\b/i);
+  if (roleMatch) roleFilter = normalizeRole(roleMatch[1]!);
+  if (!roleFilter && /\badcs?\b/i.test(message)) roleFilter = "adc";
 
   let pool = bundle.players.filter((p) => p.games >= 5);
   if (roleFilter) {
@@ -258,6 +352,7 @@ export function runPlayerRankings(
         dpm: p.dpm,
         dmgShare: p.dmgShare,
         goldShare: p.goldShare,
+        dmgGoldRatio: p.dmgGoldRatio,
         carryScore: Math.round(p.carryScore * 1000) / 1000,
         score: Math.round(p.score * 1000) / 1000,
       })),
@@ -276,31 +371,15 @@ export function runMentionedPlayers(
     if (p.games < 3) continue;
     const key = p.name.toLowerCase();
     if (lower.includes(key)) {
-      hits.push({
-        name: p.name,
-        team: p.team,
-        league: p.league,
-        position: p.position,
-        games: p.games,
-        kda: p.kda,
-        gd15: p.gd15,
-      });
+      hits.push(playerSharePayload(p));
     }
   }
 
   for (const [alias, canonical] of Object.entries(PLAYER_ALIASES)) {
     if (!lower.includes(alias)) continue;
     const p = resolvePlayer(canonical, bundle.players);
-    if (p && !hits.some((h) => h.name === p.name)) {
-      hits.push({
-        name: p.name,
-        team: p.team,
-        league: p.league,
-        position: p.position,
-        games: p.games,
-        kda: p.kda,
-        gd15: p.gd15,
-      });
+    if (p && p.games >= 3 && !hits.some((h) => h.name === p.name)) {
+      hits.push(playerSharePayload(p));
     }
   }
 
@@ -591,7 +670,13 @@ function extractPlayerName(message: string): string | null {
 }
 
 export function runPlayerStat(message: string, bundle: SliceBundle): ToolResult | null {
-  if (!/\b(kda|stats?|gd@?15|csd@?15|dpm|games|winrate)\b/i.test(message)) return null;
+  if (
+    !/\b(kda|stats?|gd@?15|csd@?15|dpm|games|winrate|dmg%|dmg share|gold%|gold share|dmg\/gold)\b/i.test(
+      message,
+    )
+  ) {
+    return null;
+  }
   const name = extractPlayerName(message);
   if (!name) return null;
 
@@ -623,6 +708,8 @@ export function runPlayerStat(message: string, bundle: SliceBundle): ToolResult 
         csd15: player.csd15,
         dpm: player.dpm,
         dmgShare: player.dmgShare,
+        goldShare: player.goldShare,
+        dmgGoldRatio: player.dmgGoldRatio,
         kp: player.kp,
       },
     },
@@ -906,6 +993,7 @@ export async function buildAnalystContext(
   const tools: ToolResult[] = [];
 
   const candidates = [
+    runTeamRoleShareCompare(message, bundle),
     runPlayerChampionStat(message, bundle),
     runMentionedPlayers(message, bundle),
     runPlayerStat(message, bundle),

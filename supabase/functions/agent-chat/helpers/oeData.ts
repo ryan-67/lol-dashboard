@@ -22,6 +22,15 @@ export interface DashboardFilters {
   selectedSplits?: string[];
 }
 
+/** Agent OE scope — same shape as dashboard filters; narrowed from user message. */
+export type OEFilterParams = DashboardFilters;
+
+export async function resolveCurrentRegionalSplit(
+  service: SupabaseClient,
+): Promise<string> {
+  return resolveSplit(service, undefined, false);
+}
+
 function splitSortKey(splitLabel: string): [number, number, string] {
   const spaceIdx = splitLabel.indexOf(" ");
   const yearPart = spaceIdx >= 0 ? splitLabel.slice(0, spaceIdx) : splitLabel;
@@ -50,6 +59,7 @@ export interface MergedPlayer {
   dpm: number;
   visionScore: number;
   goldShare: number;
+  dmgGoldRatio: number;
   firstBloodRate: number;
   objControl: number;
   gameLog?: Array<{ date: string; result: number; champion: string; kda: number; gd15: number }>;
@@ -281,6 +291,11 @@ function mergePlayers(rows: Array<{ data: Record<string, unknown> }>): MergedPla
         dpm: round(avgWeighted(p.dpm as Array<{ value: number; weight: number }>), 1),
         visionScore: round(avgWeighted(p.visionScore as Array<{ value: number; weight: number }>), 1),
         goldShare: round(avgWeighted(p.goldShare as Array<{ value: number; weight: number }>), 1),
+        dmgGoldRatio: (() => {
+          const dmg = round(avgWeighted(p.dmgShare as Array<{ value: number; weight: number }>), 1);
+          const gold = round(avgWeighted(p.goldShare as Array<{ value: number; weight: number }>), 1);
+          return gold > 0 ? round(dmg / gold, 2) : 0;
+        })(),
         firstBloodRate: round(
           avgWeighted(p.firstBloodRate as Array<{ value: number; weight: number }>),
           1,

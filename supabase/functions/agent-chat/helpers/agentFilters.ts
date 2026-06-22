@@ -1,7 +1,13 @@
 import type { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
-import type { OEFilterParams } from "./oeData.ts";
-import { resolveCurrentRegionalSplit } from "./oeData.ts";
+import type { DashboardFilters, OEFilterParams } from "./oeData.ts";
+import {
+  resolveCurrentRegionalSplit,
+  resolveLeagueFromFilters,
+  resolveSplitFromFilters,
+  resolveYearFromFilters,
+} from "./oeData.ts";
 import { isHistoricalQuestion, widenFiltersForQuestion } from "./historicalAnalysis.ts";
+import type { ResolvedFilters } from "../pipeline/types.ts";
 
 const SEASON_WORDS = ["spring", "summer", "winter", "fall", "playoffs", "worlds", "msi"] as const;
 
@@ -92,4 +98,31 @@ export async function buildAgentOEFilters(
   }
 
   return widenFiltersForQuestion(message, filters);
+}
+
+/** Merge dashboard filters with explicit league/year/split from the user message. */
+export function resolveAgentFilters(
+  message: string,
+  dashboard: DashboardFilters,
+): ResolvedFilters {
+  const base: OEFilterParams = {
+    league: resolveLeagueFromFilters(dashboard),
+    split: resolveSplitFromFilters(dashboard),
+    year: resolveYearFromFilters(dashboard),
+    selectedLeagues: dashboard.selectedLeagues,
+    selectedYears: dashboard.selectedYears,
+    selectedSplits: dashboard.selectedSplits,
+  };
+  const scoped = narrowFiltersFromMessage(message, base);
+  const rosterSplitHint =
+    dashboard.split?.trim() && /^\d{4}/.test(dashboard.split.trim())
+      ? dashboard.split.trim()
+      : undefined;
+
+  return {
+    league: scoped.league ?? base.league ?? "All Tier 1",
+    split: scoped.split ?? scoped.selectedSplits?.[0] ?? base.split,
+    year: scoped.year ?? base.year,
+    rosterSplitHint,
+  };
 }

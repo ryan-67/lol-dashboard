@@ -55,6 +55,7 @@ const SQL_COVERING_TOOLS = new Set([
   "team_form",
   "lane_matchup",
   "schedule_lookup",
+  "team_role_share_compare",
 ]);
 
 export function routeTools(message: string, analystToolNames: string[]): ToolRoutePlan {
