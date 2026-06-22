@@ -1029,6 +1029,8 @@ def process_row(row, buckets: dict, team_to_league: dict[str, str]):
             team_meta = bucket["game_team_meta"].get(game_id, {}).get(team_name)
             if team_meta and team_meta.get("turretPlates") is not None:
                 entry["turretPlates"] = team_meta["turretPlates"]
+        if str(row.get("playoffs", "0")) == "1":
+            entry["playoffs"] = True
         p["gameLog"].append(entry)
         if champion:
             cp = p["champions"][champion]

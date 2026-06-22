@@ -3,6 +3,8 @@ import { resolveTeamCanonicalName } from './entities/slugs'
 import { findTeamByName } from './teamAnalytics'
 import { type RoleKey } from './playerRadar'
 import { recapTeamTag } from './recapTeamTag'
+import { analyzeSeriesMomentum } from './seriesMomentum'
+import { compareSeriesGames } from './seriesGrouping'
 
 export interface PlayerPerformanceFact {
   name: string
@@ -450,19 +452,9 @@ function avgTeamGd15(series: SeriesBucket, team: string): number {
   return vals.reduce((s, v) => s + v, 0) / vals.length
 }
 
-function detectLeadBlown(
-  orderedGames: SeriesBucket['games'],
-  seriesWinner: string,
-): string | null {
-  if (orderedGames.length < 3) return null
-  const first = orderedGames[0]!.winner
-  const second = orderedGames[1]!.winner
-  if (first === second && first !== seriesWinner) return first
-  return null
-}
-
 function buildNarrativeHints(opts: {
   reverseSweep: boolean
+  droppedGame1: boolean
   blowout: boolean
   upset: boolean
   messySeries: boolean
@@ -476,8 +468,10 @@ function buildNarrativeHints(opts: {
 }): string[] {
   const hints: string[] = []
   if (opts.leadBlownBy) {
-    hints.push(`${recapTeamTag(opts.leadBlownBy)} blew a multi-game lead and got reverse swept`)
+    hints.push(`${recapTeamTag(opts.leadBlownBy)} blew a 2-0 lead and got reverse swept`)
   } else if (opts.reverseSweep) {
+    hints.push(`${recapTeamTag(opts.winner)} came back from 0-2 to win the series`)
+  } else if (opts.droppedGame1) {
     hints.push(`${recapTeamTag(opts.winner)} dropped game 1 then rallied`)
   }
   if (opts.blowout) hints.push('clean sweep — no games dropped')
@@ -498,7 +492,6 @@ export function buildSeriesFacts(
   teams: Team[],
   weekCounts: Map<string, number>,
   opts: {
-    reverseSweep: boolean
     blowout: boolean
     seriesStreak: number
     victimSlump: number
@@ -523,8 +516,9 @@ export function buildSeriesFacts(
   const winPlayers = playerStats.filter((p) => p.team === winner)
   const losePlayers = playerStats.filter((p) => p.team === loser)
 
-  const ordered = [...bucket.games].sort((a, b) => a.date.localeCompare(b.date))
-  const leadBlownBy = detectLeadBlown(ordered, winner)
+  const ordered = [...bucket.games].sort(compareSeriesGames)
+  const momentum = analyzeSeriesMomentum(bucket.games, winner)
+  const { reverseSweep, droppedGame1, leadBlownBy } = momentum
   const messySeries = vicWins >= 2 && domWins >= 2 && bucket.games.length >= 4
 
   const winnerStars = winPlayers
@@ -567,7 +561,8 @@ export function buildSeriesFacts(
   }))
 
   const narrativeHints = buildNarrativeHints({
-    reverseSweep: opts.reverseSweep,
+    reverseSweep,
+    droppedGame1,
     blowout: domWins >= 2 && vicWins === 0,
     upset: upsetFromWr(domSplitWr, vicSplitWr),
     messySeries,
@@ -601,7 +596,7 @@ export function buildSeriesFacts(
     domWins,
     vicWins,
     gameCount: bucket.games.length,
-    reverseSweep: opts.reverseSweep,
+    reverseSweep,
     blowout: domWins >= 2 && vicWins === 0,
     upset: upsetFromWr(domSplitWr, vicSplitWr),
     messySeries,

@@ -182,34 +182,168 @@ function collectMatchupGames(
   return [...gameMap.values()].sort(compareSeriesGames);
 }
 
-function groupIntoSeries(games: ParsedGame[]): SeriesBucket[] {
-  if (!games.length) return [];
+function countSeriesWins(games: ParsedGame[], team: string): number {
+  return games.filter((g) => g.winner === team).length;
+}
 
-  const buckets: SeriesBucket[] = [];
-  let current: ParsedGame[] = [games[0]!];
+function isValidSeriesScore(wA: number, wB: number): boolean {
+  const max = Math.max(wA, wB);
+  const min = Math.min(wA, wB);
+  if (max >= 3) return max === 3 && min <= 2;
+  if (max === 2) return min <= 1;
+  return false;
+}
 
-  for (let i = 1; i < games.length; i++) {
+function isSeriesComplete(
+  games: ParsedGame[],
+  teamA: string,
+  teamB: string,
+  nextGame?: ParsedGame,
+): boolean {
+  const wA = countSeriesWins(games, teamA);
+  const wB = countSeriesWins(games, teamB);
+  const max = Math.max(wA, wB);
+  const min = Math.min(wA, wB);
+  const total = wA + wB;
+
+  if (max === 3) return true;
+  if (max !== 2 || !isValidSeriesScore(wA, wB)) return false;
+
+  const bo5InProgress = (total === 2 && min === 0) || (total === 3 && min === 1);
+  if (!bo5InProgress) return true;
+  if (!nextGame) return true;
+
+  if (daysBetween(games[games.length - 1]!.date, nextGame.date) > 5) return true;
+
+  const dayGap = daysBetween(games[games.length - 1]!.date, nextGame.date);
+  if (dayGap >= 1 && total === 3 && min === 1) return true;
+
+  return false;
+}
+
+function shouldBreakSeries(
+  bucketGames: ParsedGame[],
+  newGame: ParsedGame,
+  teamA: string,
+  teamB: string,
+): boolean {
+  if (!bucketGames.length) return false;
+  const last = bucketGames[bucketGames.length - 1]!;
+  if (daysBetween(last.date, newGame.date) > 5) return true;
+  return isSeriesComplete(bucketGames, teamA, teamB, newGame);
+}
+
+function isValidGameOrder(games: ParsedGame[], teamA: string, teamB: string): boolean {
+  let wA = 0;
+  let wB = 0;
+  for (let i = 0; i < games.length; i++) {
     const g = games[i]!;
-    const last = current[current.length - 1]!;
-    if (daysBetween(last.date, g.date) <= 5) {
-      current.push(g);
-    } else {
-      buckets.push({
-        teamA: games[0]!.teamA,
-        teamB: games[0]!.teamB,
-        games: current,
-      });
+    if (g.winner === teamA) wA++;
+    else if (g.winner === teamB) wB++;
+    else return false;
+    if (wA === 3 || wB === 3) return i === games.length - 1;
+  }
+  return isValidSeriesScore(wA, wB);
+}
+
+function permuteGames(games: ParsedGame[]): ParsedGame[][] {
+  if (games.length <= 1) return [games];
+  if (games.length > 7) return [games];
+  const out: ParsedGame[][] = [];
+  const arr = [...games];
+  const walk = (k: number) => {
+    if (out.length >= 5040) return;
+    if (k === 1) {
+      out.push([...arr]);
+      return;
+    }
+    for (let i = 0; i < k; i++) {
+      walk(k - 1);
+      if (k % 2 === 0) [arr[i], arr[k - 1]] = [arr[k - 1]!, arr[i]!];
+      else [arr[0], arr[k - 1]] = [arr[k - 1]!, arr[0]!];
+    }
+  };
+  walk(arr.length);
+  return out;
+}
+
+function orderDistance(a: ParsedGame[], b: ParsedGame[]): number {
+  const indexB = new Map(b.map((g, i) => [g.id, i]));
+  let dist = 0;
+  for (let i = 0; i < a.length; i++) dist += Math.abs(i - (indexB.get(a[i]!.id) ?? i));
+  return dist;
+}
+
+function orderSeriesGames(games: ParsedGame[], teamA: string, teamB: string): ParsedGame[] {
+  if (games.length <= 1) return games;
+  const byId = sortSeriesGames(games);
+  if (isValidGameOrder(byId, teamA, teamB)) return byId;
+  const valid = permuteGames(byId).filter((order) => isValidGameOrder(order, teamA, teamB));
+  if (!valid.length) return byId;
+  valid.sort((a, b) => orderDistance(a, byId) - orderDistance(b, byId));
+  return valid[0]!;
+}
+
+function clusterByDate(games: ParsedGame[]): ParsedGame[][] {
+  const sorted = sortSeriesGames(games);
+  const clusters: ParsedGame[][] = [];
+  let current: ParsedGame[] = [];
+  for (const g of sorted) {
+    if (!current.length || current[current.length - 1]!.date === g.date) current.push(g);
+    else {
+      clusters.push(current);
       current = [g];
     }
   }
+  if (current.length) clusters.push(current);
+  return clusters;
+}
 
-  buckets.push({
-    teamA: games[0]!.teamA,
-    teamB: games[0]!.teamB,
-    games: current,
-  });
+function splitPairGamesIntoSeries(games: ParsedGame[]): SeriesBucket[] {
+  if (!games.length) return [];
 
+  const sorted = sortSeriesGames(games);
+  const teamA = sorted[0]!.teamA;
+  const teamB = sorted[0]!.teamB;
+  const orderedGames = clusterByDate(sorted).flatMap((cluster) =>
+    orderSeriesGames(cluster, teamA, teamB),
+  );
+  const buckets: SeriesBucket[] = [];
+  let current: ParsedGame[] = [];
+
+  for (let i = 0; i < orderedGames.length; i++) {
+    const g = orderedGames[i]!;
+    if (!current.length) {
+      current = [g];
+      continue;
+    }
+
+    if (shouldBreakSeries(current, g, teamA, teamB)) {
+      buckets.push({ teamA, teamB, games: current });
+      current = [g];
+    } else {
+      current.push(g);
+    }
+  }
+
+  if (current.length) buckets.push({ teamA, teamB, games: current });
   return buckets;
+}
+
+function groupIntoSeries(games: ParsedGame[]): SeriesBucket[] {
+  if (!games.length) return [];
+  const sorted = sortSeriesGames(games);
+  const buckets: SeriesBucket[] = [];
+
+  for (const bucket of splitPairGamesIntoSeries(sorted)) {
+    buckets.push(bucket);
+  }
+
+  return buckets.sort((a, b) => {
+    const aFirst = a.games[0]!;
+    const bFirst = b.games[0]!;
+    return compareSeriesGames(aFirst, bFirst);
+  });
 }
 
 function yesterdayIso(): string {

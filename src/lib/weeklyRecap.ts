@@ -19,7 +19,9 @@ import {
   groupGamesIntoSeries,
   isValidSeriesScore,
   seriesKey,
+  type SeriesBucket as GroupedSeriesBucket,
 } from './seriesGrouping'
+import { analyzeSeriesMomentum } from './seriesMomentum'
 
 export type { SeriesFacts }
 
@@ -82,11 +84,7 @@ interface ParsedGame {
   players: GamePlayer[]
 }
 
-interface SeriesBucket {
-  teamA: string
-  teamB: string
-  games: ParsedGame[]
-}
+type SeriesBucket = GroupedSeriesBucket<ParsedGame>
 
 interface LaneGapInfo {
   gapper: string
@@ -547,6 +545,8 @@ function buildFormPrefix(
   vicWins: number,
   flags: {
     reverseSweep: boolean
+    droppedGame1: boolean
+    leadBlownBy: string | null
     blowout: boolean
     upset: boolean
     domSplitWr: number
@@ -560,10 +560,11 @@ function buildFormPrefix(
   id: string,
   salt: number,
 ): WeeklyRecapSegment[] | null {
-  const { reverseSweep, blowout, domSplitWr, vicSplitWr, seriesStreak, victimSlump } = flags
+  const { reverseSweep, droppedGame1, leadBlownBy, blowout, domSplitWr, vicSplitWr, seriesStreak, victimSlump } =
+    flags
   const star = findStarPlayer(players, dominant)
 
-  if (reverseSweep && vicSplitWr >= domSplitWr + 5) {
+  if ((reverseSweep || leadBlownBy || droppedGame1) && vicSplitWr >= domSplitWr + 5) {
     return [
       segTeam(victim),
       segText(
@@ -618,7 +619,7 @@ function buildFormPrefix(
     ]
   }
 
-  if (victimSlump >= 2 && !reverseSweep) {
+  if (victimSlump >= 2 && !reverseSweep && !droppedGame1) {
     return [
       segTeam(victim),
       segText(
@@ -653,6 +654,7 @@ function buildResultSegments(
   region: string,
   flags: {
     reverseSweep: boolean
+    droppedGame1: boolean
     blowout: boolean
     upset: boolean
     domSplitWr: number
@@ -664,9 +666,9 @@ function buildResultSegments(
   id: string,
   salt: number,
 ): WeeklyRecapSegment[] {
-  const { reverseSweep, blowout, upset, domSplitWr, vicSplitWr, hasPrefix } = flags
+  const { reverseSweep, droppedGame1, blowout, upset, domSplitWr, vicSplitWr, hasPrefix } = flags
 
-  if (hasPrefix && reverseSweep) {
+  if (hasPrefix && (reverseSweep || droppedGame1)) {
     return [
       segTeam(dominant),
       segText(` ${domWins}-${vicWins}`),
@@ -698,18 +700,36 @@ function buildResultSegments(
     const templates = [
       () => [
         segTeam(dominant),
-        segText(` rallied for the reverse `),
+        segText(` rallied for the reverse sweep against `),
         segTeam(victim),
         segText(` ${domWins}-${vicWins} (${region})`),
       ],
+      () => [
+        segTeam(dominant),
+        segText(` came back from 0-2 to beat `),
+        segTeam(victim),
+        segText(` ${domWins}-${vicWins}`),
+      ],
+    ]
+    return ledger.pick(`${id}-rev`, salt, templates)()
+  }
+
+  if (droppedGame1 && domWins >= 2) {
+    const templates = [
       () => [
         segTeam(dominant),
         segText(` dropped game 1 then closed `),
         segTeam(victim),
         segText(` ${domWins}-${vicWins}`),
       ],
+      () => [
+        segTeam(dominant),
+        segText(` rallied after a slow start to beat `),
+        segTeam(victim),
+        segText(` ${domWins}-${vicWins} (${region})`),
+      ],
     ]
-    return ledger.pick(`${id}-rev`, salt, templates)()
+    return ledger.pick(`${id}-g1`, salt, templates)()
   }
 
   if (blowout && domWins >= 3) {
@@ -1142,11 +1162,11 @@ function summarizeSeries(
   const domSplitWr = splitWinrate(teams, dominant)
   const vicSplitWr = splitWinrate(teams, victim)
 
-  const ordered = [...games].sort((a, b) => a.date.localeCompare(b.date))
+  const ordered = [...games].sort(compareSeriesGames)
   const latestDate = ordered[ordered.length - 1]?.date ?? games[0]!.date
   const firstGameDate = ordered[0]!.date
-  const firstLoss = vicWins > 0 ? ordered.findIndex((g) => g.winner === victim) : -1
-  const reverseSweep = vicWins > 0 && domWins > vicWins && firstLoss === 0
+  const momentum = analyzeSeriesMomentum(games, dominant)
+  const { reverseSweep, droppedGame1, leadBlownBy } = momentum
   const blowout = domWins >= 2 && vicWins === 0
   const upset = upsetFromWr(domSplitWr, vicSplitWr)
 
@@ -1163,6 +1183,8 @@ function summarizeSeries(
 
   const formFlags = {
     reverseSweep,
+    droppedGame1,
+    leadBlownBy,
     blowout,
     upset,
     domSplitWr,
@@ -1194,6 +1216,7 @@ function summarizeSeries(
       region,
       {
         reverseSweep,
+        droppedGame1,
         blowout,
         upset,
         domSplitWr,
@@ -1346,8 +1369,14 @@ export interface SeriesBrief {
   templateLine: WeeklyRecapLine
 }
 
-export function stableSeriesId(teamA: string, teamB: string, latestDate: string): string {
-  return `${seriesKey(teamA, teamB)}|${latestDate}`
+export function stableSeriesId(
+  teamA: string,
+  teamB: string,
+  latestDate: string,
+  sessionIndex = 0,
+): string {
+  const base = `${seriesKey(teamA, teamB)}|${latestDate}`
+  return sessionIndex > 0 ? `${base}|${sessionIndex}` : base
 }
 
 /** All series in the window with deterministic facts + template fallback line. */
@@ -1387,8 +1416,6 @@ export function collectSeriesBriefs(
     const ordered = [...bucket.games].sort(compareSeriesGames)
     const latestDate = ordered[ordered.length - 1]?.date ?? bucket.games[0]!.date
     const firstGameDate = ordered[0]!.date
-    const firstLoss = vicWins > 0 ? ordered.findIndex((g) => g.winner === victim) : -1
-    const reverseSweep = vicWins > 0 && domWins > vicWins && firstLoss === 0
 
     const domHistory = groupTeamSeriesHistory(collectTeamGames(players, dominant), dominant)
     const vicHistory = groupTeamSeriesHistory(collectTeamGames(players, victim), victim)
@@ -1397,7 +1424,6 @@ export function collectSeriesBriefs(
     const victimSlump = countSeriesLossStreak(vicHistory, firstGameDate)
 
     const facts = buildSeriesFacts(bucket, teams, weekCounts, {
-      reverseSweep,
       blowout: domWins >= 2 && vicWins === 0,
       seriesStreak: domWins > vicWins ? seriesStreak : 0,
       victimSlump: vicWins > domWins ? 0 : victimSlump,
@@ -1418,7 +1444,7 @@ export function collectSeriesBriefs(
     }
 
     briefs.push({
-      seriesId: stableSeriesId(bucket.teamA, bucket.teamB, latestDate),
+      seriesId: stableSeriesId(bucket.teamA, bucket.teamB, latestDate, bucket.sessionIndex),
       date: latestDate,
       dateLabel: formatRecapDate(latestDate),
       league: facts.league,

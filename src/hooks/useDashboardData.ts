@@ -52,6 +52,7 @@ export interface PlayerGameLog {
   league?: string
   goldTimeline?: GoldTimelinePoint[]
   gameLength?: number
+  playoffs?: boolean
 }
 
 export interface PlayerChampionPoolEntry {
