@@ -458,6 +458,13 @@ b,
   gap: var(--component-gap);
 }
 
+.overview-hub-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 8rem;
+}
+
 .overview-hub-toggle {
   margin-bottom: 0;
 }

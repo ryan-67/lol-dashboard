@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState, useEffect } from 'react'
+import { useMemo, useRef, useState, useEffect, useTransition } from 'react'
 import { useGSAP } from '@gsap/react'
 import { useDashboard } from '../context/DashboardContext'
 import { type Player, type PlayerGameLog } from '../hooks/useDashboardData'
@@ -492,11 +492,26 @@ export default function Overview() {
   } = useDashboard()
   const rootRef = useRef<HTMLDivElement>(null)
   const [hubPeriod, setHubPeriod] = useState<HubPeriod>('weekly')
-  const copy = HUB_COPY[hubPeriod]
+  const [displayPeriod, setDisplayPeriod] = useState<HubPeriod>('weekly')
+  const [isPeriodPending, startPeriodTransition] = useTransition()
+  const [recapLoading, setRecapLoading] = useState(false)
+
+  const hubContentLoading = isPeriodPending || recapLoading
+
+  const handleHubPeriodChange = (period: HubPeriod) => {
+    if (period === hubPeriod) return
+    setHubPeriod(period)
+    setRecapLoading(true)
+    startPeriodTransition(() => {
+      setDisplayPeriod(period)
+    })
+  }
+
+  const copy = HUB_COPY[displayPeriod]
 
   const hubWindow = useMemo(
-    () => getHubWindow(weeklyHubPlayers, hubPeriod),
-    [weeklyHubPlayers, hubPeriod],
+    () => getHubWindow(weeklyHubPlayers, displayPeriod),
+    [weeklyHubPlayers, displayPeriod],
   )
   const weeklyPlayers = useMemo(
     () => (hubWindow ? getWeeklyPlayers(weeklyHubPlayers, hubWindow) : []),
@@ -550,8 +565,10 @@ export default function Overview() {
   useEffect(() => {
     if (!hubWindow) {
       setCachedRecapLines([])
+      setRecapLoading(false)
       return
     }
+
     let cancelled = false
     void fetchCachedWeeklyRecapLines(
       hubWindow.start,
@@ -559,7 +576,10 @@ export default function Overview() {
       selectedLeagues,
       copy.recapLimit,
     ).then((lines) => {
-      if (!cancelled) setCachedRecapLines(lines)
+      if (!cancelled) {
+        setCachedRecapLines(lines)
+        setRecapLoading(false)
+      }
     })
     return () => {
       cancelled = true
@@ -574,7 +594,7 @@ export default function Overview() {
       scrollEntranceStagger(rootRef.current, '.overview-hub-card')
       refreshScrollTrigger()
     },
-    { dependencies: [loading, league, split, hubPeriod, weeklyPlayers.length] },
+    { dependencies: [loading, league, split, displayPeriod, weeklyPlayers.length, hubContentLoading] },
   )
 
   if (loading) {
@@ -583,8 +603,14 @@ export default function Overview() {
 
   return (
     <div ref={rootRef} className="overview-hub">
-      <OverviewHubToggle value={hubPeriod} onChange={setHubPeriod} />
+      <OverviewHubToggle value={hubPeriod} onChange={handleHubPeriodChange} />
 
+      {hubContentLoading ? (
+        <section className="card overview-hub-card overview-hub-loading">
+          <p className="text-secondary text-sm">loading...</p>
+        </section>
+      ) : (
+        <>
       <section className="card overview-hub-card">
         <h2 className="card-title">{copy.hubTitle}</h2>
         <p className="card-subtitle">
@@ -791,6 +817,8 @@ export default function Overview() {
           </div>
         )}
       </section>
+        </>
+      )}
     </div>
   )
 }
