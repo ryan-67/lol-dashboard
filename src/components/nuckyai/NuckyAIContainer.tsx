@@ -9,6 +9,7 @@ import { useAuth } from '../../context/AuthContext'
 import { useDashboard } from '../../context/DashboardContext'
 import ChatSidebar from './ChatSidebar'
 import ChatWindow from './ChatWindow'
+import AuthModal from '../AuthModal'
 import { useAgentChat } from './useAgentChat'
 import { pickThinkingMessage } from '../../lib/nuckyThinking'
 import type { ConversationRow, MessageRow, ProfileRow } from './types'
@@ -30,6 +31,7 @@ export default function NuckyAIContainer() {
   const [messages, setMessages] = useState<MessageRow[]>([])
   const [toast, setToast] = useState<string | null>(null)
   const [checkoutLoading, setCheckoutLoading] = useState(false)
+  const [showAuth, setShowAuth] = useState(false)
   const [searchParams, setSearchParams] = useSearchParams()
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false)
   const [activeConversationId, setActiveConversationId] = useState<string | null>(
@@ -385,10 +387,27 @@ export default function NuckyAIContainer() {
 
   if (!user) {
     return (
-      <div className="card nuckyai-shell">
-        <h2 className="card-title">nuckyAI</h2>
-        <p className="text-secondary text-sm mt-3">login required.</p>
-      </div>
+      <>
+        <div className="card nuckyai-shell">
+          <h2 className="card-title">nuckyAI</h2>
+          <div className="border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-4 mt-3 max-w-xl">
+            <h3 className="text-sm text-[var(--text-primary)] mb-2">unlock nuckyAI</h3>
+            <ul className="list-disc pl-5 text-sm text-[var(--text-secondary)] space-y-1">
+              <li>your lolesports analyst — stats, matchups, MSI reads, patch meta</li>
+              <li>grounded pro play data + weekly esports context</li>
+              <li>charts and radar comparisons inline in chat</li>
+            </ul>
+            <div className="mt-3 text-xs text-[var(--text-tertiary)]">$9.99/mo pro subscription</div>
+            <button type="button" className="btn mt-3" onClick={() => setShowAuth(true)}>
+              subscribe
+            </button>
+            <p className="mt-2 text-xs text-[var(--text-secondary)]">
+              login or create an account to continue to checkout.
+            </p>
+          </div>
+        </div>
+        <AuthModal open={showAuth} onClose={() => setShowAuth(false)} />
+      </>
     )
   }
 

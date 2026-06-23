@@ -2,6 +2,8 @@
 
 Authenticated fallback that pulls active Stripe subscriptions into `subscriptions` + `profiles` when the webhook is delayed or missed.
 
+**Requires** `supabase/migrations/billing_profiles_grants.sql` applied on the project (grants + `set_profile_subscription` RPC).
+
 Called from the nuckyAI paywall on load, after checkout success (`session_id`), and before starting a new checkout.
 
 Deploy with `stripe-webhook` and `stripe-checkout` after billing changes:

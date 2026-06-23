@@ -82,18 +82,39 @@ export async function syncSubscriptionRecord(
   if (subError) throw new Error(`subscriptions upsert failed: ${subError.message}`);
 
   if (resolvedUserId) {
-    const { error: profileError } = await serviceClient.from("profiles").upsert(
-      {
-        id: resolvedUserId,
-        is_subscribed: isSubscribed,
-        plan: isSubscribed ? "pro" : "free",
-      },
-      { onConflict: "id" },
-    );
-    if (profileError) throw new Error(`profiles upsert failed: ${profileError.message}`);
+    await setProfileSubscription(serviceClient, resolvedUserId, isSubscribed);
   }
 
   return { userId: resolvedUserId, isSubscribed };
+}
+
+async function setProfileSubscription(
+  serviceClient: SupabaseClient,
+  userId: string,
+  isSubscribed: boolean,
+): Promise<void> {
+  const plan = isSubscribed ? "pro" : "free";
+
+  const { error: rpcError } = await serviceClient.rpc("set_profile_subscription", {
+    p_user_id: userId,
+    p_is_subscribed: isSubscribed,
+    p_plan: plan,
+  });
+  if (!rpcError) return;
+
+  const { error: profileError } = await serviceClient.from("profiles").upsert(
+    {
+      id: userId,
+      is_subscribed: isSubscribed,
+      plan,
+    },
+    { onConflict: "id" },
+  );
+  if (profileError) {
+    throw new Error(
+      `profiles update failed (rpc: ${rpcError.message}; direct: ${profileError.message})`,
+    );
+  }
 }
 
 export async function syncCheckoutSession(
