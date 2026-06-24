@@ -44,8 +44,14 @@ export function gameMatchesTournament(game: PlayerGameLog, tournament: Tournamen
   return tournamentKeyFromGame(game) === tournamentKeyFromIdentity(tournament)
 }
 
-function gameDedupeKey(game: PlayerGameLog, team: string): string {
-  return game.gameId ?? `${game.date}|${team}|${game.opponent ?? ''}|${game.result}`
+function teamGameDedupeKey(game: PlayerGameLog, team: string): string {
+  if (game.gameId) return `${team}|${game.gameId}`
+  return `${team}|${game.date}|${game.opponent ?? ''}|${game.result}`
+}
+
+function uniqueGameKey(game: PlayerGameLog): string {
+  if (game.gameId) return game.gameId
+  return `game|${game.date}|${game.league ?? ''}|${game.opponent ?? ''}|${game.result}`
 }
 
 function collectGamesFromPlayers(players: Player[]): PlayerGameLog[] {
@@ -54,7 +60,7 @@ function collectGamesFromPlayers(players: Player[]): PlayerGameLog[] {
 
   for (const player of players) {
     for (const g of player.gameLog ?? []) {
-      const id = gameDedupeKey(g, player.team)
+      const id = uniqueGameKey(g)
       if (seen.has(id)) continue
       seen.add(id)
       games.push(g)
@@ -162,9 +168,15 @@ export function filterChampionsForTournament(
   players: Player[],
 ): Champion[] {
   const counts = new Map<string, { picks: number; wins: number }>()
+  const seen = new Set<string>()
+
   for (const player of players) {
     for (const g of player.gameLog ?? []) {
       if (!g.champion) continue
+      const pickKey = `${player.team}|${teamGameDedupeKey(g, player.team)}|${g.champion}`
+      if (seen.has(pickKey)) continue
+      seen.add(pickKey)
+
       const cur = counts.get(g.champion) ?? { picks: 0, wins: 0 }
       cur.picks += 1
       if (g.result === 1) cur.wins += 1
@@ -193,16 +205,26 @@ export function filterChampionsForTournament(
 
 export function buildTournamentStandings(players: Player[]): TournamentStandingsRow[] {
   const records = new Map<string, { league: string; wins: number; losses: number }>()
+  const byTeam = new Map<string, Player[]>()
 
-  const seen = new Set<string>()
   for (const player of players) {
-    for (const g of player.gameLog ?? []) {
-      const id = gameDedupeKey(g, player.team)
+    const roster = byTeam.get(player.team) ?? []
+    roster.push(player)
+    byTeam.set(player.team, roster)
+  }
+
+  for (const [team, roster] of byTeam) {
+    const anchor = roster.reduce((best, p) =>
+      (p.gameLog?.length ?? 0) > (best.gameLog?.length ?? 0) ? p : best,
+    )
+    const seen = new Set<string>()
+
+    for (const g of anchor.gameLog ?? []) {
+      const id = teamGameDedupeKey(g, team)
       if (seen.has(id)) continue
       seen.add(id)
 
-      const team = player.team
-      const cur = records.get(team) ?? { league: player.league, wins: 0, losses: 0 }
+      const cur = records.get(team) ?? { league: anchor.league, wins: 0, losses: 0 }
       if (g.result === 1) cur.wins += 1
       else cur.losses += 1
       records.set(team, cur)

@@ -1,7 +1,8 @@
-import { useMemo, useRef, useState } from 'react'
+import { useMemo, useRef, useState, useCallback } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { useGSAP } from '@gsap/react'
-import { useDashboard } from '../../context/DashboardContext'
+import { useEntityPageData } from '../../hooks/useEntityPageData'
+import type { DashboardData } from '../../hooks/useDashboardData'
 import {
   buildTournamentSummaries,
   buildTournamentStandings,
@@ -25,7 +26,11 @@ import { formatDurationMinSec } from '../../lib/tournamentFormat'
 
 export default function TournamentPage() {
   const { slug = '' } = useParams<{ slug: string }>()
-  const { data, loading, filteredPlayers, filteredTeams, filteredChampions } = useDashboard()
+  const hasTournamentData = useCallback(
+    (d: DashboardData) => findTournamentById(d, slug) !== null,
+    [slug],
+  )
+  const { data, loading, fallbackNotice } = useEntityPageData(hasTournamentData)
   const [activeTab, setActiveTab] = useState<TournamentPageTab>('overview')
   const ref = useRef<HTMLDivElement>(null)
 
@@ -45,18 +50,18 @@ export default function TournamentPage() {
   )
 
   const scopedPlayers = useMemo(
-    () => (tournament ? filterPlayersForTournament(filteredPlayers, tournament) : []),
-    [filteredPlayers, tournament],
+    () => (tournament && data ? filterPlayersForTournament(data.players, tournament) : []),
+    [data, tournament],
   )
 
   const scopedTeams = useMemo(
-    () => (tournament ? filterTeamsForTournament(filteredTeams, scopedPlayers) : []),
-    [filteredTeams, scopedPlayers, tournament],
+    () => (tournament ? filterTeamsForTournament(data?.teams ?? [], scopedPlayers) : []),
+    [data?.teams, scopedPlayers, tournament],
   )
 
   const scopedChampions = useMemo(
-    () => (tournament ? filterChampionsForTournament(filteredChampions, scopedPlayers) : []),
-    [filteredChampions, scopedPlayers, tournament],
+    () => (tournament ? filterChampionsForTournament(data?.champions ?? [], scopedPlayers) : []),
+    [data?.champions, scopedPlayers, tournament],
   )
 
   const standings = useMemo(() => buildTournamentStandings(scopedPlayers), [scopedPlayers])
@@ -136,6 +141,10 @@ export default function TournamentPage() {
         )}
       </nav>
 
+      {fallbackNotice ? (
+        <p className="card-subtitle mb-4 text-secondary">{fallbackNotice}</p>
+      ) : null}
+
       <TournamentSubnav active={activeTab} onChange={setActiveTab} />
 
       <Link to="/tournaments" className="entity-back-link">
@@ -182,10 +191,10 @@ export default function TournamentPage() {
             </section>
 
             <section className="card tournament-card">
-              <h2 className="card-title">Standings</h2>
+              <h2 className="card-title">Rank</h2>
               <p className="card-subtitle">Winrate from games in this tournament</p>
               {!standings.length ? (
-                <p className="text-secondary text-sm">No standings data.</p>
+                <p className="text-secondary text-sm">No rank data.</p>
               ) : (
                 <div className="entity-table-wrap">
                   <table className="entity-table entity-table-compact">
