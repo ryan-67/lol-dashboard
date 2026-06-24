@@ -277,7 +277,11 @@ export function useDashboardData(): UseDashboardDataReturn {
   }, [fetchData])
 
   const setSelectedLeaguesSafe = useCallback((leagues: string[]) => {
-    setSelectedLeagues(leagues.length ? leagues : ['All Tier 1'])
+    const next = leagues.length ? leagues : ['All Tier 1']
+    setSelectedLeagues((prev) => {
+      if (prev.length === next.length && prev.every((l, i) => l === next[i])) return prev
+      return next
+    })
   }, [])
 
   const setSelectedYears = useCallback((years: string[]) => {

@@ -33,7 +33,7 @@ const MAIN_DASHBOARD_PATHS = new Set([
 ])
 
 export default function Layout({ children }: { children: React.ReactNode }) {
-  const { loading, error, setLeague } = useDashboard()
+  const { loading, error, setLeague, league } = useDashboard()
   const { user, loading: authLoading, signOut } = useAuth()
   const [showAuth, setShowAuth] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
@@ -52,8 +52,8 @@ export default function Layout({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (!MAIN_DASHBOARD_PATHS.has(location.pathname)) return
-    setLeague('All Tier 1')
-  }, [location.pathname, setLeague])
+    if (league !== 'All Tier 1') setLeague('All Tier 1')
+  }, [location.pathname, league, setLeague])
 
   useEffect(() => {
     setMenuOpen(false)

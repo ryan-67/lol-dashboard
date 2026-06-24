@@ -1,4 +1,4 @@
-import { createContext, useContext, useMemo, useEffect, ReactNode } from 'react'
+import { createContext, useContext, useMemo, useEffect, useCallback, ReactNode } from 'react'
 import {
   useDashboardData,
   DashboardData,
@@ -102,17 +102,26 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
     )
   }, [meta, selectedYears])
 
-  const setLeague = (l: string) => {
-    setSelectedLeagues(leagueLabelToLeagues(l))
-  }
+  const setLeague = useCallback(
+    (l: string) => {
+      setSelectedLeagues(leagueLabelToLeagues(l))
+    },
+    [setSelectedLeagues],
+  )
 
-  const setYear = (y: string) => {
-    setSelectedYears(y === 'ALL' ? ['ALL'] : [y])
-  }
+  const setYear = useCallback(
+    (y: string) => {
+      setSelectedYears(y === 'ALL' ? ['ALL'] : [y])
+    },
+    [setSelectedYears],
+  )
 
-  const setSplit = (s: string) => {
-    setSelectedSplits(s === 'ALL' ? ['ALL'] : [s])
-  }
+  const setSplit = useCallback(
+    (s: string) => {
+      setSelectedSplits(s === 'ALL' ? ['ALL'] : [s])
+    },
+    [setSelectedSplits],
+  )
 
   useEffect(() => {
     if (!meta) return
