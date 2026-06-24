@@ -1,7 +1,8 @@
 import { slugify } from './entities/slugs'
+import type { PlayerGameLog } from '../hooks/useDashboardData'
 import { splitSortKey } from './mergeSlices'
 
-/** Official tournament segment names keyed by league + canonical season label. */
+/** Official playoff display names when OE raw split matches regular season label. */
 const LEAGUE_SEASON_NAMES: Record<
   string,
   Record<string, { regular: string; playoffs?: string }>
@@ -37,6 +38,8 @@ export interface TournamentIdentity {
   league: string
   year: string
   season: string
+  rawSplit: string
+  playoffs: boolean
   canonicalSplit: string
   segment: TournamentSegment
   sortKey: [number, number, number, number]
@@ -51,13 +54,58 @@ export function parseCanonicalSplit(canonicalSplit: string): { year: string; sea
   }
 }
 
+function inferFallbackRawSplit(league: string, canonicalSplit: string, playoffs: boolean): string {
+  const { season } = parseCanonicalSplit(canonicalSplit)
+  if (INTERNATIONAL_SEASONS.has(season)) return season
+  const config = LEAGUE_SEASON_NAMES[league]?.[season]
+  if (!config) return season || canonicalSplit
+  return playoffs && config.playoffs ? config.playoffs : config.regular
+}
+
+export function tournamentYearFromGame(game: Pick<PlayerGameLog, 'oeYear' | 'split'>): string {
+  if (game.oeYear) return String(game.oeYear)
+  return parseCanonicalSplit(game.split ?? '').year
+}
+
+export function tournamentRawSplitFromGame(
+  game: Pick<PlayerGameLog, 'league' | 'split' | 'rawSplit' | 'playoffs'>,
+): string {
+  const trimmed = game.rawSplit?.trim()
+  if (trimmed) return trimmed
+  return inferFallbackRawSplit(game.league ?? '', game.split ?? '', Boolean(game.playoffs))
+}
+
+export function tournamentKey(
+  league: string,
+  year: string,
+  rawSplit: string,
+  playoffs: boolean,
+): string {
+  return `${league}|${year}|${rawSplit}|${playoffs ? 1 : 0}`
+}
+
+export function tournamentKeyFromGame(game: PlayerGameLog): string {
+  return tournamentKey(
+    game.league ?? '',
+    tournamentYearFromGame(game),
+    tournamentRawSplitFromGame(game),
+    Boolean(game.playoffs),
+  )
+}
+
+export function tournamentKeyFromIdentity(t: Pick<TournamentIdentity, 'league' | 'year' | 'rawSplit' | 'playoffs'>): string {
+  return tournamentKey(t.league, t.year, t.rawSplit, t.playoffs)
+}
+
 export function resolveTournamentDisplay(
   league: string | undefined,
   canonicalSplit: string | undefined,
   playoffs?: boolean,
+  opts?: { rawSplit?: string; oeYear?: string },
 ): string {
   if (!canonicalSplit) return '—'
-  const { year, season } = parseCanonicalSplit(canonicalSplit)
+  const { year: splitYear, season } = parseCanonicalSplit(canonicalSplit)
+  const year = opts?.oeYear ?? splitYear
   if (!season) return canonicalSplit
 
   if (INTERNATIONAL_SEASONS.has(season)) {
@@ -65,14 +113,13 @@ export function resolveTournamentDisplay(
   }
 
   const lg = league ?? ''
+  const rawSplit = opts?.rawSplit?.trim() || inferFallbackRawSplit(lg, canonicalSplit, Boolean(playoffs))
   const config = LEAGUE_SEASON_NAMES[lg]?.[season]
-  if (!config) {
-    const suffix = playoffs ? 'Playoffs' : season
-    return lg ? `${year} ${lg} ${suffix}` : `${year} ${suffix}`
+  if (playoffs && config?.playoffs) {
+    return `${year} ${lg} ${config.playoffs}`
   }
 
-  const segmentName = playoffs && config.playoffs ? config.playoffs : config.regular
-  return `${year} ${lg} ${segmentName}`
+  return `${year} ${lg} ${rawSplit}`
 }
 
 function segmentOrder(segment: TournamentSegment): number {
@@ -85,17 +132,20 @@ export function buildTournamentIdentity(
   league: string,
   canonicalSplit: string,
   playoffs: boolean,
+  opts?: { rawSplit?: string; oeYear?: string },
 ): TournamentIdentity {
-  const { year, season } = parseCanonicalSplit(canonicalSplit)
+  const { year: splitYear, season } = parseCanonicalSplit(canonicalSplit)
+  const year = opts?.oeYear ?? splitYear
   const international = INTERNATIONAL_SEASONS.has(season)
+  const rawSplit = opts?.rawSplit?.trim() || inferFallbackRawSplit(league, canonicalSplit, playoffs)
   const segment: TournamentSegment = international ? 'event' : playoffs ? 'playoffs' : 'regular'
   const displayLeague = international ? season : league
-  const displayName = resolveTournamentDisplay(league, canonicalSplit, playoffs)
+  const displayName = resolveTournamentDisplay(league, canonicalSplit, playoffs, opts)
   const [y, seasonOrd, seasonName] = splitSortKey(canonicalSplit)
 
   const id = international
     ? slugify(`${year}-${season}`)
-    : slugify(`${league}-${year}-${season}-${segment}`)
+    : slugify(`${league}-${year}-${rawSplit}-${playoffs ? 'playoffs' : 'regular'}`)
 
   return {
     id,
@@ -103,10 +153,19 @@ export function buildTournamentIdentity(
     league: displayLeague,
     year,
     season,
+    rawSplit,
+    playoffs,
     canonicalSplit,
     segment,
     sortKey: [y, seasonOrd, segmentOrder(segment), seasonName.charCodeAt(0) ?? 0],
   }
+}
+
+export function buildTournamentIdentityFromGame(game: PlayerGameLog): TournamentIdentity {
+  return buildTournamentIdentity(game.league ?? '', game.split ?? '', Boolean(game.playoffs), {
+    rawSplit: game.rawSplit,
+    oeYear: game.oeYear,
+  })
 }
 
 export function compareTournamentIdentity(a: TournamentIdentity, b: TournamentIdentity): number {

@@ -14,6 +14,7 @@ import {
   isAllTier1Selected,
 } from '../hooks/useDashboardData'
 import { mergeSlicesFromFilters, mergeWeeklyHubFromFilters, TIER1_LEAGUES, type OEStoreMeta } from '../lib/mergeSlices'
+import { defaultMainTabSplit } from '../lib/splitSelection'
 
 interface DashboardContextValue {
   data: DashboardData | null
@@ -35,6 +36,7 @@ interface DashboardContextValue {
   toggleLeague: (league: string) => void
   toggleYear: (year: string) => void
   toggleSplit: (split: string) => void
+  resetMainTabFilters: () => void
 
   filteredPlayers: Player[]
   filteredTeams: Team[]
@@ -123,6 +125,13 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
     [setSelectedSplits],
   )
 
+  const resetMainTabFilters = useCallback(() => {
+    setSelectedLeagues(['All Tier 1'])
+    setSelectedYears([DEFAULT_YEAR])
+    const split = defaultMainTabSplit(meta?.splits ?? [], DEFAULT_YEAR, DEFAULT_SPLIT)
+    setSelectedSplits([split])
+  }, [meta, setSelectedLeagues, setSelectedYears, setSelectedSplits])
+
   useEffect(() => {
     if (!meta) return
     if (!selectedYears.includes('ALL') && !selectedYears.some((y) => years.includes(y))) {
@@ -176,6 +185,7 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
         toggleLeague,
         toggleYear,
         toggleSplit,
+        resetMainTabFilters,
         filteredPlayers,
         filteredTeams,
         filteredChampions,

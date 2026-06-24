@@ -87,6 +87,8 @@ interface ParsedGame {
   league?: string
   split?: string
   playoffs?: boolean
+  rawSplit?: string
+  oeYear?: string
 }
 
 type SeriesBucket = GroupedSeriesBucket<ParsedGame>
@@ -282,6 +284,8 @@ function collectWeeklyGames(players: Player[], window: WeeklyRecapWindow): Parse
         league: g.league,
         split: g.split,
         playoffs: g.playoffs,
+        rawSplit: g.rawSplit,
+        oeYear: g.oeYear,
       })
     }
   }
@@ -1318,6 +1322,7 @@ export function buildWeeklyRecapLines(
       firstGame.league,
       firstGame.split,
       firstGame.playoffs,
+      { rawSplit: firstGame.rawSplit, oeYear: firstGame.oeYear },
     )
 
     lines.push({

@@ -1,8 +1,10 @@
 import type { Champion, Player, PlayerGameLog, Team } from '../hooks/useDashboardData'
 import type { DashboardData } from '../hooks/useDashboardData'
 import {
-  buildTournamentIdentity,
+  buildTournamentIdentityFromGame,
   compareTournamentIdentity,
+  tournamentKeyFromGame,
+  tournamentKeyFromIdentity,
   type TournamentIdentity,
 } from './tournamentCatalog'
 import { isDisplayablePlayer } from './playerRadar'
@@ -38,23 +40,12 @@ function regionCode(league: string): string {
   return map[league] ?? league.slice(0, 2).toUpperCase()
 }
 
-export function gameMatchesTournament(
-  game: PlayerGameLog,
-  tournament: Pick<TournamentIdentity, 'league' | 'canonicalSplit' | 'segment' | 'season'>,
-): boolean {
-  const gameSplit = game.split ?? ''
-  if (gameSplit !== tournament.canonicalSplit) return false
+export function gameMatchesTournament(game: PlayerGameLog, tournament: TournamentIdentity): boolean {
+  return tournamentKeyFromGame(game) === tournamentKeyFromIdentity(tournament)
+}
 
-  const international = ['MSI', 'Worlds', 'First Stand'].includes(tournament.season)
-  if (international) return tournament.segment === 'event'
-
-  const gameLeague = game.league ?? ''
-  if (gameLeague !== tournament.league) return false
-
-  const isPlayoff = Boolean(game.playoffs)
-  if (tournament.segment === 'playoffs') return isPlayoff
-  if (tournament.segment === 'regular') return !isPlayoff
-  return true
+function gameDedupeKey(game: PlayerGameLog, team: string): string {
+  return game.gameId ?? `${game.date}|${team}|${game.opponent ?? ''}|${game.result}`
 }
 
 function collectGamesFromPlayers(players: Player[]): PlayerGameLog[] {
@@ -63,7 +54,7 @@ function collectGamesFromPlayers(players: Player[]): PlayerGameLog[] {
 
   for (const player of players) {
     for (const g of player.gameLog ?? []) {
-      const id = g.gameId ?? `${g.date}|${player.team}|${g.opponent ?? ''}|${g.result}`
+      const id = gameDedupeKey(g, player.team)
       if (seen.has(id)) continue
       seen.add(id)
       games.push(g)
@@ -78,11 +69,10 @@ export function buildTournamentSummaries(data: DashboardData): TournamentSummary
   const map = new Map<string, TournamentSummary & { durationSum: number; durationCount: number }>()
 
   for (const game of games) {
-    const league = game.league ?? ''
     const split = game.split ?? ''
     if (!split) continue
 
-    const identity = buildTournamentIdentity(league, split, Boolean(game.playoffs))
+    const identity = buildTournamentIdentityFromGame(game)
     const existing = map.get(identity.id)
     const duration = game.gameLength ?? null
 
@@ -148,8 +138,23 @@ function avg(nums: number[]): number {
 }
 
 export function filterTeamsForTournament(teams: Team[], players: Player[]): Team[] {
-  const teamNames = new Set(players.map((p) => p.team))
-  return teams.filter((t) => isDisplayableTeam(t) && teamNames.has(t.name))
+  const standings = buildTournamentStandings(players)
+  const byName = new Map(standings.map((s) => [s.team, s]))
+
+  return teams
+    .filter((t) => isDisplayableTeam(t) && byName.has(t.name))
+    .map((t) => {
+      const row = byName.get(t.name)!
+      const games = row.wins + row.losses
+      return {
+        ...t,
+        wins: row.wins,
+        losses: row.losses,
+        winrate: row.winrate,
+        games,
+      }
+    })
+    .sort((a, b) => b.winrate - a.winrate || b.wins - a.wins)
 }
 
 export function filterChampionsForTournament(
@@ -192,7 +197,7 @@ export function buildTournamentStandings(players: Player[]): TournamentStandings
   const seen = new Set<string>()
   for (const player of players) {
     for (const g of player.gameLog ?? []) {
-      const id = g.gameId ?? `${g.date}|${player.team}|${g.opponent ?? ''}|${g.result}`
+      const id = gameDedupeKey(g, player.team)
       if (seen.has(id)) continue
       seen.add(id)
 
@@ -218,6 +223,5 @@ export function buildTournamentStandings(players: Player[]): TournamentStandings
 export function resolveTournamentFromGame(
   game: PlayerGameLog,
 ): Pick<TournamentIdentity, 'id' | 'displayName' | 'segment'> {
-  const identity = buildTournamentIdentity(game.league ?? '', game.split ?? '', Boolean(game.playoffs))
-  return identity
+  return buildTournamentIdentityFromGame(game)
 }

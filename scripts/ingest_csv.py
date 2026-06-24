@@ -985,6 +985,9 @@ def process_row(row, buckets: dict, team_to_league: dict[str, str]):
         dmg_per_gold = (total_dmg / earned_gold) if earned_gold > 0 else 0.0
         dmg_gold_ratio = (dmg_share_pct / gold_share_pct) if gold_share_pct > 0 else 0.0
         gpm = (earned_gold / gl * 60) if gl > 0 else 0.0
+        year = str(row.get("year", "")).strip()
+        raw_split = str(row.get("split", "")).strip()
+        playoffs = str(row.get("playoffs", "0")).strip()
         date_only = str(row.get("date", "")).strip()[:10] if row.get("date") else ""
         entry = {
                 "date": date_only,
@@ -1010,6 +1013,10 @@ def process_row(row, buckets: dict, team_to_league: dict[str, str]):
                 "gpm": round(gpm, 1),
                 "gameLength": round(gl / 60, 1) if gl > 0 else None,
             }
+        if year:
+            entry["oeYear"] = year
+        if raw_split:
+            entry["rawSplit"] = raw_split
         if gd15 is not None:
             entry["gd15"] = round(gd15, 1)
         if csd15 is not None:
@@ -1029,7 +1036,7 @@ def process_row(row, buckets: dict, team_to_league: dict[str, str]):
             team_meta = bucket["game_team_meta"].get(game_id, {}).get(team_name)
             if team_meta and team_meta.get("turretPlates") is not None:
                 entry["turretPlates"] = team_meta["turretPlates"]
-        if str(row.get("playoffs", "0")) == "1":
+        if playoffs == "1":
             entry["playoffs"] = True
         p["gameLog"].append(entry)
         if champion:

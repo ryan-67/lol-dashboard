@@ -37,6 +37,16 @@ export function pickNewestSplitWithData(
   return null
 }
 
+export function defaultMainTabSplit(splits: string[], year = '2026', fallback = '2026 Spring'): string {
+  const ordered = splitsNewestFirst(splits)
+  return (
+    ordered.find((s) => s.startsWith(`${year} `)) ??
+    ordered.find((s) => s.endsWith(' Spring')) ??
+    ordered[0] ??
+    fallback
+  )
+}
+
 export function yearFromSplitLabel(split: string, fallback = '2026'): string {
   return split.split(' ', 1)[0] ?? fallback
 }

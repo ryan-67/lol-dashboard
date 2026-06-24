@@ -33,7 +33,7 @@ const MAIN_DASHBOARD_PATHS = new Set([
 ])
 
 export default function Layout({ children }: { children: React.ReactNode }) {
-  const { loading, error, setLeague, league } = useDashboard()
+  const { loading, error, resetMainTabFilters } = useDashboard()
   const { user, loading: authLoading, signOut } = useAuth()
   const [showAuth, setShowAuth] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
@@ -50,10 +50,14 @@ export default function Layout({ children }: { children: React.ReactNode }) {
     /^\/tournaments\/[^/]+/.test(location.pathname)
   const shouldShowTopBar = !hideTopBarRoutes.has(location.pathname) && !isEntityPage
 
+  const prevMainTabPathRef = useRef<string | null>(null)
+
   useEffect(() => {
     if (!MAIN_DASHBOARD_PATHS.has(location.pathname)) return
-    if (league !== 'All Tier 1') setLeague('All Tier 1')
-  }, [location.pathname, league, setLeague])
+    if (prevMainTabPathRef.current === location.pathname) return
+    prevMainTabPathRef.current = location.pathname
+    resetMainTabFilters()
+  }, [location.pathname, resetMainTabFilters])
 
   useEffect(() => {
     setMenuOpen(false)
@@ -144,7 +148,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
           <div className="app-header-nav-cluster">
             {primaryNav.map((item) => renderNavItem(item))}
 
-            <GlobalSearch onBeforeNavigate={() => setLeague('All Tier 1')} />
+            <GlobalSearch onBeforeNavigate={resetMainTabFilters} />
 
             {!authLoading && user ? (
               <>

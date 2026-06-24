@@ -67,11 +67,13 @@ export function formatTournamentLabel(
   fallbackLeague?: string,
   fallbackSplit?: string,
   playoffs?: boolean,
+  rawSplit?: string,
+  oeYear?: string,
 ): string {
   const lg = league || fallbackLeague
   const sp = split || fallbackSplit
   if (lg && sp) {
-    return resolveTournamentDisplay(lg, sp, playoffs)
+    return resolveTournamentDisplay(lg, sp, playoffs, { rawSplit, oeYear })
   }
   if (lg) return lg
   if (sp) return sp
@@ -109,6 +111,8 @@ export function buildTeamMatchHistory(
         fallbackLeague,
         fallbackSplit,
         game.playoffs,
+        game.rawSplit,
+        game.oeYear,
       ),
       gameId: game.gameId ?? '',
     }))

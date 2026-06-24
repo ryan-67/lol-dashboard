@@ -50,6 +50,8 @@ export interface PlayerGameLog {
   side?: string
   split?: string
   league?: string
+  rawSplit?: string
+  oeYear?: string
   goldTimeline?: GoldTimelinePoint[]
   gameLength?: number
   playoffs?: boolean
@@ -285,11 +287,19 @@ export function useDashboardData(): UseDashboardDataReturn {
   }, [])
 
   const setSelectedYears = useCallback((years: string[]) => {
-    setSelectedYearsState(years.length ? years : ['2026'])
+    const next = years.length ? years : ['2026']
+    setSelectedYearsState((prev) => {
+      if (prev.length === next.length && prev.every((y, i) => y === next[i])) return prev
+      return next
+    })
   }, [])
 
   const setSelectedSplits = useCallback((splits: string[]) => {
-    setSelectedSplitsState(splits.length ? splits : [DEFAULT_SPLIT])
+    const next = splits.length ? splits : [DEFAULT_SPLIT]
+    setSelectedSplitsState((prev) => {
+      if (prev.length === next.length && prev.every((s, i) => s === next[i])) return prev
+      return next
+    })
   }, [])
 
   const toggleLeague = useCallback((league: string) => {
