@@ -117,7 +117,7 @@ LEAGUE_OVERRIDES = {
         (re.compile(r"rounds?\s*3[\s-]*5", re.I), "Summer"),
     ],
     "LPL": [
-        (re.compile(r"split\s*1\b", re.I), "Spring"),
+        (re.compile(r"split\s*1\b", re.I), "Winter"),
         (re.compile(r"split\s*2\b", re.I), "Spring"),
         (re.compile(r"split\s*3\b", re.I), "Summer"),
     ],
