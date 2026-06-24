@@ -2,7 +2,7 @@ import { slugify } from './entities/slugs'
 import type { PlayerGameLog } from '../hooks/useDashboardData'
 import { splitSortKey } from './mergeSlices'
 
-/** Official playoff display names when OE raw split matches regular season label. */
+/** Playoff display aliases when OE reuses the regular-season raw split label (e.g. LCK Rounds 1-2). */
 const LEAGUE_SEASON_NAMES: Record<
   string,
   Record<string, { regular: string; playoffs?: string }>
@@ -11,10 +11,6 @@ const LEAGUE_SEASON_NAMES: Record<
     Winter: { regular: 'Cup' },
     Spring: { regular: 'Rounds 1-2', playoffs: 'Road to MSI' },
     Summer: { regular: 'Rounds 3-5', playoffs: 'Season Playoffs' },
-  },
-  LPL: {
-    Spring: { regular: 'Split 1-2', playoffs: 'Split 1-2 Playoffs' },
-    Summer: { regular: 'Split 3', playoffs: 'Split 3 Playoffs' },
   },
   LEC: {
     Winter: { regular: 'Versus Season' },
@@ -59,7 +55,29 @@ function inferFallbackRawSplit(league: string, canonicalSplit: string, playoffs:
   if (INTERNATIONAL_SEASONS.has(season)) return season
   const config = LEAGUE_SEASON_NAMES[league]?.[season]
   if (!config) return season || canonicalSplit
-  return playoffs && config.playoffs ? config.playoffs : config.regular
+  if (playoffs && config.playoffs) return config.playoffs
+  return config.regular
+}
+
+function rawSplitMatchesConfigRegular(rawSplit: string, configRegular: string): boolean {
+  return rawSplit.trim().toLowerCase() === configRegular.trim().toLowerCase()
+}
+
+function playoffDisplayName(
+  league: string,
+  year: string,
+  season: string,
+  rawSplit: string,
+): string {
+  const lg = league
+  const config = LEAGUE_SEASON_NAMES[lg]?.[season]
+  if (config?.playoffs && rawSplitMatchesConfigRegular(rawSplit, config.regular)) {
+    return `${year} ${lg} ${config.playoffs}`
+  }
+  if (/playoffs?/i.test(rawSplit)) {
+    return `${year} ${lg} ${rawSplit}`
+  }
+  return `${year} ${lg} ${rawSplit} Playoffs`
 }
 
 export function tournamentYearFromGame(game: Pick<PlayerGameLog, 'oeYear' | 'split'>): string {
@@ -114,9 +132,8 @@ export function resolveTournamentDisplay(
 
   const lg = league ?? ''
   const rawSplit = opts?.rawSplit?.trim() || inferFallbackRawSplit(lg, canonicalSplit, Boolean(playoffs))
-  const config = LEAGUE_SEASON_NAMES[lg]?.[season]
-  if (playoffs && config?.playoffs) {
-    return `${year} ${lg} ${config.playoffs}`
+  if (playoffs) {
+    return playoffDisplayName(lg, year, season, rawSplit)
   }
 
   return `${year} ${lg} ${rawSplit}`

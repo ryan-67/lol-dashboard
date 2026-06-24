@@ -72,6 +72,25 @@ def filter_remote_files_by_years(files: list[dict], years: set[str] | None) -> l
     return [f for f in matched if extract_csv_year(f.get("name", "")) in years]
 
 
+def parse_playoffs_flag(value) -> bool:
+    """OE playoffs column is 0/1; tolerate floats and string variants."""
+    if value in (None, ""):
+        return False
+    if isinstance(value, bool):
+        return value
+    try:
+        return float(value) == 1.0
+    except (ValueError, TypeError):
+        return str(value).strip().lower() in ("1", "true", "yes")
+
+
+def resolve_playoffs_from_row(row: dict) -> bool:
+    if parse_playoffs_flag(row.get("playoffs")):
+        return True
+    split = str(row.get("split", ""))
+    return bool(re.search(r"playoffs?", split, re.I))
+
+
 def normalize_oe_row(row: dict) -> dict:
     """
     Normalize Oracle's Elixir row fields before ingest.
@@ -99,13 +118,6 @@ def normalize_oe_row(row: dict) -> dict:
         if player_id:
             suffix = player_id.split(":")[-1] if ":" in player_id else player_id
             out["playername"] = f"player:{suffix[:16]}"
-
-    # LPL regular split rows occasionally carry playoffs=1 without a playoff split label.
-    league = out.get("league", "")
-    split = out.get("split", "")
-    if league == "LPL" and str(out.get("playoffs")) == "1":
-        if re.search(r"split\s*[12]\b", split, re.I) and not re.search(r"playoff", split, re.I):
-            out["playoffs"] = "0"
 
     return out
 

@@ -34,6 +34,8 @@ from oe_csv_io import (  # noqa: E402
     TIER1_LEAGUES,
     discover_local_csv_files,
     normalize_oe_row,
+    parse_playoffs_flag,
+    resolve_playoffs_from_row,
 )
 
 LOL_DIR = ROOT / "lol"
@@ -287,7 +289,7 @@ def normalize_split(
     """
     split_text = (raw_split or "").strip()
     combined = split_text
-    if str(playoffs) == "1" and split_text:
+    if parse_playoffs_flag(playoffs) and split_text:
         combined = f"{split_text} Playoffs"
 
     if league in INTERNATIONAL_LEAGUES:
@@ -301,7 +303,7 @@ def normalize_split(
         if pattern.search(combined) or pattern.search(split_text):
             return label, False
 
-    is_playoff_row = str(playoffs) == "1" or bool(PLAYOFF_MARKERS.search(combined))
+    is_playoff_row = parse_playoffs_flag(playoffs) or bool(PLAYOFF_MARKERS.search(combined))
     if is_playoff_row and not any(p.search(combined) for p, _ in INTERNATIONAL_PATTERNS):
         combined = PLAYOFF_MARKERS.sub("", combined).strip(" -")
 
@@ -987,7 +989,7 @@ def process_row(row, buckets: dict, team_to_league: dict[str, str]):
         gpm = (earned_gold / gl * 60) if gl > 0 else 0.0
         year = str(row.get("year", "")).strip()
         raw_split = str(row.get("split", "")).strip()
-        playoffs = str(row.get("playoffs", "0")).strip()
+        is_playoffs = resolve_playoffs_from_row(row)
         date_only = str(row.get("date", "")).strip()[:10] if row.get("date") else ""
         entry = {
                 "date": date_only,
@@ -1036,7 +1038,7 @@ def process_row(row, buckets: dict, team_to_league: dict[str, str]):
             team_meta = bucket["game_team_meta"].get(game_id, {}).get(team_name)
             if team_meta and team_meta.get("turretPlates") is not None:
                 entry["turretPlates"] = team_meta["turretPlates"]
-        if playoffs == "1":
+        if is_playoffs:
             entry["playoffs"] = True
         p["gameLog"].append(entry)
         if champion:
