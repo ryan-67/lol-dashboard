@@ -20,13 +20,18 @@ function RecapScoreRow({ line }: { line: WeeklyRecapLine }) {
   const { score } = line
   return (
     <div className="overview-recap-score">
-      <EntityLink type="team" name={score.winner} className="overview-recap-team">
-        {score.winnerAbbr}
-      </EntityLink>
-      <span className="overview-recap-score-mid">{score.score}</span>
-      <EntityLink type="team" name={score.loser} className="overview-recap-team">
-        {score.loserAbbr}
-      </EntityLink>
+      <div className="overview-recap-score-main">
+        <EntityLink type="team" name={score.winner} className="overview-recap-team">
+          {score.winnerAbbr}
+        </EntityLink>
+        <span className="overview-recap-score-mid">{score.score}</span>
+        <EntityLink type="team" name={score.loser} className="overview-recap-team">
+          {score.loserAbbr}
+        </EntityLink>
+      </div>
+      {score.tournamentLabel ? (
+        <span className="overview-recap-tournament">{score.tournamentLabel}</span>
+      ) : null}
     </div>
   )
 }

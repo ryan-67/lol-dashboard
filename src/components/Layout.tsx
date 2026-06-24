@@ -18,12 +18,22 @@ const menuNav = [
   { to: '/players', label: 'Players' },
   { to: '/teams', label: 'Teams' },
   { to: '/champions', label: 'Champions' },
+  { to: '/tournaments', label: 'Tournaments' },
   { to: '/matchups', label: 'Matchups' },
   { to: '/faq', label: 'FAQ' },
 ]
 
+const MAIN_DASHBOARD_PATHS = new Set([
+  '/',
+  '/players',
+  '/teams',
+  '/champions',
+  '/matchups',
+  '/tournaments',
+])
+
 export default function Layout({ children }: { children: React.ReactNode }) {
-  const { loading, error } = useDashboard()
+  const { loading, error, setLeague } = useDashboard()
   const { user, loading: authLoading, signOut } = useAuth()
   const [showAuth, setShowAuth] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
@@ -36,8 +46,14 @@ export default function Layout({ children }: { children: React.ReactNode }) {
   const isEntityPage =
     /^\/players\/[^/]+/.test(location.pathname) ||
     /^\/teams\/[^/]+/.test(location.pathname) ||
-    /^\/champions\/[^/]+/.test(location.pathname)
+    /^\/champions\/[^/]+/.test(location.pathname) ||
+    /^\/tournaments\/[^/]+/.test(location.pathname)
   const shouldShowTopBar = !hideTopBarRoutes.has(location.pathname) && !isEntityPage
+
+  useEffect(() => {
+    if (!MAIN_DASHBOARD_PATHS.has(location.pathname)) return
+    setLeague('All Tier 1')
+  }, [location.pathname, setLeague])
 
   useEffect(() => {
     setMenuOpen(false)
@@ -128,7 +144,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
           <div className="app-header-nav-cluster">
             {primaryNav.map((item) => renderNavItem(item))}
 
-            <GlobalSearch />
+            <GlobalSearch onBeforeNavigate={() => setLeague('All Tier 1')} />
 
             {!authLoading && user ? (
               <>

@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useMemo, useState, useEffect } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { useEntityPageData } from '../../hooks/useEntityPageData'
 import {
@@ -14,10 +14,11 @@ import {
   buildTeamGoldGraph,
 } from '../../lib/entities'
 import { isDisplayableTeam } from '../../lib/teamAnalytics'
-import { isDisplayablePlayer, normalizePosition, ROLES } from '../../lib/playerRadar'
+import { isDisplayablePlayer, normalizePosition, ROLES, type RoleKey } from '../../lib/playerRadar'
 import { getTeamRosterDepth } from '../../lib/mergeSlices'
 import type { Player } from '../../hooks/useDashboardData'
-import { formatGameDate, formatNum, formatPct } from '../../lib/format'
+import { fetchTeamUpcomingSchedule, type EsportsScheduleRow } from '../../lib/loadEsportsSchedules'
+import { formatGameDate, formatNum, formatPct, formatProfileDate } from '../../lib/format'
 import TeamRadarChart from '../../components/teams/TeamRadarChart'
 import {
   EntityFilterBar,
@@ -34,11 +35,13 @@ import { TeamProfileCard, TeamObjectiveChart } from '../../components/entities/T
 import TeamBestChampionsByRole from '../../components/entities/TeamBestChampionsByRole'
 import TeamGoldGraph from '../../components/entities/TeamGoldGraph'
 import { roleLabel } from '../../lib/championAnalytics'
-import type { RoleKey } from '../../lib/playerRadar'
 
 export default function TeamPage() {
   const { slug = '' } = useParams<{ slug: string }>()
   const [activeTab, setActiveTab] = useState<TeamPageTab>('stats')
+  const [upcomingSchedule, setUpcomingSchedule] = useState<EsportsScheduleRow[]>([])
+  const [scheduleLoading, setScheduleLoading] = useState(false)
+  const [scheduleSource, setScheduleSource] = useState<'loaded' | 'empty' | 'unavailable'>('unavailable')
 
   const hasData = useCallback(
     (data: Parameters<typeof teamHasData>[0]) => teamHasData(data, slug),
@@ -147,6 +150,21 @@ export default function TeamPage() {
     }
     return [...counts.entries()].sort((a, b) => b[1] - a[1]).slice(0, 5)
   }, [matchHistory])
+
+  useEffect(() => {
+    if (!team || activeTab !== 'schedule') return
+    let cancelled = false
+    setScheduleLoading(true)
+    void fetchTeamUpcomingSchedule(team.name, { league: team.league, limit: 12 }).then((rows) => {
+      if (cancelled) return
+      setUpcomingSchedule(rows)
+      setScheduleSource(rows.length ? 'loaded' : 'empty')
+      setScheduleLoading(false)
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [team, activeTab])
 
   const filterBar = (
     <EntityFilterBar
@@ -346,9 +364,44 @@ export default function TeamPage() {
         <>
           <div className="card">
             <h3 className="card-title">Upcoming Schedule</h3>
-            <p className="text-secondary text-sm">
-              Schedule integration coming soon — check back after esports_schedules sync.
-            </p>
+            {scheduleLoading ? (
+              <p className="text-secondary text-sm">Loading schedule…</p>
+            ) : scheduleSource === 'loaded' ? (
+              <div className="entity-table-wrap">
+                <table className="entity-table entity-table-compact">
+                  <thead>
+                    <tr>
+                      <th>Date</th>
+                      <th>Matchup</th>
+                      <th>Split</th>
+                      <th>Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {upcomingSchedule.map((row) => (
+                      <tr key={row.id}>
+                        <td>
+                          {row.scheduled_at
+                            ? formatProfileDate(row.scheduled_at)
+                            : 'TBD'}
+                        </td>
+                        <td>
+                          <EntityLink type="team" name={row.team_a} /> vs{' '}
+                          <EntityLink type="team" name={row.team_b} />
+                        </td>
+                        <td className="text-secondary">{row.split || row.league}</td>
+                        <td className="text-secondary">{row.status}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <p className="text-secondary text-sm">
+                No upcoming fixtures in the schedule database for {team.name}. Schedule rows sync from
+                Liquipedia when the esports_schedules indexer runs — check back after the next sync.
+              </p>
+            )}
           </div>
 
           <div className="card">

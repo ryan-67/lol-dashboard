@@ -2,6 +2,7 @@ import type { Champion, GoldTimelinePoint, Player, Team, TeamChampion } from '..
 import type { RoleKey } from '../championAnalytics'
 import { ROLES, normalizePosition, computeGameScore, playersForRole } from '../playerRadar'
 import { teamMatchesCanonical } from './slugs'
+import { resolveTournamentDisplay } from '../tournamentCatalog'
 
 export interface ChampionWinrateEntry {
   champion: string
@@ -65,10 +66,13 @@ export function formatTournamentLabel(
   split?: string,
   fallbackLeague?: string,
   fallbackSplit?: string,
+  playoffs?: boolean,
 ): string {
   const lg = league || fallbackLeague
   const sp = split || fallbackSplit
-  if (lg && sp) return `${lg} ${sp}`
+  if (lg && sp) {
+    return resolveTournamentDisplay(lg, sp, playoffs)
+  }
   if (lg) return lg
   if (sp) return sp
   return '—'
@@ -99,7 +103,13 @@ export function buildTeamMatchHistory(
       date: game.date,
       opponent: game.opponent ?? 'Unknown',
       result: (game.result === 1 ? 'W' : 'L') as 'W' | 'L',
-      tournament: formatTournamentLabel(game.league, game.split, fallbackLeague, fallbackSplit),
+      tournament: formatTournamentLabel(
+        game.league,
+        game.split,
+        fallbackLeague,
+        fallbackSplit,
+        game.playoffs,
+      ),
       gameId: game.gameId ?? '',
     }))
     .sort((a, b) => {

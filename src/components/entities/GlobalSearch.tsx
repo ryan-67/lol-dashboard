@@ -9,7 +9,7 @@ import {
 } from '../../lib/entities/searchIndex'
 import ChampionIcon from './ChampionIcon'
 
-export default function GlobalSearch() {
+export default function GlobalSearch({ onBeforeNavigate }: { onBeforeNavigate?: () => void }) {
   const { catalog } = useDashboard()
   const navigate = useNavigate()
   const [query, setQuery] = useState('')
@@ -39,6 +39,7 @@ export default function GlobalSearch() {
   const pick = (entry: EntitySearchEntry) => {
     setQuery('')
     setOpen(false)
+    onBeforeNavigate?.()
     navigate(entityPath(entry))
   }
 

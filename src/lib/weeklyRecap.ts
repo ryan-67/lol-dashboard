@@ -22,6 +22,7 @@ import {
   type SeriesBucket as GroupedSeriesBucket,
 } from './seriesGrouping'
 import { analyzeSeriesMomentum } from './seriesMomentum'
+import { resolveTournamentDisplay } from './tournamentCatalog'
 
 export type { SeriesFacts }
 
@@ -56,6 +57,7 @@ export interface WeeklyRecapScore {
   winnerAbbr: string
   loserAbbr: string
   score: string
+  tournamentLabel?: string
 }
 
 interface GamePlayer {
@@ -82,6 +84,9 @@ interface ParsedGame {
   winner: string
   loser: string
   players: GamePlayer[]
+  league?: string
+  split?: string
+  playoffs?: boolean
 }
 
 type SeriesBucket = GroupedSeriesBucket<ParsedGame>
@@ -268,7 +273,16 @@ function collectWeeklyGames(players: Player[], window: WeeklyRecapWindow): Parse
         }
       }
 
-      games.push({ id, date: g.date, winner, loser, players: roster })
+      games.push({
+        id,
+        date: g.date,
+        winner,
+        loser,
+        players: roster,
+        league: g.league,
+        split: g.split,
+        playoffs: g.playoffs,
+      })
     }
   }
 
@@ -1299,6 +1313,13 @@ export function buildWeeklyRecapLines(
     const domWins = Math.max(winsA, winsB)
     const vicWins = Math.min(winsA, winsB)
 
+    const firstGame = bucket.games[0]!
+    const tournamentLabel = resolveTournamentDisplay(
+      firstGame.league,
+      firstGame.split,
+      firstGame.playoffs,
+    )
+
     lines.push({
       ...line,
       score: {
@@ -1307,6 +1328,7 @@ export function buildWeeklyRecapLines(
         winnerAbbr: recapTeamTag(dominant),
         loserAbbr: recapTeamTag(victim),
         score: `${domWins}-${vicWins}`,
+        tournamentLabel,
       },
     })
   }

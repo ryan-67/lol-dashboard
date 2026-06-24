@@ -33,41 +33,57 @@ async function findBestSplit(
   catalog: NonNullable<ReturnType<typeof useDashboard>['catalog']>,
   hasData: (data: DashboardData) => boolean,
 ): Promise<{ filters: EntityFilterState; notice: string | null }> {
-  if (isLifetimeYearFilter(globalYear)) {
-    const lifetime = await tryLifetimeFilters(catalog, league, hasData)
-    if (lifetime) return lifetime
-  }
+  const tryLeague = async (leagueLabel: string): Promise<EntityFilterState | null> => {
+    if (isLifetimeYearFilter(globalYear)) {
+      const lifetime = await tryLifetimeFilters(catalog, leagueLabel, hasData)
+      if (lifetime) return lifetime.filters
+    }
 
-  const trySplit = async (split: string): Promise<boolean> => {
-    const year = yearFromSplitLabel(split, globalYear)
-    const rows = await fetchOESlices({
-      leagues: leagueLabelToLeagues(league),
-      years: [year],
-      splits: [split],
-      catalogSplits: catalog.splits,
-    })
-    const store = buildStoreFromSliceRows(catalog!, rows)
-    const data = mergeDataForFilters(store, { league, year, split })
-    return hasData(data)
-  }
-
-  const ordered = splitsNewestFirst(catalogSplits)
-  const yearPref = [
-    ...ordered.filter((s) => s.startsWith(`${globalYear} `)),
-    ...ordered.filter((s) => !s.startsWith(`${globalYear} `)),
-  ]
-
-  for (const split of yearPref) {
-    if (await trySplit(split)) {
+    const trySplit = async (split: string): Promise<boolean> => {
       const year = yearFromSplitLabel(split, globalYear)
-      return { filters: { league, year, split }, notice: null }
+      const rows = await fetchOESlices({
+        leagues: leagueLabelToLeagues(leagueLabel),
+        years: [year],
+        splits: [split],
+        catalogSplits: catalog.splits,
+      })
+      const store = buildStoreFromSliceRows(catalog!, rows)
+      const data = mergeDataForFilters(store, { league: leagueLabel, year, split })
+      return hasData(data)
+    }
+
+    const ordered = splitsNewestFirst(catalogSplits)
+    const yearPref = [
+      ...ordered.filter((s) => s.startsWith(`${globalYear} `)),
+      ...ordered.filter((s) => !s.startsWith(`${globalYear} `)),
+    ]
+
+    for (const split of yearPref) {
+      if (await trySplit(split)) {
+        const year = yearFromSplitLabel(split, globalYear)
+        return { league: leagueLabel, year, split }
+      }
+    }
+    return null
+  }
+
+  const primary = await tryLeague(league)
+  if (primary) return { filters: primary, notice: null }
+
+  if (league !== 'All Tier 1') {
+    const allTier1 = await tryLeague('All Tier 1')
+    if (allTier1) {
+      return {
+        filters: allTier1,
+        notice: 'Showing tier-1 data — entity not found in the selected league filter',
+      }
     }
   }
 
   const fallback = pickNewestSplitWithData(catalogSplits, () => false) ?? catalogSplits[0] ?? `${globalYear} Spring`
   const year = yearFromSplitLabel(fallback, globalYear)
   return {
-    filters: { league, year, split: fallback },
+    filters: { league: 'All Tier 1', year, split: fallback },
     notice: `Showing ${fallback} — limited data for this entity`,
   }
 }

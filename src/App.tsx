@@ -12,9 +12,11 @@ import Players from './pages/Players'
 import Teams from './pages/Teams'
 import Champions from './pages/Champions'
 import Matchups from './pages/Matchups'
+import Tournaments from './pages/Tournaments'
 import PlayerPage from './pages/entities/PlayerPage'
 import TeamPage from './pages/entities/TeamPage'
 import ChampionPage from './pages/entities/ChampionPage'
+import TournamentPage from './pages/entities/TournamentPage'
 import NuckyAI from './pages/NuckyAI'
 import FAQ from './pages/FAQ'
 import PrivatePolicy from './pages/PrivatePolicy'
@@ -97,9 +99,11 @@ function App() {
               <Route path="/teams" element={<Teams />} />
               <Route path="/champions" element={<Champions />} />
               <Route path="/matchups" element={<Matchups />} />
+              <Route path="/tournaments" element={<Tournaments />} />
               <Route path="/players/:slug" element={<PlayerPage />} />
               <Route path="/teams/:slug" element={<TeamPage />} />
               <Route path="/champions/:slug" element={<ChampionPage />} />
+              <Route path="/tournaments/:slug" element={<TournamentPage />} />
               <Route path="/nuckyai" element={<NuckyAI />} />
               <Route path="/faq" element={<FAQ />} />
               <Route path="/private-policy" element={<PrivatePolicy />} />
