@@ -423,6 +423,9 @@ def slice_store():
         "game_teams": defaultdict(list),
         "game_team_gold": defaultdict(dict),
         "game_team_meta": defaultdict(dict),
+        "game_catalog": defaultdict(
+            lambda: {"teams": {}, "patch": "", "gameLength": None}
+        ),
         "team_games": 0,
         "weekly_team_games": defaultdict(int),
         # Guards against double-counting when the same game appears in more than one
@@ -749,6 +752,25 @@ def compile_team_champions(team_champions):
     return out
 
 
+def compile_game_catalog(game_catalog, game_teams):
+    out = {}
+    for game_id, cat in game_catalog.items():
+        teams_out = {}
+        for team_name, draft in (cat.get("teams") or {}).items():
+            teams_out[team_name] = {
+                "bans": list(draft.get("bans") or []),
+                "picks": list(draft.get("picks") or []),
+                "side": draft.get("side") or "",
+                "won": str(draft.get("result", "0")) == "1",
+            }
+        out[game_id] = {
+            "patch": str(cat.get("patch") or "").strip(),
+            "gameLength": cat.get("gameLength"),
+            "teams": teams_out,
+        }
+    return out
+
+
 def compile_slice(store):
     backfill_game_log_opponents(store["players"], store["game_teams"])
     backfill_game_log_turret_plates(store["players"], store["game_team_meta"])
@@ -762,6 +784,7 @@ def compile_slice(store):
         "weeklyTeamGames": dict(store["weekly_team_games"]),
         "matchups": compile_matchups(store["game_teams"]),
         "teamChampions": compile_team_champions(store["team_champions"]),
+        "gameCatalog": compile_game_catalog(store["game_catalog"], store["game_teams"]),
     }
 
 
@@ -892,6 +915,23 @@ def process_row(row, buckets: dict, team_to_league: dict[str, str]):
             bucket["game_teams"][game_id].append(
                 {"team": team_name, "result": result, "league": bucket_league, "side": side_val}
             )
+            cat = bucket["game_catalog"][game_id]
+            patch_val = str(row.get("patch", "")).strip()
+            if patch_val and not cat.get("patch"):
+                cat["patch"] = patch_val
+            if gl > 0 and not cat.get("gameLength"):
+                cat["gameLength"] = round(gl / 60, 1)
+            team_draft = cat["teams"].setdefault(
+                team_name,
+                {"bans": [], "picks": [], "side": side_val, "result": result},
+            )
+            for i in range(1, 6):
+                ban = str(row.get(f"ban{i}", "") or "").strip()
+                if ban and ban not in team_draft["bans"]:
+                    team_draft["bans"].append(ban)
+                pick = str(row.get(f"pick{i}", "") or "").strip()
+                if pick and pick not in team_draft["picks"]:
+                    team_draft["picks"].append(pick)
             plates = row_lookup(
                 row,
                 ("turretplates", "turret_plates", "turretplate", "turretplate"),
@@ -965,6 +1005,8 @@ def process_row(row, buckets: dict, team_to_league: dict[str, str]):
         deaths_g = max(safe_int(row.get("deaths", 0)), 1)
         kills_g = safe_int(row.get("kills", 0))
         assists_g = safe_int(row.get("assists", 0))
+        deaths_actual = safe_int(row.get("deaths", 0))
+        total_cs = row_lookup(row, ("totalcs", "total cs", "total_cs"), 0, as_float=False)
         gl = safe_float(row.get("gamelength", 0))
         earned_gold = safe_float(row.get("earnedgold", 0))
         total_dmg = safe_float(row.get("damagetochampions", 0))
@@ -1014,7 +1056,12 @@ def process_row(row, buckets: dict, team_to_league: dict[str, str]):
                 "dmgPerGold": round(dmg_per_gold, 4),
                 "gpm": round(gpm, 1),
                 "gameLength": round(gl / 60, 1) if gl > 0 else None,
+                "kills": kills_g,
+                "deaths": deaths_actual,
+                "assists": assists_g,
             }
+        if total_cs > 0:
+            entry["totalCs"] = total_cs
         if year:
             entry["oeYear"] = year
         if raw_split:

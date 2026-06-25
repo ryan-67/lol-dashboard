@@ -1,10 +1,11 @@
-export type TournamentPageTab = 'overview' | 'players' | 'teams' | 'champions'
+export type TournamentPageTab = 'overview' | 'players' | 'teams' | 'champions' | 'matches'
 
 const TABS: { id: TournamentPageTab; label: string }[] = [
   { id: 'overview', label: 'Overview' },
   { id: 'players', label: 'Players' },
   { id: 'teams', label: 'Teams' },
   { id: 'champions', label: 'Champions' },
+  { id: 'matches', label: 'Match List' },
 ]
 
 interface TournamentSubnavProps {

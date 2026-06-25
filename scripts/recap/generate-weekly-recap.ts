@@ -4,9 +4,16 @@
  * Run after OE ingest/seed in CI or locally.
  *
  * Env: SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, OPENROUTER_API_KEY
- * Optional: RECAP_LLM_MODEL, RECAP_YEAR, RECAP_DRY_RUN=1, RECAP_REGENERATE=1
+ * Optional:
+ *   RECAP_LLM_MODEL, RECAP_YEAR, RECAP_DRY_RUN=1, RECAP_REGENERATE=1
+ *   RECAP_PLAYOFFS_2026_SPRING=1 — bulk backfill for 2026 Spring playoffs only (all leagues)
  */
-import { collectSeriesBriefs } from '../../src/lib/weeklyRecap.ts'
+import {
+  collectSeriesBriefs,
+  is2026SpringPlayoffGame,
+  isRecentCompletedGame,
+  type SeriesBrief,
+} from '../../src/lib/weeklyRecap.ts'
 import { getHubWindow, windowToWeeklyRecapWindow } from '../../src/lib/weeklyWindow.ts'
 import {
   createServiceClient,
@@ -21,34 +28,55 @@ import { generateAiRecapLine, briefToTemplateLine } from './compose.ts'
 import { recapLineToText } from '../../src/lib/weeklyRecap.ts'
 import { DEFAULT_RECAP_MODEL } from './openrouter.ts'
 
+function dedupeBriefs(briefs: SeriesBrief[]): SeriesBrief[] {
+  const map = new Map<string, SeriesBrief>()
+  for (const b of briefs) map.set(b.seriesId, b)
+  return [...map.values()].sort((a, b) => b.date.localeCompare(a.date) || a.seriesId.localeCompare(b.seriesId))
+}
+
 async function main(): Promise<void> {
   const dryRun = process.env.RECAP_DRY_RUN === '1'
   const forceRegenerate = process.env.RECAP_REGENERATE === '1'
+  const bulkPlayoffs2026 = process.env.RECAP_PLAYOFFS_2026_SPRING === '1'
   const year = currentYear()
   const client = dryRun ? null : createServiceClient()
 
   console.log(`Loading tier-1 OE data for ${year}...`)
   let { players, teams } = await loadTier1Data(client, year)
-  const window = getHubWindow(players, 'monthly')
-  if (!window) {
-    console.log('No game log dates — nothing to recap.')
-    return
-  }
 
-  let recapWindow = windowToWeeklyRecapWindow(window)
-  let briefs = collectSeriesBriefs(players, teams, recapWindow)
+  let briefs: SeriesBrief[] = []
 
-  if (!briefs.length && client && process.env.RECAP_FROM_SUPABASE !== '1') {
-    console.log('No series from local shards — loading fresh oe_slices from Supabase...')
-    ;({ players, teams } = await loadTier1DataFromSupabase(client, year))
-    const retryWindow = getHubWindow(players, 'monthly')
-    if (retryWindow) {
-      recapWindow = windowToWeeklyRecapWindow(retryWindow)
-      briefs = collectSeriesBriefs(players, teams, recapWindow)
+  if (bulkPlayoffs2026) {
+    console.log('Mode: 2026 Spring playoffs bulk backfill (all leagues)')
+    briefs = collectSeriesBriefs(players, teams, null, {
+      gameFilter: is2026SpringPlayoffGame,
+    })
+  } else {
+    const window = getHubWindow(players, 'monthly')
+    if (!window) {
+      console.log('No game log dates — nothing to recap.')
+      return
     }
-  }
 
-  console.log(`Monthly window ${window.label}: ${briefs.length} series`)
+    let recapWindow = windowToWeeklyRecapWindow(window)
+    briefs = collectSeriesBriefs(players, teams, recapWindow)
+
+    if (!briefs.length && client && process.env.RECAP_FROM_SUPABASE !== '1') {
+      console.log('No series from local shards — loading fresh oe_slices from Supabase...')
+      ;({ players, teams } = await loadTier1DataFromSupabase(client, year))
+      const retryWindow = getHubWindow(players, 'monthly')
+      if (retryWindow) {
+        recapWindow = windowToWeeklyRecapWindow(retryWindow)
+        briefs = collectSeriesBriefs(players, teams, recapWindow)
+      }
+    }
+
+    const recentBriefs = collectSeriesBriefs(players, teams, null, {
+      gameFilter: (g) => isRecentCompletedGame(g, 14),
+    })
+    briefs = dedupeBriefs([...briefs, ...recentBriefs])
+    console.log(`Monthly window ${window.label}: ${briefs.length} series (incl. recent completions)`)
+  }
 
   if (!briefs.length) return
 

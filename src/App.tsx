@@ -17,6 +17,7 @@ import PlayerPage from './pages/entities/PlayerPage'
 import TeamPage from './pages/entities/TeamPage'
 import ChampionPage from './pages/entities/ChampionPage'
 import TournamentPage from './pages/entities/TournamentPage'
+import SeriesPage from './pages/entities/SeriesPage'
 import NuckyAI from './pages/NuckyAI'
 import FAQ from './pages/FAQ'
 import PrivatePolicy from './pages/PrivatePolicy'
@@ -104,6 +105,7 @@ function App() {
               <Route path="/teams/:slug" element={<TeamPage />} />
               <Route path="/champions/:slug" element={<ChampionPage />} />
               <Route path="/tournaments/:slug" element={<TournamentPage />} />
+              <Route path="/series/:seriesId" element={<SeriesPage />} />
               <Route path="/nuckyai" element={<NuckyAI />} />
               <Route path="/faq" element={<FAQ />} />
               <Route path="/private-policy" element={<PrivatePolicy />} />

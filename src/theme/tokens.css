@@ -2863,3 +2863,231 @@ b,
   text-decoration: underline;
 }
 
+/* Tournament match list */
+.tournament-series-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  text-decoration: none;
+}
+
+.tournament-series-vs {
+  color: var(--text-secondary);
+  font-size: 12px;
+  margin: 0 2px;
+}
+
+/* Series identity page */
+.series-page-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.series-page-vs {
+  color: var(--text-secondary);
+  font-weight: 400;
+}
+
+.series-page-logos {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.series-page-score {
+  font-size: 1.25rem;
+  font-weight: 600;
+}
+
+.series-subnav {
+  flex-wrap: wrap;
+}
+
+.series-draft-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.series-draft-header {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  gap: 12px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 0 8px 4px;
+}
+
+.series-draft-team-col:first-child {
+  text-align: left;
+}
+
+.series-draft-team-col:last-child {
+  text-align: right;
+}
+
+.series-draft-center-col {
+  text-align: center;
+}
+
+.series-draft-row {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  gap: 12px;
+  align-items: center;
+  padding: 10px 8px;
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-elevated);
+}
+
+.series-draft-side {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.series-draft-side-a {
+  border-left: 3px solid transparent;
+}
+
+.series-draft-side-b {
+  justify-content: flex-end;
+  border-right: 3px solid transparent;
+}
+
+.series-draft-side-a.win {
+  border-left-color: var(--accent-green, #3dd68c);
+}
+
+.series-draft-side-a.loss {
+  border-left-color: var(--accent-red, #f87171);
+}
+
+.series-draft-side-b.win {
+  border-right-color: var(--accent-green, #3dd68c);
+}
+
+.series-draft-side-b.loss {
+  border-right-color: var(--accent-red, #f87171);
+}
+
+.series-draft-picks {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.series-draft-icons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.series-draft-result {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  min-width: 36px;
+}
+
+.series-draft-result.win {
+  color: var(--accent-green, #3dd68c);
+}
+
+.series-draft-result.loss {
+  color: var(--accent-red, #f87171);
+}
+
+.series-draft-mid {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  font-size: 13px;
+  min-width: 72px;
+}
+
+.series-draft-duration {
+  font-weight: 600;
+}
+
+.series-draft-gd {
+  font-size: 11px;
+}
+
+.series-role-comparison {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.series-role-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+@media (max-width: 768px) {
+  .series-role-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .series-draft-row {
+    grid-template-columns: 1fr;
+  }
+
+  .series-draft-side-b {
+    justify-content: flex-start;
+  }
+}
+
+.series-role-stats {
+  list-style: none;
+  padding: 0;
+  margin: 8px 0 0;
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  font-size: 12px;
+}
+
+.series-role-stats li {
+  display: flex;
+  gap: 6px;
+  color: var(--text-secondary);
+}
+
+.series-game-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+
+.series-game-header > div {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.series-game-meta {
+  flex-direction: column;
+  align-items: center;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.series-game-score {
+  font-weight: 700;
+  font-size: 12px;
+  letter-spacing: 0.05em;
+}
+

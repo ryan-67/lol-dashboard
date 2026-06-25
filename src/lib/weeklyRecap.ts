@@ -78,7 +78,7 @@ interface GamePlayer {
   won: boolean
 }
 
-interface ParsedGame {
+export interface ParsedGame {
   id: string
   date: string
   winner: string
@@ -233,13 +233,22 @@ function segTeam(name: string): WeeklyRecapSegment {
   }
 }
 
-function collectWeeklyGames(players: Player[], window: WeeklyRecapWindow): ParsedGame[] {
+export function collectParsedGames(
+  players: Player[],
+  options?: {
+    window?: WeeklyRecapWindow | null
+    gameFilter?: (g: PlayerGameLog) => boolean
+  },
+): ParsedGame[] {
   const seen = new Set<string>()
   const games: ParsedGame[] = []
+  const window = options?.window ?? null
+  const gameFilter = options?.gameFilter
 
   for (const player of players) {
     for (const g of player.gameLog ?? []) {
-      if (!inWindow(g, window)) continue
+      if (window && !inWindow(g, window)) continue
+      if (gameFilter && !gameFilter(g)) continue
       const id = g.gameId ?? `${g.date}|${player.team}|${g.opponent ?? ''}|${g.result}`
       if (seen.has(id)) continue
       seen.add(id)
@@ -291,6 +300,10 @@ function collectWeeklyGames(players: Player[], window: WeeklyRecapWindow): Parse
   }
 
   return games.sort(compareSeriesGames)
+}
+
+function collectWeeklyGames(players: Player[], window: WeeklyRecapWindow): ParsedGame[] {
+  return collectParsedGames(players, { window })
 }
 
 function collectTeamGames(players: Player[], team: string): TeamGameRecord[] {
@@ -1411,9 +1424,10 @@ export function collectSeriesBriefs(
   players: Player[],
   teams: Team[],
   window: WeeklyRecapWindow | null,
+  options?: { gameFilter?: (g: PlayerGameLog) => boolean },
 ): SeriesBrief[] {
-  if (!window) return []
-  const games = collectWeeklyGames(players, window)
+  if (!window && !options?.gameFilter) return []
+  const games = collectParsedGames(players, { window, gameFilter: options?.gameFilter })
   if (!games.length) return []
 
   const weekCounts = buildWeekChampionCounts(games)
@@ -1483,6 +1497,23 @@ export function collectSeriesBriefs(
   }
 
   return briefs.sort((a, b) => b.date.localeCompare(a.date) || a.seriesId.localeCompare(b.seriesId))
+}
+
+/** 2026 canonical Spring playoff games across tier-1 leagues (budgeted bulk backfill). */
+export function is2026SpringPlayoffGame(g: PlayerGameLog): boolean {
+  const year = g.oeYear ?? g.date?.slice(0, 4) ?? ''
+  if (year !== '2026') return false
+  if (!g.playoffs) return false
+  return (g.split ?? '').toLowerCase().includes('spring')
+}
+
+export function isRecentCompletedGame(g: PlayerGameLog, lookbackDays = 14): boolean {
+  const d = new Date(g.date)
+  if (Number.isNaN(d.getTime())) return false
+  const cutoff = new Date()
+  cutoff.setDate(cutoff.getDate() - lookbackDays)
+  cutoff.setHours(0, 0, 0, 0)
+  return d >= cutoff
 }
 
 export { recapTeamTag } from './recapTeamTag'

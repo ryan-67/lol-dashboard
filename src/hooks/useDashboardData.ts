@@ -55,6 +55,23 @@ export interface PlayerGameLog {
   goldTimeline?: GoldTimelinePoint[]
   gameLength?: number
   playoffs?: boolean
+  kills?: number
+  deaths?: number
+  assists?: number
+  totalCs?: number
+}
+
+export interface GameCatalogTeamDraft {
+  bans: string[]
+  picks: string[]
+  side?: string
+  won?: boolean
+}
+
+export interface GameCatalogEntry {
+  patch: string
+  gameLength?: number | null
+  teams: Record<string, GameCatalogTeamDraft>
 }
 
 export interface PlayerChampionPoolEntry {
@@ -193,6 +210,7 @@ export interface DashboardData {
   matchups: Matchup[]
   teamChampions: TeamChampion[]
   rosterDepth: RosterDepthEntry[]
+  gameCatalog: Record<string, GameCatalogEntry>
 }
 
 export { DEFAULT_SPLIT } from '../lib/constants'

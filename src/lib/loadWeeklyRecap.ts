@@ -85,3 +85,22 @@ export async function fetchCachedWeeklyRecapLines(
 
   return ((data ?? []) as RecapRow[]).map(rowToLine).slice(0, limit)
 }
+
+/** Cached AI recap for a single series by stable series ID. */
+export async function fetchSeriesRecapById(seriesId: string): Promise<WeeklyRecapLine | null> {
+  if (!isSupabaseConfigured || !seriesId) return null
+
+  const { data, error } = await supabase
+    .from(TABLE)
+    .select('series_id, series_date, segments, league, winner, score, team_a, team_b')
+    .eq('series_id', seriesId)
+    .maybeSingle()
+
+  if (error) {
+    console.warn('[weekly-recap] series fetch failed:', error.message)
+    return null
+  }
+
+  if (!data) return null
+  return rowToLine(data as RecapRow)
+}

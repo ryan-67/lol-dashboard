@@ -1,6 +1,7 @@
 import type {
   Champion,
   DashboardData,
+  GameCatalogEntry,
   Matchup,
   Player,
   PlayerChampionPoolEntry,
@@ -20,6 +21,7 @@ export interface DashboardSlice {
   teamChampions: TeamChampion[]
   rosterDepth?: RosterDepthEntry[]
   weeklyTeamGames?: Record<string, number>
+  gameCatalog?: Record<string, GameCatalogEntry>
 }
 
 export interface OEStoreMeta {
@@ -549,6 +551,29 @@ function mergeChampions(slices: DashboardSlice[]): Champion[] {
     .sort((a, b) => b.presence - a.presence)
 }
 
+function mergeGameCatalog(slices: DashboardSlice[]): Record<string, GameCatalogEntry> {
+  const out: Record<string, GameCatalogEntry> = {}
+  for (const slice of slices) {
+    for (const [gameId, entry] of Object.entries(slice.gameCatalog ?? {})) {
+      const existing = out[gameId]
+      if (!existing) {
+        out[gameId] = {
+          patch: entry.patch,
+          gameLength: entry.gameLength,
+          teams: { ...entry.teams },
+        }
+        continue
+      }
+      if (!existing.patch && entry.patch) existing.patch = entry.patch
+      if (!existing.gameLength && entry.gameLength) existing.gameLength = entry.gameLength
+      for (const [team, draft] of Object.entries(entry.teams ?? {})) {
+        existing.teams[team] = draft
+      }
+    }
+  }
+  return out
+}
+
 function mergeMatchups(slices: DashboardSlice[]): Matchup[] {
   const acc = new Map<string, Matchup>()
 
@@ -745,6 +770,7 @@ export function mergeSlicesFromFilters(
       matchups: [],
       teamChampions: [],
       rosterDepth: [],
+      gameCatalog: {},
     }
   }
 
@@ -759,6 +785,7 @@ export function mergeSlicesFromFilters(
     matchups: mergeMatchups(slices),
     teamChampions: mergeTeamChampions(slices),
     rosterDepth: mergeRosterDepth(slices),
+    gameCatalog: mergeGameCatalog(slices),
   }
 }
 
@@ -799,6 +826,7 @@ export function mergeSlices(
       matchups: [],
       teamChampions: [],
       rosterDepth: [],
+      gameCatalog: {},
     }
   }
 
@@ -813,5 +841,6 @@ export function mergeSlices(
     matchups: mergeMatchups(slices),
     teamChampions: mergeTeamChampions(slices),
     rosterDepth: mergeRosterDepth(slices),
+    gameCatalog: mergeGameCatalog(slices),
   }
 }

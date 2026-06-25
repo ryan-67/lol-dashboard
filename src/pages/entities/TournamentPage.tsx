@@ -18,6 +18,8 @@ import {
 import { formatGameDate, formatNum, formatPct } from '../../lib/format'
 import { scrollEntranceStagger } from '../../theme/animations'
 import { TournamentSubnav, type TournamentPageTab } from '../../components/tournaments'
+import TournamentMatchList from '../../components/tournaments/TournamentMatchList'
+import { buildTournamentSeriesList } from '../../lib/seriesAnalytics'
 import { EntityLink, ChampionEntityInline } from '../../components/entities'
 import PlayerRadarChart from '../../components/players/PlayerRadarChart'
 import TeamRadarChart from '../../components/teams/TeamRadarChart'
@@ -65,6 +67,11 @@ export default function TournamentPage() {
   )
 
   const standings = useMemo(() => buildTournamentStandings(scopedPlayers), [scopedPlayers])
+
+  const seriesList = useMemo(
+    () => (tournament && data ? buildTournamentSeriesList(data, tournament) : []),
+    [data, tournament],
+  )
 
   const standoutPlayer = useMemo(() => {
     if (!scopedPlayers.length) return null
@@ -349,6 +356,14 @@ export default function TournamentPage() {
               </table>
             </div>
           )}
+        </section>
+      )}
+
+      {activeTab === 'matches' && (
+        <section className="card tournament-card">
+          <h2 className="card-title">Match List</h2>
+          <p className="card-subtitle">Completed series in this tournament, newest first</p>
+          <TournamentMatchList rows={seriesList} />
         </section>
       )}
     </div>
