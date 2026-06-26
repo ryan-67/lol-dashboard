@@ -1,4 +1,5 @@
 import type { Player, PlayerChampionPoolEntry, PlayerGameLog } from '../hooks/useDashboardData'
+import { isGameStatPresent } from './statAvailability'
 import {
   computeGameScore,
   getMetricValue,
@@ -290,13 +291,14 @@ export interface PlayerChampionStatsRow {
 
 const AT15_METRICS: RadarMetricKey[] = ['gd15', 'csd15', 'xpd15', 'turretPlates']
 
-function metricFromGame(game: PlayerGameLog, key: RadarMetricKey): number | undefined {
+function metricFromGame(game: PlayerGameLog, key: RadarMetricKey, cohort: Player[]): number | undefined {
+  if (!isGameStatPresent(game, key, cohort)) return undefined
   const raw = game[key as keyof PlayerGameLog]
   if (typeof raw === 'number' && !Number.isNaN(raw)) return raw
   return undefined
 }
 
-export function buildPlayerChampionStats(player: Player, role: RoleKey): PlayerChampionStatsRow[] {
+export function buildPlayerChampionStats(player: Player, role: RoleKey, cohort: Player[] = []): PlayerChampionStatsRow[] {
   const metricKeys = ROLE_METRICS[role].map((m) => m.key)
   const acc = new Map<
     string,
@@ -315,9 +317,9 @@ export function buildPlayerChampionStats(player: Player, role: RoleKey): PlayerC
     if (game.result === 1) cur.wins += 1
     for (const key of metricKeys) {
       const value =
-        AT15_METRICS.includes(key) || key === 'turretPlates'
-          ? metricFromGame(game, key)
-          : getMetricValue(playerSnapshotFromGame(game), key)
+        AT15_METRICS.includes(key) || key === 'turretPlates' || key === 'soloKills'
+          ? metricFromGame(game, key, cohort)
+          : getMetricValue(playerSnapshotFromGame(game), key, { cohort, allowMissing: true })
       if (value == null) continue
       cur.sums[key] = (cur.sums[key] ?? 0) + value
       cur.counts[key] = (cur.counts[key] ?? 0) + 1

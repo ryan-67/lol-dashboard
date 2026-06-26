@@ -1,14 +1,12 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { useGSAP } from '@gsap/react'
-import { useEntityPageData } from '../../hooks/useEntityPageData'
-import type { DashboardData } from '../../hooks/useDashboardData'
 import {
   buildTeamsForSeries,
   filterPlayersForSeries,
-  findSeriesById,
 } from '../../lib/seriesAnalytics'
 import { decodeSeriesIdParam } from '../../lib/seriesPath'
+import { useSeriesPageData } from '../../hooks/useSeriesPageData'
 import { fetchSeriesRecapById } from '../../lib/loadWeeklyRecap'
 import { recapLineToText, type WeeklyRecapLine } from '../../lib/weeklyRecap'
 import { recapTeamTag } from '../../lib/recapTeamTag'
@@ -32,16 +30,7 @@ export default function SeriesPage() {
   const [recapLoading, setRecapLoading] = useState(true)
   const ref = useRef<HTMLDivElement>(null)
 
-  const hasSeriesData = useCallback(
-    (d: DashboardData) => findSeriesById(d, seriesId) !== null,
-    [seriesId],
-  )
-  const { data, loading, fallbackNotice } = useEntityPageData(hasSeriesData)
-
-  const series = useMemo(
-    () => (data ? findSeriesById(data, seriesId) : null),
-    [data, seriesId],
-  )
+  const { data, series, loading, fallbackNotice } = useSeriesPageData(seriesId)
 
   const scopedPlayers = useMemo(
     () => (series ? filterPlayersForSeries(data?.players ?? [], series) : []),
@@ -122,7 +111,7 @@ export default function SeriesPage() {
   if (!series) {
     return (
       <div className="page-section entity-page">
-        <div className="empty-state">Series not found for this filter.</div>
+        <div className="empty-state">{fallbackNotice ?? 'Series not found.'}</div>
         <Link to="/tournaments" className="entity-back-link">
           ← Tournaments
         </Link>

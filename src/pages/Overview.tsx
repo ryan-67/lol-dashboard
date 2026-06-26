@@ -180,9 +180,9 @@ function createWeeklyPlayerSnapshot(base: Player, logs: PlayerGameLog[]): Player
     kda: avg(logs.map((g) => g.kda)),
     kp: avg(logs.map((g) => g.kp)),
     dmgShare: avg(logs.map((g) => g.dmgShare)),
-    gd15: avg(logs.map((g) => g.gd15)),
-    csd15: avg(logs.map((g) => g.csd15)),
-    xpd15: avg(logs.map((g) => g.xpd15)),
+    gd15: avg(logs.map((g) => g.gd15).filter((v): v is number => typeof v === 'number')),
+    csd15: avg(logs.map((g) => g.csd15).filter((v): v is number => typeof v === 'number')),
+    xpd15: avg(logs.map((g) => g.xpd15).filter((v): v is number => typeof v === 'number')),
     dpm: avg(logs.map((g) => g.dpm)),
     visionScore: avg(logs.map((g) => g.visionScore ?? 0)),
     goldShare: avg(logs.map((g) => g.goldShare ?? 0)),
@@ -309,8 +309,8 @@ function highestDeltaStat(
   let best = { stat: 'KDA', value: player.weekly.kda, delta: 0 }
   for (const def of defs) {
     const cohortAvg =
-      avg(roleCohort.map((c) => Number(getMetricValue(c, def.key) ?? 0))) || 0
-    const val = Number(getMetricValue(player.weekly, def.key) ?? 0)
+      avg(roleCohort.map((c) => Number(getMetricValue(c, def.key, { cohort: roleCohort }) ?? 0))) || 0
+    const val = Number(getMetricValue(player.weekly, def.key, { cohort: roleCohort }) ?? 0)
     const delta = val - cohortAvg
     if (delta > best.delta) {
       best = {
@@ -363,7 +363,7 @@ function calculateHottestTeams(
     entry.weeklyWins += wins
     entry.weeklyGames += matches.length
     entry.weeklyAvgKda += avg(matches.map((m) => m.kda))
-    entry.weeklyAvgGd15 += avg(matches.map((m) => m.gd15))
+    entry.weeklyAvgGd15 += avg(matches.map((m) => m.gd15).filter((v): v is number => typeof v === 'number'))
     entry.weeklyObjControl += avg(matches.map((m) => m.objControl ?? 0))
 
     const teamSplit = splitWinrate.get(t) ?? 50

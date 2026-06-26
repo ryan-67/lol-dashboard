@@ -28,13 +28,6 @@ export const ADVANCED_METRICS_BY_ROLE: Record<RoleKey, AdvancedMetricDef[]> = {
       higherIsBetter: true,
       format: (v) => v.toFixed(2),
     },
-    {
-      key: 'dmgGoldRatio',
-      label: 'Dmg% / Gold%',
-      shortLabel: 'DMG%/G%',
-      higherIsBetter: true,
-      format: (v) => v.toFixed(2),
-    },
   ],
   jungle: [
     {
@@ -155,8 +148,11 @@ export function aggregateAdvancedFromGameLog(logs: PlayerGameLog[]): Partial<Rec
   if (!logs.length) return {}
   const dmgRatios = logs.map(dmgGoldRatioFromGame).filter((v): v is number => v != null && v > 0)
   const dmgPerGold = logs.map(dmgPerGoldFromGame).filter((v) => v > 0)
+  const plateGames = logs.filter((g) => typeof g.turretPlates === 'number')
   return {
-    turretPlates: logs.reduce((s, g) => s + (g.turretPlates ?? 0), 0) / logs.length,
+    turretPlates: plateGames.length
+      ? plateGames.reduce((s, g) => s + (g.turretPlates ?? 0), 0) / plateGames.length
+      : undefined,
     campsStolen: logs.reduce((s, g) => s + (g.campsStolen ?? 0), 0) / logs.length,
     wardsDestroyed: logs.reduce((s, g) => s + (g.wardsDestroyed ?? 0), 0) / logs.length,
     kaPerMin: logs.reduce((s, g) => s + (g.kaPerMin ?? 0), 0) / logs.length,

@@ -94,6 +94,14 @@ export interface StoredGoldPoint {
   goldDiffBlue: number
 }
 
+export interface CitoObjectiveEvent {
+  minute: number
+  objectiveType: string
+  side: string
+  eventType?: string
+  playerName?: string
+}
+
 export interface CitoGameGoldRow {
   cito_game_id: string
   oe_game_id: string | null
@@ -106,6 +114,7 @@ export interface CitoGameGoldRow {
   blue_slug: string | null
   red_slug: string | null
   gold_timeline: StoredGoldPoint[]
+  objectives_timeline?: CitoObjectiveEvent[] | null
   duration_minutes: number | null
   fetched_at: string
 }

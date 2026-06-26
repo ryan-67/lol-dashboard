@@ -19,6 +19,7 @@ import {
   linkageWithOeId,
 } from './linkage.ts'
 import { normalizeCitoGoldGraph } from './goldNormalize.ts'
+import { normalizeCitoObjectives } from './objectivesNormalize.ts'
 import { loadOeGamesFromShard } from './oeGames.ts'
 import {
   attachOeGameId,
@@ -156,6 +157,16 @@ async function main(): Promise<void> {
           continue
         }
 
+        let objectivesTimeline: ReturnType<typeof normalizeCitoObjectives> = []
+        try {
+          const objRaw = await client.paced(() =>
+            client.get<unknown>(`/lol/games/${encodeURIComponent(game.gameId)}/objectives`),
+          )
+          objectivesTimeline = normalizeCitoObjectives(client.unwrapData<unknown>(objRaw))
+        } catch {
+          /* objectives optional */
+        }
+
         const lastMinute = timeline[timeline.length - 1]?.minute ?? null
         const leagueCode = citoLeagueToOe(event.leagueId ?? league.leagueId) ?? league.name
         const row: CitoGameGoldRow = {
@@ -170,6 +181,7 @@ async function main(): Promise<void> {
           blue_slug: game.blueTeam?.slug ?? null,
           red_slug: game.redTeam?.slug ?? null,
           gold_timeline: timeline,
+          objectives_timeline: objectivesTimeline.length ? objectivesTimeline : null,
           duration_minutes: lastMinute,
           fetched_at: new Date().toISOString(),
         }

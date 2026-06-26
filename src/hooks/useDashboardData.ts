@@ -32,9 +32,9 @@ export interface PlayerGameLog {
   kda: number
   kp: number
   dmgShare: number
-  gd15: number
-  csd15: number
-  xpd15: number
+  gd15?: number
+  csd15?: number
+  xpd15?: number
   dpm: number
   visionScore?: number
   goldShare?: number
@@ -42,6 +42,7 @@ export interface PlayerGameLog {
   objControl?: number
   turretPlates?: number
   campsStolen?: number
+  soloKills?: number
   wardsDestroyed?: number
   kaPerMin?: number
   dmgGoldRatio?: number
@@ -91,9 +92,9 @@ export interface Player {
   kda: number
   kp: number
   dmgShare: number
-  gd15: number
-  csd15: number
-  xpd15: number
+  gd15?: number
+  csd15?: number
+  xpd15?: number
   dpm?: number
   visionScore?: number
   goldShare?: number
@@ -101,6 +102,7 @@ export interface Player {
   objControl?: number
   turretPlates?: number
   campsStolen?: number
+  soloKills?: number
   wardsDestroyed?: number
   kaPerMin?: number
   dmgGoldRatio?: number

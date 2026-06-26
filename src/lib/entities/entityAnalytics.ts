@@ -1,7 +1,7 @@
 import type { Champion, GoldTimelinePoint, Player, Team, TeamChampion } from '../../hooks/useDashboardData'
 import type { RoleKey } from '../championAnalytics'
 import { ROLES, normalizePosition, computeGameScore, playersForRole } from '../playerRadar'
-import type { CitoGameGoldRecord } from '../citoGoldMatch'
+import type { CitoGameGoldRecord, CitoObjectiveEvent } from '../citoGoldMatch'
 import { goldTimelineForTeamPerspective, matchCitoGoldToOeGame } from '../citoGoldMatch'
 import { teamMatchesCanonical } from './slugs'
 import { resolveTournamentDisplay } from '../tournamentCatalog'
@@ -198,7 +198,7 @@ export function buildTeamTrend(
         (gl) => gl.date === g.date && (gl.opponent ?? '') === g.opponent,
       )
       if (hit) {
-        gdSum += hit.gd15
+        gdSum += hit.gd15 ?? 0
         gdCount += 1
       }
     }
@@ -531,7 +531,7 @@ export function buildTeamGoldGraph(
       )
       dataSource = 'cito'
     } else {
-      points = resolveGameGoldTimeline(game, maxMinute)
+      continue
     }
 
     series.push({
@@ -546,6 +546,86 @@ export function buildTeamGoldGraph(
   }
 
   return series.sort((a, b) => b.date.localeCompare(a.date))
+}
+
+export interface TeamObjectiveGameSeries {
+  id: string
+  label: string
+  opponent: string
+  date: string
+  result: 'W' | 'L'
+  events: CitoObjectiveEvent[]
+}
+
+function teamSideForCitoRow(row: CitoGameGoldRecord, teamSlugOrName: string): 'blue' | 'red' | null {
+  const onBlue =
+    teamMatchesCanonical(row.blueTeam ?? '', teamSlugOrName) ||
+    teamMatchesCanonical(row.blueSlug ?? '', teamSlugOrName)
+  const onRed =
+    teamMatchesCanonical(row.redTeam ?? '', teamSlugOrName) ||
+    teamMatchesCanonical(row.redSlug ?? '', teamSlugOrName)
+  if (onBlue && !onRed) return 'blue'
+  if (onRed && !onBlue) return 'red'
+  return onBlue ? 'blue' : onRed ? 'red' : null
+}
+
+export function buildTeamObjectivesGraph(
+  players: Player[],
+  teamSlugOrName: string,
+  citoRows: CitoGameGoldRecord[] = [],
+): TeamObjectiveGameSeries[] {
+  const roster = players.filter((p) => teamMatchesCanonical(p.team, teamSlugOrName))
+  if (!roster.length || !citoRows.length) return []
+
+  const anchor = roster.reduce((best, p) => ((p.games ?? 0) > (best.games ?? 0) ? p : best), roster[0]!)
+  const anchorLog = [...(anchor.gameLog ?? [])].sort((a, b) => a.date.localeCompare(b.date))
+  const seen = new Set<string>()
+  const series: TeamObjectiveGameSeries[] = []
+
+  for (const game of anchorLog) {
+    const id = game.gameId ?? `${game.date}|${game.opponent ?? ''}|${game.result}`
+    if (seen.has(id)) continue
+    seen.add(id)
+
+    const opponent = game.opponent ?? 'Unknown'
+    const citoMatch = matchCitoGoldToOeGame(game, anchorLog, teamSlugOrName, opponent, citoRows)
+    if (!citoMatch?.objectivesTimeline?.length) continue
+
+    series.push({
+      id,
+      label: `${opponent} · ${game.date}`,
+      opponent,
+      date: game.date,
+      result: game.result === 1 ? 'W' : 'L',
+      events: citoMatch.objectivesTimeline,
+    })
+  }
+
+  return series.sort((a, b) => b.date.localeCompare(a.date))
+}
+
+export function objectiveDiffTimeline(
+  events: CitoObjectiveEvent[],
+  teamSide: 'blue' | 'red',
+  maxMinute = 40,
+): GoldTimelinePoint[] {
+  let diff = 0
+  const points: GoldTimelinePoint[] = [{ minute: 0, goldDiff: 0 }]
+  for (const e of events) {
+    if (e.minute > maxMinute) break
+    const side = e.side.toLowerCase()
+    if (side === teamSide) diff += 1
+    else if (side === 'blue' || side === 'red') diff -= 1
+    points.push({ minute: e.minute, goldDiff: diff })
+  }
+  return points
+}
+
+export function teamSideForObjectiveRow(
+  row: CitoGameGoldRecord,
+  teamSlugOrName: string,
+): 'blue' | 'red' | null {
+  return teamSideForCitoRow(row, teamSlugOrName)
 }
 
 export function averageGoldTimeline(

@@ -12,6 +12,7 @@ import {
   teamMatchesCanonical,
   bestChampionsByRole,
   buildTeamGoldGraph,
+  buildTeamObjectivesGraph,
 } from '../../lib/entities'
 import { isDisplayableTeam } from '../../lib/teamAnalytics'
 import { isDisplayablePlayer, normalizePosition, ROLES, type RoleKey } from '../../lib/playerRadar'
@@ -36,6 +37,7 @@ import TeamSubnav, { type TeamPageTab } from '../../components/entities/TeamSubn
 import { TeamProfileCard, TeamObjectiveChart } from '../../components/entities/TeamObjectiveProfile'
 import TeamBestChampionsByRole from '../../components/entities/TeamBestChampionsByRole'
 import TeamGoldGraph from '../../components/entities/TeamGoldGraph'
+import TeamObjectivesGraph from '../../components/entities/TeamObjectivesGraph'
 import { roleLabel } from '../../lib/championAnalytics'
 
 export default function TeamPage() {
@@ -144,6 +146,10 @@ export default function TeamPage() {
   )
   const goldGraphGames = useMemo(
     () => (team ? buildTeamGoldGraph(players, slug, 30, citoGoldRows) : []),
+    [players, team, slug, citoGoldRows],
+  )
+  const objectivesGraphGames = useMemo(
+    () => (team ? buildTeamObjectivesGraph(players, slug, citoGoldRows) : []),
     [players, team, slug, citoGoldRows],
   )
 
@@ -330,7 +336,9 @@ export default function TeamPage() {
                         <td>{row.position.toUpperCase()}</td>
                         <td>{p ? formatNum(p.kda, 2) : '—'}</td>
                         <td>
-                          {p ? `${p.gd15 > 0 ? '+' : ''}${formatNum(p.gd15, 1)}` : '—'}
+                          {p && typeof p.gd15 === 'number'
+                            ? `${p.gd15 > 0 ? '+' : ''}${formatNum(p.gd15, 1)}`
+                            : '—'}
                         </td>
                         <td>{p ? formatPct(p.kp, 1) : '—'}</td>
                         <td>{p ? formatPct(p.dmgShare, 1) : '—'}</td>
@@ -472,7 +480,15 @@ export default function TeamPage() {
       )}
 
       {activeTab === 'gold' && (
-        <TeamGoldGraph games={goldGraphGames} loading={citoGoldLoading} />
+        <>
+          <TeamGoldGraph games={goldGraphGames} loading={citoGoldLoading} />
+          <TeamObjectivesGraph
+            games={objectivesGraphGames}
+            citoRows={citoGoldRows}
+            teamSlugOrName={slug}
+            loading={citoGoldLoading}
+          />
+        </>
       )}
     </div>
   )

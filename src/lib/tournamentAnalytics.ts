@@ -130,7 +130,7 @@ export function filterPlayersForTournament(
       games: gameLog.length,
       gameLog,
       kda: avg(gameLog.map((g) => g.kda)),
-      gd15: avg(gameLog.map((g) => g.gd15)) ?? player.gd15,
+      gd15: avg(gameLog.map((g) => g.gd15).filter((v): v is number => typeof v === 'number')) ?? player.gd15,
       kp: avg(gameLog.map((g) => g.kp)) ?? player.kp,
       dmgShare: avg(gameLog.map((g) => g.dmgShare)) ?? player.dmgShare,
     })

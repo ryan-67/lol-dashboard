@@ -1,5 +1,5 @@
 import { isSupabaseConfigured, supabase } from './supabaseClient'
-import type { CitoGameGoldRecord } from './citoGoldMatch'
+import type { CitoGameGoldRecord, CitoObjectiveEvent } from './citoGoldMatch'
 import { teamMatchesCanonical } from './entities/slugs'
 import { resolveTeamCanonicalName } from './entities/slugs'
 
@@ -15,6 +15,7 @@ interface DbRow {
   blue_slug: string | null
   red_slug: string | null
   gold_timeline: Array<{ minute: number; goldDiffBlue: number }>
+  objectives_timeline?: CitoObjectiveEvent[] | null
 }
 
 function rowToRecord(row: DbRow): CitoGameGoldRecord {
@@ -28,6 +29,7 @@ function rowToRecord(row: DbRow): CitoGameGoldRecord {
     blueSlug: row.blue_slug,
     redSlug: row.red_slug,
     goldTimelineBlue: row.gold_timeline ?? [],
+    objectivesTimeline: row.objectives_timeline ?? [],
   }
 }
 
@@ -49,7 +51,7 @@ export async function fetchCitoGoldForTeam(
     const { data, error } = await supabase
       .from(TABLE)
       .select(
-        'cito_game_id, oe_game_id, game_date, game_number, blue_team, red_team, blue_slug, red_slug, gold_timeline',
+        'cito_game_id, oe_game_id, game_date, game_number, blue_team, red_team, blue_slug, red_slug, gold_timeline, objectives_timeline',
       )
       .in('oe_game_id', uniqueOeIds)
 
@@ -68,7 +70,7 @@ export async function fetchCitoGoldForTeam(
     const { data, error } = await supabase
       .from(TABLE)
       .select(
-        'cito_game_id, oe_game_id, game_date, game_number, blue_team, red_team, blue_slug, red_slug, gold_timeline',
+        'cito_game_id, oe_game_id, game_date, game_number, blue_team, red_team, blue_slug, red_slug, gold_timeline, objectives_timeline',
       )
       .gte('game_date', minDate)
       .lte('game_date', maxDate)

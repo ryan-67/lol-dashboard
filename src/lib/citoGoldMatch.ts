@@ -1,6 +1,14 @@
 import type { GoldTimelinePoint, Player } from '../hooks/useDashboardData'
 import { teamMatchesCanonical } from './entities/slugs'
 
+export interface CitoObjectiveEvent {
+  minute: number
+  objectiveType: string
+  side: string
+  eventType?: string
+  playerName?: string
+}
+
 export interface CitoGameGoldRecord {
   citoGameId: string
   oeGameId: string | null
@@ -11,6 +19,7 @@ export interface CitoGameGoldRecord {
   blueSlug: string | null
   redSlug: string | null
   goldTimelineBlue: Array<{ minute: number; goldDiffBlue: number }>
+  objectivesTimeline: CitoObjectiveEvent[]
 }
 
 export function goldTimelineForTeamPerspective(

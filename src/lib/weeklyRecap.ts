@@ -270,7 +270,7 @@ export function collectParsedGames(
             champion: pg.champion,
             role: normalizePosition(p.position),
             kda: pg.kda,
-            gd15: pg.gd15,
+            gd15: pg.gd15 ?? 0,
             xpd15: pg.xpd15 ?? 0,
             csd15: pg.csd15 ?? 0,
             kp: pg.kp ?? 0,

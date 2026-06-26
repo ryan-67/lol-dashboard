@@ -58,10 +58,7 @@ export default function TeamGoldGraph({ games, loading = false }: TeamGoldGraphP
     if (citoCount === games.length) {
       return `Cito postgame gold · ${games.length} games · click legend to toggle`
     }
-    if (citoCount > 0) {
-      return `Cito postgame (${citoCount}/${games.length}) · OE gd@15 proxy for others · click legend to toggle`
-    }
-    return 'OE gd@15 proxy · click legend to toggle games'
+    return `${games.length} games with Cito gold timelines · click legend to toggle games`
   }, [games.length, citoCount])
 
   const visibleGames = useMemo(
@@ -123,7 +120,9 @@ export default function TeamGoldGraph({ games, loading = false }: TeamGoldGraphP
     return (
       <div className="card">
         <h3 className="card-title">Gold Graph</h3>
-        <div className="empty-state text-sm">No match data for gold timeline.</div>
+        <div className="empty-state text-sm">
+          No Cito gold timelines for this team yet — charts appear when postgame data is enriched.
+        </div>
       </div>
     )
   }

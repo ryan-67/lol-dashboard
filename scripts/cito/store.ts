@@ -80,6 +80,7 @@ export async function upsertGameGold(client: SupabaseClient, row: CitoGameGoldRo
       blue_slug: row.blue_slug,
       red_slug: row.red_slug,
       gold_timeline: row.gold_timeline,
+      objectives_timeline: row.objectives_timeline ?? null,
       duration_minutes: row.duration_minutes,
       fetched_at: row.fetched_at,
     },

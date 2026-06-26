@@ -293,9 +293,9 @@ export function buildWeeklyChampionStats(
       ex.picks += 1
       ex.wins += g.result === 1 ? 1 : 0
       ex.kda += g.kda
-      ex.gd15 += g.gd15
-      ex.csd15 += g.csd15
-      ex.xpd15 += g.xpd15
+      ex.gd15 += g.gd15 ?? 0
+      ex.csd15 += g.csd15 ?? 0
+      ex.xpd15 += g.xpd15 ?? 0
       ex.dpm += g.dpm
       ex.dmgShare += g.dmgShare
       ex.goldShare += g.goldShare ?? 0

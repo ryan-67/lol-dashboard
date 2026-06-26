@@ -88,8 +88,9 @@ export function buildMiniRadarSeries(
   playerB: Player,
 ): MiniRadarPoint[] {
   return MINI_RADAR_METRICS.map((def) => {
-    const playerARaw = getMetricValue(playerA, def.key)
-    const playerBRaw = getMetricValue(playerB, def.key)
+    const cohort = [playerA, playerB]
+    const playerARaw = getMetricValue(playerA, def.key, { cohort }) ?? 0
+    const playerBRaw = getMetricValue(playerB, def.key, { cohort }) ?? 0
     const { aNorm, bNorm } = normalizePair(playerARaw, playerBRaw)
     return {
       metric: def.shortLabel,

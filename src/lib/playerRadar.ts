@@ -1,5 +1,11 @@
 import type { Player, PlayerGameLog } from '../hooks/useDashboardData'
 import {
+  isGameStatPresent,
+  isStatEligibleForPlayer,
+  isSoloKillsTracked,
+  eligibleRadarMetrics,
+} from './statAvailability'
+import {
   ADVANCED_METRICS_BY_ROLE,
   enrichPlayerWithAdvancedStats,
   getAdvancedMetricValue,
@@ -41,6 +47,7 @@ export type RadarMetricKey =
   | 'objControl'
   | 'goldShare'
   | 'visionScore'
+  | 'soloKills'
   | AdvancedMetricKey
 
 export interface RadarMetricDef {
@@ -58,6 +65,12 @@ export const ROLE_METRICS: Record<RoleKey, RadarMetricDef[]> = {
     { key: 'dpm', label: 'DPM', shortLabel: 'DPM', format: (v) => v.toFixed(0) },
     { key: 'kda', label: 'KDA', shortLabel: 'KDA', format: (v) => v.toFixed(2) },
     { key: 'dmgShare', label: 'Damage %', shortLabel: 'DMG%', format: (v) => `${v.toFixed(1)}%` },
+    {
+      key: 'soloKills',
+      label: 'Solo Kills / game',
+      shortLabel: 'Solo K',
+      format: (v) => v.toFixed(2),
+    },
     ...ADVANCED_METRICS_BY_ROLE.top.map((d) => ({
       key: d.key,
       label: d.label,
@@ -125,14 +138,12 @@ export const ROLE_METRICS: Record<RoleKey, RadarMetricDef[]> = {
 
 /** Weight keys align with scoring helpers below */
 const SCORE_WEIGHTS: Record<RoleKey, Partial<Record<RadarMetricKey, number>>> = {
-  top: { kda: 0.2, gd15: 0.25, csd15: 0.2, turretPlates: 0.15, dmgGoldRatio: 0.1, xpd15: 0.1 },
+  top: { kda: 0.2, gd15: 0.25, csd15: 0.2, turretPlates: 0.15, soloKills: 0.1, xpd15: 0.1 },
   jungle: { kda: 0.2, kaPerMin: 0.25, kp: 0.2, dmgGoldRatio: 0.15, gd15: 0.1, firstBloodRate: 0.1 },
   mid: { kda: 0.2, gd15: 0.2, csd15: 0.15, dmgGoldRatio: 0.2, dmgPerGold: 0.15, xpd15: 0.1 },
   adc: { kda: 0.2, gd15: 0.2, dmgGoldRatio: 0.2, dmgPerGold: 0.15, dpm: 0.15, csd15: 0.1 },
   support: { kda: 0.25, kaPerMin: 0.25, wardsDestroyed: 0.2, kp: 0.15, visionScore: 0.1, gd15: 0.05 },
 }
-
-const warnedMissing = new Set<string>()
 
 export function normalizePosition(position: string | undefined): RoleKey | null {
   const pos = (position ?? '').toLowerCase()
@@ -144,7 +155,16 @@ export function normalizePosition(position: string | undefined): RoleKey | null 
   return null
 }
 
-export function getMetricValue(player: Player, key: RadarMetricKey): number {
+export function getMetricValue(
+  player: Player,
+  key: RadarMetricKey,
+  options?: { cohort?: Player[]; allowMissing?: boolean },
+): number | null {
+  const cohort = options?.cohort ?? []
+  if (!options?.allowMissing && !isStatEligibleForPlayer(player, key, cohort)) {
+    return null
+  }
+
   const enriched = enrichPlayerWithAdvancedStats(player)
   const advancedKeys: AdvancedMetricKey[] = [
     'turretPlates',
@@ -154,17 +174,21 @@ export function getMetricValue(player: Player, key: RadarMetricKey): number {
     'campsStolen',
     'wardsDestroyed',
   ]
+  if (key === 'soloKills') {
+    if (!isSoloKillsTracked(cohort) && !options?.allowMissing) return null
+    const log = player.gameLog ?? []
+    const tracked = log.filter((g) => isGameStatPresent(g, 'soloKills', cohort))
+    if (!tracked.length) return null
+    return tracked.reduce((s, g) => s + (g.soloKills ?? 0), 0) / tracked.length
+  }
   if (advancedKeys.includes(key as AdvancedMetricKey)) {
-    return getAdvancedMetricValue(enriched, key as AdvancedMetricKey)
+    const v = getAdvancedMetricValue(enriched, key as AdvancedMetricKey)
+    if (key === 'turretPlates' && !isStatEligibleForPlayer(player, key, cohort)) return null
+    return v
   }
   const raw = enriched[key as keyof Player]
   if (raw === null || raw === undefined || Number.isNaN(Number(raw))) {
-    const warnKey = `missing:${key}`
-    if (!warnedMissing.has(warnKey)) {
-      console.warn(`[Players] Missing stat "${key}" in player data; treating as 0`)
-      warnedMissing.add(warnKey)
-    }
-    return 0
+    return null
   }
   return Number(raw)
 }
@@ -207,11 +231,55 @@ export function playerSnapshotFromGame(game: PlayerGameLog): Player {
     kaPerMin: game.kaPerMin ?? 0,
     dmgGoldRatio,
     dmgPerGold: game.dmgPerGold ?? 0,
+    soloKills: game.soloKills,
   }
 }
 
+function gameMetricRaw(game: PlayerGameLog, key: RadarMetricKey, cohort: Player[]): number | null {
+  if (!isGameStatPresent(game, key, cohort)) return null
+
+  const snap = playerSnapshotFromGame(game)
+  if (key === 'soloKills') {
+    return typeof game.soloKills === 'number' ? game.soloKills : null
+  }
+  if (key === 'turretPlates') {
+    return typeof game.turretPlates === 'number' ? game.turretPlates : null
+  }
+  if (key === 'dmgGoldRatio') {
+    const ratio =
+      game.dmgGoldRatio ??
+      (game.goldShare && game.goldShare > 0 ? (game.dmgShare ?? 0) / game.goldShare : null)
+    return ratio != null && ratio > 0 ? ratio : null
+  }
+  if (key === 'dmgPerGold') {
+    const v = game.dmgPerGold ?? (game.dpm && game.gpm && game.gpm > 0 ? game.dpm / game.gpm : null)
+    return v != null && v > 0 ? v : null
+  }
+  const raw = snap[key as keyof Player]
+  if (raw === null || raw === undefined || Number.isNaN(Number(raw))) return null
+  return Number(raw)
+}
+
 export function computeGameScore(game: PlayerGameLog, role: RoleKey, cohort: Player[]): number {
-  return computeAggregateScore(playerSnapshotFromGame(game), role, cohort)
+  const weights = SCORE_WEIGHTS[role]
+  let total = 0
+  let weightSum = 0
+
+  for (const [key, weight] of Object.entries(weights) as [RadarMetricKey, number][]) {
+    const value = gameMetricRaw(game, key, cohort)
+    if (value == null) continue
+
+    const cohortValues = cohort
+      .map((p) => getMetricValue(p, key, { cohort }))
+      .filter((v): v is number => v != null)
+    if (!cohortValues.length) continue
+
+    const normalized = normalizeInCohort(value, cohortValues) / 100
+    total += normalized * weight
+    weightSum += weight
+  }
+
+  return weightSum > 0 ? total / weightSum : 0
 }
 
 export function computeAggregateScore(player: Player, role: RoleKey, cohort: Player[]): number {
@@ -220,8 +288,14 @@ export function computeAggregateScore(player: Player, role: RoleKey, cohort: Pla
   let weightSum = 0
 
   for (const [key, weight] of Object.entries(weights) as [RadarMetricKey, number][]) {
-    const cohortValues = cohort.map((p) => getMetricValue(p, key))
-    const value = getMetricValue(player, key)
+    if (!isStatEligibleForPlayer(player, key, cohort)) continue
+
+    const cohortValues = cohort
+      .map((p) => getMetricValue(p, key, { cohort }))
+      .filter((v): v is number => v != null)
+    const value = getMetricValue(player, key, { cohort })
+    if (value == null || !cohortValues.length) continue
+
     const normalized = normalizeInCohort(value, cohortValues) / 100
     total += normalized * weight
     weightSum += weight
@@ -263,10 +337,12 @@ export function buildRadarSeries(
   role: RoleKey,
   cohort: Player[],
 ): RadarPoint[] {
-  const metrics = ROLE_METRICS[role]
+  const metrics = eligibleRadarMetrics(ROLE_METRICS[role], player, cohort)
   return metrics.map((def) => {
-    const cohortValues = cohort.map((p) => getMetricValue(p, def.key))
-    const playerRaw = getMetricValue(player, def.key)
+    const cohortValues = cohort
+      .map((p) => getMetricValue(p, def.key, { cohort }))
+      .filter((v): v is number => v != null)
+    const playerRaw = getMetricValue(player, def.key, { cohort }) ?? 0
     const avgRaw = cohortValues.length
       ? cohortValues.reduce((a, b) => a + b, 0) / cohortValues.length
       : 0

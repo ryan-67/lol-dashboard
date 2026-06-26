@@ -10,12 +10,13 @@ import ChampionEntityInline from './ChampionEntityInline'
 interface PlayerChampionTableProps {
   player: Player
   role: RoleKey
+  cohort?: Player[]
 }
 
-export default function PlayerChampionTable({ player, role }: PlayerChampionTableProps) {
+export default function PlayerChampionTable({ player, role, cohort = [] }: PlayerChampionTableProps) {
   const ref = useRef<HTMLDivElement>(null)
   const metrics = ROLE_METRICS[role]
-  const rows = useMemo(() => buildPlayerChampionStats(player, role), [player, role])
+  const rows = useMemo(() => buildPlayerChampionStats(player, role, cohort), [player, role, cohort])
 
   useGSAP(() => scrollEntrance(ref.current), { scope: ref, dependencies: [rows.length, role] })
 

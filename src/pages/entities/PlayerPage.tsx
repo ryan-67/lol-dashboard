@@ -142,7 +142,7 @@ export default function PlayerPage() {
 
       <div className="overview-grid overview-grid-2">
         <PlayerRadarChart player={player} role={role} cohort={cohort} hideHeader />
-        <PlayerChampionTable player={player} role={role} />
+        <PlayerChampionTable player={player} role={role} cohort={cohort} />
       </div>
 
       <PlayerFormChart players={[player]} cohortPlayers={cohort} />
@@ -184,7 +184,7 @@ export default function PlayerPage() {
                       {g.result === 1 ? 'W' : 'L'}
                     </td>
                     <td>{formatNum(g.kda, 2)}</td>
-                    <td>{g.gd15 > 0 ? '+' : ''}{formatNum(g.gd15, 1)}</td>
+                    <td>{typeof g.gd15 === 'number' ? `${g.gd15 > 0 ? '+' : ''}${formatNum(g.gd15, 1)}` : '—'}</td>
                     <td>{g.side ?? '—'}</td>
                   </tr>
                 ))}
