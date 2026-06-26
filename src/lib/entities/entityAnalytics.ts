@@ -1,6 +1,8 @@
 import type { Champion, GoldTimelinePoint, Player, Team, TeamChampion } from '../../hooks/useDashboardData'
 import type { RoleKey } from '../championAnalytics'
 import { ROLES, normalizePosition, computeGameScore, playersForRole } from '../playerRadar'
+import type { CitoGameGoldRecord } from '../citoGoldMatch'
+import { goldTimelineForTeamPerspective, matchCitoGoldToOeGame } from '../citoGoldMatch'
 import { teamMatchesCanonical } from './slugs'
 import { resolveTournamentDisplay } from '../tournamentCatalog'
 
@@ -490,34 +492,56 @@ export interface TeamGoldGameSeries {
   date: string
   result: 'W' | 'L'
   points: GoldTimelinePoint[]
+  /** Cito postgame timeline vs OE gd@15 proxy */
+  dataSource?: 'cito' | 'oe_proxy'
 }
 
 export function buildTeamGoldGraph(
   players: Player[],
   teamSlugOrName: string,
   maxMinute = 30,
+  citoGoldRows: CitoGameGoldRecord[] = [],
 ): TeamGoldGameSeries[] {
   const roster = players.filter((p) => teamMatchesCanonical(p.team, teamSlugOrName))
   if (!roster.length) return []
 
   const anchor = roster.reduce((best, p) => ((p.games ?? 0) > (best.games ?? 0) ? p : best), roster[0]!)
+  const anchorLog = [...(anchor.gameLog ?? [])].sort((a, b) => a.date.localeCompare(b.date))
   const seen = new Set<string>()
   const series: TeamGoldGameSeries[] = []
 
-  for (const game of anchor.gameLog ?? []) {
+  for (const game of anchorLog) {
     const id = game.gameId ?? `${game.date}|${game.opponent ?? ''}|${game.result}`
     if (seen.has(id)) continue
     seen.add(id)
 
     const opponent = game.opponent ?? 'Unknown'
     const result = game.result === 1 ? 'W' : 'L'
+
+    const citoMatch = citoGoldRows.length
+      ? matchCitoGoldToOeGame(game, anchorLog, teamSlugOrName, opponent, citoGoldRows)
+      : null
+
+    let points: GoldTimelinePoint[]
+    let dataSource: TeamGoldGameSeries['dataSource'] = 'oe_proxy'
+
+    if (citoMatch && citoMatch.goldTimelineBlue.length >= 4) {
+      points = goldTimelineForTeamPerspective(citoMatch, teamSlugOrName).filter(
+        (p) => p.minute <= maxMinute,
+      )
+      dataSource = 'cito'
+    } else {
+      points = resolveGameGoldTimeline(game, maxMinute)
+    }
+
     series.push({
       id,
       label: `${opponent} · ${game.date}`,
       opponent,
       date: game.date,
       result,
-      points: resolveGameGoldTimeline(game, maxMinute),
+      points,
+      dataSource,
     })
   }
 
@@ -529,19 +553,43 @@ export function averageGoldTimeline(
   maxMinute = 30,
 ): GoldTimelinePoint[] {
   if (!games.length) return []
-  const minutes = DEFAULT_GOLD_MINUTES.filter((m) => m <= maxMinute)
+
+  const hasFineGrain = games.some((g) => g.dataSource === 'cito' || g.points.length > 8)
+  const minutes = hasFineGrain
+    ? Array.from({ length: maxMinute + 1 }, (_, i) => i)
+    : DEFAULT_GOLD_MINUTES.filter((m) => m <= maxMinute)
+
   return minutes.map((minute) => {
     let sum = 0
     let count = 0
     for (const game of games) {
-      const point = game.points.find((p) => p.minute === minute)
-      if (point) {
-        sum += point.goldDiff
+      const point = interpolateGoldAtMinute(game.points, minute)
+      if (point != null) {
+        sum += point
         count += 1
       }
     }
     return { minute, goldDiff: count ? sum / count : 0 }
   })
+}
+
+function interpolateGoldAtMinute(points: GoldTimelinePoint[], minute: number): number | null {
+  const exact = points.find((p) => p.minute === minute)
+  if (exact) return exact.goldDiff
+
+  const sorted = [...points].sort((a, b) => a.minute - b.minute)
+  if (!sorted.length) return null
+
+  for (let i = 0; i < sorted.length - 1; i++) {
+    const a = sorted[i]!
+    const b = sorted[i + 1]!
+    if (minute >= a.minute && minute <= b.minute) {
+      const t = (minute - a.minute) / Math.max(b.minute - a.minute, 1)
+      return a.goldDiff + t * (b.goldDiff - a.goldDiff)
+    }
+  }
+
+  return sorted[sorted.length - 1]!.goldDiff
 }
 
 export interface ChampionComboEntry {

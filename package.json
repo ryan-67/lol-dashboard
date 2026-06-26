@@ -9,6 +9,8 @@
     "index:rag": "tsx scripts/rag-indexer/src/index.ts",
     "index:rag:dry": "tsx scripts/rag-indexer/src/index.ts --dry-run",
     "generate:weekly-recap": "tsx scripts/recap/generate-weekly-recap.ts",
+    "validate:cito": "tsx scripts/cito/validate-phase0.ts",
+    "sync:cito-postgame": "tsx scripts/cito/sync-postgame.ts",
     "eval:nuckyai": "tsx scripts/eval-nuckyai.ts",
     "dev": "vite",
     "build": "tsc && vite build",

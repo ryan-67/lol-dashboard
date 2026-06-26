@@ -152,6 +152,14 @@ jobs:
           RECAP_REGENERATE: ${{ github.event_name == 'workflow_dispatch' && inputs.regenerate_recaps && '1' || '0' }}
         run: npm run generate:weekly-recap
 
+      - name: Sync Cito postgame gold timelines
+        continue-on-error: true
+        env:
+          CITO_API_KEY: ${{ secrets.CITO_API_KEY }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: npm run sync:cito-postgame -- --max-matches 20
+
       - name: Save OE Drive sync state
         continue-on-error: true
         env:

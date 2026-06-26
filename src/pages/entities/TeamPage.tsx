@@ -18,6 +18,8 @@ import { isDisplayablePlayer, normalizePosition, ROLES, type RoleKey } from '../
 import { getTeamRosterDepth } from '../../lib/mergeSlices'
 import type { Player } from '../../hooks/useDashboardData'
 import { fetchTeamUpcomingSchedule, type EsportsScheduleRow } from '../../lib/loadEsportsSchedules'
+import { fetchCitoGoldForTeam } from '../../lib/loadCitoGold'
+import type { CitoGameGoldRecord } from '../../lib/citoGoldMatch'
 import { formatGameDate, formatNum, formatPct, formatProfileDate } from '../../lib/format'
 import TeamRadarChart from '../../components/teams/TeamRadarChart'
 import {
@@ -42,6 +44,8 @@ export default function TeamPage() {
   const [upcomingSchedule, setUpcomingSchedule] = useState<EsportsScheduleRow[]>([])
   const [scheduleLoading, setScheduleLoading] = useState(false)
   const [scheduleSource, setScheduleSource] = useState<'loaded' | 'empty' | 'unavailable'>('unavailable')
+  const [citoGoldRows, setCitoGoldRows] = useState<CitoGameGoldRecord[]>([])
+  const [citoGoldLoading, setCitoGoldLoading] = useState(false)
 
   const hasData = useCallback(
     (data: Parameters<typeof teamHasData>[0]) => teamHasData(data, slug),
@@ -139,8 +143,8 @@ export default function TeamPage() {
     [players, team, slug],
   )
   const goldGraphGames = useMemo(
-    () => (team ? buildTeamGoldGraph(players, slug) : []),
-    [players, team, slug],
+    () => (team ? buildTeamGoldGraph(players, slug, 30, citoGoldRows) : []),
+    [players, team, slug, citoGoldRows],
   )
 
   const topOpponents = useMemo(() => {
@@ -150,6 +154,37 @@ export default function TeamPage() {
     }
     return [...counts.entries()].sort((a, b) => b[1] - a[1]).slice(0, 5)
   }, [matchHistory])
+
+  useEffect(() => {
+    if (!team || activeTab !== 'gold') return
+    let cancelled = false
+
+    const rosterPlayers = players.filter((p) => teamMatchesCanonical(p.team, slug))
+    if (!rosterPlayers.length) {
+      setCitoGoldRows([])
+      setCitoGoldLoading(false)
+      return
+    }
+
+    const anchor = rosterPlayers.reduce(
+      (best, p) => ((p.games ?? 0) > (best.games ?? 0) ? p : best),
+      rosterPlayers[0]!,
+    )
+    const log = anchor?.gameLog ?? []
+    const dates = log.map((g) => g.date).filter(Boolean)
+    const oeGameIds = log.map((g) => g.gameId).filter((id): id is string => Boolean(id))
+
+    setCitoGoldLoading(true)
+    void fetchCitoGoldForTeam(slug, dates, oeGameIds).then((rows) => {
+      if (cancelled) return
+      setCitoGoldRows(rows)
+      setCitoGoldLoading(false)
+    })
+
+    return () => {
+      cancelled = true
+    }
+  }, [team, activeTab, players, slug])
 
   useEffect(() => {
     if (!team || activeTab !== 'schedule') return
@@ -436,7 +471,9 @@ export default function TeamPage() {
         </>
       )}
 
-      {activeTab === 'gold' && <TeamGoldGraph games={goldGraphGames} />}
+      {activeTab === 'gold' && (
+        <TeamGoldGraph games={goldGraphGames} loading={citoGoldLoading} />
+      )}
     </div>
   )
 }

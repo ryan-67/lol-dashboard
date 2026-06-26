@@ -25,6 +25,7 @@ const MAX_DURATION_OPTIONS = [25, 30, 35, 40]
 
 interface TeamGoldGraphProps {
   games: TeamGoldGameSeries[]
+  loading?: boolean
 }
 
 const tooltip = makeChartTooltipContent(
@@ -44,11 +45,24 @@ const tooltip = makeChartTooltipContent(
   },
 )
 
-export default function TeamGoldGraph({ games }: TeamGoldGraphProps) {
+export default function TeamGoldGraph({ games, loading = false }: TeamGoldGraphProps) {
   const ref = useRef<HTMLDivElement>(null)
   const [maxDuration, setMaxDuration] = useState(30)
   const [hidden, setHidden] = useState<Set<string>>(() => new Set())
   const [showAverage, setShowAverage] = useState(true)
+
+  const citoCount = useMemo(() => games.filter((g) => g.dataSource === 'cito').length, [games])
+
+  const subtitle = useMemo(() => {
+    if (!games.length) return 'Team gold difference over time'
+    if (citoCount === games.length) {
+      return `Cito postgame gold · ${games.length} games · click legend to toggle`
+    }
+    if (citoCount > 0) {
+      return `Cito postgame (${citoCount}/${games.length}) · OE gd@15 proxy for others · click legend to toggle`
+    }
+    return 'OE gd@15 proxy · click legend to toggle games'
+  }, [games.length, citoCount])
 
   const visibleGames = useMemo(
     () => games.filter((g) => !hidden.has(g.id)),
@@ -138,7 +152,7 @@ export default function TeamGoldGraph({ games }: TeamGoldGraphProps) {
       <div className="entity-gold-graph-layout">
         <ShareableChart className="entity-gold-graph-chart-wrap">
           <h3 className="card-title">Gold Graph</h3>
-          <p className="card-subtitle">Team gold difference over time · click legend to toggle games</p>
+          <p className="card-subtitle">{subtitle}{loading ? ' · loading Cito timelines…' : ''}</p>
           <div className="entity-chart-body entity-gold-graph-chart">
           <ResponsiveContainer width="100%" height={360}>
             <LineChart data={chartData} margin={{ top: 8, right: 12, left: 4, bottom: 8 }}>
