@@ -5,7 +5,7 @@ import { useEntityPageData } from '../../hooks/useEntityPageData'
 import type { DashboardData } from '../../hooks/useDashboardData'
 import {
   buildTournamentSummaries,
-  buildTournamentStandings,
+  buildTournamentSeriesStandings,
   filterChampionsForTournament,
   filterPlayersForTournament,
   filterTeamsForTournament,
@@ -24,6 +24,7 @@ import { EntityLink, ChampionEntityInline } from '../../components/entities'
 import PlayerRadarChart from '../../components/players/PlayerRadarChart'
 import TeamRadarChart from '../../components/teams/TeamRadarChart'
 import { ROLES, bestPlayerForRole, computeGameScore, normalizePosition, playersForRole, type RoleKey } from '../../lib/playerRadar'
+import { teamMatchesCanonical } from '../../lib/entities/slugs'
 import { formatDurationMinSec } from '../../lib/tournamentFormat'
 
 export default function TournamentPage() {
@@ -57,16 +58,22 @@ export default function TournamentPage() {
   )
 
   const scopedTeams = useMemo(
-    () => (tournament ? filterTeamsForTournament(data?.teams ?? [], scopedPlayers) : []),
-    [data?.teams, scopedPlayers, tournament],
+    () =>
+      tournament && data
+        ? filterTeamsForTournament(data.teams ?? [], scopedPlayers, data, tournament)
+        : [],
+    [data, scopedPlayers, tournament],
+  )
+
+  const standings = useMemo(
+    () => (data && tournament ? buildTournamentSeriesStandings(data, tournament) : []),
+    [data, tournament],
   )
 
   const scopedChampions = useMemo(
     () => (tournament ? filterChampionsForTournament(data?.champions ?? [], scopedPlayers) : []),
     [data?.champions, scopedPlayers, tournament],
   )
-
-  const standings = useMemo(() => buildTournamentStandings(scopedPlayers), [scopedPlayers])
 
   const seriesList = useMemo(
     () => (tournament && data ? buildTournamentSeriesList(data, tournament) : []),
@@ -92,7 +99,7 @@ export default function TournamentPage() {
     if (!standings.length) return null
     const eligible = standings.filter((r) => r.wins + r.losses >= 3)
     const row = (eligible.length ? eligible : standings)[0]
-    return row ? scopedTeams.find((t) => t.name === row.team) ?? null : null
+    return row ? scopedTeams.find((t) => teamMatchesCanonical(t.name, row.team)) ?? null : null
   }, [standings, scopedTeams])
 
   const standoutChampion = useMemo(() => scopedChampions[0] ?? null, [scopedChampions])

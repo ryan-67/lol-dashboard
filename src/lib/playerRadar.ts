@@ -3,7 +3,6 @@ import {
   isGameStatPresent,
   isStatEligibleForPlayer,
   isSoloKillsTracked,
-  eligibleRadarMetrics,
 } from './statAvailability'
 import {
   ADVANCED_METRICS_BY_ROLE,
@@ -337,12 +336,12 @@ export function buildRadarSeries(
   role: RoleKey,
   cohort: Player[],
 ): RadarPoint[] {
-  const metrics = eligibleRadarMetrics(ROLE_METRICS[role], player, cohort)
+  const metrics = ROLE_METRICS[role]
   return metrics.map((def) => {
     const cohortValues = cohort
-      .map((p) => getMetricValue(p, def.key, { cohort }))
+      .map((p) => getMetricValue(p, def.key, { cohort, allowMissing: true }))
       .filter((v): v is number => v != null)
-    const playerRaw = getMetricValue(player, def.key, { cohort }) ?? 0
+    const playerRaw = getMetricValue(player, def.key, { cohort, allowMissing: true }) ?? 0
     const avgRaw = cohortValues.length
       ? cohortValues.reduce((a, b) => a + b, 0) / cohortValues.length
       : 0
@@ -357,6 +356,21 @@ export function buildRadarSeries(
       formattedAvg: def.format(avgRaw),
     }
   })
+}
+
+export function formatGameLogMetric(
+  game: PlayerGameLog,
+  key: RadarMetricKey,
+  cohort: Player[],
+  format: (v: number) => string,
+): string {
+  const value = gameMetricRaw(game, key, cohort)
+  if (value == null) return '—'
+  return format(value)
+}
+
+export function roleMatchHistoryMetrics(role: RoleKey): RadarMetricDef[] {
+  return ROLE_METRICS[role].slice(0, 8)
 }
 
 export function isDisplayablePlayer(p: Player): boolean {

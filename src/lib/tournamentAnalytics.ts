@@ -10,6 +10,8 @@ import {
 import { isDisplayablePlayer } from './playerRadar'
 import { isDisplayableTeam } from './teamAnalytics'
 import { isDisplayableChampion } from './championAnalytics'
+import { buildTournamentSeriesList } from './seriesAnalytics'
+import { resolveTeamCanonicalName } from './entities/slugs'
 
 export interface TournamentSummary extends TournamentIdentity {
   gameCount: number
@@ -143,8 +145,16 @@ function avg(nums: number[]): number {
   return nums.reduce((a, b) => a + b, 0) / nums.length
 }
 
-export function filterTeamsForTournament(teams: Team[], players: Player[]): Team[] {
-  const standings = buildTournamentStandings(players)
+export function filterTeamsForTournament(
+  teams: Team[],
+  players: Player[],
+  data?: DashboardData,
+  tournament?: TournamentIdentity,
+): Team[] {
+  const standings =
+    data && tournament
+      ? buildTournamentSeriesStandings(data, tournament)
+      : buildTournamentStandings(players)
   const byName = new Map(standings.map((s) => [s.team, s]))
 
   return teams
@@ -234,6 +244,35 @@ export function buildTournamentStandings(players: Player[]): TournamentStandings
   return [...records.entries()]
     .map(([team, r]) => ({
       team,
+      league: r.league,
+      wins: r.wins,
+      losses: r.losses,
+      winrate: r.wins + r.losses ? (r.wins / (r.wins + r.losses)) * 100 : 0,
+    }))
+    .sort((a, b) => b.winrate - a.winrate || b.wins - a.wins)
+}
+
+/** Series W-L within a tournament (matches gol.gg-style standings). */
+export function buildTournamentSeriesStandings(
+  data: DashboardData,
+  tournament: TournamentIdentity,
+): TournamentStandingsRow[] {
+  const seriesList = buildTournamentSeriesList(data, tournament)
+  const records = new Map<string, { league: string; wins: number; losses: number }>()
+
+  for (const series of seriesList) {
+    for (const team of [series.teamA, series.teamB]) {
+      const won = series.winner === team
+      const cur = records.get(team) ?? { league: tournament.league, wins: 0, losses: 0 }
+      if (won) cur.wins += 1
+      else cur.losses += 1
+      records.set(team, cur)
+    }
+  }
+
+  return [...records.entries()]
+    .map(([team, r]) => ({
+      team: resolveTeamCanonicalName(team),
       league: r.league,
       wins: r.wins,
       losses: r.losses,

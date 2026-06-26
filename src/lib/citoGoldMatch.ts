@@ -42,10 +42,25 @@ export function goldTimelineForTeamPerspective(
     (redSlug && (team.includes(redSlug) || redSlug.includes(team))) ||
     (redName && (team.includes(redName) || redName.includes(team)))
 
-  return row.goldTimelineBlue.map(({ minute, goldDiffBlue }) => ({
+  const timeline = row.goldTimelineBlue.map(({ minute, goldDiffBlue }) => ({
     minute,
     goldDiff: onRed && !onBlue ? -goldDiffBlue : goldDiffBlue,
   }))
+
+  return ensureGoldTimelineAtZero(timeline)
+}
+
+/** Force minute 0 to neutral gold diff; games start even. */
+export function ensureGoldTimelineAtZero(points: GoldTimelinePoint[]): GoldTimelinePoint[] {
+  if (!points.length) return [{ minute: 0, goldDiff: 0 }]
+
+  const sorted = [...points].sort((a, b) => a.minute - b.minute)
+  const first = sorted[0]!
+  if (first.minute === 0) {
+    if (first.goldDiff !== 0) sorted[0] = { minute: 0, goldDiff: 0 }
+    return sorted
+  }
+  return [{ minute: 0, goldDiff: 0 }, ...sorted]
 }
 
 function countMatchupGameIndex(

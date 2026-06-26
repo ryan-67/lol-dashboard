@@ -80,14 +80,7 @@ export default function TeamObjectivesGraph({
   useGSAP(() => scrollEntrance(ref.current), { scope: ref, dependencies: [games.length] })
 
   if (!games.length) {
-    return (
-      <div className="card">
-        <h3 className="card-title">Objectives Timeline</h3>
-        <div className="empty-state text-sm">
-          No Cito objective timelines for this team yet — charts appear when postgame data is enriched.
-        </div>
-      </div>
-    )
+    return null
   }
 
   return (

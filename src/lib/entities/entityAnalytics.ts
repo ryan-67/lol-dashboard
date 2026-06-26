@@ -2,7 +2,7 @@ import type { Champion, GoldTimelinePoint, Player, Team, TeamChampion } from '..
 import type { RoleKey } from '../championAnalytics'
 import { ROLES, normalizePosition, computeGameScore, playersForRole } from '../playerRadar'
 import type { CitoGameGoldRecord, CitoObjectiveEvent } from '../citoGoldMatch'
-import { goldTimelineForTeamPerspective, matchCitoGoldToOeGame } from '../citoGoldMatch'
+import { goldTimelineForTeamPerspective, matchCitoGoldToOeGame, ensureGoldTimelineAtZero } from '../citoGoldMatch'
 import { teamMatchesCanonical } from './slugs'
 import { resolveTournamentDisplay } from '../tournamentCatalog'
 
@@ -526,8 +526,10 @@ export function buildTeamGoldGraph(
     let dataSource: TeamGoldGameSeries['dataSource'] = 'oe_proxy'
 
     if (citoMatch && citoMatch.goldTimelineBlue.length >= 4) {
-      points = goldTimelineForTeamPerspective(citoMatch, teamSlugOrName).filter(
-        (p) => p.minute <= maxMinute,
+      points = ensureGoldTimelineAtZero(
+        goldTimelineForTeamPerspective(citoMatch, teamSlugOrName).filter(
+          (p) => p.minute <= maxMinute,
+        ),
       )
       dataSource = 'cito'
     } else {
@@ -659,6 +661,9 @@ function interpolateGoldAtMinute(points: GoldTimelinePoint[], minute: number): n
 
   const sorted = [...points].sort((a, b) => a.minute - b.minute)
   if (!sorted.length) return null
+
+  const first = sorted[0]!
+  if (minute < first.minute) return 0
 
   for (let i = 0; i < sorted.length - 1; i++) {
     const a = sorted[i]!

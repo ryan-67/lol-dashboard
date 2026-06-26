@@ -2,9 +2,16 @@ import { useCallback, useMemo } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { useEntityPageData } from '../../hooks/useEntityPageData'
 import { resolvePlayerFromSlug, bestWorstChampions } from '../../lib/entities'
-import { playersForRole, isDisplayablePlayer } from '../../lib/playerRadar'
-import { getPlayerRole } from '../../lib/playerAnalytics'
+import {
+  playersForRole,
+  isDisplayablePlayer,
+  formatGameLogMetric,
+  roleMatchHistoryMetrics,
+  type RoleKey,
+} from '../../lib/playerRadar'
+import { getPlayerRole, resolveLaneOpponentForGame } from '../../lib/playerAnalytics'
 import { formatGameDate, formatNum, formatPct } from '../../lib/format'
+import { resolveTournamentDisplay } from '../../lib/tournamentCatalog'
 import PlayerRadarChart from '../../components/players/PlayerRadarChart'
 import PlayerFormChart from '../../components/players/PlayerFormChart'
 import {
@@ -70,9 +77,18 @@ export default function PlayerPage() {
   const player = resolved?.player ?? null
   const role = player ? getPlayerRole(player) : 'mid'
   const cohort = useMemo(() => playersForRole(players, role), [players, role])
+  const matchHistoryMetrics = useMemo(() => roleMatchHistoryMetrics(role as RoleKey), [role])
 
   const champExtremes = useMemo(
     () => (player ? bestWorstChampions(player, 1) : { best: [], worst: [] }),
+    [player],
+  )
+
+  const sortedGameLog = useMemo(
+    () =>
+      [...(player?.gameLog ?? [])].sort(
+        (a, b) => b.date.localeCompare(a.date) || (b.gameId ?? '').localeCompare(a.gameId ?? ''),
+      ),
     [player],
   )
 
@@ -160,34 +176,50 @@ export default function PlayerPage() {
               <tr>
                 <th>Date</th>
                 <th>Champion</th>
-                <th>Opponent</th>
                 <th>Result</th>
-                <th>KDA</th>
-                <th>GD@15</th>
-                <th>Side</th>
+                <th>Opponent</th>
+                <th>Against</th>
+                {matchHistoryMetrics.map((m) => (
+                  <th key={m.key}>{m.shortLabel}</th>
+                ))}
+                <th>K/D/A</th>
+                <th>Tournament</th>
               </tr>
             </thead>
             <tbody>
-              {[...(player.gameLog ?? [])]
-                .sort((a, b) => b.date.localeCompare(a.date) || (b.gameId ?? '').localeCompare(a.gameId ?? ''))
-                .slice(0, 20)
-                .map((g, i) => (
-                  <tr key={`${g.date}-${i}`}>
+              {sortedGameLog.slice(0, 20).map((g, i) => {
+                const laneOpponent = resolveLaneOpponentForGame(g, player, players)
+                const tournament = resolveTournamentDisplay(
+                  g.league ?? player.league,
+                  g.split ?? '',
+                  g.playoffs,
+                  { rawSplit: g.rawSplit, oeYear: g.oeYear },
+                )
+                return (
+                  <tr key={`${g.gameId ?? g.date}-${i}`}>
                     <td>{formatGameDate(g.date)}</td>
                     <td>
                       <ChampionEntityInline name={g.champion} />
                     </td>
-                    <td>
-                      <EntityLink type="team" name={g.opponent ?? 'Unknown'} />
-                    </td>
                     <td className={g.result === 1 ? 'text-accent' : 'text-secondary'}>
                       {g.result === 1 ? 'W' : 'L'}
                     </td>
-                    <td>{formatNum(g.kda, 2)}</td>
-                    <td>{typeof g.gd15 === 'number' ? `${g.gd15 > 0 ? '+' : ''}${formatNum(g.gd15, 1)}` : '—'}</td>
-                    <td>{g.side ?? '—'}</td>
+                    <td>
+                      <EntityLink type="team" name={g.opponent ?? 'Unknown'} />
+                    </td>
+                    <td>{laneOpponent ? <EntityLink type="player" name={laneOpponent} /> : '—'}</td>
+                    {matchHistoryMetrics.map((m) => (
+                      <td key={m.key}>
+                        {formatGameLogMetric(g, m.key, cohort, m.format)}
+                      </td>
+                    ))}
+                    <td>
+                      {g.kills ?? 0}/{g.deaths ?? 0}/{g.assists ?? 0}
+                    </td>
+                    <td className="text-secondary text-sm">{tournament}</td>
                   </tr>
-                ))}
+                )
+              })}
             </tbody>
           </table>
         </div>

@@ -11,7 +11,7 @@ export const PARTIAL_COVERAGE_METRICS: PartialCoverageMetricKey[] = [
   'soloKills',
 ]
 
-export const PARTIAL_COVERAGE_THRESHOLD = 0.5
+export const PARTIAL_COVERAGE_THRESHOLD = 0.25
 
 const GAME_OPTIONAL_KEYS: Partial<Record<PartialCoverageMetricKey, keyof PlayerGameLog>> = {
   gd15: 'gd15',
@@ -51,7 +51,7 @@ export function statCoverageFraction(player: Player, key: PartialCoverageMetricK
   return present / log.length
 }
 
-/** Aggregate/radar: include partial stat only when present on ≥50% of games. */
+/** Aggregate scoring: include partial stat only when present on ≥25% of games. */
 export function isStatEligibleForPlayer(
   player: Player,
   key: PartialCoverageMetricKey | string,

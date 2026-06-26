@@ -7,7 +7,7 @@ import type {
 } from '../hooks/useDashboardData'
 import type { TournamentIdentity } from './tournamentCatalog'
 import { gameMatchesTournament } from './tournamentAnalytics'
-import { teamMatchesCanonical } from './entities/slugs'
+import { teamMatchesCanonical, resolveTeamCanonicalName } from './entities/slugs'
 import { isDisplayablePlayer } from './playerRadar'
 import { isDisplayableTeam } from './teamAnalytics'
 import { recapTeamTag } from './recapTeamTag'
@@ -191,12 +191,68 @@ export function buildTournamentSeriesList(
   }))
 }
 
+export function parseSeriesId(seriesId: string): {
+  teamA: string
+  teamB: string
+  date: string
+  sessionIndex: number
+} | null {
+  const parts = seriesId.split('|')
+  if (parts.length < 3) return null
+
+  let sessionIndex = 0
+  let dateIdx = parts.length - 1
+  const last = parts[parts.length - 1] ?? ''
+  const secondLast = parts[parts.length - 2] ?? ''
+
+  if (/^\d+$/.test(last) && /^\d{4}-\d{2}-\d{2}$/.test(secondLast)) {
+    sessionIndex = Number(last) || 0
+    dateIdx = parts.length - 2
+  }
+
+  const date = parts[dateIdx] ?? ''
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return null
+
+  const teamParts = parts.slice(0, dateIdx)
+  if (teamParts.length < 2) return null
+
+  const teamA = teamParts[0] ?? ''
+  const teamB = teamParts[1] ?? ''
+  if (!teamA || !teamB) return null
+
+  return { teamA, teamB, date, sessionIndex }
+}
+
+function teamsMatchSeriesPair(a: string, b: string, x: string, y: string): boolean {
+  const ca = resolveTeamCanonicalName(a)
+  const cb = resolveTeamCanonicalName(b)
+  const cx = resolveTeamCanonicalName(x)
+  const cy = resolveTeamCanonicalName(y)
+  return (ca === cx && cb === cy) || (ca === cy && cb === cx)
+}
+
 export function findSeriesById(data: DashboardData, seriesId: string): ResolvedSeries | null {
   const players = data.players.filter(isDisplayablePlayer)
   const games = collectParsedGames(players)
   const catalog = data.gameCatalog ?? {}
   const all = collectSeriesFromGames(games, catalog)
-  return all.find((s) => s.seriesId === seriesId) ?? null
+
+  const exact = all.find((s) => s.seriesId === seriesId)
+  if (exact) return exact
+
+  const parsed = parseSeriesId(seriesId)
+  if (!parsed) return null
+
+  const candidates = all.filter(
+    (s) => s.lastDate === parsed.date && teamsMatchSeriesPair(parsed.teamA, parsed.teamB, s.teamA, s.teamB),
+  )
+  if (!candidates.length) return null
+  if (candidates.length === 1) return candidates[0]!
+
+  const sorted = [...candidates].sort((a, b) =>
+    compareSeriesGames({ date: a.firstDate, id: a.seriesId }, { date: b.firstDate, id: b.seriesId }),
+  )
+  return sorted[parsed.sessionIndex] ?? sorted[0] ?? null
 }
 
 export function seriesGameIds(series: ResolvedSeries): Set<string> {

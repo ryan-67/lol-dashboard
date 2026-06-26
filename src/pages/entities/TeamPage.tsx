@@ -481,13 +481,17 @@ export default function TeamPage() {
 
       {activeTab === 'gold' && (
         <>
-          <TeamGoldGraph games={goldGraphGames} loading={citoGoldLoading} />
-          <TeamObjectivesGraph
-            games={objectivesGraphGames}
-            citoRows={citoGoldRows}
-            teamSlugOrName={slug}
-            loading={citoGoldLoading}
-          />
+          {goldGraphGames.length > 0 ? (
+            <TeamGoldGraph games={goldGraphGames} loading={citoGoldLoading} />
+          ) : null}
+          {objectivesGraphGames.length > 0 ? (
+            <TeamObjectivesGraph
+              games={objectivesGraphGames}
+              citoRows={citoGoldRows}
+              teamSlugOrName={slug}
+              loading={citoGoldLoading}
+            />
+          ) : null}
         </>
       )}
     </div>

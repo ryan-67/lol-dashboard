@@ -82,6 +82,10 @@ export default function TeamGoldGraph({ games, loading = false }: TeamGoldGraphP
         } else {
           const sorted = [...game.points].sort((a, b) => a.minute - b.minute)
           let val: number | null = null
+          const first = sorted[0]
+          if (first && minute < first.minute) {
+            val = 0
+          }
           for (let i = 0; i < sorted.length - 1; i++) {
             const a = sorted[i]!
             const b = sorted[i + 1]!
@@ -117,14 +121,7 @@ export default function TeamGoldGraph({ games, loading = false }: TeamGoldGraphP
   }
 
   if (!games.length) {
-    return (
-      <div className="card">
-        <h3 className="card-title">Gold Graph</h3>
-        <div className="empty-state text-sm">
-          No Cito gold timelines for this team yet — charts appear when postgame data is enriched.
-        </div>
-      </div>
-    )
+    return null
   }
 
   return (

@@ -182,6 +182,19 @@ export const TEAM_ENTITIES: TeamEntityDef[] = [
     esportsSlug: 'anyones-legend',
   },
   {
+    canonicalName: 'Ninjas in Pyjamas',
+    oeNames: [
+      'Ninjas in Pyjamas',
+      'NiP',
+      'NIP',
+      'Shenzhen Ninjas in Pyjamas',
+      'Shenzen Ninjas in Pyjamas',
+    ],
+    abbreviations: ['NiP', 'NIP'],
+    slug: 'ninjas-in-pyjamas',
+    esportsSlug: 'shenzen-ninjas-in-pyjamas',
+  },
+  {
     canonicalName: 'Lyon Gaming',
     oeNames: ['Lyon Gaming', 'LYON', 'Lyon'],
     abbreviations: ['LYON'],

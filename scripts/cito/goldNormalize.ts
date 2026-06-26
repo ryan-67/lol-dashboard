@@ -2,8 +2,26 @@ import type { CitoGoldPoint, CitoPostgamePayload } from './types.ts'
 
 /** Cito goldGraph timestamps are milliseconds from game start. */
 export function timestampToMinute(timestamp: number): number {
-  if (timestamp > 10_000) return Math.max(0, Math.round(timestamp / 60_000))
+  if (timestamp <= 0) return 0
+  // Values above one hour are treated as ms; smaller values are already minutes.
+  if (timestamp > 3600) return Math.max(0, Math.round(timestamp / 60_000))
   return Math.max(0, Math.round(timestamp))
+}
+
+export function ensureGoldTimelineBaseline(
+  timeline: Array<{ minute: number; goldDiffBlue: number }>,
+): Array<{ minute: number; goldDiffBlue: number }> {
+  if (!timeline.length) return [{ minute: 0, goldDiffBlue: 0 }]
+
+  const sorted = [...timeline].sort((a, b) => a.minute - b.minute)
+  const first = sorted[0]!
+  if (first.minute === 0) {
+    if (first.goldDiffBlue !== 0) {
+      sorted[0] = { minute: 0, goldDiffBlue: 0 }
+    }
+    return sorted
+  }
+  return [{ minute: 0, goldDiffBlue: 0 }, ...sorted]
 }
 
 export function normalizeCitoGoldGraph(
@@ -24,9 +42,11 @@ export function normalizeCitoGoldGraph(
     byMinute.set(minute, diff)
   }
 
-  return [...byMinute.entries()]
+  const timeline = [...byMinute.entries()]
     .sort((a, b) => a[0] - b[0])
     .map(([minute, goldDiffBlue]) => ({ minute, goldDiffBlue }))
+
+  return ensureGoldTimelineBaseline(timeline)
 }
 
 export function goldTimelineForTeam(

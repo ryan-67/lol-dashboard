@@ -4,23 +4,7 @@ import { buildStoreFromSliceRows, fetchOESlices } from '../lib/loadOEStore'
 import type { OEStore } from '../lib/mergeSlices'
 import { mergeDataForFilters } from '../lib/entities/resolvers'
 import { leagueLabelToLeagues } from './useDashboardData'
-import { findSeriesById } from '../lib/seriesAnalytics'
-
-export function parseSeriesId(seriesId: string): {
-  teamA: string
-  teamB: string
-  date: string
-  sessionIndex: number
-} | null {
-  const parts = seriesId.split('|')
-  if (parts.length < 3) return null
-  const teamA = parts[0] ?? ''
-  const teamB = parts[1] ?? ''
-  const date = parts[2] ?? ''
-  const sessionIndex = parts[3] != null && parts[3] !== '' ? Number(parts[3]) || 0 : 0
-  if (!teamA || !teamB || !/^\d{4}-\d{2}-\d{2}$/.test(date)) return null
-  return { teamA, teamB, date, sessionIndex }
-}
+import { findSeriesById, parseSeriesId } from '../lib/seriesAnalytics'
 
 /** Load series across all splits in the series year (ignores global split filter). */
 export function useSeriesPageData(seriesId: string) {

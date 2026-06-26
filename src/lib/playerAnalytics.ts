@@ -1,5 +1,6 @@
 import type { Player, PlayerChampionPoolEntry, PlayerGameLog } from '../hooks/useDashboardData'
 import { isGameStatPresent } from './statAvailability'
+import { teamMatchesCanonical } from './entities/slugs'
 import {
   computeGameScore,
   getMetricValue,
@@ -356,4 +357,25 @@ export function buildPlayerChampionStats(player: Player, role: RoleKey, cohort: 
       }
     })
     .sort((a, b) => b.games - a.games || b.winrate - a.winrate)
+}
+
+/** Same-role opponent in a shared game (lane matchup). */
+export function resolveLaneOpponentForGame(
+  game: PlayerGameLog,
+  player: Player,
+  allPlayers: Player[],
+): string | null {
+  const gameId = game.gameId
+  const opponentTeam = game.opponent?.trim()
+  const role = normalizePosition(player.position)
+  if (!gameId || !opponentTeam || !role) return null
+
+  for (const p of allPlayers) {
+    if (!teamMatchesCanonical(p.team, opponentTeam)) continue
+    if (normalizePosition(p.position) !== role) continue
+    for (const g of p.gameLog ?? []) {
+      if (g.gameId === gameId) return p.name
+    }
+  }
+  return null
 }
