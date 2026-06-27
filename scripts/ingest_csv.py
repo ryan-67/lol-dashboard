@@ -388,10 +388,14 @@ def team_bucket():
         "heralds": 0,
         "void_grubs": 0,
         "gd15": [],
+        "csd15": [],
+        "xpd15": [],
+        "ka15": [],
         "gamelength": [],
         "totalgold": [],
         "wardsplaced": [],
         "firstbloodgames": [],
+        "firstbloodvictimgames": [],
         "league": "",
     }
 
@@ -431,6 +435,9 @@ def slice_store():
         # Guards against double-counting when the same game appears in more than one
         # source CSV (overlapping dumps). Keyed by (gameid, entity).
         "seen_rows": set(),
+        # Per (team, game): True if any player on that team was first-blood victim.
+        "team_fb_victim": {},
+        "team_fb_victim_seen": set(),
     }
 
 
@@ -541,8 +548,7 @@ def compile_teams(teams_dict):
         if games < MIN_TEAM_GAMES:
             continue
         deaths = max(t["deaths"], 1)
-        out.append(
-            {
+        team_entry = {
                 "name": name,
                 "league": t["league"],
                 "games": games,
@@ -553,7 +559,6 @@ def compile_teams(teams_dict):
                 "assists": t["assists"],
                 "winrate": round(t["wins"] / games * 100, 1),
                 "avgKda": round((t["kills"] + t["assists"]) / deaths, 2),
-                "avgGd15": round(sum(t["gd15"]) / len(t["gd15"]), 1) if t["gd15"] else 0,
                 "towers": t["towers"],
                 "dragons": t["dragons"],
                 "barons": t["barons"],
@@ -590,7 +595,19 @@ def compile_teams(teams_dict):
                 ),
                 "firstBloodRate": round(sum(t["firstbloodgames"]) / games * 100, 1) if games else 0,
             }
-        )
+        if t["gd15"]:
+            team_entry["avgGd15"] = round(sum(t["gd15"]) / len(t["gd15"]), 1)
+        if t["csd15"]:
+            team_entry["avgCsd15"] = round(sum(t["csd15"]) / len(t["csd15"]), 1)
+        if t["xpd15"]:
+            team_entry["avgXpd15"] = round(sum(t["xpd15"]) / len(t["xpd15"]), 1)
+        if t["ka15"]:
+            team_entry["avgKaAt15"] = round(sum(t["ka15"]) / len(t["ka15"]), 1)
+        if t["firstbloodvictimgames"]:
+            team_entry["firstBloodVictimRate"] = round(
+                sum(t["firstbloodvictimgames"]) / len(t["firstbloodvictimgames"]) * 100, 1
+            )
+        out.append(team_entry)
     out.sort(key=lambda x: x["winrate"], reverse=True)
     return out
 
@@ -771,9 +788,18 @@ def compile_game_catalog(game_catalog, game_teams):
     return out
 
 
+def finalize_team_fb_victims(store):
+    """Roll per-game first-blood victim flags into team aggregates."""
+    for (team_name, _game_id), was_victim in store.get("team_fb_victim", {}).items():
+        team = store["teams"].get(team_name)
+        if team is not None:
+            team["firstbloodvictimgames"].append(1 if was_victim else 0)
+
+
 def compile_slice(store):
     backfill_game_log_opponents(store["players"], store["game_teams"])
     backfill_game_log_turret_plates(store["players"], store["game_team_meta"])
+    finalize_team_fb_victims(store)
     return {
         "players": compile_players(store["players"]),
         "rosterDepth": compile_roster_depth(store["players"]),
@@ -888,8 +914,16 @@ def process_row(row, buckets: dict, team_to_league: dict[str, str]):
         t["kills"] += safe_int(row.get("kills", 0))
         t["deaths"] += safe_int(row.get("deaths", 0))
         t["assists"] += safe_int(row.get("assists", 0))
-        gd15, _, _ = resolve_at15_from_row(row)
+        gd15, csd15, xpd15 = resolve_at15_from_row(row)
         append_if_present(t["gd15"], gd15)
+        append_if_present(t["csd15"], csd15)
+        append_if_present(t["xpd15"], xpd15)
+        kills_at15 = row.get("killsat15")
+        assists_at15 = row.get("assistsat15")
+        if kills_at15 not in (None, "") and assists_at15 not in (None, ""):
+            append_if_present(t["ka15"], safe_float(kills_at15) + safe_float(assists_at15))
+        elif kills_at15 not in (None, ""):
+            append_if_present(t["ka15"], safe_float(kills_at15))
         gl = safe_float(row.get("gamelength", 0))
         if gl > 0:
             t["gamelength"].append(gl)
@@ -989,6 +1023,14 @@ def process_row(row, buckets: dict, team_to_league: dict[str, str]):
             safe_int(row.get("firstbloodkill", 0)) or safe_int(row.get("firstbloodassist", 0))
         ) else 0
         p["firstBloodGames"].append(fb_involved)
+        fb_victim = safe_int(row.get("firstbloodvictim", 0))
+        if game_id and team_name and row_has_value(row, ("firstbloodvictim",)):
+            victim_key = (team_name, game_id)
+            if victim_key not in bucket["team_fb_victim_seen"]:
+                bucket["team_fb_victim_seen"].add(victim_key)
+                bucket["team_fb_victim"][victim_key] = fb_victim > 0
+            elif fb_victim > 0:
+                bucket["team_fb_victim"][victim_key] = True
         obj_total = (
             safe_int(row.get("dragons", 0))
             + safe_int(row.get("heralds", 0))
@@ -1073,6 +1115,8 @@ def process_row(row, buckets: dict, team_to_league: dict[str, str]):
             entry["xpd15"] = round(xpd15, 1)
         if row_has_value(row, ("solokills", "solo_kills", "solokill", "solokillsat15")):
             entry["soloKills"] = solo_kills
+        if row_has_value(row, ("firstbloodvictim",)):
+            entry["firstBloodVictim"] = fb_victim > 0
         side_val = str(row.get("side", "")).strip().lower()
         if side_val:
             entry["side"] = side_val

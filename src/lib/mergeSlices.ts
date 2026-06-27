@@ -320,10 +320,14 @@ function mergeTeams(slices: DashboardSlice[]): Team[] {
       heralds: number
       voidGrubs: number
       gd15: Array<{ value: number; weight: number }>
+      csd15: Array<{ value: number; weight: number }>
+      xpd15: Array<{ value: number; weight: number }>
+      kaAt15: Array<{ value: number; weight: number }>
       goldPerMin: Array<{ value: number; weight: number }>
       wardsPerMin: Array<{ value: number; weight: number }>
       avgGameLength: Array<{ value: number; weight: number }>
       firstBloodRate: Array<{ value: number; weight: number }>
+      firstBloodVictimRate: Array<{ value: number; weight: number }>
     }
   >()
 
@@ -347,10 +351,14 @@ function mergeTeams(slices: DashboardSlice[]): Team[] {
         heralds: 0,
         voidGrubs: 0,
         gd15: [],
+        csd15: [],
+        xpd15: [],
+        kaAt15: [],
         goldPerMin: [],
         wardsPerMin: [],
         avgGameLength: [],
         firstBloodRate: [],
+        firstBloodVictimRate: [],
       }
 
       existing.games += games
@@ -367,6 +375,15 @@ function mergeTeams(slices: DashboardSlice[]): Team[] {
       if (games > 0 && typeof t.avgGd15 === 'number') {
         existing.gd15.push({ value: t.avgGd15, weight: games })
       }
+      if (games > 0 && typeof t.avgCsd15 === 'number') {
+        existing.csd15.push({ value: t.avgCsd15, weight: games })
+      }
+      if (games > 0 && typeof t.avgXpd15 === 'number') {
+        existing.xpd15.push({ value: t.avgXpd15, weight: games })
+      }
+      if (games > 0 && typeof t.avgKaAt15 === 'number') {
+        existing.kaAt15.push({ value: t.avgKaAt15, weight: games })
+      }
       if (games > 0 && typeof t.goldPerMin === 'number') {
         existing.goldPerMin.push({ value: t.goldPerMin, weight: games })
       }
@@ -378,6 +395,9 @@ function mergeTeams(slices: DashboardSlice[]): Team[] {
       }
       if (games > 0 && typeof t.firstBloodRate === 'number') {
         existing.firstBloodRate.push({ value: t.firstBloodRate, weight: games })
+      }
+      if (games > 0 && typeof t.firstBloodVictimRate === 'number') {
+        existing.firstBloodVictimRate.push({ value: t.firstBloodVictimRate, weight: games })
       }
       acc.set(key, existing)
     }
@@ -396,6 +416,9 @@ function mergeTeams(slices: DashboardSlice[]): Team[] {
         winrate: round(t.wins / games * 100, 1),
         avgKda: round((t.kills + t.assists) / deaths, 2),
         avgGd15: t.gd15.length ? round(avgWeighted(t.gd15), 1) : undefined,
+        avgCsd15: t.csd15.length ? round(avgWeighted(t.csd15), 1) : undefined,
+        avgXpd15: t.xpd15.length ? round(avgWeighted(t.xpd15), 1) : undefined,
+        avgKaAt15: t.kaAt15.length ? round(avgWeighted(t.kaAt15), 1) : undefined,
         towers: t.towers,
         dragons: t.dragons,
         barons: t.barons,
@@ -413,6 +436,9 @@ function mergeTeams(slices: DashboardSlice[]): Team[] {
         goldPerMin: round(avgWeighted(t.goldPerMin), 1),
         wardsPerMin: round(avgWeighted(t.wardsPerMin), 2),
         firstBloodRate: round(avgWeighted(t.firstBloodRate), 1),
+        firstBloodVictimRate: t.firstBloodVictimRate.length
+          ? round(avgWeighted(t.firstBloodVictimRate), 1)
+          : undefined,
       } satisfies Team
     })
     .filter((t) => t.games >= 3)

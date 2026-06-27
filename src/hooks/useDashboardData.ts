@@ -39,6 +39,7 @@ export interface PlayerGameLog {
   visionScore?: number
   goldShare?: number
   firstBloodRate?: number
+  firstBloodVictim?: boolean
   objControl?: number
   turretPlates?: number
   campsStolen?: number
@@ -123,6 +124,10 @@ export interface Team {
   winrate: number
   avgKda: number
   avgGd15?: number
+  avgCsd15?: number
+  avgXpd15?: number
+  avgKaAt15?: number
+  firstBloodVictimRate?: number
   towers: number
   dragons: number
   barons: number
