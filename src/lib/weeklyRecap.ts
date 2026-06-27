@@ -1,5 +1,5 @@
-import type { Player, PlayerGameLog, Team } from '../hooks/useDashboardData'
-import { resolveTeamCanonicalName } from './entities/slugs'
+import type { GameCatalogEntry, Player, PlayerGameLog, Team } from '../hooks/useDashboardData'
+import { resolveTeamCanonicalName, teamMatchesCanonical } from './entities/slugs'
 import { findTeamByName } from './teamAnalytics'
 import { normalizePosition, type RoleKey } from './playerRadar'
 import { buildSeriesFacts, type SeriesFacts } from './recapFacts'
@@ -233,17 +233,32 @@ function segTeam(name: string): WeeklyRecapSegment {
   }
 }
 
+function inferOpponentFromCatalog(
+  game: PlayerGameLog,
+  playerTeam: string,
+  catalog?: Record<string, GameCatalogEntry>,
+): string | null {
+  const trimmed = game.opponent?.trim()
+  if (trimmed) return trimmed
+  if (!game.gameId || !catalog?.[game.gameId]?.teams) return null
+  const teams = Object.keys(catalog[game.gameId]!.teams)
+  const other = teams.find((t) => !teamMatchesCanonical(t, playerTeam))
+  return other ?? null
+}
+
 export function collectParsedGames(
   players: Player[],
   options?: {
     window?: WeeklyRecapWindow | null
     gameFilter?: (g: PlayerGameLog) => boolean
+    gameCatalog?: Record<string, GameCatalogEntry>
   },
 ): ParsedGame[] {
   const seen = new Set<string>()
   const games: ParsedGame[] = []
   const window = options?.window ?? null
   const gameFilter = options?.gameFilter
+  const gameCatalog = options?.gameCatalog
 
   for (const player of players) {
     for (const g of player.gameLog ?? []) {
@@ -253,7 +268,7 @@ export function collectParsedGames(
       if (seen.has(id)) continue
       seen.add(id)
 
-      const opponent = g.opponent?.trim()
+      const opponent = inferOpponentFromCatalog(g, player.team, gameCatalog)
       if (!opponent) continue
       const won = g.result === 1
       const winner = won ? player.team : opponent

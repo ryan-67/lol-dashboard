@@ -67,6 +67,16 @@ async function main() {
           const teamB = teamLabel(teams[1]?.name, teams[1]?.shortName, teams[1]?.code)
           if (!teamA || !teamB) return null
           const state = (event.state ?? 'scheduled').toLowerCase()
+          const scoreA = teams[0]?.score
+          const scoreB = teams[1]?.score
+          const outcomeA = (teams[0]?.outcome ?? '').toLowerCase()
+          const outcomeB = (teams[1]?.outcome ?? '').toLowerCase()
+          let winnerTeam: string | null = null
+          if (outcomeA === 'win') winnerTeam = teamA
+          else if (outcomeB === 'win') winnerTeam = teamB
+          else if (typeof scoreA === 'number' && typeof scoreB === 'number' && scoreA !== scoreB) {
+            winnerTeam = scoreA > scoreB ? teamA : teamB
+          }
           return {
             match_id: normalizeMatchId(event.matchId),
             league: league.name,
@@ -77,6 +87,9 @@ async function main() {
             scheduled_at: event.startTime ?? null,
             status: state,
             block_name: event.blockName ?? null,
+            team_a_score: typeof scoreA === 'number' ? scoreA : null,
+            team_b_score: typeof scoreB === 'number' ? scoreB : null,
+            winner_team: winnerTeam,
             fetched_at: fetchedAt,
           }
         })

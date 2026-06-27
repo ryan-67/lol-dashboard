@@ -185,10 +185,11 @@ export function buildTournamentSeriesList(
   tournament: TournamentIdentity,
 ): TournamentSeriesRow[] {
   const players = data.players.filter(isDisplayablePlayer)
+  const catalog = data.gameCatalog ?? {}
   const games = collectParsedGames(players, {
     gameFilter: (g) => gameMatchesTournament(g, tournament),
+    gameCatalog: catalog,
   })
-  const catalog = data.gameCatalog ?? {}
 
   return collectSeriesFromGames(games, catalog).map((s) => ({
     seriesId: s.seriesId,

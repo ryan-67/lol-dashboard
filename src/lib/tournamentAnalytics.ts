@@ -3,15 +3,19 @@ import type { DashboardData } from '../hooks/useDashboardData'
 import {
   buildTournamentIdentityFromGame,
   compareTournamentIdentity,
+  isInternationalSeason,
+  parseCanonicalSplit,
   tournamentKeyFromGame,
   tournamentKeyFromIdentity,
+  tournamentYearFromGame,
   type TournamentIdentity,
 } from './tournamentCatalog'
 import { isDisplayablePlayer } from './playerRadar'
 import { isDisplayableTeam } from './teamAnalytics'
 import { isDisplayableChampion, roleForChampion, type RoleFilter } from './championAnalytics'
 import { buildTournamentSeriesList } from './seriesAnalytics'
-import { resolveTeamCanonicalName } from './entities/slugs'
+import { resolveTeamCanonicalName, teamMatchesCanonical } from './entities/slugs'
+import { rankTournamentStandings, type TournamentRankContext } from './tournamentRank'
 
 export interface TournamentSummary extends TournamentIdentity {
   gameCount: number
@@ -43,6 +47,10 @@ function regionCode(league: string): string {
 }
 
 export function gameMatchesTournament(game: PlayerGameLog, tournament: TournamentIdentity): boolean {
+  const { season } = parseCanonicalSplit(game.split ?? '')
+  if (isInternationalSeason(tournament.season) && isInternationalSeason(season)) {
+    return season === tournament.season && tournamentYearFromGame(game) === tournament.year
+  }
   return tournamentKeyFromGame(game) === tournamentKeyFromIdentity(tournament)
 }
 
@@ -145,22 +153,132 @@ function avg(nums: number[]): number {
   return nums.reduce((a, b) => a + b, 0) / nums.length
 }
 
+function aggregateTeamFromRoster(
+  teamName: string,
+  allTeams: Team[],
+  roster: Player[],
+  standingsRow?: TournamentStandingsRow,
+): Team | null {
+  const base = allTeams.find((t) => teamMatchesCanonical(t.name, teamName))
+  const gameSet = new Set<string>()
+  let wins = 0
+  let losses = 0
+  const gd15: number[] = []
+  let lengthSum = 0
+  let lengthCount = 0
+
+  for (const p of roster) {
+    for (const g of p.gameLog ?? []) {
+      const id = g.gameId ?? `${g.date}|${p.team}|${g.opponent ?? ''}|${g.result}`
+      if (gameSet.has(id)) continue
+      gameSet.add(id)
+      if (g.result === 1) wins++
+      else losses++
+      if (typeof g.gd15 === 'number') gd15.push(g.gd15)
+      if (typeof g.gameLength === 'number' && g.gameLength > 0) {
+        lengthSum += g.gameLength
+        lengthCount++
+      }
+    }
+  }
+
+  const games = gameSet.size
+  if (!games && !standingsRow) return null
+
+  const seriesWins = standingsRow?.wins ?? wins
+  const seriesLosses = standingsRow?.losses ?? losses
+  const seriesGames = seriesWins + seriesLosses
+  const kills = roster.reduce((s, p) => s + (p.kills ?? 0), 0)
+  const deaths = roster.reduce((s, p) => s + (p.deaths ?? 0), 0)
+  const assists = roster.reduce((s, p) => s + (p.assists ?? 0), 0)
+  const league = roster[0]?.league ?? base?.league ?? standingsRow?.league ?? ''
+
+  const merged: Team = {
+    ...(base ?? {
+      name: resolveTeamCanonicalName(teamName),
+      league,
+      towers: 0,
+      dragons: 0,
+      barons: 0,
+      heralds: 0,
+      dragonsPerGame: 0,
+      baronsPerGame: 0,
+      towersPerGame: 0,
+    }),
+    name: resolveTeamCanonicalName(base?.name ?? teamName),
+    league: base?.league ?? league,
+    games: games || seriesGames,
+    wins: seriesWins,
+    losses: seriesLosses,
+    winrate: seriesGames ? (seriesWins / seriesGames) * 100 : games ? (wins / games) * 100 : 0,
+    kills,
+    deaths,
+    assists,
+    avgKda: (kills + assists) / Math.max(deaths, 1),
+    avgGd15: gd15.length ? gd15.reduce((a, b) => a + b, 0) / gd15.length : base?.avgGd15,
+    avgGameLength: lengthCount ? lengthSum / lengthCount : base?.avgGameLength,
+  }
+
+  return isDisplayableTeam(merged) ? merged : null
+}
+
+/** All participant teams in a tournament (from series + player logs, not global team list intersection). */
+export function buildTournamentTeams(
+  allTeams: Team[],
+  players: Player[],
+  data: DashboardData,
+  tournament: TournamentIdentity,
+): Team[] {
+  const seriesList = buildTournamentSeriesList(data, tournament)
+  const standings = buildTournamentSeriesStandings(data, tournament)
+  const standingsByTeam = new Map(
+    standings.map((s) => [resolveTeamCanonicalName(s.team).toLowerCase(), s]),
+  )
+
+  const teamNames = new Set<string>()
+  for (const s of seriesList) {
+    teamNames.add(resolveTeamCanonicalName(s.teamA))
+    teamNames.add(resolveTeamCanonicalName(s.teamB))
+  }
+  for (const p of players) {
+    teamNames.add(resolveTeamCanonicalName(p.team))
+  }
+
+  const out: Team[] = []
+  for (const teamName of teamNames) {
+    const row = standingsByTeam.get(teamName.toLowerCase())
+    const roster = players.filter((p) => teamMatchesCanonical(p.team, teamName))
+    const team = aggregateTeamFromRoster(teamName, allTeams, roster, row)
+    if (team) out.push(team)
+  }
+
+  return out.sort((a, b) => b.winrate - a.winrate || b.wins - a.wins)
+}
+
 export function filterTeamsForTournament(
   teams: Team[],
   players: Player[],
   data?: DashboardData,
   tournament?: TournamentIdentity,
 ): Team[] {
-  const standings =
-    data && tournament
-      ? buildTournamentSeriesStandings(data, tournament)
-      : buildTournamentStandings(players)
-  const byName = new Map(standings.map((s) => [s.team, s]))
+  if (data && tournament) {
+    return buildTournamentTeams(teams, players, data, tournament)
+  }
+
+  const standings = buildTournamentStandings(players)
+  const byCanonical = new Map(standings.map((s) => [resolveTeamCanonicalName(s.team).toLowerCase(), s]))
 
   return teams
-    .filter((t) => isDisplayableTeam(t) && byName.has(t.name))
+    .filter((t) => {
+      if (!isDisplayableTeam(t)) return false
+      const key = resolveTeamCanonicalName(t.name).toLowerCase()
+      return byCanonical.has(key) || teamMatchesCanonical(t.name, key)
+    })
     .map((t) => {
-      const row = byName.get(t.name)!
+      const row =
+        byCanonical.get(resolveTeamCanonicalName(t.name).toLowerCase()) ??
+        standings.find((s) => teamMatchesCanonical(s.team, t.name))
+      if (!row) return t
       const games = row.wins + row.losses
       return {
         ...t,
@@ -328,29 +446,31 @@ export function buildTournamentStandings(players: Player[]): TournamentStandings
 export function buildTournamentSeriesStandings(
   data: DashboardData,
   tournament: TournamentIdentity,
+  rankContext?: TournamentRankContext,
 ): TournamentStandingsRow[] {
   const seriesList = buildTournamentSeriesList(data, tournament)
   const records = new Map<string, { league: string; wins: number; losses: number }>()
 
   for (const series of seriesList) {
     for (const team of [series.teamA, series.teamB]) {
-      const won = series.winner === team
-      const cur = records.get(team) ?? { league: tournament.league, wins: 0, losses: 0 }
+      const won = teamMatchesCanonical(series.winner, team)
+      const key = resolveTeamCanonicalName(team)
+      const cur = records.get(key) ?? { league: tournament.league, wins: 0, losses: 0 }
       if (won) cur.wins += 1
       else cur.losses += 1
-      records.set(team, cur)
+      records.set(key, cur)
     }
   }
 
-  return [...records.entries()]
-    .map(([team, r]) => ({
-      team: resolveTeamCanonicalName(team),
-      league: r.league,
-      wins: r.wins,
-      losses: r.losses,
-      winrate: r.wins + r.losses ? (r.wins / (r.wins + r.losses)) * 100 : 0,
-    }))
-    .sort((a, b) => b.winrate - a.winrate || b.wins - a.wins)
+  const rows = [...records.entries()].map(([team, r]) => ({
+    team,
+    league: r.league,
+    wins: r.wins,
+    losses: r.losses,
+    winrate: r.wins + r.losses ? (r.wins / (r.wins + r.losses)) * 100 : 0,
+  }))
+
+  return rankTournamentStandings(rows, seriesList, rankContext)
 }
 
 export function resolveTournamentFromGame(
