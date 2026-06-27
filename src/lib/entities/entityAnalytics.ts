@@ -85,8 +85,13 @@ export function formatTournamentLabel(
 export interface TeamMatchRow {
   date: string
   opponent: string
+  teamName: string
   result: 'W' | 'L'
   tournament: string
+  side: string
+  patch: string
+  gameId: string
+  matchup: string
 }
 
 export function buildTeamMatchHistory(
@@ -95,35 +100,48 @@ export function buildTeamMatchHistory(
   limit?: number,
   fallbackLeague?: string,
   fallbackSplit?: string,
+  gameCatalog?: Record<string, import('../../hooks/useDashboardData').GameCatalogEntry>,
 ): TeamMatchRow[] {
   const roster = players.filter((p) => teamMatchesCanonical(p.team, teamSlugOrName))
   if (!roster.length) return []
 
-  // One player row per game — use the roster member with the most games as anchor.
+  const teamName = roster[0]!.team
   const anchor = roster.reduce((best, p) => ((p.games ?? 0) > (best.games ?? 0) ? p : best), roster[0]!)
 
   const sorted = [...(anchor.gameLog ?? [])]
-    .map((game) => ({
-      date: game.date,
-      opponent: game.opponent ?? 'Unknown',
-      result: (game.result === 1 ? 'W' : 'L') as 'W' | 'L',
-      tournament: formatTournamentLabel(
-        game.league,
-        game.split,
-        fallbackLeague,
-        fallbackSplit,
-        game.playoffs,
-        game.rawSplit,
-        game.oeYear,
-      ),
-      gameId: game.gameId ?? '',
-    }))
+    .map((game) => {
+      const opponent = game.opponent ?? 'Unknown'
+      const sideRaw = normalizeSide(game.side)
+      const side = sideRaw ? sideRaw.charAt(0).toUpperCase() + sideRaw.slice(1) : '—'
+      const patch = game.gameId && gameCatalog?.[game.gameId]?.patch?.trim()
+        ? gameCatalog[game.gameId]!.patch!.trim()
+        : '—'
+      return {
+        date: game.date,
+        opponent,
+        teamName,
+        result: (game.result === 1 ? 'W' : 'L') as 'W' | 'L',
+        tournament: formatTournamentLabel(
+          game.league,
+          game.split,
+          fallbackLeague,
+          fallbackSplit,
+          game.playoffs,
+          game.rawSplit,
+          game.oeYear,
+        ),
+        side,
+        patch,
+        gameId: game.gameId ?? '',
+        matchup: `${teamName} vs ${opponent}`,
+      }
+    })
     .sort((a, b) => {
       const byDate = b.date.localeCompare(a.date)
       if (byDate !== 0) return byDate
       return b.gameId.localeCompare(a.gameId)
     })
-  return limit === undefined ? sorted.map(({ gameId: _g, ...row }) => row) : sorted.slice(0, limit).map(({ gameId: _g, ...row }) => row)
+  return limit === undefined ? sorted : sorted.slice(0, limit)
 }
 
 export interface SideWinrates {

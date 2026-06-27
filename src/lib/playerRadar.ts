@@ -416,6 +416,28 @@ export function highestDeltaStatForGame(
   return best
 }
 
+/** Highlight radar metric where player is farthest above cohort average. */
+export function highestPlayerRadarHighlight(
+  player: Player,
+  role: RoleKey,
+  cohort: Player[],
+): { label: string; formatted: string; delta: number } | null {
+  const series = buildRadarSeries(player, role, cohort)
+  let best: { label: string; formatted: string; delta: number } | null = null
+  for (const point of series) {
+    if (point.formattedPlayer === '—') continue
+    const delta = point.playerNorm - point.avgNorm
+    if (!best || delta > best.delta) {
+      best = {
+        label: point.label,
+        formatted: point.formattedPlayer,
+        delta,
+      }
+    }
+  }
+  return best
+}
+
 export function isDisplayablePlayer(p: Player): boolean {
   return Boolean(p?.name) && typeof p.kda === 'number' && typeof p.games === 'number'
 }

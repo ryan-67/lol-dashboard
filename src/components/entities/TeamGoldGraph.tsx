@@ -200,7 +200,22 @@ export default function TeamGoldGraph({ games, loading = false }: TeamGoldGraphP
           </ResponsiveContainer>
           </div>
         </ShareableChart>
-        <aside className="entity-gold-graph-legend">
+        <aside
+          className="entity-gold-graph-legend entity-gold-graph-legend-scroll"
+          onWheel={(e) => e.stopPropagation()}
+        >
+          <div className="entity-gold-legend-actions">
+            <button type="button" className="btn entity-gold-legend-action" onClick={() => setHidden(new Set())}>
+              Select all
+            </button>
+            <button
+              type="button"
+              className="btn entity-gold-legend-action"
+              onClick={() => setHidden(new Set(games.map((g) => g.id)))}
+            >
+              Select none
+            </button>
+          </div>
           <button
             type="button"
             className={`entity-gold-legend-item${showAverage ? '' : ' entity-gold-legend-item-off'}`}

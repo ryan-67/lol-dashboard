@@ -165,11 +165,13 @@ def main() -> int:
 
     leagues: dict[str, str] = {}
     for league in leagues_raw:
-        name = (league.get("name") or "").upper()
-        if name not in TIER1_LEAGUES:
-            continue
+        name = (league.get("name") or "").strip()
         image = normalize_url(league.get("image"))
-        if image:
+        if not image:
+            continue
+        if name.upper() in TIER1_LEAGUES:
+            leagues[name.upper()] = image
+        elif name in ("MSI", "Worlds", "First Stand"):
             leagues[name] = image
 
     teams_by_slug: dict[str, str] = {}

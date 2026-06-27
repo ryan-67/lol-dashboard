@@ -1568,6 +1568,30 @@ b,
   padding-right: 4px;
 }
 
+.entity-gold-graph-legend-scroll {
+  overscroll-behavior: contain;
+}
+
+.entity-gold-graph-legend-scroll:hover {
+  overflow-y: auto;
+}
+
+.entity-gold-legend-actions {
+  display: flex;
+  gap: 6px;
+  padding: 0 4px 6px;
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--bg-card);
+}
+
+.entity-gold-legend-action {
+  flex: 1;
+  font-size: 10px;
+  padding: 4px 6px;
+}
+
 .entity-gold-legend-item {
   display: grid;
   grid-template-columns: 12px 1fr auto;
@@ -2853,6 +2877,34 @@ b,
   padding: var(--component-gap);
   border: 1px solid var(--border-subtle);
   background: var(--bg-elevated);
+}
+
+.tournament-standouts-grid .tournament-standout-radar {
+  margin-top: 12px;
+}
+
+.tournament-standout-spotlight {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.tournament-standout-op-score {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.tournament-standout-mini-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
+.tournament-standout-role {
+  align-self: flex-start;
 }
 
 .tournament-table .entity-inline-link {

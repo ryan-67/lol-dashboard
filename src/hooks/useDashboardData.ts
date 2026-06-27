@@ -171,6 +171,8 @@ export interface Champion {
   avgKda: number
   games?: number
   avgCsd15?: number
+  avgGd15?: number
+  avgXpd15?: number
   avgDpm?: number
   avgGoldPerMin?: number
   sparkline?: number[]

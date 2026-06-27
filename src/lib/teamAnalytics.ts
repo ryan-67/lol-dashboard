@@ -84,6 +84,31 @@ export function computeTeamEarlyGameComposite(team: Team, cohort: Team[]): numbe
   return count > 0 ? total / count : null
 }
 
+/** Highlight stat where team is farthest above cohort average on radar metrics. */
+export function highestTeamRadarHighlight(
+  team: Team,
+  cohort: Team[],
+): { label: string; formatted: string; delta: number } | null {
+  let best: { label: string; formatted: string; delta: number } | null = null
+  for (const def of TEAM_RADAR_METRICS) {
+    const cohortValues = cohort
+      .map((t) => getTeamRadarRaw(t, def.key, cohort))
+      .filter((v): v is number => v != null)
+    const raw = getTeamRadarRaw(team, def.key, cohort)
+    if (raw == null || !cohortValues.length) continue
+    const avg = cohortValues.reduce((a, b) => a + b, 0) / cohortValues.length
+    const delta = raw - avg
+    if (!best || delta > best.delta) {
+      best = {
+        label: def.label,
+        formatted: formatRadarRawOrMissing(def.key, raw),
+        delta,
+      }
+    }
+  }
+  return best
+}
+
 export function teamKey(team: Team): string {
   return `${team.name}|${team.league}`
 }

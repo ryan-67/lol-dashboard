@@ -5,7 +5,10 @@
     "LCS": "https://static.lolesports.com/leagues/1706356907418_LCSNew-01-FullonDark.png",
     "LEC": "https://static.lolesports.com/leagues/1592516184297_LEC-01-FullonDark.png",
     "LCK": "https://static.lolesports.com/leagues/lck-color-on-black.png",
-    "LPL": "https://static.lolesports.com/leagues/1592516115322_LPL-01-FullonDark.png"
+    "LPL": "https://static.lolesports.com/leagues/1592516115322_LPL-01-FullonDark.png",
+    "MSI": "https://static.lolesports.com/leagues/1592594634248_MSIDarkBG.png",
+    "Worlds": "https://static.lolesports.com/leagues/1592594612171_WorldsDarkBG.png",
+    "First Stand": "https://static.lolesports.com/leagues/1740042025201_RG_LOL_FIRST_STAND_LOGO_VOLT_ALPHA.png"
   },
   "teamsByEsportsSlug": {
     "geng": "https://static.lolesports.com/teams/1773829250929_GENGLOGO_GOLD.png",

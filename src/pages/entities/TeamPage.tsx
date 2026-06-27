@@ -18,7 +18,9 @@ import { isDisplayableTeam } from '../../lib/teamAnalytics'
 import { isDisplayablePlayer, normalizePosition, ROLES, type RoleKey } from '../../lib/playerRadar'
 import { getTeamRosterDepth } from '../../lib/mergeSlices'
 import type { Player } from '../../hooks/useDashboardData'
-import { fetchTeamUpcomingSchedule, type EsportsScheduleRow } from '../../lib/loadEsportsSchedules'
+import { fetchTeamUpcomingCitoSchedule, type CitoScheduleRow } from '../../lib/loadCitoSchedule'
+import { buildGameToSeriesMap } from '../../lib/seriesAnalytics'
+import { seriesPath } from '../../lib/seriesPath'
 import { fetchCitoGoldForTeam } from '../../lib/loadCitoGold'
 import type { CitoGameGoldRecord } from '../../lib/citoGoldMatch'
 import { formatGameDate, formatNum, formatPct, formatProfileDate } from '../../lib/format'
@@ -43,7 +45,7 @@ import { roleLabel } from '../../lib/championAnalytics'
 export default function TeamPage() {
   const { slug = '' } = useParams<{ slug: string }>()
   const [activeTab, setActiveTab] = useState<TeamPageTab>('stats')
-  const [upcomingSchedule, setUpcomingSchedule] = useState<EsportsScheduleRow[]>([])
+  const [upcomingSchedule, setUpcomingSchedule] = useState<CitoScheduleRow[]>([])
   const [scheduleLoading, setScheduleLoading] = useState(false)
   const [scheduleSource, setScheduleSource] = useState<'loaded' | 'empty' | 'unavailable'>('unavailable')
   const [citoGoldRows, setCitoGoldRows] = useState<CitoGameGoldRecord[]>([])
@@ -126,8 +128,21 @@ export default function TeamPage() {
 
   const matchHistory = useMemo(
     () =>
-      team ? buildTeamMatchHistory(players, slug, undefined, filterLeague, filterSplit) : [],
-    [players, team, slug, filterLeague, filterSplit],
+      team
+        ? buildTeamMatchHistory(
+            players,
+            slug,
+            undefined,
+            filterLeague,
+            filterSplit,
+            data?.gameCatalog,
+          )
+        : [],
+    [players, team, slug, filterLeague, filterSplit, data?.gameCatalog],
+  )
+  const gameToSeriesId = useMemo(
+    () => (data ? buildGameToSeriesMap(data) : new Map<string, string>()),
+    [data],
   )
   const sides = useMemo(() => computeSideWinrates(players, slug), [players, slug])
   const trend = useMemo(
@@ -197,7 +212,7 @@ export default function TeamPage() {
     if (!team || activeTab !== 'schedule') return
     let cancelled = false
     setScheduleLoading(true)
-    void fetchTeamUpcomingSchedule(team.name, { league: team.league, limit: 12 }).then((rows) => {
+    void fetchTeamUpcomingCitoSchedule(team.name, { league: team.league, limit: 3 }).then((rows) => {
       if (cancelled) return
       setUpcomingSchedule(rows)
       setScheduleSource(rows.length ? 'loaded' : 'empty')
@@ -418,23 +433,21 @@ export default function TeamPage() {
                     <tr>
                       <th>Date</th>
                       <th>Matchup</th>
-                      <th>Split</th>
+                      <th>Tournament</th>
                       <th>Status</th>
                     </tr>
                   </thead>
                   <tbody>
                     {upcomingSchedule.map((row) => (
-                      <tr key={row.id}>
+                      <tr key={row.match_id}>
                         <td>
-                          {row.scheduled_at
-                            ? formatProfileDate(row.scheduled_at)
-                            : 'TBD'}
+                          {row.scheduled_at ? formatProfileDate(row.scheduled_at) : 'TBD'}
                         </td>
                         <td>
                           <EntityLink type="team" name={row.team_a} /> vs{' '}
                           <EntityLink type="team" name={row.team_b} />
                         </td>
-                        <td className="text-secondary">{row.split || row.league}</td>
+                        <td className="text-secondary">{row.tournament_name ?? row.league}</td>
                         <td className="text-secondary">{row.status}</td>
                       </tr>
                     ))}
@@ -443,8 +456,7 @@ export default function TeamPage() {
               </div>
             ) : (
               <p className="text-secondary text-sm">
-                No upcoming fixtures in the schedule database for {team.name}. Schedule rows sync from
-                Liquipedia when the esports_schedules indexer runs — check back after the next sync.
+                No upcoming fixtures in schedule database.
               </p>
             )}
           </div>
@@ -455,25 +467,38 @@ export default function TeamPage() {
               <table className="entity-table">
                 <thead>
                   <tr>
-                    <th>Date</th>
-                    <th>Opponent</th>
                     <th>Result</th>
+                    <th>Matchup</th>
+                    <th>Side</th>
+                    <th>Patch</th>
                     <th>Tournament</th>
+                    <th>Date</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {matchHistory.map((m, i) => (
-                    <tr key={`${m.date}-${i}`}>
-                      <td>{formatGameDate(m.date)}</td>
-                      <td>
-                        <EntityLink type="team" name={m.opponent} />
-                      </td>
-                      <td className={m.result === 'W' ? 'text-accent' : 'text-secondary'}>
-                        {m.result}
-                      </td>
-                      <td>{m.tournament}</td>
-                    </tr>
-                  ))}
+                  {matchHistory.map((m, i) => {
+                    const seriesId = m.gameId ? gameToSeriesId.get(m.gameId) : undefined
+                    return (
+                      <tr key={`${m.date}-${m.gameId || i}`}>
+                        <td className={m.result === 'W' ? 'text-accent' : 'text-secondary'}>
+                          {m.result}
+                        </td>
+                        <td>
+                          {seriesId ? (
+                            <Link to={seriesPath(seriesId)} className="entity-link">
+                              {m.matchup}
+                            </Link>
+                          ) : (
+                            m.matchup
+                          )}
+                        </td>
+                        <td>{m.side}</td>
+                        <td>{m.patch}</td>
+                        <td>{m.tournament}</td>
+                        <td>{formatGameDate(m.date)}</td>
+                      </tr>
+                    )
+                  })}
                 </tbody>
               </table>
             </div>

@@ -20,7 +20,7 @@ export default function TournamentSubnav({ active, onChange }: TournamentSubnavP
         <button
           key={tab.id}
           type="button"
-          className={`entity-subnav-tab${active === tab.id ? ' active' : ''}`}
+          className={`entity-subnav-tab${active === tab.id ? ' entity-subnav-tab-active' : ''}`}
           onClick={() => onChange(tab.id)}
         >
           {tab.label}

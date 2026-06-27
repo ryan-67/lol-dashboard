@@ -166,6 +166,20 @@ function collectSeriesFromGames(
   })
 }
 
+/** Map OE gameId → seriesId for entity match-history links. */
+export function buildGameToSeriesMap(data: DashboardData): Map<string, string> {
+  const players = data.players.filter(isDisplayablePlayer)
+  const games = collectParsedGames(players)
+  const catalog = data.gameCatalog ?? {}
+  const map = new Map<string, string>()
+  for (const series of collectSeriesFromGames(games, catalog)) {
+    for (const game of series.games) {
+      if (game.id) map.set(game.id, series.seriesId)
+    }
+  }
+  return map
+}
+
 export function buildTournamentSeriesList(
   data: DashboardData,
   tournament: TournamentIdentity,

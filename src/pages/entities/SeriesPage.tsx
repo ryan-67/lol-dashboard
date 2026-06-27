@@ -12,12 +12,12 @@ import { recapLineToText, type WeeklyRecapLine } from '../../lib/weeklyRecap'
 import { recapTeamTag } from '../../lib/recapTeamTag'
 import { formatGameDate } from '../../lib/format'
 import { scrollEntranceStagger } from '../../theme/animations'
-import { resolveTournamentDisplay } from '../../lib/tournamentCatalog'
+import { resolveTournamentDisplay, parseCanonicalSplit } from '../../lib/tournamentCatalog'
 import SeriesSubnav, { type SeriesPageTab } from '../../components/series/SeriesSubnav'
 import SeriesDraftSummary from '../../components/series/SeriesDraftSummary'
 import SeriesRoleComparison from '../../components/series/SeriesRoleComparison'
 import SeriesGamePanel from '../../components/series/SeriesGamePanel'
-import { EntityLink, TeamLogo } from '../../components/entities'
+import { EntityLink, TeamLogo, LeagueLogo } from '../../components/entities'
 import TeamComparisonRadar from '../../components/teams/TeamComparisonRadar'
 import TeamComparisonStatsChart from '../../components/teams/TeamComparisonStatsChart'
 import WeeklyRecap from '../../components/overview/WeeklyRecap'
@@ -48,6 +48,13 @@ export default function SeriesPage() {
   const tournamentLabel = useMemo(() => {
     if (!series) return ''
     return resolveTournamentDisplay(series.league, series.split, series.playoffs)
+  }, [series])
+
+  const seriesLeagueForLogo = useMemo(() => {
+    if (!series) return ''
+    const { season } = parseCanonicalSplit(series.split ?? '')
+    if (season === 'MSI' || season === 'Worlds' || season === 'First Stand') return season
+    return series.league
   }, [series])
 
   useEffect(() => {
@@ -144,7 +151,8 @@ export default function SeriesPage() {
               {recapTeamTag(series.teamB)}
             </EntityLink>
           </h1>
-          <p className="entity-subtitle">
+          <p className="entity-subtitle entity-title-row">
+            <LeagueLogo league={seriesLeagueForLogo} size={20} />
             {tournamentLabel} · {series.scoreLabel} · {formatGameDate(series.lastDate)}
             {series.patch && series.patch !== '—' ? ` · Patch ${series.patch}` : ''}
           </p>

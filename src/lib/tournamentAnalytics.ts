@@ -1,4 +1,4 @@
-import type { Champion, Player, PlayerGameLog, Team } from '../hooks/useDashboardData'
+import type { Champion, GameCatalogEntry, Player, PlayerGameLog, Team } from '../hooks/useDashboardData'
 import type { DashboardData } from '../hooks/useDashboardData'
 import {
   buildTournamentIdentityFromGame,
@@ -9,7 +9,7 @@ import {
 } from './tournamentCatalog'
 import { isDisplayablePlayer } from './playerRadar'
 import { isDisplayableTeam } from './teamAnalytics'
-import { isDisplayableChampion } from './championAnalytics'
+import { isDisplayableChampion, roleForChampion, type RoleFilter } from './championAnalytics'
 import { buildTournamentSeriesList } from './seriesAnalytics'
 import { resolveTeamCanonicalName } from './entities/slugs'
 
@@ -176,9 +176,12 @@ export function filterTeamsForTournament(
 export function filterChampionsForTournament(
   champions: Champion[],
   players: Player[],
+  gameCatalog?: Record<string, GameCatalogEntry>,
 ): Champion[] {
-  const counts = new Map<string, { picks: number; wins: number }>()
+  const counts = new Map<string, { picks: number; wins: number; gd15: number[]; csd15: number[]; xpd15: number[] }>()
+  const bans = new Map<string, number>()
   const seen = new Set<string>()
+  const seenGames = new Set<string>()
 
   for (const player of players) {
     for (const g of player.gameLog ?? []) {
@@ -187,30 +190,99 @@ export function filterChampionsForTournament(
       if (seen.has(pickKey)) continue
       seen.add(pickKey)
 
-      const cur = counts.get(g.champion) ?? { picks: 0, wins: 0 }
+      const cur = counts.get(g.champion) ?? { picks: 0, wins: 0, gd15: [], csd15: [], xpd15: [] }
       cur.picks += 1
       if (g.result === 1) cur.wins += 1
+      if (typeof g.gd15 === 'number') cur.gd15.push(g.gd15)
+      if (typeof g.csd15 === 'number') cur.csd15.push(g.csd15)
+      if (typeof g.xpd15 === 'number') cur.xpd15.push(g.xpd15)
       counts.set(g.champion, cur)
+
+      if (g.gameId && !seenGames.has(g.gameId)) {
+        seenGames.add(g.gameId)
+        const entry = gameCatalog?.[g.gameId]
+        if (entry?.teams) {
+          for (const draft of Object.values(entry.teams)) {
+            for (const ban of draft.bans ?? []) {
+              if (ban) bans.set(ban, (bans.get(ban) ?? 0) + 1)
+            }
+          }
+        }
+      }
     }
   }
 
-  const totalGames = [...counts.values()].reduce((s, c) => s + c.picks, 0) || 1
+  const totalPickSlots = [...counts.values()].reduce((s, c) => s + c.picks, 0) || 1
+  const totalBanSlots = [...bans.values()].reduce((s, n) => s + n, 0) || 1
+  const globalByName = new Map(champions.map((c) => [c.name, c]))
 
-  return champions
-    .filter((c) => isDisplayableChampion(c) && counts.has(c.name))
-    .map((c) => {
-      const stats = counts.get(c.name)!
+  return [...counts.entries()]
+    .map(([name, stats]) => {
+      const global = globalByName.get(name)
+      const pickRate = (stats.picks / totalPickSlots) * 100
+      const banCount = bans.get(name) ?? 0
+      const banRate = (banCount / totalBanSlots) * 100
       return {
-        ...c,
+        name,
+        positions: global?.positions ?? [],
+        primaryRole: global?.primaryRole,
         picks: stats.picks,
         games: stats.picks,
+        bans: banCount,
         wins: stats.wins,
         winrate: stats.picks ? (stats.wins / stats.picks) * 100 : 0,
-        pickRate: (stats.picks / totalGames) * 100,
-        presence: (stats.picks / totalGames) * 100,
-      }
+        pickRate,
+        banRate,
+        presence: pickRate + banRate,
+        avgKda: global?.avgKda ?? 0,
+        avgGd15: stats.gd15.length ? avg(stats.gd15) : global?.avgGd15,
+        avgCsd15: stats.csd15.length ? avg(stats.csd15) : global?.avgCsd15,
+        avgXpd15: stats.xpd15.length ? avg(stats.xpd15) : global?.avgXpd15,
+      } satisfies Champion
     })
+    .filter((c) => isDisplayableChampion(c) || c.picks > 0)
     .sort((a, b) => b.picks - a.picks)
+}
+
+export interface TournamentChampionRow {
+  name: string
+  positions: string[]
+  picks: number
+  bans: number
+  winrate: number
+  presence: number
+  priority: number
+  gd15: number | null
+  csd15: number | null
+  xpd15: number | null
+}
+
+export function buildTournamentChampionRows(
+  champions: Champion[],
+  roleFilter: RoleFilter = 'all',
+): TournamentChampionRow[] {
+  const filtered =
+    roleFilter === 'all'
+      ? champions
+      : champions.filter((c) => roleForChampion(c) === roleFilter)
+
+  const maxPicks = Math.max(...filtered.map((c) => c.picks), 1)
+
+  return filtered.map((c) => {
+    const pickRate = c.pickRate ?? (c.picks / maxPicks) * 100
+    return {
+      name: c.name,
+      positions: c.positions ?? [],
+      picks: c.picks,
+      bans: c.bans ?? 0,
+      winrate: c.winrate,
+      presence: c.presence ?? pickRate + (c.banRate ?? 0),
+      priority: pickRate,
+      gd15: typeof c.avgGd15 === 'number' ? c.avgGd15 : null,
+      csd15: typeof c.avgCsd15 === 'number' ? c.avgCsd15 : null,
+      xpd15: typeof c.avgXpd15 === 'number' ? c.avgXpd15 : null,
+    }
+  })
 }
 
 export function buildTournamentStandings(players: Player[]): TournamentStandingsRow[] {

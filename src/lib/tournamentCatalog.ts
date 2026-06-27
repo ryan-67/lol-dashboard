@@ -102,9 +102,18 @@ export function tournamentKey(
   return `${league}|${year}|${rawSplit}|${playoffs ? 1 : 0}`
 }
 
+/** League label used in tournament identity keys (INT events use season name, not home region). */
+export function tournamentDisplayLeagueFromGame(
+  game: Pick<PlayerGameLog, 'league' | 'split'>,
+): string {
+  const { season } = parseCanonicalSplit(game.split ?? '')
+  if (INTERNATIONAL_SEASONS.has(season)) return season
+  return game.league ?? ''
+}
+
 export function tournamentKeyFromGame(game: PlayerGameLog): string {
   return tournamentKey(
-    game.league ?? '',
+    tournamentDisplayLeagueFromGame(game),
     tournamentYearFromGame(game),
     tournamentRawSplitFromGame(game),
     Boolean(game.playoffs),

@@ -2,8 +2,9 @@ import { useMemo, useRef, useState, useCallback } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { useGSAP } from '@gsap/react'
 import { useEntityPageData } from '../../hooks/useEntityPageData'
-import type { DashboardData } from '../../hooks/useDashboardData'
+import type { DashboardData, Player } from '../../hooks/useDashboardData'
 import {
+  buildTournamentChampionRows,
   buildTournamentSummaries,
   buildTournamentSeriesStandings,
   filterChampionsForTournament,
@@ -20,12 +21,54 @@ import { scrollEntranceStagger } from '../../theme/animations'
 import { TournamentSubnav, type TournamentPageTab } from '../../components/tournaments'
 import TournamentMatchList from '../../components/tournaments/TournamentMatchList'
 import { buildTournamentSeriesList } from '../../lib/seriesAnalytics'
-import { EntityLink, ChampionEntityInline } from '../../components/entities'
+import { EntityLink, ChampionEntityInline, LeagueLogo } from '../../components/entities'
 import PlayerRadarChart from '../../components/players/PlayerRadarChart'
 import TeamRadarChart from '../../components/teams/TeamRadarChart'
-import { ROLES, bestPlayerForRole, computeGameScore, normalizePosition, playersForRole, type RoleKey } from '../../lib/playerRadar'
+import {
+  ROLES,
+  bestPlayerForRole,
+  computeGameScore,
+  highestPlayerRadarHighlight,
+  normalizePosition,
+  playersForRole,
+  type RoleKey,
+} from '../../lib/playerRadar'
+import { highestTeamRadarHighlight } from '../../lib/teamAnalytics'
 import { teamMatchesCanonical } from '../../lib/entities/slugs'
 import { formatDurationMinSec } from '../../lib/tournamentFormat'
+import { computeOpScores, roleLabel, type RoleFilter } from '../../lib/championAnalytics'
+import RoleFilterBar from '../../components/champions/RoleFilterBar'
+import PlayerDropdown from '../../components/players/PlayerDropdown'
+import PlayerFormChart from '../../components/players/PlayerFormChart'
+import PlayerChampionPool from '../../components/players/PlayerChampionPool'
+import PlayerComparisonRadar from '../../components/players/PlayerComparisonRadar'
+import { playerKey } from '../../lib/playerAnalytics'
+
+function OpChampionSpotlight({
+  champions,
+}: {
+  champions: ReturnType<typeof filterChampionsForTournament>
+}) {
+  const { top } = computeOpScores(champions)
+  if (!top) return <p className="text-secondary text-sm">—</p>
+
+  const { champion, role, opScore } = top
+  return (
+    <div className="tournament-standout-spotlight">
+      <span className="role-badge tournament-standout-role">{roleLabel(role)}</span>
+      <div className="tournament-standout-op-score">
+        <span className="text-secondary text-xs">OP SCORE</span>
+        <span className="text-accent text-xl">{opScore.toFixed(2)}</span>
+      </div>
+      <ChampionEntityInline name={champion.name} iconSize={24} />
+      <div className="tournament-standout-mini-stats">
+        <span>{champion.presence.toFixed(1)}% presence</span>
+        <span>{champion.winrate.toFixed(1)}% WR</span>
+        <span>{champion.picks} picks</span>
+      </div>
+    </div>
+  )
+}
 
 export default function TournamentPage() {
   const { slug = '' } = useParams<{ slug: string }>()
@@ -35,6 +78,8 @@ export default function TournamentPage() {
   )
   const { data, loading, fallbackNotice } = useEntityPageData(hasTournamentData)
   const [activeTab, setActiveTab] = useState<TournamentPageTab>('overview')
+  const [champRoleFilter, setChampRoleFilter] = useState<RoleFilter>('all')
+  const [selectedPlayerKeys, setSelectedPlayerKeys] = useState<string[]>([])
   const ref = useRef<HTMLDivElement>(null)
 
   const allTournaments = useMemo(
@@ -71,8 +116,20 @@ export default function TournamentPage() {
   )
 
   const scopedChampions = useMemo(
-    () => (tournament ? filterChampionsForTournament(data?.champions ?? [], scopedPlayers) : []),
-    [data?.champions, scopedPlayers, tournament],
+    () =>
+      tournament
+        ? filterChampionsForTournament(
+            data?.champions ?? [],
+            scopedPlayers,
+            data?.gameCatalog,
+          )
+        : [],
+    [data?.champions, data?.gameCatalog, scopedPlayers, tournament],
+  )
+
+  const championRows = useMemo(
+    () => buildTournamentChampionRows(scopedChampions, champRoleFilter),
+    [scopedChampions, champRoleFilter],
   )
 
   const seriesList = useMemo(
@@ -82,7 +139,7 @@ export default function TournamentPage() {
 
   const standoutPlayer = useMemo(() => {
     if (!scopedPlayers.length) return null
-    let best: { player: (typeof scopedPlayers)[0]; score: number } | null = null
+    let best: { player: (typeof scopedPlayers)[0]; score: number; role: RoleKey } | null = null
     for (const player of scopedPlayers) {
       const role = normalizePosition(player.position) ?? 'mid'
       const cohort = playersForRole(scopedPlayers, role)
@@ -90,7 +147,7 @@ export default function TournamentPage() {
       if (!logs.length) continue
       const score =
         logs.reduce((s, g) => s + computeGameScore(g, role, cohort), 0) / logs.length
-      if (!best || score > best.score) best = { player, score }
+      if (!best || score > best.score) best = { player, score, role }
     }
     return best
   }, [scopedPlayers])
@@ -102,7 +159,10 @@ export default function TournamentPage() {
     return row ? scopedTeams.find((t) => teamMatchesCanonical(t.name, row.team)) ?? null : null
   }, [standings, scopedTeams])
 
-  const standoutChampion = useMemo(() => scopedChampions[0] ?? null, [scopedChampions])
+  const standoutChampion = useMemo(() => {
+    const { top } = computeOpScores(scopedChampions)
+    return top?.champion ?? scopedChampions[0] ?? null
+  }, [scopedChampions])
 
   const radarPlayers = useMemo(
     () =>
@@ -111,6 +171,14 @@ export default function TournamentPage() {
         return best ? { player: best, role } : null
       }).filter((x): x is { player: (typeof scopedPlayers)[0]; role: RoleKey } => x !== null),
     [scopedPlayers],
+  )
+
+  const selectedPlayers = useMemo(
+    () =>
+      selectedPlayerKeys
+        .map((key) => scopedPlayers.find((p) => playerKey(p) === key))
+        .filter((p): p is Player => Boolean(p)),
+    [scopedPlayers, selectedPlayerKeys],
   )
 
   useGSAP(
@@ -134,6 +202,17 @@ export default function TournamentPage() {
       </div>
     )
   }
+
+  const playerHighlight =
+    standoutPlayer &&
+    highestPlayerRadarHighlight(
+      standoutPlayer.player,
+      standoutPlayer.role,
+      playersForRole(scopedPlayers, standoutPlayer.role),
+    )
+
+  const teamHighlight =
+    standoutTeam && highestTeamRadarHighlight(standoutTeam, scopedTeams)
 
   return (
     <div ref={ref} className="page-section entity-page tournament-page">
@@ -167,7 +246,10 @@ export default function TournamentPage() {
 
       <header className="entity-header">
         <div>
-          <h1 className="page-title">{tournament.displayName}</h1>
+          <h1 className="page-title entity-title-row">
+            <LeagueLogo league={tournament.league} size={28} />
+            {tournament.displayName}
+          </h1>
           <p className="entity-subtitle">
             {tournament.region} · {tournament.gameCount} games ·{' '}
             {formatGameDate(tournament.firstGameDate)} – {formatGameDate(tournament.lastGameDate)}
@@ -206,7 +288,7 @@ export default function TournamentPage() {
 
             <section className="card tournament-card">
               <h2 className="card-title">Rank</h2>
-              <p className="card-subtitle">Winrate from games in this tournament</p>
+              <p className="card-subtitle">Series winrate in this tournament</p>
               {!standings.length ? (
                 <p className="text-secondary text-sm">No rank data.</p>
               ) : (
@@ -242,7 +324,7 @@ export default function TournamentPage() {
 
           <section className="card tournament-card">
             <h2 className="card-title">Standouts</h2>
-            <div className="overview-grid overview-grid-3">
+            <div className="overview-grid overview-grid-3 tournament-standouts-grid">
               <div className="tournament-standout">
                 <h3 className="card-title">Player</h3>
                 {!standoutPlayer ? (
@@ -257,9 +339,22 @@ export default function TournamentPage() {
                       showIcon={false}
                     />
                     <p className="text-secondary text-xs mt-1">
-                      Avg perf score {formatNum(standoutPlayer.score * 100, 1)} ·{' '}
+                      Avg perf {formatNum(standoutPlayer.score * 100, 1)} ·{' '}
                       {standoutPlayer.player.games} games
                     </p>
+                    {playerHighlight ? (
+                      <p className="text-accent text-xs mt-1">
+                        Top vs avg: {playerHighlight.label} ({playerHighlight.formatted})
+                      </p>
+                    ) : null}
+                    <div className="tournament-standout-radar">
+                      <PlayerRadarChart
+                        player={standoutPlayer.player}
+                        role={standoutPlayer.role}
+                        cohort={playersForRole(scopedPlayers, standoutPlayer.role)}
+                        compact
+                      />
+                    </div>
                   </>
                 )}
               </div>
@@ -273,6 +368,14 @@ export default function TournamentPage() {
                     <p className="text-secondary text-xs mt-1">
                       {formatPct(standoutTeam.winrate, 1)} WR · {standoutTeam.wins}W-{standoutTeam.losses}L
                     </p>
+                    {teamHighlight ? (
+                      <p className="text-accent text-xs mt-1">
+                        Top vs avg: {teamHighlight.label} ({teamHighlight.formatted})
+                      </p>
+                    ) : null}
+                    <div className="tournament-standout-radar">
+                      <TeamRadarChart team={standoutTeam} cohort={scopedTeams} compact />
+                    </div>
                   </>
                 )}
               </div>
@@ -281,12 +384,7 @@ export default function TournamentPage() {
                 {!standoutChampion ? (
                   <p className="text-secondary text-sm">—</p>
                 ) : (
-                  <>
-                    <ChampionEntityInline name={standoutChampion.name} iconSize={22} />
-                    <p className="text-secondary text-xs mt-1">
-                      {standoutChampion.picks} picks · {formatPct(standoutChampion.winrate, 1)} WR
-                    </p>
-                  </>
+                  <OpChampionSpotlight champions={scopedChampions} />
                 )}
               </div>
             </div>
@@ -295,23 +393,42 @@ export default function TournamentPage() {
       )}
 
       {activeTab === 'players' && (
-        <section className="card tournament-card">
-          <h2 className="card-title">Players</h2>
-          {!radarPlayers.length ? (
-            <p className="text-secondary">No player data for this tournament.</p>
-          ) : (
-            <div className="radar-grid radar-grid-5">
-              {radarPlayers.map(({ player, role }) => (
-                <PlayerRadarChart
-                  key={`${player.name}-${role}`}
-                  player={player}
-                  role={role}
-                  cohort={playersForRole(scopedPlayers, role)}
-                />
-              ))}
-            </div>
-          )}
-        </section>
+        <>
+          <section className="card tournament-card">
+            <h2 className="card-title">Players</h2>
+            {!radarPlayers.length ? (
+              <p className="text-secondary">No player data for this tournament.</p>
+            ) : (
+              <div className="radar-grid radar-grid-5">
+                {radarPlayers.map(({ player, role }) => (
+                  <PlayerRadarChart
+                    key={`${player.name}-${role}`}
+                    player={player}
+                    role={role}
+                    cohort={playersForRole(scopedPlayers, role)}
+                  />
+                ))}
+              </div>
+            )}
+          </section>
+
+          <section className="card tournament-card player-analytics-section">
+            <h2 className="card-title">Compare Players</h2>
+            <p className="card-subtitle">Tournament-scoped stats · select up to 6 players</p>
+            <PlayerDropdown
+              players={scopedPlayers}
+              selectedKeys={selectedPlayerKeys}
+              onChange={setSelectedPlayerKeys}
+            />
+            {selectedPlayers.length > 0 && (
+              <div className="player-analytics-grid">
+                <PlayerComparisonRadar players={selectedPlayers} cohort={scopedPlayers} />
+                <PlayerFormChart players={selectedPlayers} cohortPlayers={scopedPlayers} />
+                <PlayerChampionPool players={selectedPlayers} />
+              </div>
+            )}
+          </section>
+        </>
       )}
 
       {activeTab === 'teams' && (
@@ -334,8 +451,9 @@ export default function TournamentPage() {
 
       {activeTab === 'champions' && (
         <section className="card tournament-card">
-          <h2 className="card-title">Champions</h2>
-          {!scopedChampions.length ? (
+          <h2 className="card-title">Stats Table</h2>
+          <RoleFilterBar value={champRoleFilter} onChange={setChampRoleFilter} />
+          {!championRows.length ? (
             <p className="text-secondary">No champion data for this tournament.</p>
           ) : (
             <div className="entity-table-wrap">
@@ -344,19 +462,35 @@ export default function TournamentPage() {
                   <tr>
                     <th>Champion</th>
                     <th>Picks</th>
+                    <th>Bans</th>
                     <th>Winrate</th>
                     <th>Presence</th>
+                    <th>Priority</th>
+                    <th>GD@15</th>
+                    <th>CS@15</th>
+                    <th>XP@15</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {scopedChampions.slice(0, 30).map((c) => (
+                  {championRows.map((c) => (
                     <tr key={c.name}>
                       <td>
                         <ChampionEntityInline name={c.name} iconSize={20} />
                       </td>
                       <td>{c.picks}</td>
+                      <td>{c.bans}</td>
                       <td className="text-accent">{formatPct(c.winrate, 1)}</td>
                       <td>{formatPct(c.presence, 1)}</td>
+                      <td>{formatNum(c.priority, 1)}</td>
+                      <td>
+                        {c.gd15 != null ? `${c.gd15 > 0 ? '+' : ''}${formatNum(c.gd15, 1)}` : '—'}
+                      </td>
+                      <td>
+                        {c.csd15 != null ? `${c.csd15 > 0 ? '+' : ''}${formatNum(c.csd15, 1)}` : '—'}
+                      </td>
+                      <td>
+                        {c.xpd15 != null ? `${c.xpd15 > 0 ? '+' : ''}${formatNum(c.xpd15, 1)}` : '—'}
+                      </td>
                     </tr>
                   ))}
                 </tbody>
