@@ -9,8 +9,7 @@ import { buildRecapEntityPatternsForText, linkifyRecapText, recapTeamsForLine } 
 
 interface WeeklyRecapProps {
   lines: WeeklyRecapLine[]
-  windowLabel: string
-  leagueLabel: string
+  windowLabel?: string
   players: Player[]
   champions: Champion[]
   title?: string
@@ -104,7 +103,6 @@ function RecapSummaryBody({
 export default function WeeklyRecap({
   lines,
   windowLabel,
-  leagueLabel,
   players,
   champions,
   title = 'Weekly Recap',
@@ -119,9 +117,7 @@ export default function WeeklyRecap({
   return (
     <section ref={ref} className="card overview-hub-card">
       <h2 className="card-title">{title}</h2>
-      <p className="card-subtitle">
-        {windowLabel} · Series summaries from {leagueLabel}
-      </p>
+      {windowLabel ? <p className="card-subtitle">{windowLabel}</p> : null}
       {!lines.length ? (
         <p className="text-secondary">no match results in this window for the current filter.</p>
       ) : (

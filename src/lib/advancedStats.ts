@@ -28,6 +28,13 @@ export const ADVANCED_METRICS_BY_ROLE: Record<RoleKey, AdvancedMetricDef[]> = {
       higherIsBetter: true,
       format: (v) => v.toFixed(2),
     },
+    {
+      key: 'dmgGoldRatio',
+      label: 'Dmg% / Gold%',
+      shortLabel: 'DMG%/G%',
+      higherIsBetter: true,
+      format: (v) => v.toFixed(2),
+    },
   ],
   jungle: [
     {

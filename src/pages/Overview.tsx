@@ -629,7 +629,6 @@ export default function Overview() {
         <WeeklyRecap
           lines={weeklyRecapLines}
           windowLabel={hubWindow.label}
-          leagueLabel={league}
           players={weeklyHubPlayers}
           champions={weeklyHubChampions}
           title={copy.recapTitle}

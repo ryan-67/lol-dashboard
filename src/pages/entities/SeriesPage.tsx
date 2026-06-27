@@ -173,8 +173,6 @@ export default function SeriesPage() {
             ) : recapLines.length ? (
               <WeeklyRecap
                 lines={recapLines}
-                windowLabel=""
-                leagueLabel={series.league}
                 players={scopedPlayers}
                 champions={data?.champions ?? []}
                 title=""

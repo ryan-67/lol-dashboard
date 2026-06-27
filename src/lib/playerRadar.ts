@@ -2,7 +2,6 @@ import type { Player, PlayerGameLog } from '../hooks/useDashboardData'
 import {
   isGameStatPresent,
   isStatEligibleForPlayer,
-  isSoloKillsTracked,
 } from './statAvailability'
 import {
   ADVANCED_METRICS_BY_ROLE,
@@ -64,12 +63,6 @@ export const ROLE_METRICS: Record<RoleKey, RadarMetricDef[]> = {
     { key: 'dpm', label: 'DPM', shortLabel: 'DPM', format: (v) => v.toFixed(0) },
     { key: 'kda', label: 'KDA', shortLabel: 'KDA', format: (v) => v.toFixed(2) },
     { key: 'dmgShare', label: 'Damage %', shortLabel: 'DMG%', format: (v) => `${v.toFixed(1)}%` },
-    {
-      key: 'soloKills',
-      label: 'Solo Kills / game',
-      shortLabel: 'Solo K',
-      format: (v) => v.toFixed(2),
-    },
     ...ADVANCED_METRICS_BY_ROLE.top.map((d) => ({
       key: d.key,
       label: d.label,
@@ -137,7 +130,7 @@ export const ROLE_METRICS: Record<RoleKey, RadarMetricDef[]> = {
 
 /** Weight keys align with scoring helpers below */
 const SCORE_WEIGHTS: Record<RoleKey, Partial<Record<RadarMetricKey, number>>> = {
-  top: { kda: 0.2, gd15: 0.25, csd15: 0.2, turretPlates: 0.15, soloKills: 0.1, xpd15: 0.1 },
+  top: { kda: 0.2, gd15: 0.25, csd15: 0.2, turretPlates: 0.15, dmgGoldRatio: 0.1, xpd15: 0.1 },
   jungle: { kda: 0.2, kaPerMin: 0.25, kp: 0.2, dmgGoldRatio: 0.15, gd15: 0.1, firstBloodRate: 0.1 },
   mid: { kda: 0.2, gd15: 0.2, csd15: 0.15, dmgGoldRatio: 0.2, dmgPerGold: 0.15, xpd15: 0.1 },
   adc: { kda: 0.2, gd15: 0.2, dmgGoldRatio: 0.2, dmgPerGold: 0.15, dpm: 0.15, csd15: 0.1 },
@@ -173,13 +166,6 @@ export function getMetricValue(
     'campsStolen',
     'wardsDestroyed',
   ]
-  if (key === 'soloKills') {
-    if (!isSoloKillsTracked(cohort) && !options?.allowMissing) return null
-    const log = player.gameLog ?? []
-    const tracked = log.filter((g) => isGameStatPresent(g, 'soloKills', cohort))
-    if (!tracked.length) return null
-    return tracked.reduce((s, g) => s + (g.soloKills ?? 0), 0) / tracked.length
-  }
   if (advancedKeys.includes(key as AdvancedMetricKey)) {
     const v = getAdvancedMetricValue(enriched, key as AdvancedMetricKey)
     if (key === 'turretPlates' && !isStatEligibleForPlayer(player, key, cohort)) return null
