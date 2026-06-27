@@ -51,7 +51,7 @@ async function main() {
   requireEnv('SUPABASE_URL')
   requireEnv('SUPABASE_SERVICE_ROLE_KEY')
 
-  const client = new CitoClient(process.env.CITO_API_KEY!)
+  const client = new CitoClient({ apiKey: requireEnv('CITO_API_KEY') })
   const supabase = createServiceClient()
   const fetchedAt = new Date().toISOString()
   let total = 0
