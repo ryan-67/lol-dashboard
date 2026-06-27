@@ -11,8 +11,10 @@ import type {
   TeamChampion,
 } from '../hooks/useDashboardData'
 import { aggregateAdvancedFromGameLog } from './advancedStats'
+import { enrichChampionsFromPlayers } from './championRoleContext'
 import { mergeChampionPoolEntries } from './playerAnalytics'
 import { resolveSplitLabelsForMerge } from './filterOptions'
+import { formatPatch } from './format'
 
 export interface DashboardSlice {
   players: Player[]
@@ -581,13 +583,13 @@ function mergeGameCatalog(slices: DashboardSlice[]): Record<string, GameCatalogE
       const existing = out[gameId]
       if (!existing) {
         out[gameId] = {
-          patch: entry.patch,
+          patch: entry.patch ? formatPatch(entry.patch, '') : entry.patch,
           gameLength: entry.gameLength,
           teams: { ...entry.teams },
         }
         continue
       }
-      if (!existing.patch && entry.patch) existing.patch = entry.patch
+      if (!existing.patch && entry.patch) existing.patch = formatPatch(entry.patch, '')
       if (!existing.gameLength && entry.gameLength) existing.gameLength = entry.gameLength
       for (const [team, draft] of Object.entries(entry.teams ?? {})) {
         existing.teams[team] = draft
@@ -797,14 +799,15 @@ export function mergeSlicesFromFilters(
     }
   }
 
+  const players = mergePlayers(slices)
   return {
     meta: {
       ...store.meta,
       leagues: [...store.meta.leagues],
     },
-    players: mergePlayers(slices),
+    players,
     teams: mergeTeams(slices),
-    champions: mergeChampions(slices),
+    champions: enrichChampionsFromPlayers(mergeChampions(slices), players),
     matchups: mergeMatchups(slices),
     teamChampions: mergeTeamChampions(slices),
     rosterDepth: mergeRosterDepth(slices),
@@ -853,14 +856,15 @@ export function mergeSlices(
     }
   }
 
+  const players = mergePlayers(slices)
   return {
     meta: {
       ...store.meta,
       leagues: [...store.meta.leagues],
     },
-    players: mergePlayers(slices),
+    players,
     teams: mergeTeams(slices),
-    champions: mergeChampions(slices),
+    champions: enrichChampionsFromPlayers(mergeChampions(slices), players),
     matchups: mergeMatchups(slices),
     teamChampions: mergeTeamChampions(slices),
     rosterDepth: mergeRosterDepth(slices),

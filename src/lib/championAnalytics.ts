@@ -1,4 +1,9 @@
 import type { Champion, Team } from '../hooks/useDashboardData'
+import {
+  type ChampionRoleContext,
+  championPlayedRole,
+  dominantRoleForChampion,
+} from './championRoleContext'
 
 export type RoleKey = 'top' | 'jungle' | 'mid' | 'adc' | 'support'
 export type RoleFilter = 'all' | RoleKey
@@ -32,21 +37,21 @@ export function isDisplayableChampion(c: Champion): boolean {
   return Boolean(c?.name) && Array.isArray(c.positions)
 }
 
-export function championHasRole(c: Champion, role: RoleKey): boolean {
-  return (c.positions ?? []).some((p) => p.toLowerCase() === role)
+export function championHasRole(c: Champion, role: RoleKey, ctx?: ChampionRoleContext): boolean {
+  return championPlayedRole(c, role, ctx)
 }
 
-export function roleForChampion(c: Champion): RoleKey {
-  for (const role of ROLES) {
-    if (championHasRole(c, role)) return role
-  }
-  const primary = (c.primaryRole ?? '').toLowerCase() as RoleKey
-  return ROLES.includes(primary) ? primary : 'mid'
+export function roleForChampion(c: Champion, ctx?: ChampionRoleContext): RoleKey {
+  return dominantRoleForChampion(c, ctx)
 }
 
-export function filterByRole(champions: Champion[], role: RoleFilter): Champion[] {
+export function filterByRole(
+  champions: Champion[],
+  role: RoleFilter,
+  ctx?: ChampionRoleContext,
+): Champion[] {
   if (role === 'all') return champions
-  return champions.filter((c) => championHasRole(c, role))
+  return champions.filter((c) => championHasRole(c, role, ctx))
 }
 
 export function getPickRate(c: Champion, totalGames?: number): number {
@@ -370,7 +375,11 @@ export interface OpScoresResult {
   >
 }
 
-export function computeOpScores(champions: Champion[], minPicks = MIN_PICKS_OP): OpScoresResult {
+export function computeOpScores(
+  champions: Champion[],
+  minPicks = MIN_PICKS_OP,
+  ctx?: ChampionRoleContext,
+): OpScoresResult {
   const eligible = champions.filter((c) => (c.games ?? c.picks) >= minPicks)
   if (!eligible.length) {
     return { top: null, runners: [], roleAverages: {} as OpScoresResult['roleAverages'] }
@@ -381,7 +390,7 @@ export function computeOpScores(champions: Champion[], minPicks = MIN_PICKS_OP):
   for (const role of ROLES) byRole.set(role, [])
 
   for (const c of eligible) {
-    const role = roleForChampion(c)
+    const role = roleForChampion(c, ctx)
     byRole.get(role)?.push(c)
   }
 
@@ -415,7 +424,7 @@ export function computeOpScores(champions: Champion[], minPicks = MIN_PICKS_OP):
   }
 
   const scored: OpChampionEntry[] = eligible.map((champion) => {
-    const role = roleForChampion(champion)
+    const role = roleForChampion(champion, ctx)
     const pz = presenceZ.get(champion.name) ?? 0
     const wz = winrateZ.get(champion.name) ?? 0
     const bz = banrateZ.get(champion.name) ?? 0

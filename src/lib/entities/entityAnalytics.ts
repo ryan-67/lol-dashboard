@@ -5,6 +5,7 @@ import type { CitoGameGoldRecord, CitoObjectiveEvent } from '../citoGoldMatch'
 import { goldTimelineForTeamPerspective, matchCitoGoldToOeGame, ensureGoldTimelineAtZero } from '../citoGoldMatch'
 import { teamMatchesCanonical } from './slugs'
 import { resolveTournamentDisplay } from '../tournamentCatalog'
+import { formatPatch } from '../format'
 
 export interface ChampionWinrateEntry {
   champion: string
@@ -113,9 +114,10 @@ export function buildTeamMatchHistory(
       const opponent = game.opponent ?? 'Unknown'
       const sideRaw = normalizeSide(game.side)
       const side = sideRaw ? sideRaw.charAt(0).toUpperCase() + sideRaw.slice(1) : '—'
-      const patch = game.gameId && gameCatalog?.[game.gameId]?.patch?.trim()
-        ? gameCatalog[game.gameId]!.patch!.trim()
-        : '—'
+      const patch =
+        game.gameId && gameCatalog?.[game.gameId]?.patch?.trim()
+          ? formatPatch(gameCatalog[game.gameId]!.patch!.trim())
+          : '—'
       return {
         date: game.date,
         opponent,

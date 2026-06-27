@@ -7,6 +7,7 @@ import { tournamentPath } from '../lib/tournamentCatalog'
 import { formatGameDate, formatNum } from '../lib/format'
 import { formatDurationMinSec } from '../lib/tournamentFormat'
 import { scrollEntranceStagger } from '../theme/animations'
+import { LeagueLogo } from '../components/entities'
 
 function formatDuration(minutes: number | null): string {
   return formatDurationMinSec(minutes)
@@ -56,8 +57,9 @@ export default function Tournaments() {
                 {tournaments.map((t) => (
                   <tr key={t.id} className="tournament-row">
                     <td className="font-medium">
-                      <Link to={tournamentPath(t.id)} className="entity-inline-link text-accent">
+                      <Link to={tournamentPath(t.id)} className="entity-inline-link text-accent entity-inline-row">
                         {t.displayName}
+                        <LeagueLogo league={t.league} size={16} />
                       </Link>
                     </td>
                     <td className="text-secondary">{t.region}</td>

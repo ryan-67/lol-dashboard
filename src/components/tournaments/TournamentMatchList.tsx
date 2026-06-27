@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom'
 import type { TournamentSeriesRow } from '../../lib/seriesAnalytics'
 import { seriesPath } from '../../lib/seriesPath'
-import { formatGameDate } from '../../lib/format'
+import { formatGameDate, formatPatch } from '../../lib/format'
 import { TeamLogo } from '../entities'
 import { recapTeamTag } from '../../lib/recapTeamTag'
 
@@ -38,7 +38,7 @@ export default function TournamentMatchList({ rows }: TournamentMatchListProps) 
                 </Link>
               </td>
               <td className="text-accent">{row.scoreLabel}</td>
-              <td>{row.patch}</td>
+              <td>{formatPatch(row.patch)}</td>
               <td>{formatGameDate(row.date)}</td>
             </tr>
           ))}

@@ -12,7 +12,9 @@ import {
 } from './tournamentCatalog'
 import { isDisplayablePlayer } from './playerRadar'
 import { isDisplayableTeam } from './teamAnalytics'
-import { isDisplayableChampion, roleForChampion, type RoleFilter } from './championAnalytics'
+import { isDisplayableChampion, championHasRole, type RoleFilter } from './championAnalytics'
+import type { ChampionRoleContext } from './championRoleContext'
+import { enrichChampionsFromPlayers } from './championRoleContext'
 import { buildTournamentSeriesList } from './seriesAnalytics'
 import { resolveTeamCanonicalName, teamMatchesCanonical } from './entities/slugs'
 import { rankTournamentStandings, type TournamentRankContext } from './tournamentRank'
@@ -334,32 +336,35 @@ export function filterChampionsForTournament(
   const totalBanSlots = [...bans.values()].reduce((s, n) => s + n, 0) || 1
   const globalByName = new Map(champions.map((c) => [c.name, c]))
 
-  return [...counts.entries()]
-    .map(([name, stats]) => {
-      const global = globalByName.get(name)
-      const pickRate = (stats.picks / totalPickSlots) * 100
-      const banCount = bans.get(name) ?? 0
-      const banRate = (banCount / totalBanSlots) * 100
-      return {
-        name,
-        positions: global?.positions ?? [],
-        primaryRole: global?.primaryRole,
-        picks: stats.picks,
-        games: stats.picks,
-        bans: banCount,
-        wins: stats.wins,
-        winrate: stats.picks ? (stats.wins / stats.picks) * 100 : 0,
-        pickRate,
-        banRate,
-        presence: pickRate + banRate,
-        avgKda: global?.avgKda ?? 0,
-        avgGd15: stats.gd15.length ? avg(stats.gd15) : global?.avgGd15,
-        avgCsd15: stats.csd15.length ? avg(stats.csd15) : global?.avgCsd15,
-        avgXpd15: stats.xpd15.length ? avg(stats.xpd15) : global?.avgXpd15,
-      } satisfies Champion
-    })
-    .filter((c) => isDisplayableChampion(c) || c.picks > 0)
-    .sort((a, b) => b.picks - a.picks)
+  return enrichChampionsFromPlayers(
+    [...counts.entries()]
+      .map(([name, stats]) => {
+        const global = globalByName.get(name)
+        const pickRate = (stats.picks / totalPickSlots) * 100
+        const banCount = bans.get(name) ?? 0
+        const banRate = (banCount / totalBanSlots) * 100
+        return {
+          name,
+          positions: [] as string[],
+          primaryRole: undefined,
+          picks: stats.picks,
+          games: stats.picks,
+          bans: banCount,
+          wins: stats.wins,
+          winrate: stats.picks ? (stats.wins / stats.picks) * 100 : 0,
+          pickRate,
+          banRate,
+          presence: pickRate + banRate,
+          avgKda: global?.avgKda ?? 0,
+          avgGd15: stats.gd15.length ? avg(stats.gd15) : global?.avgGd15,
+          avgCsd15: stats.csd15.length ? avg(stats.csd15) : global?.avgCsd15,
+          avgXpd15: stats.xpd15.length ? avg(stats.xpd15) : global?.avgXpd15,
+        } satisfies Champion
+      })
+      .filter((c) => isDisplayableChampion(c) || c.picks > 0)
+      .sort((a, b) => b.picks - a.picks),
+    players,
+  )
 }
 
 export interface TournamentChampionRow {
@@ -378,11 +383,12 @@ export interface TournamentChampionRow {
 export function buildTournamentChampionRows(
   champions: Champion[],
   roleFilter: RoleFilter = 'all',
+  roleCtx?: ChampionRoleContext,
 ): TournamentChampionRow[] {
   const filtered =
     roleFilter === 'all'
       ? champions
-      : champions.filter((c) => roleForChampion(c) === roleFilter)
+      : champions.filter((c) => championHasRole(c, roleFilter, roleCtx))
 
   const maxPicks = Math.max(...filtered.map((c) => c.picks), 1)
 

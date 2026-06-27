@@ -11,6 +11,7 @@ import {
   filterPlayersForTournament,
   filterTeamsForTournament,
   findTournamentById,
+  gameMatchesTournament,
 } from '../../lib/tournamentAnalytics'
 import {
   sequentialTournamentNeighbors,
@@ -45,15 +46,21 @@ import PlayerChampionPool from '../../components/players/PlayerChampionPool'
 import PlayerComparisonRadar from '../../components/players/PlayerComparisonRadar'
 import { playerKey } from '../../lib/playerAnalytics'
 import SortableTh from '../../components/ui/SortableTh'
-import { fetchTournamentPlacementHints } from '../../lib/loadCitoSchedule'
+import { fetchTournamentCompletedSchedule, fetchTournamentPlacementHints } from '../../lib/loadCitoSchedule'
+import type { CitoScheduleRow } from '../../lib/loadCitoSchedule'
 import type { TournamentRankContext } from '../../lib/tournamentRank'
+import { buildTournamentResultsStandings } from '../../lib/tournamentStandings'
+import { buildChampionRoleContext } from '../../lib/championRoleContext'
+import type { ChampionRoleContext } from '../../lib/championRoleContext'
 
 function OpChampionSpotlight({
   champions,
+  roleCtx,
 }: {
   champions: ReturnType<typeof filterChampionsForTournament>
+  roleCtx: ChampionRoleContext
 }) {
-  const { top } = computeOpScores(champions)
+  const { top } = computeOpScores(champions, undefined, roleCtx)
   if (!top) return <p className="text-secondary text-sm">—</p>
 
   const { champion, role, opScore } = top
@@ -117,10 +124,14 @@ export default function TournamentPage() {
   const [citoPlacements, setCitoPlacements] = useState<Map<string, { rank: number; qualified?: boolean }>>(
     () => new Map(),
   )
+  const [citoSchedule, setCitoSchedule] = useState<CitoScheduleRow[]>([])
 
   useEffect(() => {
     if (!tournament) return
     let cancelled = false
+    void fetchTournamentCompletedSchedule(tournament.displayName, tournament.league).then((rows) => {
+      if (!cancelled) setCitoSchedule(rows)
+    })
     void fetchTournamentPlacementHints(tournament.displayName, tournament.league).then((map) => {
       if (!cancelled) setCitoPlacements(map)
     })
@@ -140,6 +151,11 @@ export default function TournamentPage() {
     [data, tournament, rankContext],
   )
 
+  const champRoleCtx = useMemo(
+    () => buildChampionRoleContext(scopedPlayers),
+    [scopedPlayers],
+  )
+
   const scopedChampions = useMemo(
     () =>
       tournament
@@ -153,14 +169,25 @@ export default function TournamentPage() {
   )
 
   const championRows = useMemo(
-    () => buildTournamentChampionRows(scopedChampions, champRoleFilter),
-    [scopedChampions, champRoleFilter],
+    () => buildTournamentChampionRows(scopedChampions, champRoleFilter, champRoleCtx),
+    [scopedChampions, champRoleFilter, champRoleCtx],
   )
 
   const seriesList = useMemo(
     () => (tournament && data ? buildTournamentSeriesList(data, tournament) : []),
     [data, tournament],
   )
+
+  const resultsStandings = useMemo(() => {
+    if (!tournament) return []
+    return buildTournamentResultsStandings(
+      seriesList,
+      standings,
+      scopedPlayers,
+      citoSchedule,
+      (g) => gameMatchesTournament(g, tournament),
+    )
+  }, [tournament, seriesList, standings, scopedPlayers, citoSchedule])
 
   const standoutPlayer = useMemo(() => {
     if (!scopedPlayers.length) return null
@@ -178,16 +205,15 @@ export default function TournamentPage() {
   }, [scopedPlayers])
 
   const standoutTeam = useMemo(() => {
-    if (!standings.length) return null
-    const eligible = standings.filter((r) => r.wins + r.losses >= 3)
-    const row = (eligible.length ? eligible : standings)[0]
+    if (!resultsStandings.length) return null
+    const row = resultsStandings[0]
     return row ? scopedTeams.find((t) => teamMatchesCanonical(t.name, row.team)) ?? null : null
-  }, [standings, scopedTeams])
+  }, [resultsStandings, scopedTeams])
 
   const standoutChampion = useMemo(() => {
-    const { top } = computeOpScores(scopedChampions)
+    const { top } = computeOpScores(scopedChampions, undefined, champRoleCtx)
     return top?.champion ?? scopedChampions[0] ?? null
-  }, [scopedChampions])
+  }, [scopedChampions, champRoleCtx])
 
   const radarPlayers = useMemo(
     () =>
@@ -390,25 +416,27 @@ export default function TournamentPage() {
             </section>
 
             <section className="card tournament-card">
-              <h2 className="card-title">Rank</h2>
-              <p className="card-subtitle">Series winrate in this tournament</p>
-              {!standings.length ? (
-                <p className="text-secondary text-sm">No rank data.</p>
+              <h2 className="card-title">Results / Standings</h2>
+              <p className="card-subtitle">
+                Tournament placement from Cito bracket data · ties ordered by series then match winrate
+              </p>
+              {!resultsStandings.length ? (
+                <p className="text-secondary text-sm">No standings data.</p>
               ) : (
                 <div className="entity-table-wrap">
                   <table className="entity-table entity-table-compact">
                     <thead>
                       <tr>
-                        <th>#</th>
+                        <th>Place</th>
                         <th>Team</th>
                         <th>W-L</th>
                         <th>WR</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {standings.slice(0, 10).map((row, idx) => (
+                      {resultsStandings.map((row) => (
                         <tr key={row.team}>
-                          <td>{idx + 1}</td>
+                          <td className="text-accent">{row.standingLabel}</td>
                           <td>
                             <EntityLink type="team" name={row.team} />
                           </td>
@@ -487,7 +515,7 @@ export default function TournamentPage() {
                 {!standoutChampion ? (
                   <p className="text-secondary text-sm">—</p>
                 ) : (
-                  <OpChampionSpotlight champions={scopedChampions} />
+                  <OpChampionSpotlight champions={scopedChampions} roleCtx={champRoleCtx} />
                 )}
               </div>
             </div>

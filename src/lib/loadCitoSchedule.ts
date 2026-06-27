@@ -72,13 +72,12 @@ function tournamentNameMatches(row: CitoScheduleRow, tournamentDisplayName: stri
   return tokens.length > 0 && tokens.every((t) => hay.includes(t) || tournamentDisplayName.toLowerCase().includes(t))
 }
 
-/** Completed Cito schedule rows for bracket / qualification tie-break hints. */
-export async function fetchTournamentPlacementHints(
+/** Completed Cito schedule rows for a tournament (standings + placement). */
+export async function fetchTournamentCompletedSchedule(
   tournamentDisplayName: string,
   league: string,
-): Promise<Map<string, TournamentPlacementHint>> {
-  const out = new Map<string, TournamentPlacementHint>()
-  if (!isSupabaseConfigured) return out
+): Promise<CitoScheduleRow[]> {
+  if (!isSupabaseConfigured) return []
 
   let query = supabase
     .from('cito_schedules')
@@ -95,14 +94,22 @@ export async function fetchTournamentPlacementHints(
 
   const { data, error } = await query
   if (error) {
-    console.warn('[cito-schedule] tournament placement fetch failed', error.message)
-    return out
+    console.warn('[cito-schedule] tournament completed fetch failed', error.message)
+    return []
   }
 
-  const rows = ((data as CitoScheduleRow[] | null) ?? []).filter((row) =>
+  return ((data as CitoScheduleRow[] | null) ?? []).filter((row) =>
     tournamentNameMatches(row, tournamentDisplayName),
   )
+}
 
+/** Completed Cito schedule rows for bracket / qualification tie-break hints. */
+export async function fetchTournamentPlacementHints(
+  tournamentDisplayName: string,
+  league: string,
+): Promise<Map<string, TournamentPlacementHint>> {
+  const out = new Map<string, TournamentPlacementHint>()
+  const rows = await fetchTournamentCompletedSchedule(tournamentDisplayName, league)
   if (!rows.length) return out
 
   const lastByTeam = new Map<string, { win: boolean; date: string; block: string }>()

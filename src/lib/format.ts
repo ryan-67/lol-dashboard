@@ -1,6 +1,21 @@
 import { getTimezone } from './timezoneStore'
 import { DEFAULT_TIMEZONE } from './timezones'
 
+/** Normalize OE/Cito patch strings to Riot format (e.g. 16.05 → 16.5). */
+export function formatPatch(value: string | null | undefined, fallback = '—'): string {
+  if (value == null) return fallback
+  const trimmed = value.trim()
+  if (!trimmed || trimmed === '—') return fallback === '—' ? trimmed || fallback : fallback
+
+  const match = trimmed.match(/^(\d+)\.(\d+)$/)
+  if (match) {
+    const major = match[1]
+    const minor = String(Number(match[2]))
+    return `${major}.${minor}`
+  }
+  return trimmed
+}
+
 export function formatNum(value: unknown, digits = 1, fallback = '—'): string {
   if (typeof value !== 'number' || Number.isNaN(value)) return fallback
   return value.toFixed(digits)

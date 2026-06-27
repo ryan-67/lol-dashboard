@@ -23,6 +23,7 @@ import {
   isValidSeriesScore,
   orderSeriesGames,
 } from './seriesGrouping'
+import { formatPatch } from './format'
 import { formatDurationMinSec } from './tournamentFormat'
 
 export interface TournamentSeriesRow {
@@ -87,7 +88,7 @@ function dominantScore(teamA: string, teamB: string, winsA: number, winsB: numbe
 }
 
 function patchForGame(gameId: string, catalog: Record<string, GameCatalogEntry>): string {
-  return catalog[gameId]?.patch?.trim() ?? ''
+  return formatPatch(catalog[gameId]?.patch?.trim() ?? '', '')
 }
 
 function enrichBucket(
@@ -169,8 +170,8 @@ function collectSeriesFromGames(
 /** Map OE gameId → seriesId for entity match-history links. */
 export function buildGameToSeriesMap(data: DashboardData): Map<string, string> {
   const players = data.players.filter(isDisplayablePlayer)
-  const games = collectParsedGames(players)
   const catalog = data.gameCatalog ?? {}
+  const games = collectParsedGames(players, { gameCatalog: catalog })
   const map = new Map<string, string>()
   for (const series of collectSeriesFromGames(games, catalog)) {
     for (const game of series.games) {
@@ -248,8 +249,8 @@ function teamsMatchSeriesPair(a: string, b: string, x: string, y: string): boole
 
 export function findSeriesById(data: DashboardData, seriesId: string): ResolvedSeries | null {
   const players = data.players.filter(isDisplayablePlayer)
-  const games = collectParsedGames(players)
   const catalog = data.gameCatalog ?? {}
+  const games = collectParsedGames(players, { gameCatalog: catalog })
   const all = collectSeriesFromGames(games, catalog)
 
   const exact = all.find((s) => s.seriesId === seriesId)
