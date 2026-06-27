@@ -7,7 +7,6 @@ import {
   isDisplayableTeam,
   teamKey,
   type TeamScope,
-  teamsForScope,
 } from '../lib/teamAnalytics'
 import {
   TeamFilterBar,
@@ -32,7 +31,6 @@ export default function Teams() {
     [filteredTeams],
   )
 
-  const scopeTeams = useMemo(() => teamsForScope(teams, scope), [teams, scope])
   const allTier1Selected = league === 'All Tier 1'
 
   const radarGridRef = useRef<HTMLDivElement>(null)
@@ -49,7 +47,7 @@ export default function Teams() {
   }, [scope, league, split, showTable, compareKeys.length])
 
   const sorted = useMemo(() => {
-    return [...scopeTeams].sort((a, b) => {
+    return [...teams].sort((a, b) => {
       const av = a[sortKey]
       const bv = b[sortKey]
       if (typeof av === 'number' && typeof bv === 'number') {
@@ -59,7 +57,7 @@ export default function Teams() {
         ? String(bv ?? '').localeCompare(String(av ?? ''))
         : String(av ?? '').localeCompare(String(bv ?? ''))
     })
-  }, [scopeTeams, sortKey, sortDesc])
+  }, [teams, sortKey, sortDesc])
 
   const toggleSort = (key: keyof Team) => {
     if (sortKey === key) setSortDesc(!sortDesc)
@@ -99,9 +97,7 @@ export default function Teams() {
       {showTable && (
         <div className="card">
           <h2 className="card-title">Full Team Metrics</h2>
-          <p className="card-subtitle">
-            {scope === 'top' ? 'Top team per league in current filter.' : 'All teams in current filter.'}
-          </p>
+          <p className="card-subtitle">All teams in the current league, year, and split filter.</p>
           <div className="table-wrap">
             <table className="data-table">
               <thead>

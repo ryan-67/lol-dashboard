@@ -3,10 +3,10 @@ import LeagueLogo from './entities/LeagueLogo'
 import {
   isAllTier1Selected,
   leaguesToLeagueLabel,
-  splitSeasonLabel,
   splitsToLabel,
   yearsToLabel,
 } from '../lib/filterLabels'
+import { mainTabSplitOptions } from '../lib/filterOptions'
 
 export interface FilterStripValues {
   selectedLeagues: string[]
@@ -39,7 +39,7 @@ export function FilterStripControls({
   const yearOptions = years.map((y) => ({ value: y, label: y }))
   const splitOptions = [
     { value: 'ALL', label: 'ALL' },
-    ...splits.map((s) => ({ value: s, label: splitSeasonLabel(s) })),
+    ...mainTabSplitOptions(splits, selectedYears),
   ]
 
   return (
@@ -68,8 +68,6 @@ export function FilterStripControls({
           selected={selectedYears}
           onToggle={toggleYear}
           minWidth={120}
-          allValue="ALL"
-          isAllSelected={selectedYears.includes('ALL')}
         />
       </div>
       <div className="flex items-center gap-2">

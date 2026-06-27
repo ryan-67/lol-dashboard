@@ -83,13 +83,13 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
   }, [meta])
 
   const years = useMemo(() => {
-    if (!meta) return ['ALL', DEFAULT_YEAR]
+    if (!meta) return [DEFAULT_YEAR]
     const set = new Set<string>()
     for (const splitLabel of meta.splits) {
       const [year] = splitLabel.split(' ', 1)
       if (year) set.add(year)
     }
-    return ['ALL', ...[...set].sort()]
+    return [...set].sort()
   }, [meta])
 
   const league = leaguesToLeagueLabel(selectedLeagues)
@@ -113,7 +113,8 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
 
   const setYear = useCallback(
     (y: string) => {
-      setSelectedYears(y === 'ALL' ? ['ALL'] : [y])
+      if (y === 'ALL') return
+      setSelectedYears([y])
     },
     [setSelectedYears],
   )
@@ -134,7 +135,7 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (!meta) return
-    if (!selectedYears.includes('ALL') && !selectedYears.some((y) => years.includes(y))) {
+    if (!selectedYears.some((y) => years.includes(y))) {
       setSelectedYears([DEFAULT_YEAR])
     }
     if (selectedSplits.includes('ALL')) return

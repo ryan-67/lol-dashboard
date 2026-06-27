@@ -141,17 +141,26 @@ export function computeSideWinrates(
   }
   const seen = new Set<string>()
 
-  for (const player of players) {
-    if (!teamMatchesCanonical(player.team, teamSlugOrName)) continue
-    for (const game of player.gameLog ?? []) {
-      const side = normalizeSide(game.side)
-      if (!side) continue
-      const key = `${game.date}|${game.opponent}|${side}`
-      if (seen.has(key)) continue
-      seen.add(key)
-      acc[side].games += 1
-      if (game.result === 1) acc[side].wins += 1
+  const roster = players.filter((p) => teamMatchesCanonical(p.team, teamSlugOrName))
+  if (!roster.length) {
+    return {
+      blue: { wins: 0, games: 0, winrate: 0 },
+      red: { wins: 0, games: 0, winrate: 0 },
     }
+  }
+
+  const anchor = roster.reduce((best, p) =>
+    (p.gameLog?.length ?? 0) > (best.gameLog?.length ?? 0) ? p : best,
+  )
+
+  for (const game of anchor.gameLog ?? []) {
+    const side = normalizeSide(game.side)
+    if (!side) continue
+    const key = game.gameId ?? `${game.date}|${game.opponent ?? ''}|${side}`
+    if (seen.has(key)) continue
+    seen.add(key)
+    acc[side].games += 1
+    if (game.result === 1) acc[side].wins += 1
   }
 
   return {

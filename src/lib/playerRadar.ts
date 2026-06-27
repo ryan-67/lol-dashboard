@@ -341,19 +341,23 @@ export function buildRadarSeries(
     const cohortValues = cohort
       .map((p) => getMetricValue(p, def.key, { cohort, allowMissing: true }))
       .filter((v): v is number => v != null)
-    const playerRaw = getMetricValue(player, def.key, { cohort, allowMissing: true }) ?? 0
+    const playerRaw = getMetricValue(player, def.key, { cohort, allowMissing: true })
     const avgRaw = cohortValues.length
       ? cohortValues.reduce((a, b) => a + b, 0) / cohortValues.length
-      : 0
+      : null
     return {
       metric: def.shortLabel,
       label: def.label,
-      playerNorm: normalizeInCohort(playerRaw, cohortValues),
-      avgNorm: normalizeInCohort(avgRaw, cohortValues),
-      playerRaw,
-      avgRaw,
-      formattedPlayer: def.format(playerRaw),
-      formattedAvg: def.format(avgRaw),
+      playerNorm:
+        playerRaw != null && cohortValues.length
+          ? normalizeInCohort(playerRaw, cohortValues)
+          : 0,
+      avgNorm:
+        avgRaw != null && cohortValues.length ? normalizeInCohort(avgRaw, cohortValues) : 0,
+      playerRaw: playerRaw ?? 0,
+      avgRaw: avgRaw ?? 0,
+      formattedPlayer: playerRaw != null ? def.format(playerRaw) : '—',
+      formattedAvg: avgRaw != null ? def.format(avgRaw) : '—',
     }
   })
 }
@@ -371,6 +375,45 @@ export function formatGameLogMetric(
 
 export function roleMatchHistoryMetrics(role: RoleKey): RadarMetricDef[] {
   return ROLE_METRICS[role].slice(0, 8)
+}
+
+function avgMetric(nums: number[]): number {
+  if (!nums.length) return 0
+  return nums.reduce((a, b) => a + b, 0) / nums.length
+}
+
+export function highestDeltaStatForGame(
+  game: PlayerGameLog,
+  role: RoleKey,
+  cohort: Player[],
+): { stat: string; value: number; delta: number } | null {
+  const defs = ROLE_METRICS[role]
+  let best: { stat: string; value: number; delta: number } | null = null
+  for (const def of defs) {
+    const value = gameMetricRaw(game, def.key, cohort)
+    if (value == null) continue
+    const cohortAvg =
+      avgMetric(
+        cohort
+          .flatMap((c) => c.gameLog ?? [])
+          .map((g) => gameMetricRaw(g, def.key, cohort))
+          .filter((v): v is number => v != null),
+      ) ||
+      avgMetric(
+        cohort
+          .map((c) => getMetricValue(c, def.key, { cohort, allowMissing: true }))
+          .filter((v): v is number => v != null),
+      )
+    const delta = value - cohortAvg
+    if (!best || delta > best.delta) {
+      best = {
+        stat: def.label,
+        value,
+        delta,
+      }
+    }
+  }
+  return best
 }
 
 export function isDisplayablePlayer(p: Player): boolean {

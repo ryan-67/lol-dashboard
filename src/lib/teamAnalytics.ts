@@ -1,5 +1,7 @@
 import type { Team } from '../hooks/useDashboardData'
 import { TIER1_LEAGUES } from './mergeSlices'
+import type { Player } from '../hooks/useDashboardData'
+import { isTeamMetricEligibleForScore } from './teamStatAvailability'
 
 export type TeamScope = 'top' | 'all'
 
@@ -24,7 +26,8 @@ export const LEAGUE_COLORS: Record<string, string> = {
   FST: '#6a7a8c',
 }
 
-const warnedMissing = new Set<string>()
+const warnedMissing = new Set<string>() // reserved for dev diagnostics
+void warnedMissing
 
 export function teamKey(team: Team): string {
   return `${team.name}|${team.league}`
@@ -44,47 +47,30 @@ export function isDisplayableTeam(t: Team): boolean {
   )
 }
 
-function getRawMetric(team: Team, key: TeamRadarMetricKey): number {
+function getRawMetric(team: Team, key: TeamRadarMetricKey): number | null {
   switch (key) {
     case 'earlyGame':
-      return team.avgGd15 ?? 0
+      return typeof team.avgGd15 === 'number' ? team.avgGd15 : null
     case 'objControl':
-      return team.objPerGame ?? 0
+      return team.objPerGame ?? null
     case 'economy':
-      return team.goldPerMin ?? 0
+      return team.goldPerMin ?? null
     case 'vision':
-      return team.wardsPerMin ?? 0
+      return team.wardsPerMin ?? null
     case 'combat':
-      return team.avgKda ?? 0
+      return team.avgKda ?? null
     default:
-      return 0
+      return null
   }
 }
 
-function warnMissing(field: string) {
-  if (!warnedMissing.has(field)) {
-    console.warn(`[Teams] Missing stat "${field}" in team data; treating as 0`)
-    warnedMissing.add(field)
-  }
+export function getTeamRadarRaw(team: Team, key: TeamRadarMetricKey): number | null {
+  return getRawMetric(team, key)
 }
 
-export function getTeamRadarRaw(team: Team, key: TeamRadarMetricKey): number {
-  const value = getRawMetric(team, key)
-  if (value === 0) {
-    const field =
-      key === 'earlyGame'
-        ? 'avgGd15'
-        : key === 'objControl'
-          ? 'objPerGame'
-          : key === 'economy'
-            ? 'goldPerMin'
-            : key === 'vision'
-              ? 'wardsPerMin'
-              : 'avgKda'
-    const hasField = team[field as keyof Team] !== undefined && team[field as keyof Team] !== null
-    if (!hasField) warnMissing(field)
-  }
-  return value
+export function formatRadarRawOrMissing(key: TeamRadarMetricKey, value: number | null): string {
+  if (value == null) return '—'
+  return formatRadarRaw(key, value)
 }
 
 function normalizeInCohort(value: number, cohortValues: number[]): number {
@@ -139,20 +125,22 @@ export function buildTeamRadarSeries(
   cohort: Team[],
 ): TeamRadarSeriesPoint[] {
   return TEAM_RADAR_METRICS.map((def) => {
-    const cohortValues = cohort.map((t) => getTeamRadarRaw(t, def.key))
+    const cohortValues = cohort
+      .map((t) => getTeamRadarRaw(t, def.key))
+      .filter((v): v is number => v != null)
     const raw = getTeamRadarRaw(team, def.key)
     const avgRaw = cohortValues.length
       ? cohortValues.reduce((a, b) => a + b, 0) / cohortValues.length
-      : 0
+      : null
     return {
       metric: def.shortLabel,
       label: def.label,
-      valueNorm: normalizeInCohort(raw, cohortValues),
-      avgNorm: normalizeInCohort(avgRaw, cohortValues),
-      raw,
-      avgRaw,
-      formatted: formatRadarRaw(def.key, raw),
-      formattedAvg: formatRadarRaw(def.key, avgRaw),
+      valueNorm: raw != null && cohortValues.length ? normalizeInCohort(raw, cohortValues) : 0,
+      avgNorm: avgRaw != null && cohortValues.length ? normalizeInCohort(avgRaw, cohortValues) : 0,
+      raw: raw ?? 0,
+      avgRaw: avgRaw ?? 0,
+      formatted: formatRadarRawOrMissing(def.key, raw),
+      formattedAvg: formatRadarRawOrMissing(def.key, avgRaw),
     }
   })
 }
@@ -162,31 +150,34 @@ export function buildComparisonRadarData(
   cohort: Team[],
 ): TeamRadarSeriesPoint[] {
   return TEAM_RADAR_METRICS.map((def) => {
-    const cohortValues = cohort.map((t) => getTeamRadarRaw(t, def.key))
+    const cohortValues = cohort
+      .map((t) => getTeamRadarRaw(t, def.key))
+      .filter((v): v is number => v != null)
     const avgRaw = cohortValues.length
       ? cohortValues.reduce((a, b) => a + b, 0) / cohortValues.length
-      : 0
+      : null
     const base: TeamRadarSeriesPoint = {
       metric: def.shortLabel,
       label: def.label,
       valueNorm: 0,
-      avgNorm: normalizeInCohort(avgRaw, cohortValues),
+      avgNorm: avgRaw != null && cohortValues.length ? normalizeInCohort(avgRaw, cohortValues) : 0,
       raw: 0,
-      avgRaw,
+      avgRaw: avgRaw ?? 0,
       formatted: '',
-      formattedAvg: formatRadarRaw(def.key, avgRaw),
+      formattedAvg: formatRadarRawOrMissing(def.key, avgRaw),
     }
     teams.forEach((team, index) => {
       const raw = getTeamRadarRaw(team, def.key)
-      base[`team${index}Norm`] = normalizeInCohort(raw, cohortValues)
-      base[`team${index}Raw`] = raw
-      base[`team${index}Label`] = formatRadarRaw(def.key, raw)
+      base[`team${index}Norm`] =
+        raw != null && cohortValues.length ? normalizeInCohort(raw, cohortValues) : 0
+      base[`team${index}Raw`] = raw ?? 0
+      base[`team${index}Label`] = formatRadarRawOrMissing(def.key, raw)
     })
     return base
   })
 }
 
-export function computeTeamScore(team: Team, cohort: Team[]): number {
+export function computeTeamScore(team: Team, cohort: Team[], players: Player[] = []): number {
   const weights: Record<TeamRadarMetricKey, number> = {
     earlyGame: 0.2,
     objControl: 0.2,
@@ -195,12 +186,19 @@ export function computeTeamScore(team: Team, cohort: Team[]): number {
     combat: 0.25,
   }
   let total = 0
+  let weightSum = 0
   for (const def of TEAM_RADAR_METRICS) {
-    const cohortValues = cohort.map((t) => getTeamRadarRaw(t, def.key))
-    const norm = normalizeInCohort(getTeamRadarRaw(team, def.key), cohortValues) / 100
+    if (players.length && !isTeamMetricEligibleForScore(team, def.key, players)) continue
+    const cohortValues = cohort
+      .map((t) => getTeamRadarRaw(t, def.key))
+      .filter((v): v is number => v != null)
+    const raw = getTeamRadarRaw(team, def.key)
+    if (raw == null || !cohortValues.length) continue
+    const norm = normalizeInCohort(raw, cohortValues) / 100
     total += norm * weights[def.key]
+    weightSum += weights[def.key]
   }
-  return total
+  return weightSum > 0 ? total / weightSum : 0
 }
 
 export function rankTeams(teams: Team[], limit?: number): Team[] {

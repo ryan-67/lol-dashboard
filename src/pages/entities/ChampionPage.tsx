@@ -46,6 +46,7 @@ export default function ChampionPage() {
     years,
     splits,
     fallbackNotice,
+    catalogSplits,
   } = useEntityPageData(hasData)
 
   const champions = useMemo(
@@ -89,6 +90,7 @@ export default function ChampionPage() {
       onYearChange={setYear}
       onSplitChange={setSplit}
       fallbackNotice={fallbackNotice}
+      catalogSplits={catalogSplits}
     />
   )
 

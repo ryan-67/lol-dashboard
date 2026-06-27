@@ -65,6 +65,7 @@ export default function TeamPage() {
     years,
     splits,
     fallbackNotice,
+    catalogSplits,
   } = useEntityPageData(hasData)
 
   const filterLeague = filters.league === 'All Tier 1' ? undefined : filters.league
@@ -219,6 +220,7 @@ export default function TeamPage() {
       onYearChange={setYear}
       onSplitChange={setSplit}
       fallbackNotice={fallbackNotice}
+      catalogSplits={catalogSplits}
     />
   )
 

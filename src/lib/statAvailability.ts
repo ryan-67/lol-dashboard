@@ -22,7 +22,9 @@ const GAME_OPTIONAL_KEYS: Partial<Record<PartialCoverageMetricKey, keyof PlayerG
 }
 
 export function isSoloKillsTracked(cohort: Player[]): boolean {
-  return cohort.some((p) => (p.gameLog ?? []).some((g) => (g.soloKills ?? 0) > 0))
+  return cohort.some((p) =>
+    (p.gameLog ?? []).some((g) => typeof g.soloKills === 'number' && !Number.isNaN(g.soloKills)),
+  )
 }
 
 /** True when this game row actually has the stat (not omitted from ingest). */

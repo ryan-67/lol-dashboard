@@ -1,5 +1,6 @@
 import Select from './ui/Select'
 import LeagueLogo from './entities/LeagueLogo'
+import { entitySplitOptions } from '../lib/filterOptions'
 
 export interface EntityFilterStripValues {
   league: string
@@ -14,22 +15,20 @@ export interface EntityFilterStripValues {
   showAllSplit?: boolean
 }
 
-function splitLabel(value: string): string {
-  return value.replace(/^\d{4}\s+/, '')
-}
-
 export function EntityFilterStripControls({
   league,
   year,
   split,
   leagues,
   years,
-  splits,
+  splits: _splits,
   onLeagueChange,
   onYearChange,
   onSplitChange,
   showAllSplit = true,
-}: EntityFilterStripValues) {
+  catalogSplits = [] as string[],
+}: EntityFilterStripValues & { catalogSplits?: string[] }) {
+  const splitOptions = entitySplitOptions(catalogSplits, year)
   return (
     <div className="flex flex-col sm:flex-row sm:items-center gap-4">
       <div className="flex items-center gap-2">
@@ -61,9 +60,9 @@ export function EntityFilterStripControls({
               ALL
             </option>
           ) : null}
-          {splits.map((s) => (
-            <option key={s} value={s}>
-              {splitLabel(s)}
+          {splitOptions.map((s) => (
+            <option key={s.value} value={s.value}>
+              {s.label}
             </option>
           ))}
         </Select>

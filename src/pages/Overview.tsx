@@ -15,6 +15,7 @@ import {
   buildRadarSeries,
   computeGameScore,
   getMetricValue,
+  highestDeltaStatForGame,
   normalizePosition,
   playersForRole,
 } from '../lib/playerRadar'
@@ -696,12 +697,14 @@ export default function Overview() {
                     .slice(0, 3)
                     .map((g, idx) => {
                       const opp = opponentLaneInfo(
-                        filteredPlayers,
+                        weeklyHubPlayers,
                         playerOfWeek.base.team,
                         playerOfWeek.role,
                         g,
                       )
                       const perfScore = computeGameScore(g, playerOfWeek.role, roleCohort)
+                      const highlight = highestDeltaStatForGame(g, playerOfWeek.role, roleCohort)
+                      const kdaLine = `${g.kills ?? 0}/${g.deaths ?? 0}/${g.assists ?? 0}`
                       return (
                         <li key={gameLogKey(playerOfWeek.base.team, g)} className="overview-best-game-row">
                           <span className="text-accent">
@@ -709,11 +712,21 @@ export default function Overview() {
                           </span>
                           <span className="entity-table-champ">
                             <ChampionEntityInline name={g.champion} iconSize={16} />
-                            {' · '}{formatNum(perfScore * 100, 1)} perf · {formatNum(g.kda, 2)} KDA
+                            {' · '}{formatNum(perfScore * 100, 1)} perf · {kdaLine} K/D/A
+                            {highlight ? (
+                              <>
+                                {' · '}
+                                {highlight.stat}{' '}
+                                {highlight.value > 0 && highlight.delta > 0 ? '+' : ''}
+                                {formatNum(highlight.value, 1)} (
+                                {highlight.delta >= 0 ? '+' : ''}
+                                {formatNum(highlight.delta, 1)} vs avg)
+                              </>
+                            ) : null}
                           </span>
                         <span className="text-secondary entity-inline-row">
                           vs <EntityLink type="team" name={opp.team} /> /{' '}
-                          <EntityLink type="player" name={opp.player} allPlayers={filteredPlayers} showIcon={false} /> /{' '}
+                          <EntityLink type="player" name={opp.player} allPlayers={weeklyHubPlayers} showIcon={false} /> /{' '}
                           <ChampionEntityInline name={opp.champion} iconSize={16} />
                         </span>
                       </li>

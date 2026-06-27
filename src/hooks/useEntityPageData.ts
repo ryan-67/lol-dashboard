@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useDashboard, DEFAULT_YEAR } from '../context/DashboardContext'
 import { buildStoreFromSliceRows, fetchOESlices } from '../lib/loadOEStore'
 import { entityFetchFilters, mergeDataForFilters, type EntityFilterState, isLifetimeYearFilter } from '../lib/entities/resolvers'
@@ -6,6 +6,7 @@ import type { DashboardData } from '../hooks/useDashboardData'
 import { leagueLabelToLeagues } from '../hooks/useDashboardData'
 import type { OEStore } from '../lib/mergeSlices'
 import { pickNewestSplitWithData, splitsNewestFirst, yearFromSplitLabel } from '../lib/splitSelection'
+import { entitySplitOptions } from '../lib/filterOptions'
 
 async function tryLifetimeFilters(
   catalog: NonNullable<ReturnType<typeof useDashboard>['catalog']>,
@@ -95,7 +96,7 @@ export function useEntityPageData(hasDataForSplit: (data: DashboardData) => bool
     year: globalYear,
     split: globalSplit,
     leagues,
-    years,
+    years: dashboardYears,
   } = useDashboard()
 
   const [filters, setFilters] = useState<EntityFilterState>({
@@ -107,15 +108,20 @@ export function useEntityPageData(hasDataForSplit: (data: DashboardData) => bool
   const [loading, setLoading] = useState(true)
   const [fallbackNotice, setFallbackNotice] = useState<string | null>(null)
   const [ready, setReady] = useState(false)
+  const userAdjustedFilters = useRef(false)
+
+  const entityYears = useMemo(
+    () => ['ALL', ...dashboardYears.filter((y) => y !== 'ALL')],
+    [dashboardYears],
+  )
 
   const splitsForYear = useMemo(() => {
     if (!catalog) return []
-    if (filters.year === 'ALL') return catalog.splits
-    return catalog.splits.filter((s) => s.startsWith(`${filters.year} `))
+    return entitySplitOptions(catalog.splits, filters.year).map((o) => o.value)
   }, [catalog, filters.year])
 
   useEffect(() => {
-    if (!catalog) return
+    if (!catalog || userAdjustedFilters.current) return
     let cancelled = false
     void (async () => {
       setLoading(true)
@@ -164,12 +170,14 @@ export function useEntityPageData(hasDataForSplit: (data: DashboardData) => bool
   }, [store, filters])
 
   const setLeague = useCallback((league: string) => {
+    userAdjustedFilters.current = true
     setFilters((f) => ({ ...f, league }))
     setFallbackNotice(null)
   }, [])
 
   const setYear = useCallback(
     (year: string) => {
+      userAdjustedFilters.current = true
       if (isLifetimeYearFilter(year)) {
         setFilters((f) => ({ ...f, year: 'ALL', split: 'ALL' }))
         setFallbackNotice(null)
@@ -181,8 +189,8 @@ export function useEntityPageData(hasDataForSplit: (data: DashboardData) => bool
         ...f,
         year,
         split:
-          f.split === 'ALL'
-            ? 'ALL'
+          f.split === 'ALL' || !/^\d{4}/.test(f.split)
+            ? newest ?? nextSplits.find((s) => s.endsWith(' Spring')) ?? nextSplits[0] ?? f.split
             : newest ?? nextSplits.find((s) => s.endsWith(' Spring')) ?? nextSplits[0] ?? f.split,
       }))
       setFallbackNotice(null)
@@ -190,15 +198,21 @@ export function useEntityPageData(hasDataForSplit: (data: DashboardData) => bool
     [catalog],
   )
 
-  const setSplit = useCallback((split: string) => {
-    if (split === 'ALL') {
-      setFilters((f) => ({ ...f, split: 'ALL' }))
-    } else {
-      const year = split.split(' ', 1)[0] ?? DEFAULT_YEAR
-      setFilters((f) => ({ ...f, split, year }))
-    }
-    setFallbackNotice(null)
-  }, [])
+  const setSplit = useCallback(
+    (split: string) => {
+      userAdjustedFilters.current = true
+      if (split === 'ALL') {
+        setFilters((f) => ({ ...f, split: 'ALL' }))
+      } else if (/^\d{4}/.test(split)) {
+        const year = split.split(' ', 1)[0] ?? DEFAULT_YEAR
+        setFilters((f) => ({ ...f, split, year }))
+      } else {
+        setFilters((f) => ({ ...f, split, year: f.year === 'ALL' ? 'ALL' : f.year }))
+      }
+      setFallbackNotice(null)
+    },
+    [],
+  )
 
   return {
     data,
@@ -208,8 +222,9 @@ export function useEntityPageData(hasDataForSplit: (data: DashboardData) => bool
     setYear,
     setSplit,
     leagues,
-    years,
+    years: entityYears,
     splits: splitsForYear,
+    catalogSplits: catalog?.splits ?? [],
     fallbackNotice,
   }
 }

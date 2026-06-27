@@ -1048,7 +1048,6 @@ def process_row(row, buckets: dict, team_to_league: dict[str, str]):
                 "goldShare": round(safe_float(row.get("earnedgoldshare", 0)) * 100, 1),
                 "firstBloodRate": 100.0 if fb_involved else 0.0,
                 "objControl": float(obj_total),
-                "soloKills": solo_kills,
                 "campsStolen": camps_stolen,
                 "wardsDestroyed": round(wards_destroyed, 1),
                 "kaPerMin": round(ka_per_min, 2),
@@ -1072,6 +1071,8 @@ def process_row(row, buckets: dict, team_to_league: dict[str, str]):
             entry["csd15"] = round(csd15, 1)
         if xpd15 is not None:
             entry["xpd15"] = round(xpd15, 1)
+        if row_has_value(row, ("solokills", "solo_kills", "solokill", "solokillsat15")):
+            entry["soloKills"] = solo_kills
         side_val = str(row.get("side", "")).strip().lower()
         if side_val:
             entry["side"] = side_val

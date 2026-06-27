@@ -9,11 +9,13 @@ import {
 interface EntityFilterBarProps extends EntityFilterStripValues {
   fallbackNotice?: string | null
   showAllSplit?: boolean
+  catalogSplits?: string[]
 }
 
 export default function EntityFilterBar({
   fallbackNotice,
   showAllSplit = true,
+  catalogSplits = [],
   ...controls
 }: EntityFilterBarProps) {
   const [slot, setSlot] = useState<HTMLElement | null>(null)
@@ -30,7 +32,7 @@ export default function EntityFilterBar({
         ) : undefined
       }
     >
-      <EntityFilterStripControls {...controls} showAllSplit={showAllSplit} />
+      <EntityFilterStripControls {...controls} showAllSplit={showAllSplit} catalogSplits={catalogSplits} />
     </EntityFilterStripShell>
   )
 

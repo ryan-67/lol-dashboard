@@ -47,6 +47,7 @@ export default function PlayerPage() {
     years,
     splits,
     fallbackNotice,
+    catalogSplits,
   } = useEntityPageData(hasData)
 
   const filterBar = (
@@ -61,6 +62,7 @@ export default function PlayerPage() {
       onYearChange={setYear}
       onSplitChange={setSplit}
       fallbackNotice={fallbackNotice}
+      catalogSplits={catalogSplits}
     />
   )
 

@@ -12,6 +12,7 @@ import type {
 } from '../hooks/useDashboardData'
 import { aggregateAdvancedFromGameLog } from './advancedStats'
 import { mergeChampionPoolEntries } from './playerAnalytics'
+import { resolveSplitLabelsForMerge } from './filterOptions'
 
 export interface DashboardSlice {
   players: Player[]
@@ -155,16 +156,12 @@ export function selectSliceKeys(
   split: string,
   year?: string,
 ): string[] {
-  const isAllSplit = split === 'all' || split === 'ALL'
-  const isAllYear = !year || year === 'ALL' || year === 'all'
-  const splits = isAllSplit
-    ? store.meta.splits.filter((s) => isAllYear || s.startsWith(`${year} `))
-    : [split]
+  const splitLabels = resolveSplitLabelsForMerge(store.meta.splits, year, split)
   const leagues =
     league === 'All Tier 1' ? [...TIER1_LEAGUES] : [league]
 
   const keys: string[] = []
-  for (const s of splits) {
+  for (const s of splitLabels) {
     for (const l of leagues) {
       const key = sliceKey(s, l)
       if (store.slices[key]) keys.push(key)
@@ -398,7 +395,7 @@ function mergeTeams(slices: DashboardSlice[]): Team[] {
         losses: t.losses,
         winrate: round(t.wins / games * 100, 1),
         avgKda: round((t.kills + t.assists) / deaths, 2),
-        avgGd15: round(avgWeighted(t.gd15), 1),
+        avgGd15: t.gd15.length ? round(avgWeighted(t.gd15), 1) : undefined,
         towers: t.towers,
         dragons: t.dragons,
         barons: t.barons,

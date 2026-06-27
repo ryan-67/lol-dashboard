@@ -122,7 +122,7 @@ export interface Team {
   losses: number
   winrate: number
   avgKda: number
-  avgGd15: number
+  avgGd15?: number
   towers: number
   dragons: number
   barons: number

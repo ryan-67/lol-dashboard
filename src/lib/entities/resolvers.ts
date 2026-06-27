@@ -1,4 +1,4 @@
-import type { Champion, DashboardData, Player, Team } from '../../hooks/useDashboardData'
+import type { Champion, DashboardData, Player, PlayerGameLog, Team } from '../../hooks/useDashboardData'
 import { aggregateAdvancedFromGameLog } from '../advancedStats'
 import { mergeChampionPoolEntries } from '../playerAnalytics'
 import { mergeSlices, type OEStore } from '../mergeSlices'
@@ -14,6 +14,18 @@ function avgWeighted(values: Array<{ value: number; weight: number }>): number {
   const total = values.reduce((s, v) => s + v.weight, 0)
   if (!total) return 0
   return values.reduce((s, v) => s + v.value * v.weight, 0) / total
+}
+
+function dedupeGameLog(log: PlayerGameLog[]): PlayerGameLog[] {
+  const seen = new Set<string>()
+  return log.filter((game) => {
+    const id =
+      game.gameId ??
+      `${game.date}|${game.league ?? ''}|${game.opponent ?? ''}|${game.champion}|${game.result}`
+    if (seen.has(id)) return false
+    seen.add(id)
+    return true
+  })
 }
 
 export function mergePlayersByName(players: Player[], name: string): Player | null {
@@ -74,15 +86,21 @@ export function mergePlayersByName(players: Player[], name: string): Player | nu
     if (!merged.team && p.team) merged.team = p.team
   }
 
-  const sortedLog = [...(merged.gameLog ?? [])].sort((a, b) => a.date.localeCompare(b.date))
+  const sortedLog = dedupeGameLog([...(merged.gameLog ?? [])]).sort((a, b) =>
+    a.date.localeCompare(b.date),
+  )
   const latest = sortedLog[sortedLog.length - 1]
   const latestRow = rows.find((p) => p.gameLog?.some((g) => g.date === latest?.date)) ?? rows[rows.length - 1]
   const advanced = aggregateAdvancedFromGameLog(sortedLog)
 
-  const deaths = Math.max(merged.deaths, 1)
+  const games = sortedLog.length || merged.games
+  const kills = sortedLog.reduce((s, g) => s + (g.kills ?? 0), 0)
+  const deaths = sortedLog.reduce((s, g) => s + (g.deaths ?? 0), 0)
+  const assists = sortedLog.reduce((s, g) => s + (g.assists ?? 0), 0)
+  const deathsForKda = Math.max(deaths, 1)
   const kdaFromKda =
-    merged.kills > 0 || merged.assists > 0
-      ? round((merged.kills + merged.assists) / deaths, 2)
+    kills > 0 || assists > 0
+      ? round((kills + assists) / deathsForKda, 2)
       : (() => {
           const weighted = rows
             .filter((p) => (p.games ?? 0) > 0 && typeof p.kda === 'number')
@@ -97,10 +115,10 @@ export function mergePlayersByName(players: Player[], name: string): Player | nu
     team: latestRow?.team ?? merged.team,
     league: latestRow?.league ?? merged.league,
     position: latestRow?.position ?? merged.position,
-    games: merged.games,
-    kills: merged.kills,
-    deaths: merged.deaths,
-    assists: merged.assists,
+    games,
+    kills,
+    deaths,
+    assists,
     kda: kdaFromKda,
     kp: round(avgWeighted(merged.kp), 1),
     dmgShare: round(avgWeighted(merged.dmgShare), 1),
