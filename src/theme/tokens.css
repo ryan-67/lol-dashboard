@@ -2718,6 +2718,122 @@ b,
   }
 }
 
+/* nuckyAI beta paywall */
+.nuckyai-paywall {
+  margin-top: var(--component-gap);
+  max-width: 32rem;
+}
+
+.nuckyai-paywall-card {
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-surface);
+  padding: 1.5rem 1.75rem;
+}
+
+.nuckyai-paywall-eyebrow {
+  margin: 0 0 0.35rem;
+  font-family: var(--font-mono);
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--text-primary);
+  text-transform: lowercase;
+}
+
+.nuckyai-paywall-price-row {
+  display: flex;
+  align-items: baseline;
+  gap: 0.2rem;
+  margin-bottom: 0.75rem;
+}
+
+.nuckyai-paywall-price {
+  font-family: var(--font-mono);
+  font-size: 2.25rem;
+  font-weight: 600;
+  line-height: 1;
+  color: var(--text-primary);
+}
+
+.nuckyai-paywall-period {
+  font-family: var(--font-mono);
+  font-size: 0.875rem;
+  color: var(--text-tertiary);
+}
+
+.nuckyai-paywall-tagline {
+  margin: 0 0 1rem;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  color: var(--text-secondary);
+}
+
+.nuckyai-paywall-includes {
+  margin: 0 0 0.65rem;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--text-tertiary);
+}
+
+.nuckyai-paywall-features {
+  list-style: none;
+  margin: 0 0 1rem;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.nuckyai-paywall-features li {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.55rem;
+  font-size: 0.8125rem;
+  line-height: 1.45;
+  color: var(--text-secondary);
+}
+
+.nuckyai-paywall-check {
+  flex-shrink: 0;
+  margin-top: 0.05rem;
+  font-size: 0.75rem;
+  color: var(--accent);
+}
+
+.nuckyai-paywall-usage {
+  margin: 0 0 1rem;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--text-tertiary);
+}
+
+.nuckyai-paywall-cta {
+  width: 100%;
+  justify-content: center;
+  padding: 0.75rem 1.25rem;
+}
+
+.nuckyai-paywall-beta-note {
+  margin: 1rem 0 0;
+  font-size: 0.75rem;
+  line-height: 1.5;
+  color: var(--text-tertiary);
+}
+
+.nuckyai-paywall-beta-note a {
+  color: var(--accent);
+  text-decoration: none;
+}
+
+.nuckyai-paywall-beta-note a:hover {
+  text-decoration: underline;
+}
+
+.nuckyai-paywall-footnote {
+  margin: 0.75rem 0 0;
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+}
+
 /* Team comparison section */
 .team-comparison-section {
   position: relative;

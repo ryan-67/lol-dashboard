@@ -25,10 +25,11 @@ interface ChatRequestBody extends DashboardFilters {
 
 const encoder = new TextEncoder();
 
-// TEMP (QA): usage limits disabled for nuckyAI testing — set true before production launch.
+// Beta limits — keep in sync with src/lib/nuckyAiBilling.ts ($3.99/mo tier).
+// Set USAGE_LIMITS_ENABLED = true before enforcing in production/beta launch.
 const USAGE_LIMITS_ENABLED = false;
-const DAILY_LIMIT = 25;
-const MONTHLY_LIMIT = 750;
+const DAILY_LIMIT = 15;
+const MONTHLY_LIMIT = 200;
 
 function getClientIp(req: Request): string {
   const forwarded = req.headers.get("x-forwarded-for") ?? "";

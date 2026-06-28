@@ -25,7 +25,7 @@ const FAQ_ITEMS = [
   {
     question: 'why is nucky subscription gated?',
     answer:
-      'Pro subscription ($9.99/mo via Stripe) covers LLM inference, embeddings, and infrastructure so response quality and refresh cadence stay reliable. The dashboard and analytics tabs remain free to browse.',
+      'nuckyAI beta ($3.99/mo via Stripe) covers LLM inference and tool calls with usage caps during active development. Full launch pricing is planned at $5/mo. The dashboard and analytics tabs remain free to browse.',
   },
 ]
 

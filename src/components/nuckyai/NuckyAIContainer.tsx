@@ -10,6 +10,7 @@ import { useDashboard } from '../../context/DashboardContext'
 import ChatSidebar from './ChatSidebar'
 import ChatWindow from './ChatWindow'
 import AuthModal from '../AuthModal'
+import NuckyAiPaywall from './NuckyAiPaywall'
 import { useAgentChat } from './useAgentChat'
 import { pickThinkingMessage } from '../../lib/nuckyThinking'
 import type { ConversationRow, MessageRow, ProfileRow } from './types'
@@ -390,21 +391,11 @@ export default function NuckyAIContainer() {
       <>
         <div className="card nuckyai-shell">
           <h2 className="card-title">nuckyAI</h2>
-          <div className="border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-4 mt-3 max-w-xl">
-            <h3 className="text-sm text-[var(--text-primary)] mb-2">unlock nuckyAI</h3>
-            <ul className="list-disc pl-5 text-sm text-[var(--text-secondary)] space-y-1">
-              <li>your lolesports analyst — stats, matchups, MSI reads, patch meta</li>
-              <li>grounded pro play data + weekly esports context</li>
-              <li>charts and radar comparisons inline in chat</li>
-            </ul>
-            <div className="mt-3 text-xs text-[var(--text-tertiary)]">$9.99/mo pro subscription</div>
-            <button type="button" className="btn mt-3" onClick={() => setShowAuth(true)}>
-              subscribe
-            </button>
-            <p className="mt-2 text-xs text-[var(--text-secondary)]">
-              login or create an account to continue to checkout.
-            </p>
-          </div>
+          <NuckyAiPaywall
+            onAction={() => setShowAuth(true)}
+            actionLabel="unlock beta"
+            footnote="login or create an account to continue to checkout."
+          />
         </div>
         <AuthModal open={showAuth} onClose={() => setShowAuth(false)} />
       </>
@@ -420,18 +411,11 @@ export default function NuckyAIContainer() {
             {toast}
           </div>
         )}
-        <div className="border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-4 mt-3 max-w-xl">
-          <h3 className="text-sm text-[var(--text-primary)] mb-2">unlock nuckyAI</h3>
-          <ul className="list-disc pl-5 text-sm text-[var(--text-secondary)] space-y-1">
-            <li>your lolesports analyst — stats, matchups, MSI reads, patch meta</li>
-            <li>grounded pro play data + weekly esports context</li>
-            <li>charts and radar comparisons inline in chat</li>
-          </ul>
-          <div className="mt-3 text-xs text-[var(--text-tertiary)]">$9.99/mo pro subscription</div>
-          <button type="button" className="btn mt-3" disabled={checkoutLoading} onClick={subscribe}>
-            {checkoutLoading ? 'loading...' : 'subscribe'}
-          </button>
-        </div>
+        <NuckyAiPaywall
+          onAction={() => void subscribe()}
+          actionLabel={checkoutLoading ? 'loading...' : 'unlock beta'}
+          actionDisabled={checkoutLoading}
+        />
       </div>
     )
   }

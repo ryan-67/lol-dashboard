@@ -37,7 +37,7 @@ Hosted on Supabase Edge Functions in production. Responsibilities:
 - Deterministic analyst tools over `oe_slices` and `esports_schedules`
 - pgvector RAG via `match_documents` (multi-param RPC fallback); career/roster intents always vector-search, preferring `source=liquipedia`
 - Team/player compare with injected radar chart payloads
-- Usage limits and conversation persistence (limits **disabled for QA** — `USAGE_LIMITS_ENABLED = false` in `index.ts`; re-enable before production launch: 25/day, 750/month per user+IP)
+- Usage limits and conversation persistence (limits **disabled for QA** — `USAGE_LIMITS_ENABLED = false` in `index.ts`; enable for beta launch: **15/day, 200/month** per user+IP — see `src/lib/nuckyAiBilling.ts`)
 
 Persona: **nucky** — blunt lolesports fan who knows lane states, macro, draft win conditions. Never exposes OE/RAG/Tavily plumbing.
 
