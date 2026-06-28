@@ -1,5 +1,8 @@
 import { selectSliceKeysFromFilters, splitSortKey, type OEStore } from './mergeSlices'
 import { DEFAULT_SPLIT, DEFAULT_YEAR } from './constants'
+import { resolveSplitLabelsForMerge } from './filterOptions'
+import { combinedFilterForCatalogSeason, normalizeToCombinedFilterValue } from './splitGroups'
+import { parseCanonicalSplit } from './tournamentCatalog'
 
 /** Newest split labels first (year desc, season desc). */
 export function splitsNewestFirst(splits: string[]): string[] {
@@ -48,9 +51,10 @@ export function defaultMainTabSplit(splits: string[], year = DEFAULT_YEAR, fallb
   )
 }
 
-/** True when a split has at least one player game log or team row in the store. */
+/** True when a split filter (incl. combined groups) has player/team data in the store. */
 export function splitHasGameData(store: OEStore, split: string, year = DEFAULT_YEAR): boolean {
-  const keys = selectSliceKeysFromFilters(store, ['All Tier 1'], [year], [split])
+  const labels = resolveSplitLabelsForMerge(store.meta.splits, year, split)
+  const keys = selectSliceKeysFromFilters(store, ['All Tier 1'], [year], labels.length ? labels : [split])
   for (const key of keys) {
     const slice = store.slices[key]
     if (!slice) continue
@@ -60,7 +64,7 @@ export function splitHasGameData(store: OEStore, split: string, year = DEFAULT_Y
   return false
 }
 
-/** Default split for main tabs — newest split with actual data, else catalog order. */
+/** Default split for main tabs — combined group with the newest game data (Spring incl. MSI, not MSI alone). */
 export function pickDefaultDashboardSplit(
   catalogSplits: string[],
   store: OEStore | null,
@@ -68,14 +72,17 @@ export function pickDefaultDashboardSplit(
   fallback = DEFAULT_SPLIT,
 ): string {
   if (store) {
-    const withData = pickNewestSplitWithData(
-      catalogSplits,
-      (split) => splitHasGameData(store, split, year),
-      year,
-    )
-    if (withData) return withData
+    const yearSplits = catalogSplits.filter((s) => s.startsWith(`${year} `))
+    for (const split of splitsNewestFirst(yearSplits)) {
+      if (!splitHasGameData(store, split, year)) continue
+      const { season } = parseCanonicalSplit(split)
+      const leader = combinedFilterForCatalogSeason(season)
+      return `${year} ${leader}`
+    }
   }
-  return defaultMainTabSplit(catalogSplits, year, fallback)
+  const normalized = normalizeToCombinedFilterValue(catalogSplits, fallback)
+  if (/^\d{4}\s+/.test(normalized)) return normalized
+  return defaultMainTabSplit(catalogSplits, year, `${year} Spring`)
 }
 
 export function yearFromSplitLabel(split: string, fallback = '2026'): string {

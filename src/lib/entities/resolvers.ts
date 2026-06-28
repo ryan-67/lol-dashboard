@@ -3,6 +3,8 @@ import { aggregateAdvancedFromGameLog } from '../advancedStats'
 import { mergeChampionPoolEntries } from '../playerAnalytics'
 import { mergeSlices, type OEStore } from '../mergeSlices'
 import { pickNewestSplitWithData, splitsNewestFirst } from '../splitSelection'
+import { combinedFilterForCatalogSeason } from '../splitGroups'
+import { parseCanonicalSplit } from '../tournamentCatalog'
 import { playerSlug, resolveTeamCanonicalName, teamMatchesCanonical, teamSlugFromName } from './slugs'
 
 function round(value: number, digits: number): number {
@@ -234,10 +236,13 @@ export function resolveEntityFilters(
   _defaultSplit: string,
   hasData: (split: string) => boolean,
 ): EntityFilterState {
-  const split =
+  const yearSplits = catalogSplits.filter((s) => s.startsWith(`${defaultYear} `))
+  let split =
     pickNewestSplitWithData(catalogSplits, hasData, defaultYear) ??
-    splitsNewestFirst(catalogSplits)[0] ??
+    splitsNewestFirst(yearSplits)[0] ??
     `${defaultYear} Spring`
+  const { season } = parseCanonicalSplit(split)
+  split = `${defaultYear} ${combinedFilterForCatalogSeason(season)}`
   const year = split.split(' ', 1)[0] ?? defaultYear
   return { league: 'All Tier 1', year, split }
 }

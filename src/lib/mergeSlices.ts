@@ -131,15 +131,32 @@ export function selectSliceKeysFromFilters(
     !leagues.length || leagues.includes('All Tier 1')
       ? [...TIER1_LEAGUES]
       : leagues.filter((l) => l !== 'All Tier 1')
-  let splitLabels = store.meta.splits
   const allYears = years.includes('ALL')
   const allSplits = splits.includes('ALL')
 
-  if (!allYears) {
-    splitLabels = splitLabels.filter((s) => years.some((y) => s.startsWith(`${y} `)))
-  }
-  if (!allSplits) {
-    splitLabels = splitLabels.filter((s) => splits.includes(s))
+  let splitLabels: string[] = []
+  if (allSplits) {
+    splitLabels = allYears
+      ? [...store.meta.splits]
+      : store.meta.splits.filter((s) => years.some((y) => s.startsWith(`${y} `)))
+  } else {
+    const expanded = new Set<string>()
+    if (allYears) {
+      for (const split of splits) {
+        for (const label of resolveSplitLabelsForMerge(store.meta.splits, undefined, split)) {
+          expanded.add(label)
+        }
+      }
+    } else {
+      for (const year of years) {
+        for (const split of splits) {
+          for (const label of resolveSplitLabelsForMerge(store.meta.splits, year, split)) {
+            expanded.add(label)
+          }
+        }
+      }
+    }
+    splitLabels = [...expanded]
   }
 
   const keys: string[] = []

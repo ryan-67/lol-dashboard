@@ -6,6 +6,8 @@ import type { DashboardData } from '../hooks/useDashboardData'
 import { leagueLabelToLeagues } from '../hooks/useDashboardData'
 import type { OEStore } from '../lib/mergeSlices'
 import { pickNewestSplitWithData, splitsNewestFirst, yearFromSplitLabel } from '../lib/splitSelection'
+import { combinedFilterForCatalogSeason, combinedSplitFilterValues } from '../lib/splitGroups'
+import { parseCanonicalSplit } from '../lib/tournamentCatalog'
 import { entitySplitOptions } from '../lib/filterOptions'
 
 async function tryLifetimeFilters(
@@ -53,13 +55,22 @@ async function findBestSplit(
       return hasData(data)
     }
 
-    const ordered = splitsNewestFirst(catalogSplits)
-    const yearPref = [
-      ...ordered.filter((s) => s.startsWith(`${globalYear} `)),
-      ...ordered.filter((s) => !s.startsWith(`${globalYear} `)),
-    ]
+    const yearSplits = catalogSplits.filter((s) => s.startsWith(`${globalYear} `))
+    const tryOrder: string[] = []
+    const seen = new Set<string>()
+    for (const catalogSplit of splitsNewestFirst(yearSplits)) {
+      const { season } = parseCanonicalSplit(catalogSplit)
+      const leader = `${globalYear} ${combinedFilterForCatalogSeason(season)}`
+      if (!seen.has(leader)) {
+        seen.add(leader)
+        tryOrder.push(leader)
+      }
+    }
+    for (const leader of combinedSplitFilterValues(catalogSplits, globalYear)) {
+      if (!seen.has(leader)) tryOrder.push(leader)
+    }
 
-    for (const split of yearPref) {
+    for (const split of tryOrder) {
       if (await trySplit(split)) {
         const year = yearFromSplitLabel(split, globalYear)
         return { league: leagueLabel, year, split }
@@ -184,7 +195,8 @@ export function useEntityPageData(hasDataForSplit: (data: DashboardData) => bool
         return
       }
       const nextSplits = catalog?.splits.filter((s) => s.startsWith(`${year} `)) ?? []
-      const newest = splitsNewestFirst(nextSplits)[0]
+      const combined = combinedSplitFilterValues(catalog?.splits ?? [], year)
+      const newest = combined[combined.length - 1]
       setFilters((f) => ({
         ...f,
         year,

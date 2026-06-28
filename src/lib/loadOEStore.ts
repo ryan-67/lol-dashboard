@@ -1,6 +1,7 @@
 import type { DashboardSlice, OEStore, OEStoreMeta } from './mergeSlices'
 import { sliceKey, splitSortKey, TIER1_LEAGUES } from './mergeSlices'
 import { expandSelectedLeagues } from './filterLabels'
+import { resolveSplitLabelsForMerge } from './filterOptions'
 import { isSupabaseConfigured, supabase } from './supabaseClient'
 
 const TABLE = 'oe_slices'
@@ -24,17 +25,31 @@ function resolveTargetSplits(
   years: string[],
   splits: string[],
 ): string[] {
-  let result = catalogSplits
   const allYears = years.includes('ALL')
   const allSplits = splits.includes('ALL')
 
-  if (!allYears) {
-    result = result.filter((s) => years.some((y) => s.startsWith(`${y} `)))
+  if (allSplits) {
+    if (allYears) return [...catalogSplits]
+    return catalogSplits.filter((s) => years.some((y) => s.startsWith(`${y} `)))
   }
-  if (!allSplits) {
-    result = result.filter((s) => splits.includes(s))
+
+  const expanded = new Set<string>()
+  if (allYears) {
+    for (const split of splits) {
+      for (const label of resolveSplitLabelsForMerge(catalogSplits, undefined, split)) {
+        expanded.add(label)
+      }
+    }
+  } else {
+    for (const year of years) {
+      for (const split of splits) {
+        for (const label of resolveSplitLabelsForMerge(catalogSplits, year, split)) {
+          expanded.add(label)
+        }
+      }
+    }
   }
-  return result
+  return [...expanded]
 }
 
 function buildMetaFromCatalogRows(

@@ -1,14 +1,16 @@
 import { splitSeasonLabel } from './filterLabels'
-import { splitSortKey } from './mergeSlices'
+import {
+  COMBINED_SPLIT_GROUPS,
+  combinedSplitFilterValues,
+  expandCombinedSplitLabels,
+} from './splitGroups'
+import { parseCanonicalSplit } from './tournamentCatalog'
 
 /** Canonical season labels shown when year = ALL (deduped across years). */
 export const CANONICAL_SEASON_ORDER = [
   'Winter',
-  'First Stand',
   'Spring',
-  'MSI',
   'Summer',
-  'Worlds',
 ] as const
 
 export type CanonicalSeason = (typeof CANONICAL_SEASON_ORDER)[number]
@@ -17,11 +19,16 @@ export function seasonFromSplitLabel(split: string): string {
   return splitSeasonLabel(split)
 }
 
-/** Seasons present in catalog (one entry per canonical name). */
+/** Combined group leaders present in catalog (Winter / Spring / Summer). */
 export function canonicalSeasonsInCatalog(catalogSplits: string[]): CanonicalSeason[] {
   const present = new Set<string>()
   for (const split of catalogSplits) {
-    present.add(seasonFromSplitLabel(split))
+    const { season } = parseCanonicalSplit(split)
+    for (const group of COMBINED_SPLIT_GROUPS) {
+      if ((group.catalogSeasons as readonly string[]).includes(season)) {
+        present.add(group.filterValue)
+      }
+    }
   }
   return CANONICAL_SEASON_ORDER.filter((s) => present.has(s))
 }
@@ -31,7 +38,7 @@ export interface SplitOption {
   label: string
 }
 
-/** Entity pages: when year is ALL, show deduped canonical seasons only. */
+/** Entity pages: combined Winter/Spring/Summer (international events included). */
 export function entitySplitOptions(catalogSplits: string[], year: string): SplitOption[] {
   if (year === 'ALL') {
     return canonicalSeasonsInCatalog(catalogSplits).map((season) => ({
@@ -39,25 +46,32 @@ export function entitySplitOptions(catalogSplits: string[], year: string): Split
       label: season,
     }))
   }
-  return catalogSplits
-    .filter((s) => s.startsWith(`${year} `))
-    .sort((a, b) => {
-      const ka = splitSortKey(a)
-      const kb = splitSortKey(b)
-      return ka[0] - kb[0] || ka[1] - kb[1] || ka[2].localeCompare(kb[2])
-    })
-    .map((s) => ({ value: s, label: splitSeasonLabel(s) }))
+  return combinedSplitFilterValues(catalogSplits, year).map((value) => ({
+    value,
+    label: splitSeasonLabel(value),
+  }))
 }
 
-/** Main dashboard: use full split label when multiple years are selected (avoids duplicate "Spring"). */
+/** Main dashboard split filter — combined groups when a single year is selected. */
 export function mainTabSplitOptions(
   catalogSplits: string[],
   selectedYears: string[],
 ): SplitOption[] {
-  const useFullLabel = selectedYears.length > 1
+  if (selectedYears.includes('ALL')) {
+    return canonicalSeasonsInCatalog(catalogSplits).map((season) => ({
+      value: season,
+      label: season,
+    }))
+  }
+  if (selectedYears.length === 1) {
+    return combinedSplitFilterValues(catalogSplits, selectedYears[0]!).map((value) => ({
+      value,
+      label: splitSeasonLabel(value),
+    }))
+  }
   return catalogSplits.map((s) => ({
     value: s,
-    label: useFullLabel ? s : splitSeasonLabel(s),
+    label: s,
   }))
 }
 
@@ -75,13 +89,34 @@ export function resolveSplitLabelsForMerge(
     return catalogSplits.filter((s) => s.startsWith(`${year} `))
   }
 
-  // Canonical season name (e.g. "Spring") when year is ALL or specific year
-  if (!/^\d{4}/.test(split)) {
-    return catalogSplits.filter((s) => {
+  let base: string[] = []
+
+  // Combined group leader when year is ALL (e.g. "Spring" → all Spring+MSI across years).
+  if (!/^\d{4}/.test(split) && isAllYear) {
+    for (const group of COMBINED_SPLIT_GROUPS) {
+      if (group.filterValue !== split) continue
+      base = catalogSplits.filter((s) =>
+        (group.catalogSeasons as readonly string[]).includes(parseCanonicalSplit(s).season),
+      )
+      break
+    }
+    if (!base.length) {
+      base = catalogSplits.filter((s) => parseCanonicalSplit(s).season === split)
+    }
+  } else if (!/^\d{4}/.test(split)) {
+    // Canonical season name with a specific year (e.g. "Spring" + year 2026).
+    base = catalogSplits.filter((s) => {
       if (!isAllYear && !s.startsWith(`${year} `)) return false
-      return seasonFromSplitLabel(s) === split
+      const { season } = parseCanonicalSplit(s)
+      const group = COMBINED_SPLIT_GROUPS.find((g) => g.filterValue === split)
+      if (group) return (group.catalogSeasons as readonly string[]).includes(season)
+      return season === split
     })
+  } else if (catalogSplits.includes(split)) {
+    base = [split]
+  } else {
+    base = [split]
   }
 
-  return catalogSplits.includes(split) ? [split] : [split]
+  return expandCombinedSplitLabels(catalogSplits, base)
 }

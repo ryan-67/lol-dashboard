@@ -246,6 +246,22 @@ function inferOpponentFromCatalog(
   return other ?? null
 }
 
+function inferOpponentFromRoster(
+  g: PlayerGameLog,
+  playerTeam: string,
+  players: Player[],
+): string | null {
+  const trimmed = g.opponent?.trim()
+  if (trimmed) return trimmed
+  if (!g.gameId) return null
+  for (const p of players) {
+    if (p.team === playerTeam) continue
+    const match = (p.gameLog ?? []).find((pg) => pg.gameId === g.gameId)
+    if (match) return p.team
+  }
+  return null
+}
+
 export function collectParsedGames(
   players: Player[],
   options?: {
@@ -268,7 +284,9 @@ export function collectParsedGames(
       if (seen.has(id)) continue
       seen.add(id)
 
-      const opponent = inferOpponentFromCatalog(g, player.team, gameCatalog)
+      const opponent =
+        inferOpponentFromCatalog(g, player.team, gameCatalog) ??
+        inferOpponentFromRoster(g, player.team, players)
       if (!opponent) continue
       const won = g.result === 1
       const winner = won ? player.team : opponent

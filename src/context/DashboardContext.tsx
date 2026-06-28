@@ -15,6 +15,7 @@ import {
 } from '../hooks/useDashboardData'
 import { mergeSlicesFromFilters, mergeWeeklyHubFromFilters, TIER1_LEAGUES, type OEStoreMeta } from '../lib/mergeSlices'
 import { pickDefaultDashboardSplit } from '../lib/splitSelection'
+import { combinedSplitFilterValues, normalizeToCombinedFilterValue } from '../lib/splitGroups'
 
 interface DashboardContextValue {
   data: DashboardData | null
@@ -100,7 +101,12 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
 
   const splitOptions = useMemo(() => {
     if (!meta) return []
-    if (selectedYears.includes('ALL')) return meta.splits
+    if (selectedYears.includes('ALL')) {
+      return ['ALL', ...combinedSplitFilterValues(meta.splits, DEFAULT_YEAR)]
+    }
+    if (selectedYears.length === 1) {
+      return ['ALL', ...combinedSplitFilterValues(meta.splits, selectedYears[0]!)]
+    }
     return meta.splits.filter((splitLabel) =>
       selectedYears.some((y) => splitLabel.startsWith(`${y} `)),
     )
@@ -150,6 +156,10 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
     if (!selectedYears.some((y) => years.includes(y))) {
       setSelectedYears([DEFAULT_YEAR])
     }
+  }, [meta, years, selectedYears, setSelectedYears])
+
+  useEffect(() => {
+    if (!meta) return
     if (selectedSplits.includes('ALL')) return
     const valid = selectedSplits.filter((s) => splitOptions.includes(s))
     if (!valid.length && splitOptions.length) {
@@ -159,6 +169,16 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
       setSelectedSplits(valid)
     }
   }, [meta, store, years, selectedYears, selectedSplits, splitOptions, setSelectedYears, setSelectedSplits])
+
+  useEffect(() => {
+    if (!meta || selectedSplits.includes('ALL')) return
+    const current = selectedSplits[0]
+    if (!current) return
+    const normalized = normalizeToCombinedFilterValue(meta.splits, current)
+    if (normalized !== current && splitOptions.includes(normalized)) {
+      setSelectedSplits([normalized])
+    }
+  }, [meta, selectedSplits, splitOptions, setSelectedSplits])
 
   useEffect(() => {
     if (!store || !meta || splitInitialized.current || userPickedSplit.current) return
