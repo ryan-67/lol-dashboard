@@ -70,3 +70,16 @@ export function eligibleRadarMetrics<T extends { key: string }>(
 ): T[] {
   return metrics.filter((m) => isStatEligibleForPlayer(player, m.key, cohort))
 }
+
+/** True when a player has real tracked data for a partial-coverage metric (not a 0-fill). */
+export function playerContributesToCohortAverage(
+  player: Player,
+  key: PartialCoverageMetricKey | string,
+  cohort: Player[] = [],
+): boolean {
+  if (!PARTIAL_COVERAGE_METRICS.includes(key as PartialCoverageMetricKey)) return true
+  const log = player.gameLog ?? []
+  if (log.length) return log.some((g) => isGameStatPresent(g, key, cohort))
+  const value = player[key as keyof Player]
+  return typeof value === 'number' && !Number.isNaN(value)
+}

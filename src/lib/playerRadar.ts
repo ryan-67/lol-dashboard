@@ -2,6 +2,7 @@ import type { Player, PlayerGameLog } from '../hooks/useDashboardData'
 import {
   isGameStatPresent,
   isStatEligibleForPlayer,
+  playerContributesToCohortAverage,
 } from './statAvailability'
 import {
   ADVANCED_METRICS_BY_ROLE,
@@ -334,6 +335,7 @@ export function buildRadarSeries(
   const metrics = ROLE_METRICS[role]
   return metrics.map((def) => {
     const cohortValues = cohort
+      .filter((p) => playerContributesToCohortAverage(p, def.key, cohort))
       .map((p) => getMetricValue(p, def.key, { cohort, allowMissing: true }))
       .filter((v): v is number => v != null)
     const playerRaw = getMetricValue(player, def.key, { cohort, allowMissing: true })
@@ -396,6 +398,7 @@ export function highestDeltaStatForGame(
       ) ||
       avgMetric(
         cohort
+          .filter((c) => playerContributesToCohortAverage(c, def.key, cohort))
           .map((c) => getMetricValue(c, def.key, { cohort, allowMissing: true }))
           .filter((v): v is number => v != null),
       )
