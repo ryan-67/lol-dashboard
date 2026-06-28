@@ -34,7 +34,13 @@ function headers(apiKey: string): HeadersInit {
   };
 }
 
-export async function embedText(apiKey: string, text: string): Promise<number[]> {
+import type { UsageTracker } from "./usageTracker.ts";
+
+export async function embedText(
+  apiKey: string,
+  text: string,
+  usageTracker?: UsageTracker,
+): Promise<number[]> {
   const response = await fetch(OPENROUTER_EMBED_URL, {
     method: "POST",
     headers: headers(apiKey),
@@ -49,6 +55,7 @@ export async function embedText(apiKey: string, text: string): Promise<number[]>
   }
 
   const json = (await response.json()) as EmbeddingResponse;
+  usageTracker?.add(json);
   const vector = json.data?.[0]?.embedding;
   if (!vector) {
     throw new Error(json.error?.message ?? "Embedding response missing vector");
@@ -60,6 +67,7 @@ export async function embedText(apiKey: string, text: string): Promise<number[]>
 export async function completeOnce(
   apiKey: string,
   request: ChatRequest,
+  usageTracker?: UsageTracker,
 ): Promise<string> {
   const response = await fetch(OPENROUTER_CHAT_URL, {
     method: "POST",
@@ -72,6 +80,7 @@ export async function completeOnce(
   }
 
   const json = await response.json();
+  usageTracker?.add(json);
   return String(json?.choices?.[0]?.message?.content ?? "").trim();
 }
 

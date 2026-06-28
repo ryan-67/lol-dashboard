@@ -53,17 +53,14 @@ function getFunctionUrl(): string {
 function mapHttpError(status: number): string {
   if (status === 401) return 'session expired — log in again.'
   if (status === 403) return 'subscription required — upgrade to chat with nucky.'
-  if (status === 429) return 'daily limit reached — try again tomorrow.'
+  if (status === 429) return 'monthly usage limit reached — check your profile for reset date.'
   if (status >= 500) return 'server error — try again in a moment.'
   return `request failed (${status}). try again.`
 }
 
 function mapSseError(event: AgentErrorEvent): string {
   if (event.code === 'quota_exceeded') {
-    const resetHint = event.reset_at
-      ? ` resets ${new Date(event.reset_at).toLocaleString(undefined, { dateStyle: 'short', timeStyle: 'short' })}.`
-      : ' try again tomorrow.'
-    return event.message ?? `daily limit reached —${resetHint}`
+    return event.message ?? 'you\'ve hit your usage limit for the month.'
   }
   if (event.code === 'unauthorized') return 'session expired — log in again.'
   if (event.code === 'forbidden') return 'subscription required — upgrade to chat with nucky.'

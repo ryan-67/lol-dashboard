@@ -1,4 +1,5 @@
 import { completeOnce } from "./openrouter.ts";
+import type { UsageTracker } from "./usageTracker.ts";
 import { MODEL_JSON } from "./models.ts";
 import {
   isAllowlisted,
@@ -36,6 +37,7 @@ export async function extractCandidateFacts(
   apiKey: string,
   snippets: TavilyResult[],
   question: string,
+  usageTracker?: UsageTracker,
 ): Promise<CandidateFact[]> {
   if (!snippets.length) return [];
 
@@ -52,7 +54,7 @@ export async function extractCandidateFacts(
       ],
       temperature: 0,
       max_tokens: 400,
-    });
+    }, usageTracker);
     const start = raw.indexOf("{");
     const end = raw.lastIndexOf("}");
     if (start === -1 || end === -1) return [];

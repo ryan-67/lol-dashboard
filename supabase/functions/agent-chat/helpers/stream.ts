@@ -1,6 +1,7 @@
 import type { IntentPlan } from "./classify.ts";
 import { MODEL_COMPLEX_FALLBACK } from "./models.ts";
 import { openRouterStream } from "./openrouter.ts";
+import type { UsageTracker } from "./usageTracker.ts";
 
 function sseLine(payload: string): string {
   return `data: ${payload}\n\n`;
@@ -60,6 +61,7 @@ async function streamWithModel(args: {
   writer: WritableStreamDefaultWriter<Uint8Array>;
   maxTokens?: number;
   frequencyPenalty?: number;
+  usageTracker?: UsageTracker;
 }): Promise<string> {
   const encoder = new TextEncoder();
   let fullText = "";
@@ -93,6 +95,7 @@ async function streamWithModel(args: {
 
       try {
         const json = JSON.parse(data);
+        args.usageTracker?.add(json);
         const piece = extractStreamPiece(json);
         if (!piece) continue;
 
@@ -121,6 +124,7 @@ export async function streamFinalAnswer(args: {
   writer: WritableStreamDefaultWriter<Uint8Array>;
   maxTokens?: number;
   frequencyPenalty?: number;
+  usageTracker?: UsageTracker;
 }): Promise<string> {
   try {
     return await streamWithModel({ ...args, model: args.model });

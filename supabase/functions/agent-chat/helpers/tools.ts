@@ -1,6 +1,7 @@
 import type { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { MODEL_JSON } from "./models.ts";
 import { embedText, completeOnce } from "./openrouter.ts";
+import type { UsageTracker } from "./usageTracker.ts";
 import { SQL_GENERATION_SYSTEM_PROMPT, schemaContext } from "./prompts.ts";
 
 const SQL_BLOCKLIST = [
@@ -52,6 +53,7 @@ export interface VectorSearchOptions {
   filterSource?: string | null;
   filterKind?: string | null;
   matchCount?: number;
+  usageTracker?: UsageTracker;
 }
 
 export async function vectorSearch(
@@ -61,7 +63,7 @@ export async function vectorSearch(
   options: VectorSearchOptions = {},
 ): Promise<ToolResult> {
   try {
-    const embedding = await embedText(apiKey, query);
+    const embedding = await embedText(apiKey, query, options.usageTracker);
     const matchCount = options.matchCount ?? 10;
     const threshold = 0.32;
 
@@ -128,6 +130,7 @@ async function generateSql(
   apiKey: string,
   question: string,
   schema: string,
+  usageTracker?: UsageTracker,
 ): Promise<string> {
   const response = await completeOnce(apiKey, {
     model: MODEL_JSON,
@@ -137,7 +140,7 @@ async function generateSql(
     ],
     temperature: 0,
     max_tokens: 300,
-  });
+  }, usageTracker);
   return response.replace(/^```sql\s*/i, "").replace(/```$/i, "").trim();
 }
 
@@ -145,10 +148,11 @@ export async function sqlQuery(
   service: SupabaseClient,
   apiKey: string,
   naturalLanguageQuestion: string,
+  usageTracker?: UsageTracker,
 ): Promise<ToolResult> {
   try {
     const schema = schemaContext(await inferOeDataShape(service));
-    const sql = await generateSql(apiKey, naturalLanguageQuestion, schema);
+    const sql = await generateSql(apiKey, naturalLanguageQuestion, schema, usageTracker);
 
     const check = validateSelectSql(sql);
     if (!check.ok) {

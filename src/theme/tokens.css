@@ -2834,6 +2834,54 @@ b,
   color: var(--text-secondary);
 }
 
+.profile-usage {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin-top: 0.35rem;
+}
+
+.profile-usage-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.profile-usage-label,
+.profile-usage-pct,
+.profile-usage-reset {
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  letter-spacing: 0.02em;
+}
+
+.profile-usage-label {
+  color: var(--text-secondary);
+  text-transform: lowercase;
+}
+
+.profile-usage-pct {
+  color: var(--accent);
+}
+
+.profile-usage-bar {
+  height: 6px;
+  background: var(--bg-base);
+  border: 1px solid var(--border-subtle);
+}
+
+.profile-usage-bar-fill {
+  height: 100%;
+  background: var(--accent);
+  transition: width 0.3s ease;
+}
+
+.profile-usage-reset {
+  margin: 0;
+  color: var(--text-tertiary);
+}
+
 /* Team comparison section */
 .team-comparison-section {
   position: relative;

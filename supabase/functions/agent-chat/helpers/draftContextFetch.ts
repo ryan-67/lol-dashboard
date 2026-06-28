@@ -11,6 +11,7 @@ import {
   type SliceBundle,
 } from "./oeData.ts";
 import { vectorSearch } from "./tools.ts";
+import type { UsageTracker } from "./usageTracker.ts";
 
 const RECENT_SPLIT_LIMIT = 4;
 
@@ -229,6 +230,7 @@ export async function fetchDraftAnalysisContext(
   draft: DraftExtraction,
   league: string,
   split: string | undefined,
+  usageTracker?: UsageTracker,
 ): Promise<{ matchStats: Record<string, unknown>; ragContext: string }> {
   const bundles = await fetchRecentBundles(service, league, split ?? "");
   const primary = bundles[0] ?? await fetchSliceBundle(service, league, split);
@@ -248,7 +250,7 @@ export async function fetchDraftAnalysisContext(
 
   const ragChunks: string[] = [];
   for (const q of ragQueries) {
-    const vec = await vectorSearch(service, openrouterApiKey, q, { matchCount: 6 });
+    const vec = await vectorSearch(service, openrouterApiKey, q, { matchCount: 6, usageTracker });
     if (vec.ok && Array.isArray(vec.data)) {
       for (const chunk of vec.data as Array<{ content: string; source: string; title?: string }>) {
         ragChunks.push(`[${chunk.source}${chunk.title ? ` — ${chunk.title}` : ""}] ${chunk.content}`);

@@ -1,6 +1,7 @@
 import type { OpenRouterChatMessage } from "./openrouter.ts";
 import { MODEL_JSON } from "./models.ts";
 import { completeOnce } from "./openrouter.ts";
+import type { UsageTracker } from "./usageTracker.ts";
 import { HISTORY_WINDOW } from "./historyWindow.ts";
 import { resolveThreadIntent, shouldTreatAsLolesports } from "./threadIntent.ts";
 import { isWorldsHistoryQuestion } from "./worldsHistory.ts";
@@ -257,6 +258,7 @@ export async function classifyScope(
   apiKey: string,
   message: string,
   history: OpenRouterChatMessage[] = [],
+  usageTracker?: UsageTracker,
 ): Promise<ScopePlan> {
   const thread = resolveThreadIntent(message, history);
 
@@ -376,7 +378,7 @@ export async function classifyScope(
       ],
       temperature: 0,
       max_tokens: 180,
-    });
+    }, usageTracker);
     const start = raw.indexOf("{");
     const end = raw.lastIndexOf("}");
     if (start === -1 || end === -1) return quick;

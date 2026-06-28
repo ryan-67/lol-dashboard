@@ -2,6 +2,7 @@ import { CLASSIFICATION_SYSTEM_PROMPT } from "./prompts.ts";
 import { isGameTheoryQuestion } from "./scope.ts";
 import { MODEL_COMPLEX, MODEL_JSON, MODEL_SIMPLE } from "./models.ts";
 import { completeOnce, type OpenRouterChatMessage } from "./openrouter.ts";
+import type { UsageTracker } from "./usageTracker.ts";
 
 export interface IntentPlan {
   needs_sql: boolean;
@@ -42,6 +43,7 @@ export async function classifyIntent(
   message: string,
   history: OpenRouterChatMessage[] = [],
   options: { needsTools?: boolean; needsRag?: boolean } = {},
+  usageTracker?: UsageTracker,
 ): Promise<IntentPlan> {
   if (isGameTheoryQuestion(message)) {
     return {
@@ -108,7 +110,7 @@ export async function classifyIntent(
       ],
       temperature: 0,
       max_tokens: 220,
-    });
+    }, usageTracker);
 
     const start = raw.indexOf("{");
     const end = raw.lastIndexOf("}");

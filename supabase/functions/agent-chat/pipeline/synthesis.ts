@@ -19,6 +19,7 @@ import { writeBackVerifiedFacts } from "../helpers/ragWriteback.ts";
 import { isSentimentDomain, rankSnippets } from "../helpers/tavilySearch.ts";
 import { shouldRefuseForeignEntity, foreignEntityRefusal } from "../helpers/entityGuard.ts";
 import type { Evidence, HistoryMessage, SynthesisResult } from "./types.ts";
+import type { UsageTracker } from "../helpers/usageTracker.ts";
 
 export interface SynthesisDeps {
   serviceClient: SupabaseClient;
@@ -28,12 +29,14 @@ export interface SynthesisDeps {
   evidence: Evidence;
   chartPrefix: string;
   writer: WritableStreamDefaultWriter<Uint8Array>;
+  usageTracker?: UsageTracker;
 }
 
 /** Cross-verify factual web snippets; exclude reddit/sentiment from write-back. */
 async function crossVerify(
   apiKey: string,
   evidence: Evidence,
+  usageTracker?: UsageTracker,
 ): Promise<{ block: string; verified: VerifiedFact[] }> {
   const factSnippets = evidence.webSnippets.filter((s) => !isSentimentDomain(s.url));
   if (!factSnippets.length) return { block: "", verified: [] };
@@ -43,6 +46,7 @@ async function crossVerify(
     apiKey,
     rankedSnippets,
     evidence.webFactQuery,
+    usageTracker,
   );
   const verified = candidates
     .map((c) => verifyFact(c, rankedSnippets))
@@ -71,7 +75,8 @@ function resolveAnalysisIntent(evidence: Evidence, message: string) {
 }
 
 export async function synthesize(deps: SynthesisDeps): Promise<SynthesisResult> {
-  const { serviceClient, openrouterApiKey, message, history, evidence, chartPrefix, writer } = deps;
+  const { serviceClient, openrouterApiKey, message, history, evidence, chartPrefix, writer, usageTracker } =
+    deps;
 
   // Pre-generation guard: refuse foreign-game entities before stats synthesis.
   const foreignHit = shouldRefuseForeignEntity(message);
@@ -81,7 +86,7 @@ export async function synthesize(deps: SynthesisDeps): Promise<SynthesisResult> 
     return { assistantText: chartPrefix + refusal };
   }
 
-  const { block: webVerifiedBlock, verified } = await crossVerify(openrouterApiKey, evidence);
+  const { block: webVerifiedBlock, verified } = await crossVerify(openrouterApiKey, evidence, usageTracker);
   const analysisIntent = resolveAnalysisIntent(evidence, message);
 
   const promptCtx = {
@@ -129,6 +134,7 @@ export async function synthesize(deps: SynthesisDeps): Promise<SynthesisResult> 
     writer,
     maxTokens: evidence.subjectiveIntent ? 650 : 1000,
     frequencyPenalty: evidence.subjectiveIntent ? 0.5 : 0.3,
+    usageTracker,
   });
 
   let assistantText = chartPrefix + answer;
@@ -142,6 +148,7 @@ export async function synthesize(deps: SynthesisDeps): Promise<SynthesisResult> 
       openrouterApiKey,
       evidence.resolvedSplit,
       verified,
+      usageTracker,
     );
   }
 

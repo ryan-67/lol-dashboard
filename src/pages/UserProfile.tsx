@@ -8,6 +8,12 @@ import { supabase } from '../lib/supabaseClient'
 import { scrollEntrance, scrollEntranceStagger } from '../theme/animations'
 import { formatProfileDate } from '../lib/format'
 import { useTimezone } from '../context/TimezoneContext'
+import {
+  fetchMyAgentUsage,
+  formatUsagePercent,
+  formatUsageResetDate,
+  type AgentUsageMonthly,
+} from '../lib/agentUsage'
 
 interface ProfileSettingsRow {
   username: string | null
@@ -43,6 +49,7 @@ export default function UserProfile() {
   const [subscription, setSubscription] = useState<SubscriptionRow | null>(null)
   const [savedMsg, setSavedMsg] = useState<string | null>(null)
   const [billingMsg, setBillingMsg] = useState<string | null>(null)
+  const [agentUsage, setAgentUsage] = useState<AgentUsageMonthly | null>(null)
 
   const playerOptions = useMemo(() => {
     return Array.from(new Set(filteredPlayers.map((player) => player.name).filter(Boolean))).sort((a, b) =>
@@ -112,6 +119,15 @@ export default function UserProfile() {
     setSubscription(subRow)
     setIsSubscribed(Boolean(row?.is_subscribed) || activeSub)
     setPlan(row?.plan === 'pro' || activeSub ? 'pro' : 'free')
+
+    const subscribed = Boolean(row?.is_subscribed) || activeSub
+    if (subscribed) {
+      const usage = await fetchMyAgentUsage()
+      setAgentUsage(usage)
+    } else {
+      setAgentUsage(null)
+    }
+
     setLoading(false)
   }, [user])
 
@@ -184,6 +200,10 @@ export default function UserProfile() {
   }
 
   const renewalDate = formatDate(subscription?.current_period_end ?? null)
+  const usagePercent =
+    agentUsage != null
+      ? formatUsagePercent(agentUsage.tokens_used, agentUsage.tokens_limit)
+      : 0
 
   return (
     <div className="profile-shell page-section space-y-6">
@@ -205,6 +225,27 @@ export default function UserProfile() {
             <p className="text-xs text-[var(--text-secondary)]">
               {subscription?.cancel_at_period_end ? 'access until' : 'renews'} {renewalDate}
             </p>
+          )}
+          {isSubscribed && agentUsage && (
+            <div className="profile-usage">
+              <div className="profile-usage-header">
+                <span className="profile-usage-label">nuckyAI usage this month</span>
+                <span className="profile-usage-pct">{usagePercent}%</span>
+              </div>
+              <div
+                className="profile-usage-bar"
+                role="progressbar"
+                aria-valuenow={usagePercent}
+                aria-valuemin={0}
+                aria-valuemax={100}
+                aria-label="nuckyAI monthly token usage"
+              >
+                <div className="profile-usage-bar-fill" style={{ width: `${usagePercent}%` }} />
+              </div>
+              <p className="profile-usage-reset">
+                resets {formatUsageResetDate(agentUsage.reset_at)}
+              </p>
+            </div>
           )}
           <div className="flex items-center gap-3 pt-1">
             {isSubscribed ? (

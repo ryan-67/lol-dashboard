@@ -14,6 +14,7 @@ import { classifyScope, offTopicRefusal } from "../helpers/scope.ts";
 import { shouldRefuseForeignEntity, foreignEntityRefusal } from "../helpers/entityGuard.ts";
 import { resolveThreadIntent, shouldTreatAsLolesports } from "../helpers/threadIntent.ts";
 import type { GuardrailResult, HistoryMessage } from "./types.ts";
+import type { UsageTracker } from "../helpers/usageTracker.ts";
 
 /**
  * Aggressive off-topic denylist — the stuff nucky should never spend tokens on.
@@ -30,6 +31,7 @@ export async function runGuardrail(
   apiKey: string,
   message: string,
   history: HistoryMessage[],
+  usageTracker?: UsageTracker,
 ): Promise<GuardrailResult> {
   const thread = resolveThreadIntent(message, history);
 
@@ -73,7 +75,7 @@ export async function runGuardrail(
   }
 
   // Nuanced routing — scope classifier handles in-thread refusals and data-need flags.
-  const scope = await classifyScope(apiKey, message, history);
+  const scope = await classifyScope(apiKey, message, history, usageTracker);
   if (scope.scope === "off_topic") {
     return {
       allowed: false,

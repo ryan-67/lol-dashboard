@@ -35,6 +35,7 @@ import {
   lookupPlayersInMessage,
 } from "../helpers/currentContext.ts";
 import type { Evidence, GuardrailResult, HistoryMessage, ResolvedFilters } from "./types.ts";
+import type { UsageTracker } from "../helpers/usageTracker.ts";
 import { detectAnalysisIntent } from "../helpers/prompts.ts";
 import { parseDraftExtractionBlock } from "../helpers/draftTypes.ts";
 import { fetchDraftAnalysisContext } from "../helpers/draftContextFetch.ts";
@@ -264,10 +265,11 @@ export interface DecideDeps {
   guardrail: GuardrailResult;
   filters: ResolvedFilters;
   clientNow?: string;
+  usageTracker?: UsageTracker;
 }
 
 export async function decideAndFetch(deps: DecideDeps): Promise<Evidence> {
-  const { serviceClient, openrouterApiKey, tavilyApiKey, message, history, guardrail, filters } =
+  const { serviceClient, openrouterApiKey, tavilyApiKey, message, history, guardrail, filters, usageTracker } =
     deps;
   const { scope, thread, queryForTools } = guardrail;
 
@@ -329,6 +331,7 @@ export async function decideAndFetch(deps: DecideDeps): Promise<Evidence> {
       draftExtracted,
       filters.league,
       filters.split,
+      usageTracker,
     );
     matchStats = draftCtx.matchStats;
     externalContext = draftCtx.ragContext +
@@ -401,10 +404,10 @@ export async function decideAndFetch(deps: DecideDeps): Promise<Evidence> {
   const plan = await classifyIntent(openrouterApiKey, queryForTools, history, {
     needsTools: runTools,
     needsRag: runRag,
-  });
+  }, usageTracker);
 
   if (plan.needs_sql && runTools && !isCompare && !route.skipSql) {
-    const sql = await sqlQuery(serviceClient, openrouterApiKey, queryForTools);
+    const sql = await sqlQuery(serviceClient, openrouterApiKey, queryForTools, usageTracker);
     if (sql.ok) {
       matchStats.sql = sql.data;
       sources.oracleElixir = true;
@@ -430,7 +433,10 @@ export async function decideAndFetch(deps: DecideDeps): Promise<Evidence> {
           filterKind: route.vector.filterKind ?? (rosterDepthIntent ? "team" : "player"),
         }
       : route.vector;
-    const vec = await vectorSearch(serviceClient, openrouterApiKey, queryForTools, vectorRoute);
+    const vec = await vectorSearch(serviceClient, openrouterApiKey, queryForTools, {
+      ...vectorRoute,
+      usageTracker,
+    });
     if (vec.ok) {
       const chunks =
         (vec.data as Array<{ content: string; source: string; title?: string }> | undefined) ?? [];

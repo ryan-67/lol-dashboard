@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { embedText } from "./openrouter.ts";
+import type { UsageTracker } from "./usageTracker.ts";
 import type { VerifiedFact } from "./factVerifier.ts";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -36,11 +37,15 @@ async function factHash(entityId: string, factKind: string, split: string): Prom
     .slice(0, 32);
 }
 
-async function embedWithRetry(apiKey: string, text: string): Promise<number[]> {
+async function embedWithRetry(
+  apiKey: string,
+  text: string,
+  usageTracker?: UsageTracker,
+): Promise<number[]> {
   let lastErr: Error | null = null;
   for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
     try {
-      const vector = await embedText(apiKey, text);
+      const vector = await embedText(apiKey, text, usageTracker);
       if (vector.length !== EMBEDDING_DIM) {
         throw new Error(`unexpected embedding dim ${vector.length}, expected ${EMBEDDING_DIM}`);
       }
@@ -59,6 +64,7 @@ export interface WritebackInput {
   fact: VerifiedFact;
   apiKey: string;
   split: string;
+  usageTracker?: UsageTracker;
 }
 
 /**
@@ -67,7 +73,7 @@ export interface WritebackInput {
  */
 export async function upsertVerifiedFact(
   service: SupabaseClient,
-  { fact, apiKey, split }: WritebackInput,
+  { fact, apiKey, split, usageTracker }: WritebackInput,
 ): Promise<WritebackResult> {
   if (!fact.verified) {
     return { ok: false, skipped: true, error: "not verified" };
@@ -81,7 +87,7 @@ export async function upsertVerifiedFact(
   let lastErr: Error | null = null;
   for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
     try {
-      const embedding = await embedWithRetry(apiKey, fact.fact);
+      const embedding = await embedWithRetry(apiKey, fact.fact, usageTracker);
 
       // Roster/tournament facts go stale fast (30d); career milestones are durable (90d).
       const ttlDays = fact.factKind === "roster" ? 30 : 90;
@@ -140,6 +146,7 @@ export async function writeBackVerifiedFacts(
   apiKey: string,
   split: string,
   facts: VerifiedFact[],
+  usageTracker?: UsageTracker,
 ): Promise<WritebackBatchResult> {
   const results: WritebackResult[] = [];
   let succeeded = 0;
@@ -147,7 +154,7 @@ export async function writeBackVerifiedFacts(
   let skipped = 0;
 
   for (const fact of facts) {
-    const result = await upsertVerifiedFact(service, { fact, apiKey, split });
+    const result = await upsertVerifiedFact(service, { fact, apiKey, split, usageTracker });
     results.push(result);
     if (result.skipped) skipped++;
     else if (result.ok) succeeded++;

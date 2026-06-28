@@ -120,7 +120,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
         </NavLink>
         {blocked && (
           <div className="pointer-events-none absolute top-full left-0 mt-1 hidden group-hover:block border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-2 py-1 text-[11px] text-[var(--text-secondary)] whitespace-nowrap z-50">
-            nuckyAI is only available with a subscription
+            nuckyAI beta is now open
           </div>
         )}
       </div>

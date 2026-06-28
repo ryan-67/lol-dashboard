@@ -16,6 +16,7 @@ import {
   draftExtractionSummary,
   formatDraftExtractionBlock,
 } from "./helpers/draftTypes.ts";
+import { UsageTracker } from "./helpers/usageTracker.ts";
 
 interface ChatRequestBody extends DashboardFilters {
   message?: string;
@@ -27,8 +28,7 @@ const encoder = new TextEncoder();
 
 // Beta limits — keep in sync with src/lib/nuckyAiBilling.ts ($3.99/mo tier).
 const USAGE_LIMITS_ENABLED = true;
-const DAILY_LIMIT = 15;
-const MONTHLY_LIMIT = 200;
+const MONTHLY_TOKEN_LIMIT = 1_000_000;
 
 function getClientIp(req: Request): string {
   const forwarded = req.headers.get("x-forwarded-for") ?? "";
@@ -41,59 +41,50 @@ function getClientIp(req: Request): string {
   );
 }
 
-async function getUsageCounts(
+function getMonthResetAt(): Date {
+  const now = new Date();
+  return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1));
+}
+
+function formatQuotaResetDate(date: Date): string {
+  return date.toLocaleDateString("en-US", {
+    month: "long",
+    day: "numeric",
+    year: "numeric",
+    timeZone: "UTC",
+  });
+}
+
+async function getMonthlyTokenUsage(
   serviceClient: ReturnType<typeof createServiceClient>,
   userId: string,
-  ipAddress: string,
-): Promise<{ dailyUser: number; dailyIp: number; monthlyUser: number; monthlyIp: number }> {
+): Promise<number> {
   const now = new Date();
-  const dailySince = new Date(now);
-  dailySince.setUTCHours(0, 0, 0, 0);
   const monthlySince = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
 
-  const [dailyUserRes, dailyIpRes, monthlyUserRes, monthlyIpRes] = await Promise.all([
-    serviceClient
-      .from("agent_usage_events")
-      .select("id", { count: "exact", head: true })
-      .eq("user_id", userId)
-      .gte("created_at", dailySince.toISOString()),
-    serviceClient
-      .from("agent_usage_events")
-      .select("id", { count: "exact", head: true })
-      .eq("ip_address", ipAddress)
-      .gte("created_at", dailySince.toISOString()),
-    serviceClient
-      .from("agent_usage_events")
-      .select("id", { count: "exact", head: true })
-      .eq("user_id", userId)
-      .gte("created_at", monthlySince.toISOString()),
-    serviceClient
-      .from("agent_usage_events")
-      .select("id", { count: "exact", head: true })
-      .eq("ip_address", ipAddress)
-      .gte("created_at", monthlySince.toISOString()),
-  ]);
+  const { data, error } = await serviceClient
+    .from("agent_usage_events")
+    .select("tokens_used")
+    .eq("user_id", userId)
+    .gte("created_at", monthlySince.toISOString());
 
-  if (dailyUserRes.error || dailyIpRes.error || monthlyUserRes.error || monthlyIpRes.error) {
+  if (error) {
     throw new Error("Failed to read usage limits");
   }
 
-  return {
-    dailyUser: dailyUserRes.count ?? 0,
-    dailyIp: dailyIpRes.count ?? 0,
-    monthlyUser: monthlyUserRes.count ?? 0,
-    monthlyIp: monthlyIpRes.count ?? 0,
-  };
+  return (data ?? []).reduce((sum, row) => sum + (Number(row.tokens_used) || 0), 0);
 }
 
 async function recordUsage(
   serviceClient: ReturnType<typeof createServiceClient>,
   userId: string,
   ipAddress: string,
+  tokensUsed: number,
 ): Promise<void> {
   const { error } = await serviceClient.from("agent_usage_events").insert({
     user_id: userId,
     ip_address: ipAddress,
+    tokens_used: tokensUsed,
   });
   if (error) {
     throw new Error(`Failed to record usage: ${error.message}`);
@@ -164,6 +155,7 @@ Deno.serve(async (req) => {
   const ipAddress = getClientIp(req);
   let conversationId = "";
   let assistantText = "";
+  const usageTracker = new UsageTracker();
 
   const stream = new ReadableStream<Uint8Array>({
     start: async (controller) => {
@@ -176,16 +168,14 @@ Deno.serve(async (req) => {
 
       try {
         if (USAGE_LIMITS_ENABLED) {
-          const usage = await getUsageCounts(serviceClient, user.id, ipAddress);
-          if (usage.dailyUser >= DAILY_LIMIT || usage.dailyIp >= DAILY_LIMIT) {
-            const resetAt = new Date();
-            resetAt.setUTCDate(resetAt.getUTCDate() + 1);
-            resetAt.setUTCHours(0, 0, 0, 0);
+          const monthlyTokens = await getMonthlyTokenUsage(serviceClient, user.id);
+          if (monthlyTokens >= MONTHLY_TOKEN_LIMIT) {
+            const resetAt = getMonthResetAt();
             controller.enqueue(
               encoder.encode(
                 sseError(
                   "quota_exceeded",
-                  `daily limit reached (${DAILY_LIMIT} messages). try again tomorrow.`,
+                  `you've hit your usage limit for the month. your usage resets on ${formatQuotaResetDate(resetAt)}.`,
                   resetAt.toISOString(),
                 ),
               ),
@@ -193,19 +183,6 @@ Deno.serve(async (req) => {
             controller.enqueue(encoder.encode("data: [DONE]\n\n"));
             return;
           }
-          if (usage.monthlyUser >= MONTHLY_LIMIT || usage.monthlyIp >= MONTHLY_LIMIT) {
-            controller.enqueue(
-              encoder.encode(
-                sseError(
-                  "quota_exceeded",
-                  `monthly cap reached (${MONTHLY_LIMIT} messages). try again next month.`,
-                ),
-              ),
-            );
-            controller.enqueue(encoder.encode("data: [DONE]\n\n"));
-            return;
-          }
-          await recordUsage(serviceClient, user.id, ipAddress);
         }
 
         const conversation = await resolveConversation(
@@ -251,7 +228,12 @@ Deno.serve(async (req) => {
         }
 
         // ===== Layer 1: Guardrail Router (cheap refusal before any deep work) =====
-        const guardrail = await runGuardrail(openrouterApiKey, pipelineMessage, conversation.history);
+        const guardrail = await runGuardrail(
+          openrouterApiKey,
+          pipelineMessage,
+          conversation.history,
+          usageTracker,
+        );
         if (!guardrail.allowed) {
           assistantText = guardrail.refusal;
           await streamFallback(writer, assistantText);
@@ -269,6 +251,7 @@ Deno.serve(async (req) => {
           guardrail,
           filters,
           clientNow: body.client_now,
+          usageTracker,
         });
 
         // Stream the compare radar (if any) before the synthesized text.
@@ -285,6 +268,7 @@ Deno.serve(async (req) => {
           evidence,
           chartPrefix: evidence.chartPrefix,
           writer,
+          usageTracker,
         });
         assistantText = synthesis.assistantText;
       } catch (err) {
@@ -295,6 +279,13 @@ Deno.serve(async (req) => {
         await streamFallback(writer, fallback);
         assistantText = fallback;
       } finally {
+        if (USAGE_LIMITS_ENABLED && usageTracker.totalTokens > 0) {
+          try {
+            await recordUsage(serviceClient, user.id, ipAddress, usageTracker.totalTokens);
+          } catch {
+            // usage recording failure shouldn't break the stream
+          }
+        }
         if (conversationId) {
           try {
             await persistMessages(serviceClient, user.id, conversationId, message, assistantText);
