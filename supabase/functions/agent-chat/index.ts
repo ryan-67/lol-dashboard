@@ -26,8 +26,7 @@ interface ChatRequestBody extends DashboardFilters {
 const encoder = new TextEncoder();
 
 // Beta limits — keep in sync with src/lib/nuckyAiBilling.ts ($3.99/mo tier).
-// Set USAGE_LIMITS_ENABLED = true before enforcing in production/beta launch.
-const USAGE_LIMITS_ENABLED = false;
+const USAGE_LIMITS_ENABLED = true;
 const DAILY_LIMIT = 15;
 const MONTHLY_LIMIT = 200;
 
@@ -186,7 +185,7 @@ Deno.serve(async (req) => {
               encoder.encode(
                 sseError(
                   "quota_exceeded",
-                  "daily limit reached (25 requests). try again tomorrow.",
+                  `daily limit reached (${DAILY_LIMIT} messages). try again tomorrow.`,
                   resetAt.toISOString(),
                 ),
               ),
@@ -196,7 +195,12 @@ Deno.serve(async (req) => {
           }
           if (usage.monthlyUser >= MONTHLY_LIMIT || usage.monthlyIp >= MONTHLY_LIMIT) {
             controller.enqueue(
-              encoder.encode(sseError("quota_exceeded", "monthly cap reached (750 requests). try again next month.")),
+              encoder.encode(
+                sseError(
+                  "quota_exceeded",
+                  `monthly cap reached (${MONTHLY_LIMIT} messages). try again next month.`,
+                ),
+              ),
             );
             controller.enqueue(encoder.encode("data: [DONE]\n\n"));
             return;
