@@ -1,4 +1,4 @@
-import { createContext, useContext, useMemo, useEffect, useCallback, ReactNode } from 'react'
+import { createContext, useContext, useMemo, useEffect, useCallback, useRef, ReactNode } from 'react'
 import {
   useDashboardData,
   DashboardData,
@@ -14,7 +14,7 @@ import {
   isAllTier1Selected,
 } from '../hooks/useDashboardData'
 import { mergeSlicesFromFilters, mergeWeeklyHubFromFilters, TIER1_LEAGUES, type OEStoreMeta } from '../lib/mergeSlices'
-import { defaultMainTabSplit } from '../lib/splitSelection'
+import { pickDefaultDashboardSplit } from '../lib/splitSelection'
 
 interface DashboardContextValue {
   data: DashboardData | null
@@ -76,6 +76,8 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
   } = useDashboardData()
 
   const meta = catalog ?? store?.meta ?? null
+  const splitInitialized = useRef(false)
+  const userPickedSplit = useRef(false)
 
   const leagues = useMemo(() => {
     if (!meta) return ['All Tier 1', ...TIER1_LEAGUES]
@@ -121,17 +123,27 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
 
   const setSplit = useCallback(
     (s: string) => {
+      userPickedSplit.current = true
       setSelectedSplits(s === 'ALL' ? ['ALL'] : [s])
     },
     [setSelectedSplits],
   )
 
+  const toggleSplitChoice = useCallback(
+    (s: string) => {
+      userPickedSplit.current = true
+      toggleSplit(s)
+    },
+    [toggleSplit],
+  )
+
   const resetMainTabFilters = useCallback(() => {
     setSelectedLeagues(['All Tier 1'])
     setSelectedYears([DEFAULT_YEAR])
-    const split = defaultMainTabSplit(meta?.splits ?? [], DEFAULT_YEAR, DEFAULT_SPLIT)
+    const split = pickDefaultDashboardSplit(meta?.splits ?? [], store, DEFAULT_YEAR, DEFAULT_SPLIT)
+    userPickedSplit.current = false
     setSelectedSplits([split])
-  }, [meta, setSelectedLeagues, setSelectedYears, setSelectedSplits])
+  }, [meta, store, setSelectedLeagues, setSelectedYears, setSelectedSplits])
 
   useEffect(() => {
     if (!meta) return
@@ -141,12 +153,19 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
     if (selectedSplits.includes('ALL')) return
     const valid = selectedSplits.filter((s) => splitOptions.includes(s))
     if (!valid.length && splitOptions.length) {
-      const spring = splitOptions.find((s) => s.endsWith(' Spring')) ?? splitOptions[0]!
-      setSelectedSplits([spring])
+      const next = pickDefaultDashboardSplit(splitOptions, store, selectedYears[0] ?? DEFAULT_YEAR, DEFAULT_SPLIT)
+      setSelectedSplits([next])
     } else if (valid.length !== selectedSplits.length) {
       setSelectedSplits(valid)
     }
-  }, [meta, years, selectedYears, selectedSplits, splitOptions, setSelectedYears, setSelectedSplits])
+  }, [meta, store, years, selectedYears, selectedSplits, splitOptions, setSelectedYears, setSelectedSplits])
+
+  useEffect(() => {
+    if (!store || !meta || splitInitialized.current || userPickedSplit.current) return
+    splitInitialized.current = true
+    const best = pickDefaultDashboardSplit(meta.splits, store, DEFAULT_YEAR, DEFAULT_SPLIT)
+    setSelectedSplits([best])
+  }, [store, meta, setSelectedSplits])
 
   const data = useMemo(() => {
     if (!store) return null
@@ -185,7 +204,7 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
         selectedSplits,
         toggleLeague,
         toggleYear,
-        toggleSplit,
+        toggleSplit: toggleSplitChoice,
         resetMainTabFilters,
         filteredPlayers,
         filteredTeams,

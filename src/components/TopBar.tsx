@@ -1,8 +1,11 @@
+import { useLocation } from 'react-router-dom'
 import { useDashboard } from '../context/DashboardContext'
 import { formatRefreshTimestamp } from '../lib/format'
 import { FilterStripControls, FilterStripShell } from './FilterStrip'
 
 export default function TopBar() {
+  const location = useLocation()
+  const isOverview = location.pathname === '/'
   const {
     lastUpdated,
     leagues,
@@ -36,6 +39,7 @@ export default function TopBar() {
         toggleLeague={toggleLeague}
         toggleYear={toggleYear}
         toggleSplit={toggleSplit}
+        hideYearAndSplit={isOverview}
       />
     </FilterStripShell>
   )

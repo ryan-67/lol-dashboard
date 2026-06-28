@@ -18,6 +18,8 @@ export interface FilterStripValues {
   toggleLeague: (v: string) => void
   toggleYear: (v: string) => void
   toggleSplit: (v: string) => void
+  /** Overview hub only needs league — hide year/split selectors. */
+  hideYearAndSplit?: boolean
 }
 
 export function FilterStripControls({
@@ -30,6 +32,7 @@ export function FilterStripControls({
   toggleLeague,
   toggleYear,
   toggleSplit,
+  hideYearAndSplit = false,
 }: FilterStripValues) {
   const leagueLabel = leaguesToLeagueLabel(selectedLeagues)
   const yearLabel = yearsToLabel(selectedYears)
@@ -59,29 +62,33 @@ export function FilterStripControls({
           isAllSelected={isAllTier1Selected(selectedLeagues)}
         />
       </div>
-      <div className="flex items-center gap-2">
-        <span className="label-field">Year</span>
-        <MultiSelectDropdown
-          label="Year"
-          displayValue={yearLabel}
-          options={yearOptions}
-          selected={selectedYears}
-          onToggle={toggleYear}
-          minWidth={120}
-        />
-      </div>
-      <div className="flex items-center gap-2">
-        <span className="label-field">Split</span>
-        <MultiSelectDropdown
-          label="Split"
-          displayValue={splitLabel}
-          options={splitOptions}
-          selected={selectedSplits}
-          onToggle={toggleSplit}
-          allValue="ALL"
-          isAllSelected={selectedSplits.includes('ALL')}
-        />
-      </div>
+      {!hideYearAndSplit && (
+        <>
+          <div className="flex items-center gap-2">
+            <span className="label-field">Year</span>
+            <MultiSelectDropdown
+              label="Year"
+              displayValue={yearLabel}
+              options={yearOptions}
+              selected={selectedYears}
+              onToggle={toggleYear}
+              minWidth={120}
+            />
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="label-field">Split</span>
+            <MultiSelectDropdown
+              label="Split"
+              displayValue={splitLabel}
+              options={splitOptions}
+              selected={selectedSplits}
+              onToggle={toggleSplit}
+              allValue="ALL"
+              isAllSelected={selectedSplits.includes('ALL')}
+            />
+          </div>
+        </>
+      )}
     </div>
   )
 }

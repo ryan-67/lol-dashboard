@@ -77,6 +77,29 @@ INTERNATIONAL_FROM_LEAGUE = {
     "FST": "First Stand",
 }
 
+INTERNATIONAL_SPLIT_MARKERS = ("MSI", "Worlds", "First Stand")
+
+# Alternate OE team names → home tier-1 league (used when MSI/Worlds rows arrive before regional map).
+TEAM_HOME_LEAGUE_FALLBACK: dict[str, str] = {
+    "Disguised": "LCS",
+    "DSG": "LCS",
+    "Movistar KOI": "LEC",
+    "GIANTX": "LEC",
+    "GiantX": "LEC",
+    "GX": "LEC",
+    "FlyQuest": "LCS",
+    "FLY": "LCS",
+    "Shopify Rebellion": "LCS",
+    "SR": "LCS",
+    "100 Thieves": "LCS",
+    "100T": "LCS",
+    "NRG Esports": "LCS",
+    "NRG": "LCS",
+    "LYON": "LEC",
+    "Team Heretics": "LEC",
+    "TH": "LEC",
+}
+
 INTERNATIONAL_PATTERNS = [
     (re.compile(r"first\s*stand|\bfst\b", re.I), "First Stand"),
     (re.compile(r"\bmsi\b", re.I), "MSI"),
@@ -488,11 +511,15 @@ def avg_lane_stat(bucket_list, game_log, key: str):
     return None
 
 
-def compile_players(players_dict):
+def is_international_split_key(split_key: str) -> bool:
+    return any(marker in split_key for marker in INTERNATIONAL_SPLIT_MARKERS)
+
+
+def compile_players(players_dict, min_games: int = MIN_PLAYER_GAMES):
     out = []
     for name, p in players_dict.items():
         games = p["games"]
-        if games < MIN_PLAYER_GAMES:
+        if games < min_games:
             continue
         deaths = max(p["deaths"], 1)
         game_log = sorted(p["gameLog"], key=lambda g: (g.get("date", ""), g.get("gameId", "")))
@@ -541,11 +568,11 @@ def compile_players(players_dict):
     return out
 
 
-def compile_teams(teams_dict):
+def compile_teams(teams_dict, min_games: int = MIN_TEAM_GAMES):
     out = []
     for name, t in teams_dict.items():
         games = t["games"]
-        if games < MIN_TEAM_GAMES:
+        if games < min_games:
             continue
         deaths = max(t["deaths"], 1)
         team_entry = {
@@ -612,13 +639,13 @@ def compile_teams(teams_dict):
     return out
 
 
-def compile_champions(champs_dict, team_games: int, weekly_team_games: dict):
+def compile_champions(champs_dict, team_games: int, weekly_team_games: dict, min_picks: int = MIN_CHAMP_PICKS):
     out = []
     # team_games counts team-rows (2 per match)
     denom = max(team_games / 2, 1)
     for name, c in champs_dict.items():
         picks = c["picks"]
-        if picks < MIN_CHAMP_PICKS:
+        if picks < min_picks:
             continue
         deaths = max(c["deaths"], 1)
         pick_rate = min(100.0, round(picks / denom * 100, 1))
@@ -796,16 +823,20 @@ def finalize_team_fb_victims(store):
             team["firstbloodvictimgames"].append(1 if was_victim else 0)
 
 
-def compile_slice(store):
+def compile_slice(store, split_key: str = ""):
     backfill_game_log_opponents(store["players"], store["game_teams"])
     backfill_game_log_turret_plates(store["players"], store["game_team_meta"])
     finalize_team_fb_victims(store)
+    intl = is_international_split_key(split_key)
+    min_player = 1 if intl else MIN_PLAYER_GAMES
+    min_team = 1 if intl else MIN_TEAM_GAMES
+    min_champ = 1 if intl else MIN_CHAMP_PICKS
     return {
-        "players": compile_players(store["players"]),
+        "players": compile_players(store["players"], min_games=min_player),
         "rosterDepth": compile_roster_depth(store["players"]),
-        "teams": compile_teams(store["teams"]),
+        "teams": compile_teams(store["teams"], min_games=min_team),
         "champions": compile_champions(
-            store["champions"], store["team_games"], dict(store["weekly_team_games"])
+            store["champions"], store["team_games"], dict(store["weekly_team_games"]), min_picks=min_champ
         ),
         "weeklyTeamGames": dict(store["weekly_team_games"]),
         "matchups": compile_matchups(store["game_teams"]),
@@ -835,12 +866,45 @@ def resolve_bucket_key(
         return sk, league
 
     if league in INTERNATIONAL_LEAGUES or is_international:
-        home_league = team_to_league.get(team_name)
+        home_league = team_to_league.get(team_name) or TEAM_HOME_LEAGUE_FALLBACK.get(team_name)
         if home_league not in TARGET_LEAGUES:
             return None
         return sk, home_league
 
     return None
+
+
+def log_msi_coverage(slices: dict[str, dict]) -> None:
+    """Log international event coverage and latest game dates."""
+    for marker in INTERNATIONAL_SPLIT_MARKERS:
+        keys = [
+            k for k in slices
+            if k.rsplit("|", 1)[0].endswith(f" {marker}") or k.rsplit("|", 1)[0] == marker
+        ]
+        if not keys:
+            continue
+        total_players = 0
+        total_games = 0
+        latest_date = ""
+        leagues_seen: set[str] = set()
+        for key in keys:
+            split, league = key.rsplit("|", 1)
+            leagues_seen.add(league)
+            slice_data = slices[key]
+            players = slice_data.get("players") or []
+            total_players += len(players)
+            for player in players:
+                for game in player.get("gameLog") or []:
+                    total_games += 1
+                    date = str(game.get("date") or "")
+                    if date > latest_date:
+                        latest_date = date
+        print(
+            f"  {marker} coverage: {len(keys)} slice keys ({', '.join(sorted(leagues_seen))}), "
+            f"{total_players} players, {total_games} game-log rows, latest={latest_date or 'n/a'}"
+        )
+        if total_games == 0:
+            print(f"  WARNING: {marker} split keys exist but no player game logs were compiled", file=sys.stderr)
 
 
 def log_tier1_coverage(slices: dict[str, dict]) -> None:
@@ -1197,7 +1261,7 @@ def ingest():
         sys.exit(1)
 
     buckets: dict[tuple[str, str], dict] = defaultdict(slice_store)
-    team_to_league: dict[str, str] = {}
+    team_to_league: dict[str, str] = dict(TEAM_HOME_LEAGUE_FALLBACK)
 
     # Pass 1: build team → home league map from regional tier-1 rows.
     for csv_path in csv_files:
@@ -1225,7 +1289,7 @@ def ingest():
     split_set = set()
     for (sk, league), store in buckets.items():
         split_set.add(sk)
-        slices[f"{sk}|{league}"] = compile_slice(store)
+        slices[f"{sk}|{league}"] = compile_slice(store, sk)
 
     meta = {
         "source": "Oracle's Elixir",
@@ -1267,6 +1331,7 @@ def ingest():
     print(f"  Splits: {len(meta['splits'])}")
     print(f"  Slice keys: {len(slices)}")
     log_tier1_coverage(slices)
+    log_msi_coverage(slices)
     if UNMAPPED_WARNINGS:
         print(f"  Unmapped split warnings: {len(UNMAPPED_WARNINGS)}", file=sys.stderr)
 

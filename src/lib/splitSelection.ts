@@ -1,4 +1,5 @@
-import { splitSortKey } from './mergeSlices'
+import { selectSliceKeysFromFilters, splitSortKey, type OEStore } from './mergeSlices'
+import { DEFAULT_SPLIT, DEFAULT_YEAR } from './constants'
 
 /** Newest split labels first (year desc, season desc). */
 export function splitsNewestFirst(splits: string[]): string[] {
@@ -37,7 +38,7 @@ export function pickNewestSplitWithData(
   return null
 }
 
-export function defaultMainTabSplit(splits: string[], year = '2026', fallback = '2026 Spring'): string {
+export function defaultMainTabSplit(splits: string[], year = DEFAULT_YEAR, fallback = DEFAULT_SPLIT): string {
   const ordered = splitsNewestFirst(splits)
   return (
     ordered.find((s) => s.startsWith(`${year} `)) ??
@@ -45,6 +46,36 @@ export function defaultMainTabSplit(splits: string[], year = '2026', fallback = 
     ordered[0] ??
     fallback
   )
+}
+
+/** True when a split has at least one player game log or team row in the store. */
+export function splitHasGameData(store: OEStore, split: string, year = DEFAULT_YEAR): boolean {
+  const keys = selectSliceKeysFromFilters(store, ['All Tier 1'], [year], [split])
+  for (const key of keys) {
+    const slice = store.slices[key]
+    if (!slice) continue
+    if ((slice.players ?? []).some((p) => (p.gameLog?.length ?? 0) > 0)) return true
+    if ((slice.teams ?? []).some((t) => (t.games ?? 0) > 0)) return true
+  }
+  return false
+}
+
+/** Default split for main tabs — newest split with actual data, else catalog order. */
+export function pickDefaultDashboardSplit(
+  catalogSplits: string[],
+  store: OEStore | null,
+  year = DEFAULT_YEAR,
+  fallback = DEFAULT_SPLIT,
+): string {
+  if (store) {
+    const withData = pickNewestSplitWithData(
+      catalogSplits,
+      (split) => splitHasGameData(store, split, year),
+      year,
+    )
+    if (withData) return withData
+  }
+  return defaultMainTabSplit(catalogSplits, year, fallback)
 }
 
 export function yearFromSplitLabel(split: string, fallback = '2026'): string {
