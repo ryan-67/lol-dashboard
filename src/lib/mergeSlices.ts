@@ -42,6 +42,16 @@ export interface OEStore {
 }
 
 export const TIER1_LEAGUES = ['LCK', 'LPL', 'LEC', 'LCS'] as const
+/** Minor-region / international guest teams (MSI, Worlds participants outside tier-1). */
+export const GUEST_LEAGUE = 'INT' as const
+
+function sliceLeaguesForMerge(leagues: string[]): string[] {
+  const tier1 =
+    !leagues.length || leagues.includes('All Tier 1')
+      ? [...TIER1_LEAGUES]
+      : leagues.filter((l) => l !== 'All Tier 1')
+  return [...tier1, GUEST_LEAGUE]
+}
 
 const SEASON_ORDER: Record<string, number> = {
   Winter: 0,
@@ -127,10 +137,7 @@ export function selectSliceKeysFromFilters(
   years: string[],
   splits: string[],
 ): string[] {
-  const tier1 =
-    !leagues.length || leagues.includes('All Tier 1')
-      ? [...TIER1_LEAGUES]
-      : leagues.filter((l) => l !== 'All Tier 1')
+  const tier1 = sliceLeaguesForMerge(leagues)
   const allYears = years.includes('ALL')
   const allSplits = splits.includes('ALL')
 
@@ -176,8 +183,7 @@ export function selectSliceKeys(
   year?: string,
 ): string[] {
   const splitLabels = resolveSplitLabelsForMerge(store.meta.splits, year, split)
-  const leagues =
-    league === 'All Tier 1' ? [...TIER1_LEAGUES] : [league]
+  const leagues = league === 'All Tier 1' ? sliceLeaguesForMerge([]) : [league]
 
   const keys: string[] = []
   for (const s of splitLabels) {

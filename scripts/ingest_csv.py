@@ -98,7 +98,13 @@ TEAM_HOME_LEAGUE_FALLBACK: dict[str, str] = {
     "LYON": "LEC",
     "Team Heretics": "LEC",
     "TH": "LEC",
+  "Deep Cross Gaming": "INT",
+  "DCG": "INT",
+  "Deep Cross": "INT",
 }
+
+MINOR_LEAGUE = "INT"
+GUEST_LOOKBACK_YEARS = 1
 
 INTERNATIONAL_PATTERNS = [
     (re.compile(r"first\s*stand|\bfst\b", re.I), "First Stand"),
@@ -848,6 +854,7 @@ def compile_slice(store, split_key: str = ""):
 def resolve_bucket_key(
     row,
     team_to_league: dict[str, str],
+    guest_teams: set[str] | None = None,
 ) -> tuple[str, str] | None:
     league = row.get("league", "")
     year = row.get("year", "")
@@ -861,17 +868,101 @@ def resolve_bucket_key(
     date_raw = row.get("date", "")
     sk = canonical_split_key(league, year, raw_split, playoffs, date_raw)
     _, is_international = normalize_split(league, year, raw_split, playoffs, date_raw)
+    guests = guest_teams or set()
 
     if league in TARGET_LEAGUES:
         return sk, league
 
     if league in INTERNATIONAL_LEAGUES or is_international:
         home_league = team_to_league.get(team_name) or TEAM_HOME_LEAGUE_FALLBACK.get(team_name)
-        if home_league not in TARGET_LEAGUES:
-            return None
-        return sk, home_league
+        if home_league in TARGET_LEAGUES:
+            return sk, home_league
+        if team_name in guests or home_league == MINOR_LEAGUE:
+            return sk, MINOR_LEAGUE
+        return None
 
     return None
+
+
+def resolve_guest_regional_bucket(
+    row,
+    guest_teams: set[str],
+    team_to_league: dict[str, str],
+) -> tuple[str, str] | None:
+    """Regional-league rows for minor-region teams discovered at international events."""
+    team_name = row.get("teamname", "")
+    if not team_name or team_name not in guest_teams:
+        return None
+    if team_to_league.get(team_name) in TARGET_LEAGUES:
+        return None
+    if row.get("datacompleteness", "") not in ALLOWED_COMPLETENESS:
+        return None
+
+    league = row.get("league", "")
+    if league in INTERNATIONAL_LEAGUES:
+        return None
+
+    try:
+        year = int(row.get("year") or 0)
+    except ValueError:
+        return None
+    current_year = datetime.now(timezone.utc).year
+    if year < current_year - GUEST_LOOKBACK_YEARS or year > current_year:
+        return None
+
+    date_raw = row.get("date", "")
+    sk = canonical_split_key(league, str(year), row.get("split", ""), row.get("playoffs", "0"), date_raw)
+    return sk, MINOR_LEAGUE
+
+
+def collect_international_guest_teams(csv_files, team_to_league: dict[str, str]) -> set[str]:
+    guests: set[str] = set()
+    for csv_path in csv_files:
+        with csv_path.open("r", encoding="utf-8") as f:
+            reader = csv.DictReader(f)
+            for row in reader:
+                row = normalize_oe_row(row)
+                if row.get("datacompleteness", "") not in ALLOWED_COMPLETENESS:
+                    continue
+                team_name = row.get("teamname", "")
+                if not team_name:
+                    continue
+                league = row.get("league", "")
+                date_raw = row.get("date", "")
+                is_int_event = league in INTERNATIONAL_LEAGUES
+                if league in TARGET_LEAGUES:
+                    _, is_int_event = normalize_split(
+                        league,
+                        row.get("year", ""),
+                        row.get("split", ""),
+                        row.get("playoffs", "0"),
+                        date_raw,
+                    )
+                if not is_int_event:
+                    continue
+                home = team_to_league.get(team_name) or TEAM_HOME_LEAGUE_FALLBACK.get(team_name)
+                if home in TARGET_LEAGUES:
+                    continue
+                guests.add(team_name)
+    return guests
+
+
+def build_global_game_teams_and_catalog(buckets: dict):
+    global_teams: dict[str, list] = defaultdict(list)
+    global_catalog_teams: dict[str, dict] = defaultdict(dict)
+    for store in buckets.values():
+        for gid, sides in store["game_teams"].items():
+            existing = {s.get("team") for s in global_teams[gid]}
+            for side in sides:
+                team = side.get("team")
+                if team and team not in existing:
+                    global_teams[gid].append(side)
+                    existing.add(team)
+        for gid, cat in store["game_catalog"].items():
+            for team, draft in (cat.get("teams") or {}).items():
+                if team not in global_catalog_teams[gid]:
+                    global_catalog_teams[gid][team] = draft
+    return global_teams, global_catalog_teams
 
 
 def log_msi_coverage(slices: dict[str, dict]) -> None:
@@ -926,26 +1017,33 @@ def log_tier1_coverage(slices: dict[str, dict]) -> None:
             )
 
 
-def process_row(row, buckets: dict, team_to_league: dict[str, str]):
+def process_row(row, buckets: dict, team_to_league: dict[str, str], guest_teams: set[str] | None = None):
     row = normalize_oe_row(row)
     league = row.get("league", "")
-    if league not in ALLOWED_LEAGUES:
-        return
+    guests = guest_teams or set()
 
-    completeness = row.get("datacompleteness", "")
-    if completeness not in ALLOWED_COMPLETENESS:
-        return
+    if league not in ALLOWED_LEAGUES:
+        bucket_ref = resolve_guest_regional_bucket(row, guests, team_to_league)
+        if not bucket_ref:
+            return
+        sk, bucket_league = bucket_ref
+        bucket = buckets[(sk, bucket_league)]
+    else:
+        completeness = row.get("datacompleteness", "")
+        if completeness not in ALLOWED_COMPLETENESS:
+            return
+
+        team_name = row.get("teamname", "")
+        if league in TARGET_LEAGUES and team_name:
+            team_to_league[team_name] = league
+
+        bucket_ref = resolve_bucket_key(row, team_to_league, guests)
+        if not bucket_ref:
+            return
+        sk, bucket_league = bucket_ref
+        bucket = buckets[(sk, bucket_league)]
 
     team_name = row.get("teamname", "")
-    if league in TARGET_LEAGUES and team_name:
-        team_to_league[team_name] = league
-
-    bucket_ref = resolve_bucket_key(row, team_to_league)
-    if not bucket_ref:
-        return
-    sk, bucket_league = bucket_ref
-    bucket = buckets[(sk, bucket_league)]
-
     position = row.get("position", "")
     player_name = row.get("playername") or row.get("name", "")
     champion = row.get("champion", "")
@@ -1277,17 +1375,34 @@ def ingest():
                 if team_name:
                     team_to_league[team_name] = league
 
+    # Pass 1b: discover minor-region teams at international events.
+    guest_teams = collect_international_guest_teams(csv_files, team_to_league)
+    if guest_teams:
+        print(f"  International guest teams ({len(guest_teams)}): {', '.join(sorted(guest_teams)[:12])}")
+
     # Pass 2: aggregate into canonical split/league buckets.
     for csv_path in csv_files:
         print(f"Reading {csv_path.name}...")
         with csv_path.open("r", encoding="utf-8") as f:
             reader = csv.DictReader(f)
             for row in reader:
-                process_row(row, buckets, team_to_league)
+                process_row(row, buckets, team_to_league, guest_teams)
+
+    global_game_teams, global_catalog_teams = build_global_game_teams_and_catalog(buckets)
 
     slices = {}
     split_set = set()
     for (sk, league), store in buckets.items():
+        for gid, teams in global_catalog_teams.items():
+            cat = store["game_catalog"].setdefault(gid, {"teams": {}, "patch": "", "gameLength": None})
+            cat.setdefault("teams", {}).update(teams)
+        for gid, sides in global_game_teams.items():
+            existing = {s.get("team") for s in store["game_teams"].get(gid, [])}
+            for side in sides:
+                team = side.get("team")
+                if team and team not in existing:
+                    store["game_teams"][gid].append(side)
+                    existing.add(team)
         split_set.add(sk)
         slices[f"{sk}|{league}"] = compile_slice(store, sk)
 

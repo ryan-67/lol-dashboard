@@ -202,6 +202,13 @@ export const TEAM_ENTITIES: TeamEntityDef[] = [
     esportsSlug: 'lyon-gaming',
   },
   {
+    canonicalName: 'Deep Cross Gaming',
+    oeNames: ['Deep Cross Gaming', 'DCG', 'Deep Cross'],
+    abbreviations: ['DCG'],
+    slug: 'deep-cross-gaming',
+    esportsSlug: 'deep-cross-gaming',
+  },
+  {
     canonicalName: 'Karmine Corp',
     oeNames: ['Karmine Corp', 'KC'],
     abbreviations: ['KC'],

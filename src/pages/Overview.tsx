@@ -485,6 +485,7 @@ export default function Overview() {
     weeklyHubPlayers,
     weeklyHubTeams,
     weeklyHubChampions,
+    weeklyHubGameCatalog,
     loading,
     league,
     split,
@@ -555,11 +556,14 @@ export default function Overview() {
 
   const templateRecapLines = useMemo(() => {
     if (!hubWindow) return []
-    return buildWeeklyRecapLines(weeklyHubPlayers, weeklyHubTeams, hubWindow, league).slice(
-      0,
-      copy.recapLimit,
-    )
-  }, [weeklyHubPlayers, weeklyHubTeams, hubWindow, league, copy.recapLimit])
+    return buildWeeklyRecapLines(
+      weeklyHubPlayers,
+      weeklyHubTeams,
+      hubWindow,
+      league,
+      weeklyHubGameCatalog,
+    ).slice(0, copy.recapLimit)
+  }, [weeklyHubPlayers, weeklyHubTeams, hubWindow, league, copy.recapLimit, weeklyHubGameCatalog])
 
   const [cachedRecapLines, setCachedRecapLines] = useState<typeof templateRecapLines>([])
 

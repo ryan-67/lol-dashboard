@@ -47,6 +47,7 @@ interface DashboardContextValue {
   weeklyHubPlayers: Player[]
   weeklyHubTeams: Team[]
   weeklyHubChampions: Champion[]
+  weeklyHubGameCatalog: DashboardData['gameCatalog']
 
   leagues: string[]
   years: string[]
@@ -204,6 +205,7 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
   const weeklyHubPlayers = weeklyHubData?.players ?? []
   const weeklyHubTeams = weeklyHubData?.teams ?? []
   const weeklyHubChampions = weeklyHubData?.champions ?? []
+  const weeklyHubGameCatalog = weeklyHubData?.gameCatalog ?? {}
 
   return (
     <DashboardContext.Provider
@@ -232,6 +234,7 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
         weeklyHubPlayers,
         weeklyHubTeams,
         weeklyHubChampions,
+        weeklyHubGameCatalog,
         leagues,
         years,
         splits: splitOptions,

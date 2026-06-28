@@ -16,10 +16,68 @@ export interface CitoScheduleRow {
   winner_team?: string | null
 }
 
+const INTERNATIONAL_SCHEDULE_LEAGUES = new Set(['MSI', 'WLDs', 'FST', 'Worlds', 'First Stand'])
+
 function teamMatchesScheduleName(teamQuery: string, scheduleName: string): boolean {
   const a = resolveTeamCanonicalName(teamQuery).toLowerCase()
   const b = resolveTeamCanonicalName(scheduleName).toLowerCase()
   return a === b || scheduleName.toLowerCase().includes(a) || a.includes(scheduleName.toLowerCase())
+}
+
+function isTbdTeamName(name: string | null | undefined): boolean {
+  const v = (name ?? '').trim().toLowerCase()
+  return !v || v === 'tbd' || v === 'tba' || v === '-'
+}
+
+function isInternationalScheduleRow(row: CitoScheduleRow): boolean {
+  const hay = `${row.league} ${row.tournament_name ?? ''} ${row.block_name ?? ''}`.toLowerCase()
+  return (
+    INTERNATIONAL_SCHEDULE_LEAGUES.has(row.league) ||
+    /\bmsi\b|\bworlds\b|first\s*stand/.test(hay)
+  )
+}
+
+function tournamentContextKey(row: CitoScheduleRow): string {
+  return `${row.league}|${row.tournament_name ?? ''}|${row.block_name ?? ''}`.toLowerCase()
+}
+
+function scheduleRowPriority(row: CitoScheduleRow): number {
+  const confirmed = !isTbdTeamName(row.team_a) && !isTbdTeamName(row.team_b)
+  if (confirmed && isInternationalScheduleRow(row)) return 0
+  if (confirmed) return 1
+  if (isInternationalScheduleRow(row)) return 2
+  return 3
+}
+
+function pendingBracketRows(
+  _teamName: string,
+  allRows: CitoScheduleRow[],
+  teamRows: CitoScheduleRow[],
+): CitoScheduleRow[] {
+  const intlConfirmed = teamRows.filter(
+    (r) =>
+      isInternationalScheduleRow(r) &&
+      !isTbdTeamName(r.team_a) &&
+      !isTbdTeamName(r.team_b),
+  )
+  if (!intlConfirmed.length) return []
+
+  const ref = intlConfirmed.sort((a, b) =>
+    (a.scheduled_at ?? '').localeCompare(b.scheduled_at ?? ''),
+  )[0]!
+  const ctx = tournamentContextKey(ref)
+  const refDate = ref.scheduled_at ?? ''
+
+  const pending: CitoScheduleRow[] = []
+  for (const row of allRows) {
+    if (tournamentContextKey(row) !== ctx) continue
+    if (!isTbdTeamName(row.team_a) || !isTbdTeamName(row.team_b)) continue
+    if ((row.scheduled_at ?? '') <= refDate) continue
+    if (pending.some((p) => p.match_id === row.match_id)) continue
+    pending.push({ ...row, status: 'pending results' })
+    if (pending.length >= 2) break
+  }
+  return pending
 }
 
 /** Upcoming fixtures from CitoAPI sync (`cito_schedules` table). */
@@ -29,35 +87,44 @@ export async function fetchTeamUpcomingCitoSchedule(
 ): Promise<CitoScheduleRow[]> {
   if (!isSupabaseConfigured) return []
 
-  const limit = options?.limit ?? 3
+  const limit = options?.limit ?? 6
   const now = new Date().toISOString()
 
-  let query = supabase
+  const { data, error } = await supabase
     .from('cito_schedules')
     .select('match_id, league, tournament_name, team_a, team_b, scheduled_at, status, block_name')
     .in('status', ['scheduled', 'live', 'unstarted', 'tbd'])
     .gte('scheduled_at', now)
     .order('scheduled_at', { ascending: true })
-    .limit(80)
+    .limit(200)
 
-  if (options?.league && options.league !== 'All Tier 1') {
-    query = query.eq('league', options.league)
-  }
-
-  const { data, error } = await query
   if (error) {
     console.warn('[cito-schedule] fetch failed', error.message)
     return []
   }
 
   const rows = (data as CitoScheduleRow[] | null) ?? []
-  return rows
-    .filter(
-      (row) =>
-        teamMatchesScheduleName(teamName, row.team_a) ||
-        teamMatchesScheduleName(teamName, row.team_b),
-    )
-    .slice(0, limit)
+  const teamRows = rows.filter(
+    (row) =>
+      teamMatchesScheduleName(teamName, row.team_a) ||
+      teamMatchesScheduleName(teamName, row.team_b),
+  )
+  const pending = pendingBracketRows(teamName, rows, teamRows)
+
+  const seen = new Set<string>()
+  const merged = [...teamRows, ...pending]
+    .sort((a, b) => {
+      const byPriority = scheduleRowPriority(a) - scheduleRowPriority(b)
+      if (byPriority !== 0) return byPriority
+      return (a.scheduled_at ?? '').localeCompare(b.scheduled_at ?? '')
+    })
+    .filter((row) => {
+      if (seen.has(row.match_id)) return false
+      seen.add(row.match_id)
+      return true
+    })
+
+  return merged.slice(0, limit)
 }
 
 const QUALIFYING_BLOCK_RE =

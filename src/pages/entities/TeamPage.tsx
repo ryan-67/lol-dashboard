@@ -21,6 +21,7 @@ import type { Player } from '../../hooks/useDashboardData'
 import { fetchTeamUpcomingCitoSchedule, type CitoScheduleRow } from '../../lib/loadCitoSchedule'
 import { buildGameToSeriesMap } from '../../lib/seriesAnalytics'
 import { seriesPath } from '../../lib/seriesPath'
+import { tournamentPath } from '../../lib/tournamentCatalog'
 import { fetchCitoGoldForTeam } from '../../lib/loadCitoGold'
 import type { CitoGameGoldRecord } from '../../lib/citoGoldMatch'
 import { formatGameDate, formatNum, formatPct, formatProfileDate } from '../../lib/format'
@@ -212,7 +213,7 @@ export default function TeamPage() {
     if (!team || activeTab !== 'schedule') return
     let cancelled = false
     setScheduleLoading(true)
-    void fetchTeamUpcomingCitoSchedule(team.name, { league: team.league, limit: 3 }).then((rows) => {
+    void fetchTeamUpcomingCitoSchedule(team.name, { limit: 6 }).then((rows) => {
       if (cancelled) return
       setUpcomingSchedule(rows)
       setScheduleSource(rows.length ? 'loaded' : 'empty')
@@ -444,11 +445,23 @@ export default function TeamPage() {
                           {row.scheduled_at ? formatProfileDate(row.scheduled_at) : 'TBD'}
                         </td>
                         <td>
-                          <EntityLink type="team" name={row.team_a} /> vs{' '}
-                          <EntityLink type="team" name={row.team_b} />
+                          {row.status === 'pending results' ? (
+                            <span className="text-secondary">TBD vs TBD</span>
+                          ) : (
+                            <>
+                              <EntityLink type="team" name={row.team_a} /> vs{' '}
+                              <EntityLink type="team" name={row.team_b} />
+                            </>
+                          )}
                         </td>
-                        <td className="text-secondary">{row.tournament_name ?? row.league}</td>
-                        <td className="text-secondary">{row.status}</td>
+                        <td className="text-secondary">
+                          {row.tournament_name ?? row.block_name ?? row.league}
+                        </td>
+                        <td className="text-secondary">
+                          {row.status === 'tbd' && !row.team_a?.trim() && !row.team_b?.trim()
+                            ? 'pending results'
+                            : row.status}
+                        </td>
                       </tr>
                     ))}
                   </tbody>
@@ -494,7 +507,11 @@ export default function TeamPage() {
                         </td>
                         <td>{m.side}</td>
                         <td>{m.patch}</td>
-                        <td>{m.tournament}</td>
+                        <td>
+                          <Link to={tournamentPath(m.tournamentId)} className="entity-link">
+                            {m.tournament}
+                          </Link>
+                        </td>
                         <td>{formatGameDate(m.date)}</td>
                       </tr>
                     )

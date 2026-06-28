@@ -335,8 +335,12 @@ export function collectParsedGames(
   return games.sort(compareSeriesGames)
 }
 
-function collectWeeklyGames(players: Player[], window: WeeklyRecapWindow): ParsedGame[] {
-  return collectParsedGames(players, { window })
+function collectWeeklyGames(
+  players: Player[],
+  window: WeeklyRecapWindow,
+  gameCatalog?: Record<string, GameCatalogEntry>,
+): ParsedGame[] {
+  return collectParsedGames(players, { window, gameCatalog })
 }
 
 function collectTeamGames(players: Player[], team: string): TeamGameRecord[] {
@@ -1337,9 +1341,10 @@ export function buildWeeklyRecapLines(
   teams: Team[],
   window: WeeklyRecapWindow | null,
   _league: string,
+  gameCatalog?: Record<string, GameCatalogEntry>,
 ): WeeklyRecapLine[] {
   if (!window) return []
-  const games = collectWeeklyGames(players, window)
+  const games = collectWeeklyGames(players, window, gameCatalog)
   if (!games.length) return []
 
   const weekCounts = buildWeekChampionCounts(games)

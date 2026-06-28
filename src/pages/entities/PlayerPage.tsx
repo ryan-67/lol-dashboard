@@ -11,7 +11,8 @@ import {
 } from '../../lib/playerRadar'
 import { getPlayerRole, resolveLaneOpponentForGame } from '../../lib/playerAnalytics'
 import { formatGameDate, formatNum, formatPct } from '../../lib/format'
-import { resolveTournamentDisplay } from '../../lib/tournamentCatalog'
+import { resolveTournamentDisplay, buildTournamentIdentityFromGame, tournamentPath } from '../../lib/tournamentCatalog'
+import { resolveGameOpponent } from '../../lib/gameOpponent'
 import PlayerRadarChart from '../../components/players/PlayerRadarChart'
 import PlayerFormChart from '../../components/players/PlayerFormChart'
 import {
@@ -190,13 +191,19 @@ export default function PlayerPage() {
             </thead>
             <tbody>
               {sortedGameLog.slice(0, 20).map((g, i) => {
-                const laneOpponent = resolveLaneOpponentForGame(g, player, players)
+                const opponent = resolveGameOpponent(g, player.team, players, data?.gameCatalog)
+                const laneOpponent = resolveLaneOpponentForGame(
+                  opponent ? { ...g, opponent } : g,
+                  player,
+                  players,
+                )
                 const tournament = resolveTournamentDisplay(
                   g.league ?? player.league,
                   g.split ?? '',
                   g.playoffs,
                   { rawSplit: g.rawSplit, oeYear: g.oeYear },
                 )
+                const tournamentIdentity = buildTournamentIdentityFromGame(g)
                 return (
                   <tr key={`${g.gameId ?? g.date}-${i}`}>
                     <td>{formatGameDate(g.date)}</td>
@@ -207,7 +214,11 @@ export default function PlayerPage() {
                       {g.result === 1 ? 'W' : 'L'}
                     </td>
                     <td>
-                      <EntityLink type="team" name={g.opponent ?? 'Unknown'} />
+                      {opponent ? (
+                        <EntityLink type="team" name={opponent} />
+                      ) : (
+                        <span className="text-secondary">—</span>
+                      )}
                     </td>
                     <td>{laneOpponent ? <EntityLink type="player" name={laneOpponent} /> : '—'}</td>
                     {matchHistoryMetrics.map((m) => (
@@ -218,7 +229,11 @@ export default function PlayerPage() {
                     <td>
                       {g.kills ?? 0}/{g.deaths ?? 0}/{g.assists ?? 0}
                     </td>
-                    <td className="text-secondary text-sm">{tournament}</td>
+                    <td className="text-secondary text-sm">
+                      <Link to={tournamentPath(tournamentIdentity.id)} className="entity-link">
+                        {tournament}
+                      </Link>
+                    </td>
                   </tr>
                 )
               })}

@@ -4,7 +4,8 @@ import { ROLES, normalizePosition, computeGameScore, playersForRole } from '../p
 import type { CitoGameGoldRecord, CitoObjectiveEvent } from '../citoGoldMatch'
 import { goldTimelineForTeamPerspective, matchCitoGoldToOeGame, ensureGoldTimelineAtZero } from '../citoGoldMatch'
 import { teamMatchesCanonical } from './slugs'
-import { resolveTournamentDisplay } from '../tournamentCatalog'
+import { resolveGameOpponent } from '../gameOpponent'
+import { resolveTournamentDisplay, buildTournamentIdentityFromGame } from '../tournamentCatalog'
 import { formatPatch } from '../format'
 
 export interface ChampionWinrateEntry {
@@ -89,6 +90,7 @@ export interface TeamMatchRow {
   teamName: string
   result: 'W' | 'L'
   tournament: string
+  tournamentId: string
   side: string
   patch: string
   gameId: string
@@ -111,13 +113,14 @@ export function buildTeamMatchHistory(
 
   const sorted = [...(anchor.gameLog ?? [])]
     .map((game) => {
-      const opponent = game.opponent ?? 'Unknown'
+      const opponent = resolveGameOpponent(game, teamName, players, gameCatalog)
       const sideRaw = normalizeSide(game.side)
       const side = sideRaw ? sideRaw.charAt(0).toUpperCase() + sideRaw.slice(1) : '—'
       const patch =
         game.gameId && gameCatalog?.[game.gameId]?.patch?.trim()
           ? formatPatch(gameCatalog[game.gameId]!.patch!.trim())
           : '—'
+      const tournamentIdentity = buildTournamentIdentityFromGame(game)
       return {
         date: game.date,
         opponent,
@@ -132,10 +135,11 @@ export function buildTeamMatchHistory(
           game.rawSplit,
           game.oeYear,
         ),
+        tournamentId: tournamentIdentity.id,
         side,
         patch,
         gameId: game.gameId ?? '',
-        matchup: `${teamName} vs ${opponent}`,
+        matchup: opponent ? `${teamName} vs ${opponent}` : `${teamName} vs`,
       }
     })
     .sort((a, b) => {
