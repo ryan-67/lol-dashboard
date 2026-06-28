@@ -189,6 +189,79 @@ export function formatRadarRaw(key: TeamRadarMetricKey, value: number): string {
   }
 }
 
+export interface TeamTableStatColumn {
+  key: keyof Team | TeamRadarMetricKey
+  label: string
+  sortKey: keyof Team | 'perfScore' | TeamRadarMetricKey
+  format: (team: Team, cohort: Team[]) => string
+}
+
+/** Radar composites plus underlying team stats for rankings tables. */
+export const TEAM_RANKINGS_STAT_COLUMNS: TeamTableStatColumn[] = [
+  ...TEAM_RADAR_METRICS.map((def) => ({
+    key: def.key as TeamRadarMetricKey,
+    label: def.shortLabel,
+    sortKey: def.key as TeamRadarMetricKey,
+    format: (team: Team, cohort: Team[]) =>
+      formatRadarRawOrMissing(def.key, getTeamRadarRaw(team, def.key, cohort)),
+  })),
+  {
+    key: 'avgGd15',
+    label: 'GD@15',
+    sortKey: 'avgGd15',
+    format: (team) =>
+      typeof team.avgGd15 === 'number' ? `${team.avgGd15 > 0 ? '+' : ''}${team.avgGd15.toFixed(1)}` : '—',
+  },
+  {
+    key: 'dragonsPerGame',
+    label: 'Dragons/G',
+    sortKey: 'dragonsPerGame',
+    format: (team) => (typeof team.dragonsPerGame === 'number' ? team.dragonsPerGame.toFixed(2) : '—'),
+  },
+  {
+    key: 'baronsPerGame',
+    label: 'Barons/G',
+    sortKey: 'baronsPerGame',
+    format: (team) => (typeof team.baronsPerGame === 'number' ? team.baronsPerGame.toFixed(2) : '—'),
+  },
+  {
+    key: 'towersPerGame',
+    label: 'Towers/G',
+    sortKey: 'towersPerGame',
+    format: (team) => (typeof team.towersPerGame === 'number' ? team.towersPerGame.toFixed(2) : '—'),
+  },
+  {
+    key: 'firstBloodRate',
+    label: 'FB %',
+    sortKey: 'firstBloodRate',
+    format: (team) => (typeof team.firstBloodRate === 'number' ? `${team.firstBloodRate.toFixed(1)}%` : '—'),
+  },
+  {
+    key: 'goldPerMin',
+    label: 'Gold/min',
+    sortKey: 'goldPerMin',
+    format: (team) => (typeof team.goldPerMin === 'number' ? team.goldPerMin.toFixed(1) : '—'),
+  },
+  {
+    key: 'wardsPerMin',
+    label: 'Wards/min',
+    sortKey: 'wardsPerMin',
+    format: (team) => (typeof team.wardsPerMin === 'number' ? team.wardsPerMin.toFixed(2) : '—'),
+  },
+  {
+    key: 'objPerGame',
+    label: 'Obj/G',
+    sortKey: 'objPerGame',
+    format: (team) => (typeof team.objPerGame === 'number' ? team.objPerGame.toFixed(2) : '—'),
+  },
+  {
+    key: 'avgKda',
+    label: 'Team KDA',
+    sortKey: 'avgKda',
+    format: (team) => (typeof team.avgKda === 'number' ? team.avgKda.toFixed(2) : '—'),
+  },
+]
+
 export interface TeamRadarPoint {
   metric: string
   earlyGame?: number

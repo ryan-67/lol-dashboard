@@ -2,7 +2,7 @@ import { useMemo, useRef, useState, useCallback, useEffect } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { useGSAP } from '@gsap/react'
 import { useEntityPageData } from '../../hooks/useEntityPageData'
-import type { DashboardData, Player, Team } from '../../hooks/useDashboardData'
+import type { DashboardData, Player } from '../../hooks/useDashboardData'
 import {
   buildTournamentChampionRows,
   buildTournamentSummaries,
@@ -28,14 +28,13 @@ import TeamRadarChart from '../../components/teams/TeamRadarChart'
 import {
   ROLES,
   bestPlayerForRole,
-  computeAggregateScore,
   computeGameScore,
   highestPlayerRadarHighlight,
   normalizePosition,
   playersForRole,
   type RoleKey,
 } from '../../lib/playerRadar'
-import { computeTeamScore, highestTeamRadarHighlight } from '../../lib/teamAnalytics'
+import { highestTeamRadarHighlight } from '../../lib/teamAnalytics'
 import { teamMatchesCanonical } from '../../lib/entities/slugs'
 import { formatDurationMinSec } from '../../lib/tournamentFormat'
 import { computeOpScores, roleLabel, type RoleFilter } from '../../lib/championAnalytics'
@@ -45,7 +44,8 @@ import PlayerFormChart from '../../components/players/PlayerFormChart'
 import PlayerChampionPool from '../../components/players/PlayerChampionPool'
 import PlayerComparisonRadar from '../../components/players/PlayerComparisonRadar'
 import { playerKey } from '../../lib/playerAnalytics'
-import SortableTh from '../../components/ui/SortableTh'
+import PlayerMetricsTableCard from '../../components/players/PlayerMetricsTableCard'
+import TeamMetricsTableCard from '../../components/teams/TeamMetricsTableCard'
 import { fetchTournamentCompletedSchedule, fetchTournamentPlacementHints } from '../../lib/loadCitoSchedule'
 import type { CitoScheduleRow } from '../../lib/loadCitoSchedule'
 import type { TournamentRankContext } from '../../lib/tournamentRank'
@@ -91,6 +91,8 @@ export default function TournamentPage() {
   const [activeTab, setActiveTab] = useState<TournamentPageTab>('overview')
   const [champRoleFilter, setChampRoleFilter] = useState<RoleFilter>('all')
   const [selectedPlayerKeys, setSelectedPlayerKeys] = useState<string[]>([])
+  const [showPlayerTables, setShowPlayerTables] = useState(false)
+  const [showTeamTables, setShowTeamTables] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
 
   const allTournaments = useMemo(
@@ -231,84 +233,6 @@ export default function TournamentPage() {
         .filter((p): p is Player => Boolean(p)),
     [scopedPlayers, selectedPlayerKeys],
   )
-
-  const playersByPerformance = useMemo(() => {
-    return [...scopedPlayers]
-      .map((player) => {
-        const role = normalizePosition(player.position) ?? 'mid'
-        const cohort = playersForRole(scopedPlayers, role)
-        return {
-          player,
-          role,
-          score: computeAggregateScore(player, role, cohort),
-        }
-      })
-      .sort((a, b) => b.score - a.score)
-  }, [scopedPlayers])
-
-  const teamsByPerformance = useMemo(() => {
-    return [...scopedTeams]
-      .map((team) => ({
-        team,
-        score: computeTeamScore(team, scopedTeams, scopedPlayers),
-      }))
-      .sort((a, b) => b.score - a.score)
-  }, [scopedTeams, scopedPlayers])
-
-  const [playerSortKey, setPlayerSortKey] = useState<keyof Player | 'perfScore'>('perfScore')
-  const [playerSortDesc, setPlayerSortDesc] = useState(true)
-  const [teamSortKey, setTeamSortKey] = useState<keyof Team | 'perfScore'>('perfScore')
-  const [teamSortDesc, setTeamSortDesc] = useState(true)
-
-  const sortedPlayerRows = useMemo(() => {
-    const rows = playersByPerformance
-    return [...rows].sort((a, b) => {
-      if (playerSortKey === 'perfScore') {
-        return playerSortDesc ? b.score - a.score : a.score - b.score
-      }
-      const av = a.player[playerSortKey]
-      const bv = b.player[playerSortKey]
-      if (typeof av === 'number' && typeof bv === 'number') {
-        return playerSortDesc ? bv - av : av - bv
-      }
-      return playerSortDesc
-        ? String(bv ?? '').localeCompare(String(av ?? ''))
-        : String(av ?? '').localeCompare(String(bv ?? ''))
-    })
-  }, [playersByPerformance, playerSortKey, playerSortDesc])
-
-  const sortedTeamRows = useMemo(() => {
-    const rows = teamsByPerformance
-    return [...rows].sort((a, b) => {
-      if (teamSortKey === 'perfScore') {
-        return teamSortDesc ? b.score - a.score : a.score - b.score
-      }
-      const av = a.team[teamSortKey]
-      const bv = b.team[teamSortKey]
-      if (typeof av === 'number' && typeof bv === 'number') {
-        return teamSortDesc ? bv - av : av - bv
-      }
-      return teamSortDesc
-        ? String(bv ?? '').localeCompare(String(av ?? ''))
-        : String(av ?? '').localeCompare(String(bv ?? ''))
-    })
-  }, [teamsByPerformance, teamSortKey, teamSortDesc])
-
-  const togglePlayerSort = (key: keyof Player | 'perfScore') => {
-    if (playerSortKey === key) setPlayerSortDesc(!playerSortDesc)
-    else {
-      setPlayerSortKey(key)
-      setPlayerSortDesc(true)
-    }
-  }
-
-  const toggleTeamSort = (key: keyof Team | 'perfScore') => {
-    if (teamSortKey === key) setTeamSortDesc(!teamSortDesc)
-    else {
-      setTeamSortKey(key)
-      setTeamSortDesc(true)
-    }
-  }
 
   useGSAP(
     () => {
@@ -560,124 +484,21 @@ export default function TournamentPage() {
             )}
           </section>
 
-          <section className="card tournament-card">
-            <h2 className="card-title">Full Player Metrics</h2>
-            <p className="card-subtitle">
-              Tournament-scoped stats · sorted by performance score (highest first)
-            </p>
-            {!sortedPlayerRows.length ? (
-              <p className="text-secondary">No player data for this tournament.</p>
-            ) : (
-              <div className="table-wrap">
-                <table className="data-table">
-                  <thead>
-                    <tr>
-                      <SortableTh
-                        label="Perf"
-                        columnKey="perfScore"
-                        sortKey={playerSortKey}
-                        sortDesc={playerSortDesc}
-                        onSort={togglePlayerSort}
-                      />
-                      <SortableTh
-                        label="Player"
-                        columnKey="name"
-                        sortKey={playerSortKey}
-                        sortDesc={playerSortDesc}
-                        onSort={togglePlayerSort}
-                      />
-                      <SortableTh
-                        label="Team"
-                        columnKey="team"
-                        sortKey={playerSortKey}
-                        sortDesc={playerSortDesc}
-                        onSort={togglePlayerSort}
-                      />
-                      <SortableTh
-                        label="Role"
-                        columnKey="position"
-                        sortKey={playerSortKey}
-                        sortDesc={playerSortDesc}
-                        onSort={togglePlayerSort}
-                      />
-                      <SortableTh
-                        label="Games"
-                        columnKey="games"
-                        sortKey={playerSortKey}
-                        sortDesc={playerSortDesc}
-                        onSort={togglePlayerSort}
-                      />
-                      <SortableTh
-                        label="KDA"
-                        columnKey="kda"
-                        sortKey={playerSortKey}
-                        sortDesc={playerSortDesc}
-                        onSort={togglePlayerSort}
-                      />
-                      <SortableTh
-                        label="KP"
-                        columnKey="kp"
-                        sortKey={playerSortKey}
-                        sortDesc={playerSortDesc}
-                        onSort={togglePlayerSort}
-                      />
-                      <SortableTh
-                        label="DMG %"
-                        columnKey="dmgShare"
-                        sortKey={playerSortKey}
-                        sortDesc={playerSortDesc}
-                        onSort={togglePlayerSort}
-                      />
-                      <SortableTh
-                        label="GD@15"
-                        columnKey="gd15"
-                        sortKey={playerSortKey}
-                        sortDesc={playerSortDesc}
-                        onSort={togglePlayerSort}
-                      />
-                      <SortableTh
-                        label="DPM"
-                        columnKey="dpm"
-                        sortKey={playerSortKey}
-                        sortDesc={playerSortDesc}
-                        onSort={togglePlayerSort}
-                      />
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {sortedPlayerRows.map(({ player, score }) => (
-                      <tr key={playerKey(player)}>
-                        <td className="text-accent font-medium">{formatNum(score * 100, 1)}</td>
-                        <td className="font-medium">
-                          <EntityLink
-                            type="player"
-                            name={player.name}
-                            player={player}
-                            allPlayers={scopedPlayers}
-                            showIcon={false}
-                          />
-                        </td>
-                        <td className="text-secondary">
-                          <EntityLink type="team" name={player.team} />
-                        </td>
-                        <td className="text-secondary uppercase">{player.position ?? '—'}</td>
-                        <td className="text-secondary">{player.games ?? '—'}</td>
-                        <td className="text-accent font-medium">{formatNum(player.kda, 2)}</td>
-                        <td className="text-secondary">{formatPct(player.kp, 1)}</td>
-                        <td className="text-secondary">{formatPct(player.dmgShare, 1)}</td>
-                        <td className="text-secondary">
-                          {typeof player.gd15 === 'number'
-                            ? `${player.gd15 > 0 ? '+' : ''}${player.gd15}`
-                            : '—'}
-                        </td>
-                        <td className="text-secondary">{formatNum(player.dpm, 0)}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </section>
+          <div className="players-table-toggle">
+            <button type="button" className="btn" onClick={() => setShowPlayerTables((v) => !v)}>
+              {showPlayerTables ? 'Hide Tables' : 'Show Tables'}
+            </button>
+          </div>
+
+          {showPlayerTables && (
+            <PlayerMetricsTableCard
+              className="tournament-card"
+              players={scopedPlayers}
+              filteredPlayers={scopedPlayers}
+              subtitle="Tournament-scoped stats · sorted by calculated performance score"
+              defaultView="rankings"
+            />
+          )}
         </>
       )}
 
@@ -699,110 +520,21 @@ export default function TournamentPage() {
             )}
           </section>
 
-          <section className="card tournament-card">
-            <h2 className="card-title">Full Team Metrics</h2>
-            <p className="card-subtitle">
-              Tournament-scoped stats · sorted by performance score (highest first)
-            </p>
-            {!sortedTeamRows.length ? (
-              <p className="text-secondary">No team data for this tournament.</p>
-            ) : (
-              <div className="table-wrap">
-                <table className="data-table">
-                  <thead>
-                    <tr>
-                      <SortableTh
-                        label="Perf"
-                        columnKey="perfScore"
-                        sortKey={teamSortKey}
-                        sortDesc={teamSortDesc}
-                        onSort={toggleTeamSort}
-                      />
-                      <SortableTh
-                        label="Team"
-                        columnKey="name"
-                        sortKey={teamSortKey}
-                        sortDesc={teamSortDesc}
-                        onSort={toggleTeamSort}
-                      />
-                      <SortableTh
-                        label="W-L"
-                        columnKey="wins"
-                        sortKey={teamSortKey}
-                        sortDesc={teamSortDesc}
-                        onSort={toggleTeamSort}
-                      />
-                      <SortableTh
-                        label="Win %"
-                        columnKey="winrate"
-                        sortKey={teamSortKey}
-                        sortDesc={teamSortDesc}
-                        onSort={toggleTeamSort}
-                      />
-                      <SortableTh
-                        label="GD@15"
-                        columnKey="avgGd15"
-                        sortKey={teamSortKey}
-                        sortDesc={teamSortDesc}
-                        onSort={toggleTeamSort}
-                      />
-                      <SortableTh
-                        label="Dragons/G"
-                        columnKey="dragonsPerGame"
-                        sortKey={teamSortKey}
-                        sortDesc={teamSortDesc}
-                        onSort={toggleTeamSort}
-                      />
-                      <SortableTh
-                        label="Barons/G"
-                        columnKey="baronsPerGame"
-                        sortKey={teamSortKey}
-                        sortDesc={teamSortDesc}
-                        onSort={toggleTeamSort}
-                      />
-                      <SortableTh
-                        label="Towers/G"
-                        columnKey="towersPerGame"
-                        sortKey={teamSortKey}
-                        sortDesc={teamSortDesc}
-                        onSort={toggleTeamSort}
-                      />
-                      <SortableTh
-                        label="FB %"
-                        columnKey="firstBloodRate"
-                        sortKey={teamSortKey}
-                        sortDesc={teamSortDesc}
-                        onSort={toggleTeamSort}
-                      />
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {sortedTeamRows.map(({ team, score }) => (
-                      <tr key={team.name}>
-                        <td className="text-accent font-medium">{formatNum(score * 100, 1)}</td>
-                        <td className="font-medium">
-                          <EntityLink type="team" name={team.name} />
-                        </td>
-                        <td className="text-secondary">
-                          {team.wins}-{team.losses}
-                        </td>
-                        <td className="text-accent font-medium">{formatPct(team.winrate, 1)}</td>
-                        <td className="text-secondary">
-                          {typeof team.avgGd15 === 'number'
-                            ? `${team.avgGd15 > 0 ? '+' : ''}${team.avgGd15}`
-                            : '—'}
-                        </td>
-                        <td className="text-secondary">{formatNum(team.dragonsPerGame, 2)}</td>
-                        <td className="text-secondary">{formatNum(team.baronsPerGame, 2)}</td>
-                        <td className="text-secondary">{formatNum(team.towersPerGame, 2)}</td>
-                        <td className="text-secondary">{formatPct(team.firstBloodRate, 1)}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </section>
+          <div className="players-table-toggle">
+            <button type="button" className="btn" onClick={() => setShowTeamTables((v) => !v)}>
+              {showTeamTables ? 'Hide Tables' : 'Show Tables'}
+            </button>
+          </div>
+
+          {showTeamTables && (
+            <TeamMetricsTableCard
+              className="tournament-card"
+              teams={scopedTeams}
+              players={scopedPlayers}
+              subtitle="Tournament-scoped stats · sorted by calculated performance score"
+              defaultView="rankings"
+            />
+          )}
         </>
       )}
 

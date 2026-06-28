@@ -127,6 +127,20 @@ export const ROLE_METRICS: Record<RoleKey, RadarMetricDef[]> = {
   ],
 }
 
+/** Union of every metric shown on any role's player radar chart. */
+export const ALL_PLAYER_RADAR_METRICS: RadarMetricDef[] = (() => {
+  const seen = new Set<string>()
+  const metrics: RadarMetricDef[] = []
+  for (const role of ROLES) {
+    for (const def of ROLE_METRICS[role]) {
+      if (seen.has(def.key)) continue
+      seen.add(def.key)
+      metrics.push(def)
+    }
+  }
+  return metrics
+})()
+
 /** Weight keys align with scoring helpers below */
 const SCORE_WEIGHTS: Record<RoleKey, Partial<Record<RadarMetricKey, number>>> = {
   top: { kda: 0.2, gd15: 0.25, csd15: 0.2, turretPlates: 0.15, dmgGoldRatio: 0.1, xpd15: 0.1 },
