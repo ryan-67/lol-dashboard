@@ -45,7 +45,6 @@ export type RadarMetricKey =
   | 'objControl'
   | 'goldShare'
   | 'visionScore'
-  | 'soloKills'
   | AdvancedMetricKey
 
 export interface RadarMetricDef {
@@ -216,7 +215,6 @@ export function playerSnapshotFromGame(game: PlayerGameLog): Player {
     kaPerMin: game.kaPerMin ?? 0,
     dmgGoldRatio,
     dmgPerGold: game.dmgPerGold ?? 0,
-    soloKills: game.soloKills,
   }
 }
 
@@ -224,9 +222,6 @@ function gameMetricRaw(game: PlayerGameLog, key: RadarMetricKey, cohort: Player[
   if (!isGameStatPresent(game, key, cohort)) return null
 
   const snap = playerSnapshotFromGame(game)
-  if (key === 'soloKills') {
-    return typeof game.soloKills === 'number' ? game.soloKills : null
-  }
   if (key === 'turretPlates') {
     return typeof game.turretPlates === 'number' ? game.turretPlates : null
   }

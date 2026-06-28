@@ -318,7 +318,7 @@ export function buildPlayerChampionStats(player: Player, role: RoleKey, cohort: 
     if (game.result === 1) cur.wins += 1
     for (const key of metricKeys) {
       const value =
-        AT15_METRICS.includes(key) || key === 'turretPlates' || key === 'soloKills'
+        AT15_METRICS.includes(key) || key === 'turretPlates'
           ? metricFromGame(game, key, cohort)
           : getMetricValue(playerSnapshotFromGame(game), key, { cohort, allowMissing: true })
       if (value == null) continue
