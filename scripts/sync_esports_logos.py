@@ -15,6 +15,7 @@ API_KEY = "0TvQnueqKa5mxJntVWt0w4LpLfEkrV1Ta8rQBb9Z"
 OUT_PATH = Path(__file__).resolve().parent.parent / "src" / "data" / "esports-logos.json"
 
 TIER1_LEAGUES = {"LCK", "LPL", "LEC", "LCS"}
+INTERNATIONAL_LEAGUES = {"LCP", "LJL", "VCS", "CBLOL", "LTA N", "LTA S", "PCS"}
 
 # Oracle's Elixir / dashboard display names → LoL Esports API slug
 OE_NAME_TO_ESPORTS_SLUG: dict[str, str] = {
@@ -54,6 +55,9 @@ OE_NAME_TO_ESPORTS_SLUG: dict[str, str] = {
     "topesports": "top-esports",
     "thundertalkgaming": "thunder-talk-gaming",
     "losratones": "los-ratones",
+    "deepcrossgaming": "deep-cross-gaming",
+    "dcg": "deep-cross-gaming",
+    "deepcross": "deep-cross-gaming",
 }
 
 # Dashboard slug -> LoL Esports API slug
@@ -184,7 +188,7 @@ def main() -> int:
 
     for team in teams_raw:
         home = (team.get("homeLeague") or {}).get("name", "").upper()
-        if home not in TIER1_LEAGUES:
+        if home not in TIER1_LEAGUES and home not in INTERNATIONAL_LEAGUES:
             continue
         if team.get("status") != "active":
             continue

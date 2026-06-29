@@ -1,5 +1,5 @@
 import type { GameCatalogEntry, Player, PlayerGameLog, Team } from '../hooks/useDashboardData'
-import { resolveTeamCanonicalName } from './entities/slugs'
+import { resolveTeamCanonicalName, teamMatchesCanonical } from './entities/slugs'
 import { findTeamByName } from './teamAnalytics'
 import { normalizePosition, type RoleKey } from './playerRadar'
 import { buildSeriesFacts, type SeriesFacts } from './recapFacts'
@@ -324,7 +324,7 @@ function collectTeamGames(
   const games: TeamGameRecord[] = []
 
   for (const player of players) {
-    if (player.team !== team) continue
+    if (!teamMatchesCanonical(player.team, team)) continue
     for (const g of player.gameLog ?? []) {
       const id = g.gameId ?? `${g.date}|${player.team}|${g.opponent ?? ''}|${g.result}`
       if (seen.has(id)) continue
@@ -353,16 +353,18 @@ function groupTeamSeriesHistory(games: TeamGameRecord[], team: string): Historic
     loser: g.won ? g.opponent : team,
   }))
 
-  return groupGamesIntoSeries(chrono).map((bucket) => {
-    const opponent = bucket.teamA === team ? bucket.teamB : bucket.teamA
-    const wins = bucket.games.filter((g) => g.winner === team).length
-    return {
-      opponent,
-      wins,
-      losses: bucket.games.length - wins,
-      lastDate: bucket.games[bucket.games.length - 1]!.date,
-    }
-  })
+  return groupGamesIntoSeries(chrono)
+    .map((bucket) => {
+      const opponent = bucket.teamA === team ? bucket.teamB : bucket.teamA
+      const wins = bucket.games.filter((g) => g.winner === team).length
+      return {
+        opponent,
+        wins,
+        losses: bucket.games.length - wins,
+        lastDate: bucket.games[bucket.games.length - 1]!.date,
+      }
+    })
+    .filter((s) => isValidSeriesScore(s.wins, s.losses))
 }
 
 function countSeriesWinStreak(
@@ -1188,6 +1190,7 @@ function summarizeSeries(
   weekCounts: Map<string, number>,
   lineIndex: number,
   ledger: RecapLedger,
+  gameCatalog?: Record<string, GameCatalogEntry>,
 ): Omit<WeeklyRecapLine, 'score'> | null {
   const { teamA, teamB, games } = bucket
   if (!games.length) return null
@@ -1214,8 +1217,8 @@ function summarizeSeries(
   const blowout = domWins >= 2 && vicWins === 0
   const upset = upsetFromWr(domSplitWr, vicSplitWr)
 
-  const domHistory = groupTeamSeriesHistory(collectTeamGames(players, dominant), dominant)
-  const vicHistory = groupTeamSeriesHistory(collectTeamGames(players, victim), victim)
+  const domHistory = groupTeamSeriesHistory(collectTeamGames(players, dominant, gameCatalog), dominant)
+  const vicHistory = groupTeamSeriesHistory(collectTeamGames(players, victim, gameCatalog), victim)
   const seriesStreak =
     countSeriesWinStreak(domHistory, firstGameDate, victim) +
     (domWins > vicWins ? 1 : 0)
@@ -1336,7 +1339,7 @@ export function buildWeeklyRecapLines(
     const winsB = bucket.games.length - winsA
     if (!isValidSeriesScore(winsA, winsB)) continue
 
-    const line = summarizeSeries(bucket, teams, players, weekCounts, i, ledger)
+    const line = summarizeSeries(bucket, teams, players, weekCounts, i, ledger, gameCatalog)
     if (!line) continue
 
     const dominant = winsA >= winsB ? bucket.teamA : bucket.teamB
@@ -1441,10 +1444,14 @@ export function collectSeriesBriefs(
   players: Player[],
   teams: Team[],
   window: WeeklyRecapWindow | null,
-  options?: { gameFilter?: (g: PlayerGameLog) => boolean },
+  options?: {
+    gameFilter?: (g: PlayerGameLog) => boolean
+    gameCatalog?: Record<string, GameCatalogEntry>
+  },
 ): SeriesBrief[] {
   if (!window && !options?.gameFilter) return []
-  const games = collectParsedGames(players, { window, gameFilter: options?.gameFilter })
+  const gameCatalog = options?.gameCatalog
+  const games = collectParsedGames(players, { window, gameFilter: options?.gameFilter, gameCatalog })
   if (!games.length) return []
 
   const weekCounts = buildWeekChampionCounts(games)
@@ -1475,8 +1482,8 @@ export function collectSeriesBriefs(
     const latestDate = ordered[ordered.length - 1]?.date ?? bucket.games[0]!.date
     const firstGameDate = ordered[0]!.date
 
-    const domHistory = groupTeamSeriesHistory(collectTeamGames(players, dominant), dominant)
-    const vicHistory = groupTeamSeriesHistory(collectTeamGames(players, victim), victim)
+    const domHistory = groupTeamSeriesHistory(collectTeamGames(players, dominant, gameCatalog), dominant)
+    const vicHistory = groupTeamSeriesHistory(collectTeamGames(players, victim, gameCatalog), victim)
     const seriesStreak =
       countSeriesWinStreak(domHistory, firstGameDate, victim) + (domWins > vicWins ? 1 : 0)
     const victimSlump = countSeriesLossStreak(vicHistory, firstGameDate)
@@ -1487,7 +1494,7 @@ export function collectSeriesBriefs(
       victimSlump: vicWins > domWins ? 0 : victimSlump,
     })
 
-    const templateBase = summarizeSeries(bucket, teams, players, weekCounts, i, ledger)
+    const templateBase = summarizeSeries(bucket, teams, players, weekCounts, i, ledger, gameCatalog)
     if (!templateBase) continue
 
     const templateLine: WeeklyRecapLine = {

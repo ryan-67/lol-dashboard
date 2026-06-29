@@ -6,6 +6,7 @@ import {
   fetchOESlices,
 } from '../lib/loadOEStore'
 import { isSupabaseConfigured } from '../lib/supabaseClient'
+import { sanitizeUserFacingError } from '../lib/userFacingError'
 import { DEFAULT_SPLIT } from '../lib/constants'
 import { expandSelectedLeagues } from '../lib/filterLabels'
 
@@ -269,9 +270,7 @@ export function useDashboardData(): UseDashboardDataReturn {
     if (!isSupabaseConfigured) {
       setCatalog(null)
       setStore(null)
-      setError(
-        'Supabase is not configured. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY in .env and restart the dev server.',
-      )
+      setError(sanitizeUserFacingError(null))
       setLoading(false)
       return
     }
@@ -295,7 +294,7 @@ export function useDashboardData(): UseDashboardDataReturn {
       setLastUpdated(new Date(nextStore.meta.generated_at))
     } catch (err) {
       setStore(null)
-      setError(err instanceof Error ? err.message : 'Failed to load dashboard data')
+      setError(sanitizeUserFacingError(err))
     } finally {
       setLoading(false)
     }

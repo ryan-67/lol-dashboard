@@ -131,17 +131,26 @@ export async function fetchOESlices({
   const targetSplits = resolveTargetSplits(catalogSplits, years, splits)
   if (!targetSplits.length) return []
 
-  const { data, error } = await supabase
-    .from(TABLE)
-    .select('split, league, data, updated_at')
-    .in('split', targetSplits)
-    .in('league', resolvedLeagues)
+  // Batch by split to avoid Supabase statement timeouts on large jsonb IN queries.
+  const SPLIT_BATCH = 6
+  const allRows: OESliceRow[] = []
 
-  if (error) {
-    throw new Error(error.message)
+  for (let i = 0; i < targetSplits.length; i += SPLIT_BATCH) {
+    const splitBatch = targetSplits.slice(i, i + SPLIT_BATCH)
+    const { data, error } = await supabase
+      .from(TABLE)
+      .select('split, league, data, updated_at')
+      .in('split', splitBatch)
+      .in('league', resolvedLeagues)
+
+    if (error) {
+      throw new Error(error.message)
+    }
+
+    allRows.push(...((data ?? []) as OESliceRow[]))
   }
 
-  return ((data ?? []) as OESliceRow[]).sort(
+  return allRows.sort(
     (a, b) => a.split.localeCompare(b.split) || a.league.localeCompare(b.league),
   )
 }

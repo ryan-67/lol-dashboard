@@ -202,11 +202,6 @@ export default function Layout({ children }: { children: React.ReactNode }) {
             <div className="error-banner">
               <p className="error-title">Failed to load data</p>
               <p className="error-detail">{error}</p>
-              <p className="error-detail mt-2">
-                Check <code>VITE_SUPABASE_URL</code> / <code>VITE_SUPABASE_ANON_KEY</code> in{' '}
-                <code>.env</code>, confirm RLS allows read on <code>oe_slices</code>, and run{' '}
-                <code>python scripts/seed_supabase.py</code> if the table is empty.
-              </p>
             </div>
           )}
 

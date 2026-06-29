@@ -1,5 +1,5 @@
 import type { Team } from '../hooks/useDashboardData'
-import { resolveTeamCanonicalName } from './entities/slugs'
+import { resolveTeamCanonicalName, teamMatchesCanonical } from './entities/slugs'
 import { findTeamByName } from './teamAnalytics'
 import { type RoleKey } from './playerRadar'
 import { recapTeamTag } from './recapTeamTag'
@@ -321,6 +321,13 @@ function annotatePlayer(
   if (lostLaneEveryGame(bucket, p.name)) {
     const verb = role === 'jungle' ? 'outjungled by' : 'lost lane to'
     notes.push(`${verb} opponent every game`)
+    if (p.team !== seriesWinner) {
+      notes.push('gapped every single game — fraud watch candidate')
+    }
+  }
+
+  if (p.team === seriesWinner && lostLaneEveryGame(bucket, p.name)) {
+    notes.push('fraud watch — lost lane every game on the winning team (winning despite them)')
   }
 
   switch (role) {
@@ -446,10 +453,52 @@ function findLaneDuelDomination(series: SeriesBucket): LaneDuelDomination | null
 
 function avgTeamGd15(series: SeriesBucket, team: string): number {
   const vals = series.games.flatMap((g) =>
-    g.players.filter((p) => p.team === team).map((p) => p.gd15),
+    g.players.filter((p) => teamMatchesCanonical(p.team, team)).map((p) => p.gd15),
   )
   if (!vals.length) return 0
   return vals.reduce((s, v) => s + v, 0) / vals.length
+}
+
+function avgTeamGd15ForGame(game: SeriesBucket['games'][0], team: string): number {
+  const roster = game.players.filter((p) => teamMatchesCanonical(p.team, team))
+  if (!roster.length) return 0
+  return roster.reduce((s, p) => s + p.gd15, 0) / roster.length
+}
+
+function buildEarlyGameHints(bucket: SeriesBucket, winner: string, loser: string): string[] {
+  const ordered = [...bucket.games].sort(compareSeriesGames)
+  const hints: string[] = []
+  let competitiveGames = 0
+  const throws: string[] = []
+
+  for (let i = 0; i < ordered.length; i++) {
+    const g = ordered[i]!
+    if (teamMatchesCanonical(g.winner, loser)) continue
+
+    const loserGd = avgTeamGd15ForGame(g, loser)
+    const winnerGd = avgTeamGd15ForGame(g, winner)
+    const gap = loserGd - winnerGd
+
+    if (loserGd >= -80 && gap >= -150) competitiveGames++
+
+    if (loserGd >= 400) {
+      throws.push(
+        `game ${i + 1}: ${recapTeamTag(loser)} had ~+${Math.round(loserGd)} team gd@15 but threw the lead`,
+      )
+    } else if (loserGd >= 180) {
+      throws.push(
+        `game ${i + 1}: ${recapTeamTag(loser)} led @15 (+${Math.round(loserGd)} gd) but still lost`,
+      )
+    }
+  }
+
+  if (competitiveGames >= 2 && ordered.length >= 2) {
+    hints.push(
+      `${recapTeamTag(loser)} hung around early (${competitiveGames}/${ordered.length} games competitive @15) before getting outscaled`,
+    )
+  }
+  hints.push(...throws)
+  return hints
 }
 
 function buildNarrativeHints(opts: {
@@ -479,7 +528,11 @@ function buildNarrativeHints(opts: {
   if (opts.messySeries) hints.push('back-and-forth series — multiple momentum swings')
   if (opts.seriesStreak >= 3) hints.push(`${recapTeamTag(opts.winner)} on a ${opts.seriesStreak}-series win streak`)
   else if (opts.seriesStreak >= 2) hints.push(`${recapTeamTag(opts.winner)} building momentum (${opts.seriesStreak} series wins)`)
-  if (opts.victimSlump >= 2) hints.push(`${recapTeamTag(opts.loser)} slumping (${opts.victimSlump}+ series losses)`)
+  if (opts.victimSlump >= 2) {
+    hints.push(
+      `${recapTeamTag(opts.loser)} on a ${opts.victimSlump}-series losing streak (count completed series only, not individual games)`,
+    )
+  }
   if (opts.domSplitWr >= 65) hints.push(`${recapTeamTag(opts.winner)} strong split form (${opts.domSplitWr.toFixed(0)}% WR)`)
   if (opts.vicSplitWr >= 65 && opts.upset) {
     hints.push(`${recapTeamTag(opts.loser)} entered as split favorite (${opts.vicSplitWr.toFixed(0)}% WR)`)
@@ -560,20 +613,23 @@ export function buildSeriesFacts(
     winnerAbbr: recapTeamTag(g.winner),
   }))
 
-  const narrativeHints = buildNarrativeHints({
-    reverseSweep,
-    droppedGame1,
-    blowout: domWins >= 2 && vicWins === 0,
-    upset: upsetFromWr(domSplitWr, vicSplitWr),
-    messySeries,
-    leadBlownBy,
-    seriesStreak: opts.seriesStreak,
-    victimSlump: opts.victimSlump,
-    domSplitWr,
-    vicSplitWr,
-    winner: winnerCanon,
-    loser: loserCanon,
-  })
+  const narrativeHints = [
+    ...buildNarrativeHints({
+      reverseSweep,
+      droppedGame1,
+      blowout: domWins >= 2 && vicWins === 0,
+      upset: upsetFromWr(domSplitWr, vicSplitWr),
+      messySeries,
+      leadBlownBy,
+      seriesStreak: opts.seriesStreak,
+      victimSlump: opts.victimSlump,
+      domSplitWr,
+      vicSplitWr,
+      winner: winnerCanon,
+      loser: loserCanon,
+    }),
+    ...buildEarlyGameHints(bucket, winnerCanon, loserCanon),
+  ]
 
   const laneDuelPlayer = laneDuel
     ? playerStats.find((p) => p.name === laneDuel.dominator)
