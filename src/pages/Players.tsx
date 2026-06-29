@@ -3,6 +3,7 @@ import { useGSAP } from '@gsap/react'
 import { useDashboard } from '../context/DashboardContext'
 import { useAuth } from '../context/AuthContext'
 import type { Player } from '../hooks/useDashboardData'
+import { TIER1_LEAGUES } from '../lib/mergeSlices'
 import {
   ROLES,
   bestPlayerForRole,
@@ -35,6 +36,11 @@ export default function Players() {
     [filteredPlayers],
   )
 
+  const tier1Players = useMemo(
+    () => players.filter((p) => (TIER1_LEAGUES as readonly string[]).includes(p.league)),
+    [players],
+  )
+
   const roleFilteredPlayers = useMemo(() => {
     if (roleFilter === 'all') return players
     return playersForRole(players, roleFilter)
@@ -43,13 +49,13 @@ export default function Players() {
   const radarPlayers = useMemo(() => {
     if (roleFilter === 'all') {
       return ROLES.map((role) => {
-        const best = bestPlayerForRole(players, role)
+        const best = bestPlayerForRole(tier1Players, role)
         return best ? { player: best, role } : null
       }).filter((x): x is { player: Player; role: RoleKey } => x !== null)
     }
     const ranked = rankPlayersByRole(players, roleFilter, 10)
     return ranked.map((player) => ({ player, role: roleFilter }))
-  }, [players, roleFilter])
+  }, [players, tier1Players, roleFilter])
 
   const radarGridRef = useRef<HTMLDivElement>(null)
   const analyticsRef = useRef<HTMLDivElement>(null)
@@ -133,7 +139,10 @@ export default function Players() {
           className={`radar-grid${roleFilter === 'all' ? ' radar-grid-5' : ''}`}
         >
           {radarPlayers.map(({ player, role }) => {
-            const cohort = playersForRole(players, role)
+            const cohort =
+              roleFilter === 'all'
+                ? playersForRole(tier1Players, role)
+                : playersForRole(players, role)
             return (
               <PlayerRadarChart
                 key={`${player.name}-${player.team}-${role}`}

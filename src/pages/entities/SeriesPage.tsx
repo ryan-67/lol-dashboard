@@ -5,6 +5,8 @@ import {
   buildTeamsForSeries,
   filterPlayersForSeries,
 } from '../../lib/seriesAnalytics'
+import { isDisplayablePlayer } from '../../lib/playerRadar'
+import { isDisplayableTeam } from '../../lib/teamAnalytics'
 import { decodeSeriesIdParam } from '../../lib/seriesPath'
 import { useSeriesPageData } from '../../hooks/useSeriesPageData'
 import { fetchSeriesRecapById } from '../../lib/loadWeeklyRecap'
@@ -30,7 +32,17 @@ export default function SeriesPage() {
   const [recapLoading, setRecapLoading] = useState(true)
   const ref = useRef<HTMLDivElement>(null)
 
-  const { data, series, loading, fallbackNotice } = useSeriesPageData(seriesId)
+  const { data, cohortData, series, loading, fallbackNotice } = useSeriesPageData(seriesId)
+
+  const cohortPlayers = useMemo(
+    () => (cohortData?.players ?? []).filter(isDisplayablePlayer),
+    [cohortData?.players],
+  )
+
+  const cohortTeams = useMemo(
+    () => (cohortData?.teams ?? []).filter(isDisplayableTeam),
+    [cohortData?.teams],
+  )
 
   const scopedPlayers = useMemo(
     () => (series ? filterPlayersForSeries(data?.players ?? [], series) : []),
@@ -191,13 +203,18 @@ export default function SeriesPage() {
             <>
               <section className="card series-card">
                 <h2 className="card-title">Team Comparison</h2>
-                <TeamComparisonRadar teams={scopedTeams} cohort={scopedTeams} embedded />
+                <TeamComparisonRadar teams={scopedTeams} cohort={cohortTeams} embedded />
                 <TeamComparisonStatsChart teams={scopedTeams} players={scopedPlayers} />
               </section>
 
               <section className="card series-card">
                 <h2 className="card-title">Role-by-Role</h2>
-                <SeriesRoleComparison series={series} teams={scopedTeams} players={scopedPlayers} />
+                <SeriesRoleComparison
+                  series={series}
+                  teams={scopedTeams}
+                  players={scopedPlayers}
+                  cohortPlayers={cohortPlayers}
+                />
               </section>
             </>
           ) : null}
@@ -206,7 +223,12 @@ export default function SeriesPage() {
 
       {activeGame ? (
         <section className="card series-card">
-          <SeriesGamePanel series={series} game={activeGame} players={scopedPlayers} />
+          <SeriesGamePanel
+            series={series}
+            game={activeGame}
+            players={scopedPlayers}
+            cohortPlayers={cohortPlayers}
+          />
         </section>
       ) : null}
     </div>

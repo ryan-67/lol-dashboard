@@ -4,7 +4,7 @@ import { buildStoreFromSliceRows, fetchOESlices } from '../lib/loadOEStore'
 import type { OEStore } from '../lib/mergeSlices'
 import { mergeDataForFilters } from '../lib/entities/resolvers'
 import { leagueLabelToLeagues } from './useDashboardData'
-import { findSeriesById, parseSeriesId } from '../lib/seriesAnalytics'
+import { findSeriesById, parseSeriesId, resolveSeriesCohortContext } from '../lib/seriesAnalytics'
 
 /** Load series across all splits in the series year (ignores global split filter). */
 export function useSeriesPageData(seriesId: string) {
@@ -52,6 +52,16 @@ export function useSeriesPageData(seriesId: string) {
     [data, seriesId],
   )
 
+  const cohortData = useMemo(() => {
+    if (!store || !series) return null
+    const { year: cohortYear, split: cohortSplit } = resolveSeriesCohortContext(series)
+    return mergeDataForFilters(store, {
+      league: 'All Tier 1',
+      year: cohortYear,
+      split: cohortSplit,
+    })
+  }, [store, series])
+
   const fallbackNotice = useMemo(() => {
     if (!parsed) return 'Invalid series link.'
     if (!loading && data && !series) return `Series not found in ${year} tier-1 data.`
@@ -60,6 +70,7 @@ export function useSeriesPageData(seriesId: string) {
 
   return {
     data,
+    cohortData,
     series,
     loading,
     fallbackNotice,

@@ -25,20 +25,18 @@ function RecapScoreRow({ line }: { line: WeeklyRecapLine }) {
         <EntityLink type="team" name={score.winner} className="overview-recap-team">
           {score.winnerAbbr}
         </EntityLink>
-        <span className="overview-recap-score-mid">
-          {score.score}
-          {line.seriesId ? (
-            <>
-              {' '}
-              <Link to={seriesPath(line.seriesId)} className="entity-inline-link overview-recap-series-link">
-                series page
-              </Link>
-            </>
-          ) : null}
-        </span>
+        <span className="overview-recap-score-mid">{score.score}</span>
         <EntityLink type="team" name={score.loser} className="overview-recap-team">
           {score.loserAbbr}
         </EntityLink>
+        {line.seriesId ? (
+          <>
+            <span className="overview-recap-score-divider">|</span>
+            <Link to={seriesPath(line.seriesId)} className="entity-inline-link overview-recap-series-link">
+              view series page
+            </Link>
+          </>
+        ) : null}
       </div>
       {score.tournamentLabel ? (
         <span className="overview-recap-tournament">{score.tournamentLabel}</span>

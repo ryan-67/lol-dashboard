@@ -5,11 +5,13 @@ import { recapTeamTag } from '../../lib/recapTeamTag'
 import ChampionIcon from '../entities/ChampionIcon'
 import { TeamLogo } from '../entities'
 import { teamMatchesCanonical } from '../../lib/entities/slugs'
+import SeriesGameInsights from './SeriesGameInsights'
 
 interface SeriesGamePanelProps {
   series: ResolvedSeries
   game: EnrichedSeriesGame
   players: Player[]
+  cohortPlayers: Player[]
 }
 
 function findTeamDraft(game: EnrichedSeriesGame, team: string) {
@@ -55,7 +57,7 @@ function RosterTable({
   )
 }
 
-export default function SeriesGamePanel({ series, game, players }: SeriesGamePanelProps) {
+export default function SeriesGamePanel({ series, game, players, cohortPlayers }: SeriesGamePanelProps) {
   const roster = buildGameRoster(players, game)
   const rosterA = roster.filter((p) => p.team === series.teamA || teamMatchesCanonical(p.team, series.teamA))
   const rosterB = roster.filter((p) => p.team === series.teamB || teamMatchesCanonical(p.team, series.teamB))
@@ -123,6 +125,14 @@ export default function SeriesGamePanel({ series, game, players }: SeriesGamePan
         <RosterTable title={recapTeamTag(series.teamA)} roster={rosterA} />
         <RosterTable title={recapTeamTag(series.teamB)} roster={rosterB} />
       </div>
+
+      <SeriesGameInsights
+        series={series}
+        game={game}
+        roster={roster}
+        players={players}
+        cohortPlayers={cohortPlayers}
+      />
     </div>
   )
 }

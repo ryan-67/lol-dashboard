@@ -233,7 +233,7 @@ export function playerSnapshotFromGame(game: PlayerGameLog): Player {
   }
 }
 
-function gameMetricRaw(game: PlayerGameLog, key: RadarMetricKey, cohort: Player[]): number | null {
+export function gameMetricRaw(game: PlayerGameLog, key: RadarMetricKey, cohort: Player[]): number | null {
   if (!isGameStatPresent(game, key, cohort)) return null
 
   const snap = playerSnapshotFromGame(game)

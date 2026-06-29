@@ -538,6 +538,11 @@ b,
   font-variant-numeric: tabular-nums;
 }
 
+.overview-recap-score-divider {
+  color: var(--text-tertiary);
+  margin: 0 6px;
+}
+
 .overview-recap-summary {
   font-size: 13px;
   line-height: 1.55;
@@ -3327,5 +3332,47 @@ b,
   font-weight: 700;
   font-size: 12px;
   letter-spacing: 0.05em;
+}
+
+.series-game-insights {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-top: 20px;
+}
+
+.series-game-highlights {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.series-game-highlight {
+  font-size: 13px;
+  line-height: 1.45;
+  padding: 8px 10px;
+  border: 1px solid var(--border-subtle);
+}
+
+.series-game-highlight-high {
+  border-color: color-mix(in srgb, var(--accent) 35%, var(--border-subtle));
+}
+
+.series-game-highlight-player {
+  font-weight: 600;
+  margin-right: 6px;
+}
+
+.series-game-highlight-stat {
+  color: var(--text-secondary);
+  margin-right: 6px;
+}
+
+.series-game-highlight-value {
+  color: var(--accent);
+  font-weight: 600;
 }
 

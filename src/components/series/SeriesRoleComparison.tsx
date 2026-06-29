@@ -12,6 +12,7 @@ interface SeriesRoleComparisonProps {
   series: ResolvedSeries
   teams: Team[]
   players: Player[]
+  cohortPlayers: Player[]
 }
 
 function seriesStarter(
@@ -21,7 +22,12 @@ function seriesStarter(
   return roster.find((r) => r.role === role)?.player ?? null
 }
 
-export default function SeriesRoleComparison({ series, teams, players }: SeriesRoleComparisonProps) {
+export default function SeriesRoleComparison({
+  series,
+  teams,
+  players,
+  cohortPlayers,
+}: SeriesRoleComparisonProps) {
   const teamA = teams.find((t) => t.name === series.teamA) ?? teams[0]
   const teamB = teams.find((t) => t.name === series.teamB) ?? teams[1]
 
@@ -42,7 +48,7 @@ export default function SeriesRoleComparison({ series, teams, players }: SeriesR
         const playerA = seriesStarter(rosterA, role)
         const playerB = seriesStarter(rosterB, role)
         if (!playerA && !playerB) return null
-        const cohort = playersForRole(players, role)
+        const cohort = playersForRole(cohortPlayers, role)
 
         return (
           <section key={role} className="series-role-block card">

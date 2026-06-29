@@ -25,6 +25,8 @@ import {
 } from './seriesGrouping'
 import { formatPatch } from './format'
 import { formatDurationMinSec } from './tournamentFormat'
+import { combinedFilterForCatalogSeason } from './splitGroups'
+import { parseCanonicalSplit } from './tournamentCatalog'
 
 export interface TournamentSeriesRow {
   seriesId: string
@@ -273,6 +275,14 @@ export function findSeriesById(data: DashboardData, seriesId: string): ResolvedS
 
 export function seriesGameIds(series: ResolvedSeries): Set<string> {
   return new Set(series.games.map((g) => g.id))
+}
+
+/** Combined split/tournament scope for radar cohorts (e.g. 2026 MSI → 2026 Spring incl. MSI). */
+export function resolveSeriesCohortContext(series: ResolvedSeries): { year: string; split: string } {
+  const { year, season } = parseCanonicalSplit(series.split)
+  const y = year || series.firstDate.slice(0, 4) || '2026'
+  const combined = combinedFilterForCatalogSeason(season || 'Spring')
+  return { year: y, split: `${y} ${combined}` }
 }
 
 export function filterPlayersForSeries(players: Player[], series: ResolvedSeries): Player[] {
