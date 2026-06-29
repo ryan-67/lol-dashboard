@@ -5,6 +5,8 @@ import { resolveSplitLabelsForMerge } from './filterOptions'
 import { isSupabaseConfigured, supabase } from './supabaseClient'
 
 const TABLE = 'oe_slices'
+const CATALOG_PAGE_SIZE = 1000
+const SLICE_FETCH_CONCURRENCY = 4
 
 export interface OESliceRow {
   split: string
@@ -92,13 +94,7 @@ export async function fetchOESliceCatalog(): Promise<OEStoreMeta> {
     )
   }
 
-  const { data, error } = await supabase.from(TABLE).select('split, league, updated_at')
-
-  if (error) {
-    throw new Error(error.message)
-  }
-
-  const rows = data ?? []
+  const rows = await fetchOESliceCatalogRows()
   if (!rows.length) {
     throw new Error(
       'No rows in oe_slices. Run `python scripts/seed_supabase.py` to load dashboard data.',
@@ -108,8 +104,77 @@ export async function fetchOESliceCatalog(): Promise<OEStoreMeta> {
   return buildMetaFromCatalogRows(rows)
 }
 
+async function fetchOESliceCatalogRows(): Promise<
+  Array<{ split: string; league: string; updated_at: string | null }>
+> {
+  const rows: Array<{ split: string; league: string; updated_at: string | null }> = []
+  let offset = 0
+
+  while (true) {
+    const { data, error } = await supabase
+      .from(TABLE)
+      .select('split, league, updated_at')
+      .order('split', { ascending: true })
+      .order('league', { ascending: true })
+      .range(offset, offset + CATALOG_PAGE_SIZE - 1)
+
+    if (error) {
+      throw new Error(error.message)
+    }
+
+    const page = data ?? []
+    rows.push(...page)
+    if (page.length < CATALOG_PAGE_SIZE) break
+    offset += CATALOG_PAGE_SIZE
+  }
+
+  return rows
+}
+
+async function fetchSingleOESlice(split: string, league: string): Promise<OESliceRow | null> {
+  const { data, error } = await supabase
+    .from(TABLE)
+    .select('split, league, data, updated_at')
+    .eq('split', split)
+    .eq('league', league)
+    .maybeSingle()
+
+  if (error) {
+    throw new Error(error.message)
+  }
+
+  if (!data?.split || !data.league || !data.data) return null
+  return data as OESliceRow
+}
+
+async function mapWithConcurrency<T, R>(
+  items: T[],
+  concurrency: number,
+  fn: (item: T, index: number) => Promise<R>,
+): Promise<R[]> {
+  if (!items.length) return []
+
+  const results = new Array<R>(items.length)
+  let nextIndex = 0
+
+  async function worker(): Promise<void> {
+    while (nextIndex < items.length) {
+      const index = nextIndex
+      nextIndex += 1
+      results[index] = await fn(items[index]!, index)
+    }
+  }
+
+  const workers = Array.from(
+    { length: Math.min(concurrency, items.length) },
+    () => worker(),
+  )
+  await Promise.all(workers)
+  return results
+}
+
 /**
- * Fetch slices for active league/year/split filters (small batched jsonb load).
+ * Fetch slices for active league/year/split filters (one jsonb row per request).
  */
 export async function fetchOESlices({
   leagues,
@@ -131,28 +196,36 @@ export async function fetchOESlices({
   const targetSplits = resolveTargetSplits(catalogSplits, years, splits)
   if (!targetSplits.length) return []
 
-  // Batch by split to avoid Supabase statement timeouts on large jsonb IN queries.
-  const SPLIT_BATCH = 6
-  const allRows: OESliceRow[] = []
-
-  for (let i = 0; i < targetSplits.length; i += SPLIT_BATCH) {
-    const splitBatch = targetSplits.slice(i, i + SPLIT_BATCH)
-    const { data, error } = await supabase
+  const sliceKeys: Array<{ split: string; league: string }> = []
+  const SPLIT_KEY_BATCH = 20
+  for (let i = 0; i < targetSplits.length; i += SPLIT_KEY_BATCH) {
+    const splitBatch = targetSplits.slice(i, i + SPLIT_KEY_BATCH)
+    const { data: keyRows, error: keysError } = await supabase
       .from(TABLE)
-      .select('split, league, data, updated_at')
+      .select('split, league')
       .in('split', splitBatch)
       .in('league', resolvedLeagues)
 
-    if (error) {
-      throw new Error(error.message)
+    if (keysError) {
+      throw new Error(keysError.message)
     }
 
-    allRows.push(...((data ?? []) as OESliceRow[]))
+    for (const row of keyRows ?? []) {
+      const split = String(row.split ?? '')
+      const league = String(row.league ?? '')
+      if (split && league) sliceKeys.push({ split, league })
+    }
   }
 
-  return allRows.sort(
-    (a, b) => a.split.localeCompare(b.split) || a.league.localeCompare(b.league),
+  const loaded = await mapWithConcurrency(
+    sliceKeys,
+    SLICE_FETCH_CONCURRENCY,
+    async ({ split, league }) => fetchSingleOESlice(split, league),
   )
+
+  return loaded
+    .filter((row): row is OESliceRow => row != null)
+    .sort((a, b) => a.split.localeCompare(b.split) || a.league.localeCompare(b.league))
 }
 
 /** @deprecated use fetchOESlices with years/splits arrays */
