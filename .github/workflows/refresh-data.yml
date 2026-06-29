@@ -34,7 +34,7 @@ on:
     - cron: '0 */2 * * *'
 
 permissions:
-  contents: read
+  contents: write
 
 concurrency:
   group: refresh-dashboard-data
@@ -121,6 +121,18 @@ jobs:
 
       - name: Ingest CSVs into slice JSON shards
         run: python scripts/ingest_csv.py
+
+      - name: Publish OE CDN shards to repo
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add public/data/oe_slices.json public/data/oe_slices_*.json
+          if ! git diff --staged --quiet; then
+            git commit -m "chore(data): update OE CDN shards"
+            git push
+          else
+            echo "OE shards unchanged — skip commit."
+          fi
 
       - name: Seed Supabase oe_slices
         env:

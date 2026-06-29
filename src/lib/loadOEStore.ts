@@ -3,6 +3,10 @@ import { sliceKey, splitSortKey, TIER1_LEAGUES, GUEST_LEAGUE } from './mergeSlic
 import { expandSelectedLeagues } from './filterLabels'
 import { resolveSplitLabelsForMerge } from './filterOptions'
 import { isSupabaseConfigured, supabase } from './supabaseClient'
+import {
+  fetchOESliceCatalogFromShards,
+  fetchOESlicesFromShards,
+} from './loadOEShards'
 
 const TABLE = 'oe_slices'
 const CATALOG_PAGE_SIZE = 1000
@@ -22,7 +26,7 @@ export interface FetchOESlicesParams {
   catalogSplits?: string[]
 }
 
-function resolveTargetSplits(
+export function resolveTargetSplits(
   catalogSplits: string[],
   years: string[],
   splits: string[],
@@ -88,9 +92,12 @@ function buildMetaFromCatalogRows(
 
 /** Lightweight index of all split/league keys (no jsonb) for filter dropdowns. */
 export async function fetchOESliceCatalog(): Promise<OEStoreMeta> {
+  const fromShards = await fetchOESliceCatalogFromShards()
+  if (fromShards) return fromShards
+
   if (!isSupabaseConfigured) {
     throw new Error(
-      'Supabase is not configured. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY in .env and restart the dev server.',
+      'Dashboard data is unavailable. CDN shards missing and Supabase is not configured.',
     )
   }
 
@@ -182,9 +189,17 @@ export async function fetchOESlices({
   splits,
   catalogSplits,
 }: FetchOESlicesParams): Promise<OESliceRow[]> {
+  const fromShards = await fetchOESlicesFromShards({
+    leagues,
+    years,
+    splits,
+    catalogSplits,
+  })
+  if (fromShards !== null) return fromShards
+
   if (!isSupabaseConfigured) {
     throw new Error(
-      'Supabase is not configured. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY in .env and restart the dev server.',
+      'Dashboard data is unavailable. CDN shards missing and Supabase is not configured.',
     )
   }
 

@@ -6,6 +6,7 @@
   "scripts": {
     "ingest": "python scripts/ingest_csv.py",
     "seed:supabase": "python scripts/seed_supabase.py",
+    "export:shards": "python scripts/export_oe_shards.py",
     "index:rag": "tsx scripts/rag-indexer/src/index.ts",
     "index:rag:dry": "tsx scripts/rag-indexer/src/index.ts --dry-run",
     "generate:weekly-recap": "tsx scripts/recap/generate-weekly-recap.ts",

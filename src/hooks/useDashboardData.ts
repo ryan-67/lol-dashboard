@@ -5,7 +5,6 @@ import {
   fetchOESliceCatalog,
   fetchOESlices,
 } from '../lib/loadOEStore'
-import { isSupabaseConfigured } from '../lib/supabaseClient'
 import { sanitizeUserFacingError } from '../lib/userFacingError'
 import { DEFAULT_SPLIT } from '../lib/constants'
 import { expandSelectedLeagues } from '../lib/filterLabels'
@@ -266,14 +265,6 @@ export function useDashboardData(): UseDashboardDataReturn {
   const fetchData = useCallback(async () => {
     setLoading(true)
     setError(null)
-
-    if (!isSupabaseConfigured) {
-      setCatalog(null)
-      setStore(null)
-      setError(sanitizeUserFacingError(null))
-      setLoading(false)
-      return
-    }
 
     try {
       const meta = catalog ?? (await fetchOESliceCatalog())
