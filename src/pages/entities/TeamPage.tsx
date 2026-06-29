@@ -213,12 +213,21 @@ export default function TeamPage() {
     if (!team || activeTab !== 'schedule') return
     let cancelled = false
     setScheduleLoading(true)
-    void fetchTeamUpcomingCitoSchedule(team.name, { limit: 6 }).then((rows) => {
-      if (cancelled) return
-      setUpcomingSchedule(rows)
-      setScheduleSource(rows.length ? 'loaded' : 'empty')
-      setScheduleLoading(false)
-    })
+    void fetchTeamUpcomingCitoSchedule(team.name, { limit: 3 })
+      .then((rows) => {
+        if (cancelled) return
+        setUpcomingSchedule(rows)
+        setScheduleSource(rows.length ? 'loaded' : 'empty')
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setUpcomingSchedule([])
+          setScheduleSource('empty')
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setScheduleLoading(false)
+      })
     return () => {
       cancelled = true
     }
@@ -496,21 +505,27 @@ export default function TeamPage() {
                         <td className={m.result === 'W' ? 'text-accent' : 'text-secondary'}>
                           {m.result}
                         </td>
-                        <td>
+                        <td className="entity-inline-row">
+                          <EntityLink type="team" name={m.teamName} /> vs{' '}
+                          {m.opponent ? <EntityLink type="team" name={m.opponent} /> : '—'}
                           {seriesId ? (
-                            <Link to={seriesPath(seriesId)} className="entity-link">
-                              {m.matchup}
-                            </Link>
-                          ) : (
-                            m.matchup
-                          )}
+                            <>
+                              {' · '}
+                              <Link to={seriesPath(seriesId)} className="entity-inline-link">
+                                series
+                              </Link>
+                            </>
+                          ) : null}
                         </td>
-                        <td>{m.side}</td>
+                        <td className={m.sideClass}>{m.side}</td>
                         <td>{m.patch}</td>
                         <td>
-                          <Link to={tournamentPath(m.tournamentId)} className="entity-link">
-                            {m.tournament}
-                          </Link>
+                          <span className="entity-tournament-cell">
+                            <LeagueLogo league={m.tournamentLeague} size={16} />
+                            <Link to={tournamentPath(m.tournamentId)} className="entity-link">
+                              {m.tournament}
+                            </Link>
+                          </span>
                         </td>
                         <td>{formatGameDate(m.date)}</td>
                       </tr>

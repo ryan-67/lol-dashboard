@@ -1,5 +1,5 @@
 import type { GameCatalogEntry, Player, PlayerGameLog, Team } from '../hooks/useDashboardData'
-import { resolveTeamCanonicalName, teamMatchesCanonical } from './entities/slugs'
+import { resolveTeamCanonicalName } from './entities/slugs'
 import { findTeamByName } from './teamAnalytics'
 import { normalizePosition, type RoleKey } from './playerRadar'
 import { buildSeriesFacts, type SeriesFacts } from './recapFacts'
@@ -23,6 +23,7 @@ import {
 } from './seriesGrouping'
 import { analyzeSeriesMomentum } from './seriesMomentum'
 import { resolveTournamentDisplay } from './tournamentCatalog'
+import { resolveGameOpponent } from './gameOpponent'
 
 export type { SeriesFacts }
 
@@ -45,6 +46,8 @@ export function normalizeRecapSegmentLabels(segments: WeeklyRecapSegment[]): Wee
 
 export interface WeeklyRecapLine {
   id: string
+  /** Stable series identity URL slug (`teamA|teamB|date`). */
+  seriesId?: string
   date: string
   dateLabel: string
   segments: WeeklyRecapSegment[]
@@ -233,35 +236,6 @@ function segTeam(name: string): WeeklyRecapSegment {
   }
 }
 
-function inferOpponentFromCatalog(
-  game: PlayerGameLog,
-  playerTeam: string,
-  catalog?: Record<string, GameCatalogEntry>,
-): string | null {
-  const trimmed = game.opponent?.trim()
-  if (trimmed) return trimmed
-  if (!game.gameId || !catalog?.[game.gameId]?.teams) return null
-  const teams = Object.keys(catalog[game.gameId]!.teams)
-  const other = teams.find((t) => !teamMatchesCanonical(t, playerTeam))
-  return other ?? null
-}
-
-function inferOpponentFromRoster(
-  g: PlayerGameLog,
-  playerTeam: string,
-  players: Player[],
-): string | null {
-  const trimmed = g.opponent?.trim()
-  if (trimmed) return trimmed
-  if (!g.gameId) return null
-  for (const p of players) {
-    if (p.team === playerTeam) continue
-    const match = (p.gameLog ?? []).find((pg) => pg.gameId === g.gameId)
-    if (match) return p.team
-  }
-  return null
-}
-
 export function collectParsedGames(
   players: Player[],
   options?: {
@@ -284,9 +258,7 @@ export function collectParsedGames(
       if (seen.has(id)) continue
       seen.add(id)
 
-      const opponent =
-        inferOpponentFromCatalog(g, player.team, gameCatalog) ??
-        inferOpponentFromRoster(g, player.team, players)
+      const opponent = resolveGameOpponent(g, player.team, players, gameCatalog)
       if (!opponent) continue
       const won = g.result === 1
       const winner = won ? player.team : opponent
@@ -343,7 +315,11 @@ function collectWeeklyGames(
   return collectParsedGames(players, { window, gameCatalog })
 }
 
-function collectTeamGames(players: Player[], team: string): TeamGameRecord[] {
+function collectTeamGames(
+  players: Player[],
+  team: string,
+  gameCatalog?: Record<string, GameCatalogEntry>,
+): TeamGameRecord[] {
   const seen = new Set<string>()
   const games: TeamGameRecord[] = []
 
@@ -353,7 +329,7 @@ function collectTeamGames(players: Player[], team: string): TeamGameRecord[] {
       const id = g.gameId ?? `${g.date}|${player.team}|${g.opponent ?? ''}|${g.result}`
       if (seen.has(id)) continue
       seen.add(id)
-      const opponent = g.opponent?.trim()
+      const opponent = resolveGameOpponent(g, player.team, players, gameCatalog)
       if (!opponent) continue
       games.push({
         id,
@@ -1369,6 +1345,8 @@ export function buildWeeklyRecapLines(
     const vicWins = Math.min(winsA, winsB)
 
     const firstGame = bucket.games[0]!
+    const ordered = [...bucket.games].sort(compareSeriesGames)
+    const latestDate = ordered[ordered.length - 1]?.date ?? firstGame.date
     const tournamentLabel = resolveTournamentDisplay(
       firstGame.league,
       firstGame.split,
@@ -1378,6 +1356,7 @@ export function buildWeeklyRecapLines(
 
     lines.push({
       ...line,
+      seriesId: stableSeriesId(bucket.teamA, bucket.teamB, latestDate, bucket.sessionIndex),
       score: {
         winner: resolveTeamCanonicalName(dominant),
         loser: resolveTeamCanonicalName(victim),

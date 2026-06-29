@@ -20,6 +20,7 @@ import {
   playersForRole,
 } from '../lib/playerRadar'
 import { radarColorForPlayer } from '../lib/entities/teamBrandColor'
+import { teamMatchesCanonical } from '../lib/entities/slugs'
 import { aggregateAdvancedFromGameLog } from '../lib/advancedStats'
 import { findTeamByName } from '../lib/teamAnalytics'
 import TeamRadarChart from '../components/teams/TeamRadarChart'
@@ -27,7 +28,9 @@ import { EntityLink, ChampionEntityInline } from '../components/entities'
 import WeeklyRecap from '../components/overview/WeeklyRecap'
 import OverviewHubToggle from '../components/overview/OverviewHubToggle'
 import { buildWeeklyRecapLines } from '../lib/weeklyRecap'
+import { mergeWeeklyRecapLines } from '../lib/recapMerge'
 import { fetchCachedWeeklyRecapLines } from '../lib/loadWeeklyRecap'
+import { resolveGameOpponent } from '../lib/gameOpponent'
 import {
   getHubWindow,
   inHubWindow,
@@ -252,12 +255,13 @@ function opponentLaneInfo(
   playerTeam: string,
   role: RoleKey,
   log: PlayerGameLog,
+  gameCatalog?: Record<string, import('../hooks/useDashboardData').GameCatalogEntry>,
 ): OpponentLane {
-  let team = log.opponent?.trim() ?? ''
+  const team = resolveGameOpponent(log, playerTeam, allPlayers, gameCatalog)
 
   if (!team) {
     const sameDatePeers = allPlayers.filter((p) => {
-      if (p.team === playerTeam) return false
+      if (teamMatchesCanonical(p.team, playerTeam)) return false
       if (normalizePosition(p.position) !== role) return false
       return (p.gameLog ?? []).some((g) => g.date === log.date)
     })
@@ -291,7 +295,7 @@ function opponentLaneInfo(
   }
 
   const candidates = allPlayers.filter(
-    (p) => p.team === team && normalizePosition(p.position) === role,
+    (p) => teamMatchesCanonical(p.team, team) && normalizePosition(p.position) === role,
   )
   for (const candidate of candidates) {
     const hit = (candidate.gameLog ?? []).find((g) => isSameGame(playerTeam, log, team, g))
@@ -591,8 +595,11 @@ export default function Overview() {
     }
   }, [hubWindow, selectedLeagues, copy.recapLimit])
 
-  const weeklyRecapLines =
-    cachedRecapLines.length > 0 ? cachedRecapLines : templateRecapLines
+  const weeklyRecapLines = mergeWeeklyRecapLines(
+    cachedRecapLines,
+    templateRecapLines,
+    copy.recapLimit,
+  )
 
   useGSAP(
     () => {
@@ -704,6 +711,7 @@ export default function Overview() {
                         playerOfWeek.base.team,
                         playerOfWeek.role,
                         g,
+                        weeklyHubGameCatalog,
                       )
                       const perfScore = computeGameScore(g, playerOfWeek.role, roleCohort)
                       const highlight = highestDeltaStatForGame(g, playerOfWeek.role, roleCohort)

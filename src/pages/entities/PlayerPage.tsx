@@ -1,7 +1,7 @@
 import { useCallback, useMemo } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { useEntityPageData } from '../../hooks/useEntityPageData'
-import { resolvePlayerFromSlug, bestWorstChampions } from '../../lib/entities'
+import { resolvePlayerFromSlug, bestWorstChampions, sideCellClass } from '../../lib/entities'
 import {
   playersForRole,
   isDisplayablePlayer,
@@ -180,6 +180,7 @@ export default function PlayerPage() {
                 <th>Date</th>
                 <th>Champion</th>
                 <th>Result</th>
+                <th>Side</th>
                 <th>Opponent</th>
                 <th>Against</th>
                 {matchHistoryMetrics.map((m) => (
@@ -213,6 +214,9 @@ export default function PlayerPage() {
                     <td className={g.result === 1 ? 'text-accent' : 'text-secondary'}>
                       {g.result === 1 ? 'W' : 'L'}
                     </td>
+                    <td className={sideCellClass(g.side)}>
+                      {g.side ? g.side.charAt(0).toUpperCase() + g.side.slice(1) : '—'}
+                    </td>
                     <td>
                       {opponent ? (
                         <EntityLink type="team" name={opponent} />
@@ -230,9 +234,12 @@ export default function PlayerPage() {
                       {g.kills ?? 0}/{g.deaths ?? 0}/{g.assists ?? 0}
                     </td>
                     <td className="text-secondary text-sm">
-                      <Link to={tournamentPath(tournamentIdentity.id)} className="entity-link">
-                        {tournament}
-                      </Link>
+                      <span className="entity-tournament-cell">
+                        <LeagueLogo league={tournamentIdentity.league} size={16} />
+                        <Link to={tournamentPath(tournamentIdentity.id)} className="entity-link">
+                          {tournament}
+                        </Link>
+                      </span>
                     </td>
                   </tr>
                 )

@@ -1,7 +1,9 @@
 import { useRef } from 'react'
+import { Link } from 'react-router-dom'
 import { useGSAP } from '@gsap/react'
 import type { WeeklyRecapLine, WeeklyRecapSegment } from '../../lib/weeklyRecap'
 import { recapTeamTag } from '../../lib/recapTeamTag'
+import { seriesPath } from '../../lib/seriesPath'
 import { scrollEntranceStagger } from '../../theme/animations'
 import EntityLink from '../entities/EntityLink'
 import type { Champion, Player } from '../../hooks/useDashboardData'
@@ -23,7 +25,17 @@ function RecapScoreRow({ line }: { line: WeeklyRecapLine }) {
         <EntityLink type="team" name={score.winner} className="overview-recap-team">
           {score.winnerAbbr}
         </EntityLink>
-        <span className="overview-recap-score-mid">{score.score}</span>
+        <span className="overview-recap-score-mid">
+          {score.score}
+          {line.seriesId ? (
+            <>
+              {' '}
+              <Link to={seriesPath(line.seriesId)} className="entity-inline-link overview-recap-series-link">
+                series page
+              </Link>
+            </>
+          ) : null}
+        </span>
         <EntityLink type="team" name={score.loser} className="overview-recap-team">
           {score.loserAbbr}
         </EntityLink>

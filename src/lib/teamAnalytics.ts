@@ -23,7 +23,7 @@ export const LEAGUE_COLORS: Record<string, string> = {
   LCS: '#5c9e5a',
   MSI: '#9e8c7a',
   WLDs: '#8c6a9e',
-  FST: '#6a7a8c',
+  INT: '#6a8c7a',
 }
 
 const warnedMissing = new Set<string>() // reserved for dev diagnostics

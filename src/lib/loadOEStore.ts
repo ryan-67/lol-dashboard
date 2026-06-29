@@ -1,5 +1,5 @@
 import type { DashboardSlice, OEStore, OEStoreMeta } from './mergeSlices'
-import { sliceKey, splitSortKey, TIER1_LEAGUES } from './mergeSlices'
+import { sliceKey, splitSortKey, TIER1_LEAGUES, GUEST_LEAGUE } from './mergeSlices'
 import { expandSelectedLeagues } from './filterLabels'
 import { resolveSplitLabelsForMerge } from './filterOptions'
 import { isSupabaseConfigured, supabase } from './supabaseClient'
@@ -127,7 +127,7 @@ export async function fetchOESlices({
     return []
   }
 
-  const resolvedLeagues = expandSelectedLeagues(leagues)
+  const resolvedLeagues = [...new Set([...expandSelectedLeagues(leagues), GUEST_LEAGUE])]
   const targetSplits = resolveTargetSplits(catalogSplits, years, splits)
   if (!targetSplits.length) return []
 

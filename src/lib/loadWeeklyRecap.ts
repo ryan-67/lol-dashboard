@@ -31,6 +31,7 @@ function rowToLine(row: RecapRow): WeeklyRecapLine {
 
   return {
     id: row.series_id,
+    seriesId: row.series_id,
     date: row.series_date,
     dateLabel: formatRecapDate(row.series_date),
     segments: normalizeRecapSegmentLabels(row.segments),

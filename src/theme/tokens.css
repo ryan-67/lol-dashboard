@@ -1222,6 +1222,28 @@ b,
   gap: 6px;
 }
 
+.entity-side-blue {
+  color: #8cb4d9;
+  background: rgba(59, 130, 246, 0.1);
+}
+
+.entity-side-red {
+  color: #d48686;
+  background: rgba(239, 68, 68, 0.1);
+}
+
+.entity-tournament-cell {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.overview-recap-series-link {
+  font-size: var(--text-xs);
+  text-transform: lowercase;
+  white-space: nowrap;
+}
+
 .entity-champ-inline {
   display: inline-flex;
   align-items: center;

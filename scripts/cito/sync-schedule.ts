@@ -9,6 +9,7 @@
  */
 import path from 'path'
 import { fileURLToPath } from 'url'
+import { writeFileSync, mkdirSync } from 'fs'
 import { config } from 'dotenv'
 import { CitoClient } from './client.ts'
 import type { CitoScheduleEvent } from './types.ts'
@@ -32,7 +33,8 @@ function normalizeMatchId(matchId: string): string {
 }
 
 function teamLabel(name?: string, short?: string, code?: string): string {
-  return (name ?? short ?? code ?? '').trim()
+  const value = (name ?? short ?? code ?? '').trim()
+  return value || 'TBD'
 }
 
 async function fetchSchedule(client: CitoClient, leagueId: string): Promise<CitoScheduleEvent[]> {
@@ -62,10 +64,9 @@ async function main() {
       const rows = events
         .map((event) => {
           const teams = event.teams ?? []
-          if (teams.length < 2) return null
-          const teamA = teamLabel(teams[0]?.name, teams[0]?.shortName, teams[0]?.code)
-          const teamB = teamLabel(teams[1]?.name, teams[1]?.shortName, teams[1]?.code)
-          if (!teamA || !teamB) return null
+          const teamA = teams[0] ? teamLabel(teams[0]?.name, teams[0]?.shortName, teams[0]?.code) : 'TBD'
+          const teamB = teams[1] ? teamLabel(teams[1]?.name, teams[1]?.shortName, teams[1]?.code) : 'TBD'
+          if (teams.length < 1) return null
           const state = (event.state ?? 'scheduled').toLowerCase()
           const scoreA = teams[0]?.score
           const scoreB = teams[1]?.score
@@ -110,6 +111,21 @@ async function main() {
   }
 
   console.log(`Done — ${total} schedule rows synced.`)
+
+  const cachePath = path.join(ROOT, 'public', 'data', 'cito_schedule_cache.json')
+  mkdirSync(path.dirname(cachePath), { recursive: true })
+  const { data: upcoming } = await supabase
+    .from('cito_schedules')
+    .select('match_id, league, tournament_name, team_a, team_b, scheduled_at, status, block_name')
+    .in('status', ['scheduled', 'live', 'unstarted', 'tbd'])
+    .gte('scheduled_at', new Date().toISOString())
+    .order('scheduled_at', { ascending: true })
+    .limit(500)
+  writeFileSync(
+    cachePath,
+    JSON.stringify({ generated_at: new Date().toISOString(), rows: upcoming ?? [] }, null, 0),
+  )
+  console.log(`  Wrote schedule cache ${cachePath} (${(upcoming ?? []).length} rows)`)
 }
 
 main().catch((err) => {

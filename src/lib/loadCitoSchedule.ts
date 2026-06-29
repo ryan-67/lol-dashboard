@@ -1,4 +1,5 @@
 import { supabase, isSupabaseConfigured } from './supabaseClient'
+import { teamsShareEsportsSlug } from './entities/assets'
 import { resolveTeamCanonicalName, teamMatchesCanonical } from './entities/slugs'
 import type { TournamentPlacementHint } from './tournamentRank'
 
@@ -17,11 +18,21 @@ export interface CitoScheduleRow {
 }
 
 const INTERNATIONAL_SCHEDULE_LEAGUES = new Set(['MSI', 'WLDs', 'FST', 'Worlds', 'First Stand'])
+const SCHEDULE_CACHE_URL = `${import.meta.env.BASE_URL}data/cito_schedule_cache.json`
+
+let scheduleCachePromise: Promise<CitoScheduleRow[]> | null = null
 
 function teamMatchesScheduleName(teamQuery: string, scheduleName: string): boolean {
+  if (!scheduleName?.trim()) return false
   const a = resolveTeamCanonicalName(teamQuery).toLowerCase()
   const b = resolveTeamCanonicalName(scheduleName).toLowerCase()
-  return a === b || scheduleName.toLowerCase().includes(a) || a.includes(scheduleName.toLowerCase())
+  return (
+    a === b ||
+    teamMatchesCanonical(teamQuery, scheduleName) ||
+    teamsShareEsportsSlug(teamQuery, scheduleName) ||
+    scheduleName.toLowerCase().includes(a) ||
+    a.includes(scheduleName.toLowerCase())
+  )
 }
 
 function isTbdTeamName(name: string | null | undefined): boolean {
@@ -37,28 +48,73 @@ function isInternationalScheduleRow(row: CitoScheduleRow): boolean {
   )
 }
 
+function isConfirmedRow(row: CitoScheduleRow): boolean {
+  return !isTbdTeamName(row.team_a) && !isTbdTeamName(row.team_b)
+}
+
 function tournamentContextKey(row: CitoScheduleRow): string {
   return `${row.league}|${row.tournament_name ?? ''}|${row.block_name ?? ''}`.toLowerCase()
 }
 
 function scheduleRowPriority(row: CitoScheduleRow): number {
-  const confirmed = !isTbdTeamName(row.team_a) && !isTbdTeamName(row.team_b)
-  if (confirmed && isInternationalScheduleRow(row)) return 0
-  if (confirmed) return 1
-  if (isInternationalScheduleRow(row)) return 2
-  return 3
+  if (isConfirmedRow(row) && isInternationalScheduleRow(row)) return 0
+  if (isConfirmedRow(row)) return 1
+  if (row.status === 'pending results') return 2
+  if (isInternationalScheduleRow(row)) return 3
+  return 4
+}
+
+async function loadScheduleCache(): Promise<CitoScheduleRow[]> {
+  if (!scheduleCachePromise) {
+    scheduleCachePromise = fetch(SCHEDULE_CACHE_URL)
+      .then(async (res) => {
+        if (!res.ok) return []
+        const body = (await res.json()) as { rows?: CitoScheduleRow[] }
+        return body.rows ?? []
+      })
+      .catch(() => [])
+  }
+  return scheduleCachePromise
+}
+
+async function fetchUpcomingSchedulePool(now: string): Promise<CitoScheduleRow[]> {
+  const byId = new Map<string, CitoScheduleRow>()
+
+  if (isSupabaseConfigured) {
+    const { data, error } = await supabase
+      .from('cito_schedules')
+      .select('match_id, league, tournament_name, team_a, team_b, scheduled_at, status, block_name')
+      .in('status', ['scheduled', 'live', 'unstarted', 'tbd'])
+      .gte('scheduled_at', now)
+      .order('scheduled_at', { ascending: true })
+      .limit(300)
+
+    if (error) {
+      console.warn('[cito-schedule] fetch failed', error.message)
+    } else {
+      for (const row of (data as CitoScheduleRow[] | null) ?? []) {
+        byId.set(row.match_id, row)
+      }
+    }
+  }
+
+  for (const row of await loadScheduleCache()) {
+    if (row.scheduled_at && row.scheduled_at >= now) {
+      byId.set(row.match_id, row)
+    }
+  }
+
+  return [...byId.values()].sort((a, b) =>
+    (a.scheduled_at ?? '').localeCompare(b.scheduled_at ?? ''),
+  )
 }
 
 function pendingBracketRows(
-  _teamName: string,
   allRows: CitoScheduleRow[],
   teamRows: CitoScheduleRow[],
 ): CitoScheduleRow[] {
   const intlConfirmed = teamRows.filter(
-    (r) =>
-      isInternationalScheduleRow(r) &&
-      !isTbdTeamName(r.team_a) &&
-      !isTbdTeamName(r.team_b),
+    (r) => isInternationalScheduleRow(r) && isConfirmedRow(r),
   )
   if (!intlConfirmed.length) return []
 
@@ -80,39 +136,28 @@ function pendingBracketRows(
   return pending
 }
 
-/** Upcoming fixtures from CitoAPI sync (`cito_schedules` table). */
-export async function fetchTeamUpcomingCitoSchedule(
+function assembleTeamSchedule(
   teamName: string,
-  options?: { league?: string; limit?: number },
-): Promise<CitoScheduleRow[]> {
-  if (!isSupabaseConfigured) return []
-
-  const limit = options?.limit ?? 6
-  const now = new Date().toISOString()
-
-  const { data, error } = await supabase
-    .from('cito_schedules')
-    .select('match_id, league, tournament_name, team_a, team_b, scheduled_at, status, block_name')
-    .in('status', ['scheduled', 'live', 'unstarted', 'tbd'])
-    .gte('scheduled_at', now)
-    .order('scheduled_at', { ascending: true })
-    .limit(200)
-
-  if (error) {
-    console.warn('[cito-schedule] fetch failed', error.message)
-    return []
-  }
-
-  const rows = (data as CitoScheduleRow[] | null) ?? []
-  const teamRows = rows.filter(
+  allRows: CitoScheduleRow[],
+  confirmedLimit: number,
+): CitoScheduleRow[] {
+  const teamRows = allRows.filter(
     (row) =>
       teamMatchesScheduleName(teamName, row.team_a) ||
       teamMatchesScheduleName(teamName, row.team_b),
   )
-  const pending = pendingBracketRows(teamName, rows, teamRows)
+  const intlConfirmed = teamRows.filter((r) => isInternationalScheduleRow(r) && isConfirmedRow(r))
+  const regionalConfirmed = teamRows.filter((r) => !isInternationalScheduleRow(r) && isConfirmedRow(r))
+  const confirmed = (intlConfirmed.length ? intlConfirmed : regionalConfirmed)
+    .sort((a, b) => (a.scheduled_at ?? '').localeCompare(b.scheduled_at ?? ''))
+    .slice(0, confirmedLimit)
+
+  const pending = intlConfirmed.length
+    ? pendingBracketRows(allRows, teamRows)
+    : []
 
   const seen = new Set<string>()
-  const merged = [...teamRows, ...pending]
+  return [...confirmed, ...pending]
     .sort((a, b) => {
       const byPriority = scheduleRowPriority(a) - scheduleRowPriority(b)
       if (byPriority !== 0) return byPriority
@@ -123,8 +168,18 @@ export async function fetchTeamUpcomingCitoSchedule(
       seen.add(row.match_id)
       return true
     })
+}
 
-  return merged.slice(0, limit)
+/** Upcoming fixtures from CitoAPI sync (`cito_schedules` table) with static cache fallback. */
+export async function fetchTeamUpcomingCitoSchedule(
+  teamName: string,
+  options?: { league?: string; limit?: number },
+): Promise<CitoScheduleRow[]> {
+  void options?.league
+  const confirmedLimit = options?.limit ?? 3
+  const now = new Date().toISOString()
+  const allRows = await fetchUpcomingSchedulePool(now)
+  return assembleTeamSchedule(teamName, allRows, confirmedLimit)
 }
 
 const QUALIFYING_BLOCK_RE =

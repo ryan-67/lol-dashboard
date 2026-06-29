@@ -470,19 +470,29 @@ def slice_store():
     }
 
 
+def teams_name_match(a: str, b: str) -> bool:
+    return a.lower().strip() == b.lower().strip()
+
+
 def backfill_game_log_opponents(players_dict, game_teams):
     """Resolve opponent team names and side after all rows are processed."""
     for p in players_dict.values():
         team_name = p.get("team") or ""
         for g in p["gameLog"]:
             game_id = g.get("gameId") or g.pop("_gameId", "")
-            if not g.get("opponent") and game_id:
-                sides = game_teams.get(game_id) or []
-                for side in sides:
-                    opp_team = side.get("team") or ""
-                    if opp_team and opp_team != team_name:
-                        g["opponent"] = opp_team
-                        break
+            if not game_id:
+                continue
+            sides = game_teams.get(game_id) or []
+            teams_in_game: list[str] = []
+            for side in sides:
+                t = (side.get("team") or "").strip()
+                if t and not any(teams_name_match(t, x) for x in teams_in_game):
+                    teams_in_game.append(t)
+            opponents = [t for t in teams_in_game if not teams_name_match(t, team_name)]
+            if len(teams_in_game) >= 2 and opponents:
+                g["opponent"] = opponents[0]
+            elif not g.get("opponent") and len(opponents) == 1:
+                g["opponent"] = opponents[0]
             if not g.get("side") and game_id:
                 sides = game_teams.get(game_id) or []
                 for side in sides:
@@ -829,14 +839,16 @@ def finalize_team_fb_victims(store):
             team["firstbloodvictimgames"].append(1 if was_victim else 0)
 
 
-def compile_slice(store, split_key: str = ""):
+def compile_slice(store, split_key: str = "", bucket_league: str = ""):
     backfill_game_log_opponents(store["players"], store["game_teams"])
     backfill_game_log_turret_plates(store["players"], store["game_team_meta"])
     finalize_team_fb_victims(store)
     intl = is_international_split_key(split_key)
-    min_player = 1 if intl else MIN_PLAYER_GAMES
-    min_team = 1 if intl else MIN_TEAM_GAMES
-    min_champ = 1 if intl else MIN_CHAMP_PICKS
+    guest = bucket_league == MINOR_LEAGUE
+    sparse = intl or guest
+    min_player = 1 if sparse else MIN_PLAYER_GAMES
+    min_team = 1 if sparse else MIN_TEAM_GAMES
+    min_champ = 1 if sparse else MIN_CHAMP_PICKS
     return {
         "players": compile_players(store["players"], min_games=min_player),
         "rosterDepth": compile_roster_depth(store["players"]),
@@ -1404,7 +1416,7 @@ def ingest():
                     store["game_teams"][gid].append(side)
                     existing.add(team)
         split_set.add(sk)
-        slices[f"{sk}|{league}"] = compile_slice(store, sk)
+        slices[f"{sk}|{league}"] = compile_slice(store, sk, league)
 
     meta = {
         "source": "Oracle's Elixir",

@@ -58,11 +58,18 @@ export function bestWorstChampions(
   return { best, worst }
 }
 
-function normalizeSide(raw?: string): 'blue' | 'red' | null {
+export function normalizeSide(raw?: string): 'blue' | 'red' | null {
   const s = (raw ?? '').toLowerCase()
   if (s.includes('blue')) return 'blue'
   if (s.includes('red')) return 'red'
   return null
+}
+
+export function sideCellClass(raw?: string): string {
+  const side = normalizeSide(raw)
+  if (side === 'blue') return 'entity-side-blue'
+  if (side === 'red') return 'entity-side-red'
+  return ''
 }
 
 export function formatTournamentLabel(
@@ -91,7 +98,9 @@ export interface TeamMatchRow {
   result: 'W' | 'L'
   tournament: string
   tournamentId: string
+  tournamentLeague: string
   side: string
+  sideClass: string
   patch: string
   gameId: string
   matchup: string
@@ -136,7 +145,9 @@ export function buildTeamMatchHistory(
           game.oeYear,
         ),
         tournamentId: tournamentIdentity.id,
+        tournamentLeague: tournamentIdentity.league,
         side,
+        sideClass: sideCellClass(game.side),
         patch,
         gameId: game.gameId ?? '',
         matchup: opponent ? `${teamName} vs ${opponent}` : `${teamName} vs`,
