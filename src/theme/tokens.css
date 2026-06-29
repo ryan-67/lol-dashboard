@@ -1282,6 +1282,20 @@ b,
   text-decoration: none;
 }
 
+.entity-inline-link:hover {
+  color: var(--accent);
+  text-decoration: underline;
+  text-decoration-color: color-mix(in srgb, var(--accent) 45%, transparent);
+  text-underline-offset: 2px;
+}
+
+.overview-recap-series-link:hover {
+  color: var(--accent);
+  text-decoration: underline;
+  text-decoration-color: color-mix(in srgb, var(--accent) 45%, transparent);
+  text-underline-offset: 2px;
+}
+
 .entity-h2h-list {
   list-style: none;
   margin: 0;
@@ -3332,6 +3346,12 @@ b,
   font-weight: 700;
   font-size: 12px;
   letter-spacing: 0.05em;
+}
+
+.series-role-player-name {
+  margin: 4px 0 8px;
+  font-size: 13px;
+  font-weight: 600;
 }
 
 .series-game-insights {

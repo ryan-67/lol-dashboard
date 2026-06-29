@@ -7,6 +7,7 @@ import PlayerRadarChart from '../players/PlayerRadarChart'
 import { formatNum, formatPct } from '../../lib/format'
 import { recapTeamTag } from '../../lib/recapTeamTag'
 import type { Team } from '../../hooks/useDashboardData'
+import { EntityLink, TeamLogo } from '../entities'
 
 interface SeriesRoleComparisonProps {
   series: ResolvedSeries
@@ -55,9 +56,17 @@ export default function SeriesRoleComparison({
             <h3 className="card-title">{role.toUpperCase()}</h3>
             <div className="series-role-grid">
               <div>
-                <p className="card-subtitle">{recapTeamTag(series.teamA)}</p>
+                <p className="card-subtitle entity-inline-row">
+                  <TeamLogo name={series.teamA} size={18} />
+                  {recapTeamTag(series.teamA)}
+                </p>
                 {playerA ? (
                   <>
+                    <p className="series-role-player-name">
+                      <EntityLink type="player" name={playerA.name} showIcon={false}>
+                        {playerA.name}
+                      </EntityLink>
+                    </p>
                     <PlayerRadarChart player={playerA} role={role} cohort={cohort} compact hideHeader />
                     <ul className="series-role-stats">
                       <li>
@@ -79,9 +88,17 @@ export default function SeriesRoleComparison({
                 )}
               </div>
               <div>
-                <p className="card-subtitle">{recapTeamTag(series.teamB)}</p>
+                <p className="card-subtitle entity-inline-row">
+                  <TeamLogo name={series.teamB} size={18} />
+                  {recapTeamTag(series.teamB)}
+                </p>
                 {playerB ? (
                   <>
+                    <p className="series-role-player-name">
+                      <EntityLink type="player" name={playerB.name} showIcon={false}>
+                        {playerB.name}
+                      </EntityLink>
+                    </p>
                     <PlayerRadarChart player={playerB} role={role} cohort={cohort} compact hideHeader />
                     <ul className="series-role-stats">
                       <li>

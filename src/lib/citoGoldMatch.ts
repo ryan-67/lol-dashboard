@@ -50,6 +50,32 @@ export function goldTimelineForTeamPerspective(
   return ensureGoldTimelineAtZero(timeline)
 }
 
+export interface TeamObjectiveCounts {
+  dragons: number
+  barons: number
+  towers: number
+}
+
+/** Count dragons, barons, and towers secured by a side from Cito objective events. */
+export function countObjectivesForSide(
+  events: CitoObjectiveEvent[],
+  teamSide: 'blue' | 'red',
+): TeamObjectiveCounts {
+  const counts: TeamObjectiveCounts = { dragons: 0, barons: 0, towers: 0 }
+  for (const e of events) {
+    if (e.side.toLowerCase() !== teamSide) continue
+    const type = e.objectiveType.toLowerCase()
+    if (type.includes('dragon') || type.includes('drake') || type.includes('elder')) {
+      counts.dragons += 1
+    } else if (type.includes('baron')) {
+      counts.barons += 1
+    } else if (type.includes('tower') || type.includes('turret') || type.includes('inhib')) {
+      counts.towers += 1
+    }
+  }
+  return counts
+}
+
 /** Force minute 0 to neutral gold diff; games start even. */
 export function ensureGoldTimelineAtZero(points: GoldTimelinePoint[]): GoldTimelinePoint[] {
   if (!points.length) return [{ minute: 0, goldDiff: 0 }]

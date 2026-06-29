@@ -1,7 +1,13 @@
 import type { Player, PlayerGameLog } from '../hooks/useDashboardData'
 import type { EnrichedSeriesGame, ResolvedSeries, SeriesGameRosterPlayer } from './seriesAnalytics'
-import { resolveGameGoldTimeline, type TeamGoldGameSeries } from './entities/entityAnalytics'
+import { type TeamGoldGameSeries } from './entities/entityAnalytics'
 import { teamMatchesCanonical } from './entities/slugs'
+import {
+  ensureGoldTimelineAtZero,
+  goldTimelineForTeamPerspective,
+  matchCitoGoldToOeGame,
+  type CitoGameGoldRecord,
+} from './citoGoldMatch'
 import {
   ADVANCED_METRICS_BY_ROLE,
   dmgGoldRatioFromGame,
@@ -51,28 +57,45 @@ function findPlayerGameLog(
   return null
 }
 
-export function buildSeriesGameGoldSeries(
+export function resolveSeriesGameGoldTimeline(
   game: EnrichedSeriesGame,
   series: ResolvedSeries,
   players: Player[],
+  citoRows: CitoGameGoldRecord[],
   perspectiveTeam: string,
-  maxMinute = 30,
+  maxMinute = 35,
 ): TeamGoldGameSeries | null {
-  const rosterPlayer = players.find(
+  const roster = players.filter(
     (p) =>
-      (p.team === perspectiveTeam || teamMatchesCanonical(p.team, perspectiveTeam)) &&
-      (p.gameLog ?? []).some((g) => g.gameId === game.id),
+      teamMatchesCanonical(p.team, perspectiveTeam) ||
+      teamMatchesCanonical(p.team, series.teamA) ||
+      teamMatchesCanonical(p.team, series.teamB),
   )
-  const log = rosterPlayer ? findPlayerGameLog(players, game.id, rosterPlayer.name) : null
+  if (!roster.length || !citoRows.length) return null
+
+  const anchor = roster.reduce(
+    (best, p) => ((p.gameLog ?? []).length > (best.gameLog ?? []).length ? p : best),
+    roster[0]!,
+  )
+  const anchorLog = [...(anchor.gameLog ?? [])].sort((a, b) => a.date.localeCompare(b.date))
+  const log = findPlayerGameLog(players, game.id, anchor.name)
+    ?? roster.flatMap((p) => p.gameLog ?? []).find((g) => g.gameId === game.id)
   if (!log) return null
 
   const opponent =
     log.opponent ??
-    (game.winner === perspectiveTeam || teamMatchesCanonical(game.winner, perspectiveTeam)
-      ? series.teamA === perspectiveTeam || teamMatchesCanonical(series.teamA, perspectiveTeam)
+    (teamMatchesCanonical(game.winner, perspectiveTeam)
+      ? teamMatchesCanonical(series.teamA, perspectiveTeam)
         ? series.teamB
         : series.teamA
-      : game.winner)
+      : perspectiveTeam)
+
+  const citoMatch = matchCitoGoldToOeGame(log, anchorLog, perspectiveTeam, opponent, citoRows)
+  if (!citoMatch || citoMatch.goldTimelineBlue.length < 4) return null
+
+  const points = ensureGoldTimelineAtZero(
+    goldTimelineForTeamPerspective(citoMatch, perspectiveTeam).filter((p) => p.minute <= maxMinute),
+  )
 
   return {
     id: game.id,
@@ -80,9 +103,20 @@ export function buildSeriesGameGoldSeries(
     opponent,
     date: game.date,
     result: log.result === 1 ? 'W' : 'L',
-    points: resolveGameGoldTimeline(log, maxMinute),
-    dataSource: log.goldTimeline?.length ? 'cito' : 'oe_proxy',
+    points,
+    dataSource: 'cito',
   }
+}
+
+/** @deprecated use resolveSeriesGameGoldTimeline with Cito rows */
+export function buildSeriesGameGoldSeries(
+  game: EnrichedSeriesGame,
+  series: ResolvedSeries,
+  players: Player[],
+  perspectiveTeam: string,
+  maxMinute = 30,
+): TeamGoldGameSeries | null {
+  return resolveSeriesGameGoldTimeline(game, series, players, [], perspectiveTeam, maxMinute)
 }
 
 export interface GameDistributionRow {

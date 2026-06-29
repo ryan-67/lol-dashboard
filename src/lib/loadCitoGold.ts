@@ -92,3 +92,21 @@ export async function fetchCitoGoldForTeam(
 
   return [...out.values()]
 }
+
+/** Load Cito gold/objectives for all games in a series (both teams). */
+export async function fetchCitoGoldForSeries(
+  teamA: string,
+  teamB: string,
+  dates: string[],
+  oeGameIds: string[],
+): Promise<CitoGameGoldRecord[]> {
+  const [rowsA, rowsB] = await Promise.all([
+    fetchCitoGoldForTeam(teamA, dates, oeGameIds),
+    fetchCitoGoldForTeam(teamB, dates, oeGameIds),
+  ])
+  const merged = new Map<string, CitoGameGoldRecord>()
+  for (const row of [...rowsA, ...rowsB]) {
+    merged.set(row.citoGameId, row)
+  }
+  return [...merged.values()]
+}

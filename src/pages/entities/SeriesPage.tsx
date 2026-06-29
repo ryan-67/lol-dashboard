@@ -10,6 +10,8 @@ import { isDisplayableTeam } from '../../lib/teamAnalytics'
 import { decodeSeriesIdParam } from '../../lib/seriesPath'
 import { useSeriesPageData } from '../../hooks/useSeriesPageData'
 import { fetchSeriesRecapById } from '../../lib/loadWeeklyRecap'
+import { fetchCitoGoldForSeries } from '../../lib/loadCitoGold'
+import type { CitoGameGoldRecord } from '../../lib/citoGoldMatch'
 import { recapLineToText, type WeeklyRecapLine } from '../../lib/weeklyRecap'
 import { recapTeamTag } from '../../lib/recapTeamTag'
 import { formatGameDate } from '../../lib/format'
@@ -30,6 +32,8 @@ export default function SeriesPage() {
   const [activeTab, setActiveTab] = useState<SeriesPageTab>('overview')
   const [recapLine, setRecapLine] = useState<WeeklyRecapLine | null>(null)
   const [recapLoading, setRecapLoading] = useState(true)
+  const [citoGoldRows, setCitoGoldRows] = useState<CitoGameGoldRecord[]>([])
+  const [citoGoldLoading, setCitoGoldLoading] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
 
   const { data, cohortData, series, loading, fallbackNotice } = useSeriesPageData(seriesId)
@@ -52,10 +56,29 @@ export default function SeriesPage() {
   const scopedTeams = useMemo(
     () =>
       series && data
-        ? buildTeamsForSeries(data.teams ?? [], scopedPlayers, series)
+        ? buildTeamsForSeries(data.teams ?? [], scopedPlayers, series, citoGoldRows)
         : [],
-    [data, scopedPlayers, series],
+    [data, scopedPlayers, series, citoGoldRows],
   )
+
+  useEffect(() => {
+    if (!series) {
+      setCitoGoldRows([])
+      return
+    }
+    let cancelled = false
+    const dates = series.games.map((g) => g.date).filter(Boolean)
+    const oeGameIds = series.games.map((g) => g.id).filter(Boolean)
+    setCitoGoldLoading(true)
+    void fetchCitoGoldForSeries(series.teamA, series.teamB, dates, oeGameIds).then((rows) => {
+      if (cancelled) return
+      setCitoGoldRows(rows)
+      setCitoGoldLoading(false)
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [series])
 
   const tournamentLabel = useMemo(() => {
     if (!series) return ''
@@ -228,6 +251,8 @@ export default function SeriesPage() {
             game={activeGame}
             players={scopedPlayers}
             cohortPlayers={cohortPlayers}
+            citoGoldRows={citoGoldRows}
+            citoGoldLoading={citoGoldLoading}
           />
         </section>
       ) : null}

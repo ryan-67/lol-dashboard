@@ -7,11 +7,15 @@ import { TeamLogo } from '../entities'
 import { teamMatchesCanonical } from '../../lib/entities/slugs'
 import SeriesGameInsights from './SeriesGameInsights'
 
+import type { CitoGameGoldRecord } from '../../lib/citoGoldMatch'
+
 interface SeriesGamePanelProps {
   series: ResolvedSeries
   game: EnrichedSeriesGame
   players: Player[]
   cohortPlayers: Player[]
+  citoGoldRows: CitoGameGoldRecord[]
+  citoGoldLoading?: boolean
 }
 
 function findTeamDraft(game: EnrichedSeriesGame, team: string) {
@@ -57,7 +61,14 @@ function RosterTable({
   )
 }
 
-export default function SeriesGamePanel({ series, game, players, cohortPlayers }: SeriesGamePanelProps) {
+export default function SeriesGamePanel({
+  series,
+  game,
+  players,
+  cohortPlayers,
+  citoGoldRows,
+  citoGoldLoading,
+}: SeriesGamePanelProps) {
   const roster = buildGameRoster(players, game)
   const rosterA = roster.filter((p) => p.team === series.teamA || teamMatchesCanonical(p.team, series.teamA))
   const rosterB = roster.filter((p) => p.team === series.teamB || teamMatchesCanonical(p.team, series.teamB))
@@ -132,6 +143,8 @@ export default function SeriesGamePanel({ series, game, players, cohortPlayers }
         roster={roster}
         players={players}
         cohortPlayers={cohortPlayers}
+        citoGoldRows={citoGoldRows}
+        citoGoldLoading={citoGoldLoading}
       />
     </div>
   )

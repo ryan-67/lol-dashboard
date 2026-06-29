@@ -25,6 +25,12 @@ import {
 } from './seriesGrouping'
 import { formatPatch } from './format'
 import { formatDurationMinSec } from './tournamentFormat'
+import {
+  countObjectivesForSide,
+  matchCitoGoldToOeGame,
+  type CitoGameGoldRecord,
+} from './citoGoldMatch'
+import { teamSideForObjectiveRow } from './entities/entityAnalytics'
 import { combinedFilterForCatalogSeason } from './splitGroups'
 import { parseCanonicalSplit } from './tournamentCatalog'
 
@@ -326,6 +332,7 @@ export function buildTeamsForSeries(
   allTeams: Team[],
   scopedPlayers: Player[],
   series: ResolvedSeries,
+  citoRows: CitoGameGoldRecord[] = [],
 ): Team[] {
   const names = [series.teamA, series.teamB]
   const out: Team[] = []
@@ -363,6 +370,39 @@ export function buildTeamsForSeries(
     const deaths = roster.reduce((s, p) => s + (p.deaths ?? 0), 0)
     const assists = roster.reduce((s, p) => s + (p.assists ?? 0), 0)
 
+    if (citoRows.length && roster.length) {
+      const anchor = roster.reduce(
+        (best, p) => ((p.gameLog ?? []).length > (best.gameLog ?? []).length ? p : best),
+        roster[0]!,
+      )
+      const anchorLog = [...(anchor.gameLog ?? [])].sort((a, b) => a.date.localeCompare(b.date))
+
+      for (const game of series.games) {
+        const log =
+          roster.flatMap((p) => p.gameLog ?? []).find((g) => g.gameId === game.id) ??
+          anchorLog.find((g) => g.gameId === game.id)
+        if (!log) continue
+
+        const opponent =
+          log.opponent ??
+          (teamMatchesCanonical(name, series.teamA) ? series.teamB : series.teamA)
+        const citoMatch = matchCitoGoldToOeGame(log, anchorLog, name, opponent, citoRows)
+        if (!citoMatch?.objectivesTimeline?.length) continue
+
+        const side = teamSideForObjectiveRow(citoMatch, name)
+        if (!side) continue
+        const counts = countObjectivesForSide(citoMatch.objectivesTimeline, side)
+        dragons += counts.dragons
+        barons += counts.barons
+        towers += counts.towers
+      }
+    }
+
+    const dragonsPerGame =
+      games && dragons > 0 ? dragons / games : (base?.dragonsPerGame ?? 0)
+    const baronsPerGame = games && barons > 0 ? barons / games : (base?.baronsPerGame ?? 0)
+    const towersPerGame = games && towers > 0 ? towers / games : (base?.towersPerGame ?? 0)
+
     if (base) {
       out.push({
         ...base,
@@ -376,9 +416,9 @@ export function buildTeamsForSeries(
         avgKda: (kills + assists) / Math.max(deaths, 1),
         avgGd15: gd15.length ? gd15.reduce((a, b) => a + b, 0) / gd15.length : base.avgGd15,
         avgGameLength: lengthCount ? lengthSum / lengthCount : base.avgGameLength,
-        dragonsPerGame: games ? dragons / games : base.dragonsPerGame,
-        baronsPerGame: games ? barons / games : base.baronsPerGame,
-        towersPerGame: games ? towers / games : base.towersPerGame,
+        dragonsPerGame,
+        baronsPerGame,
+        towersPerGame,
       })
       continue
     }
@@ -400,9 +440,9 @@ export function buildTeamsForSeries(
       barons: 0,
       heralds: 0,
       avgGameLength: lengthCount ? lengthSum / lengthCount : 0,
-      dragonsPerGame: 0,
-      baronsPerGame: 0,
-      towersPerGame: 0,
+      dragonsPerGame: games && dragons > 0 ? dragons / games : 0,
+      baronsPerGame: games && barons > 0 ? barons / games : 0,
+      towersPerGame: games && towers > 0 ? towers / games : 0,
     })
   }
 

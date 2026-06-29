@@ -16,14 +16,16 @@ import type { Player } from '../../hooks/useDashboardData'
 import type { EnrichedSeriesGame, ResolvedSeries, SeriesGameRosterPlayer } from '../../lib/seriesAnalytics'
 import {
   buildGameDistributionRows,
-  buildSeriesGameGoldSeries,
   findGameStatHighlights,
+  resolveSeriesGameGoldTimeline,
 } from '../../lib/seriesGameInsights'
 import { recapTeamTag } from '../../lib/recapTeamTag'
 import { teamMatchesCanonical } from '../../lib/entities/slugs'
 import { radarColorForTeam } from '../../lib/entities/teamBrandColor'
 import { CHART } from '../../theme/chartTheme'
 import ShareableChart from '../ui/ShareableChart'
+import type { CitoGameGoldRecord } from '../../lib/citoGoldMatch'
+import type { GoldTimelinePoint } from '../../hooks/useDashboardData'
 
 interface SeriesGameInsightsProps {
   series: ResolvedSeries
@@ -31,6 +33,30 @@ interface SeriesGameInsightsProps {
   roster: SeriesGameRosterPlayer[]
   players: Player[]
   cohortPlayers: Player[]
+  citoGoldRows: CitoGameGoldRecord[]
+  citoGoldLoading?: boolean
+}
+
+function interpolateGoldAtMinute(points: GoldTimelinePoint[], minute: number): number | null {
+  const exact = points.find((p) => p.minute === minute)
+  if (exact) return exact.goldDiff
+
+  const sorted = [...points].sort((a, b) => a.minute - b.minute)
+  if (!sorted.length) return null
+
+  const first = sorted[0]!
+  if (minute < first.minute) return 0
+
+  for (let i = 0; i < sorted.length - 1; i++) {
+    const a = sorted[i]!
+    const b = sorted[i + 1]!
+    if (minute >= a.minute && minute <= b.minute) {
+      const t = (minute - a.minute) / Math.max(b.minute - a.minute, 1)
+      return a.goldDiff + t * (b.goldDiff - a.goldDiff)
+    }
+  }
+
+  return sorted[sorted.length - 1]!.goldDiff
 }
 
 function DistributionChart({
@@ -102,14 +128,12 @@ export default function SeriesGameInsights({
   roster,
   players,
   cohortPlayers,
+  citoGoldRows,
+  citoGoldLoading = false,
 }: SeriesGameInsightsProps) {
-  const goldSeriesA = useMemo(
-    () => buildSeriesGameGoldSeries(game, series, players, series.teamA),
-    [game, series, players],
-  )
-  const goldSeriesB = useMemo(
-    () => buildSeriesGameGoldSeries(game, series, players, series.teamB),
-    [game, series, players],
+  const goldSeries = useMemo(
+    () => resolveSeriesGameGoldTimeline(game, series, players, citoGoldRows, series.teamA, 35),
+    [game, series, players, citoGoldRows],
   )
 
   const distributionRows = useMemo(
@@ -125,32 +149,27 @@ export default function SeriesGameInsights({
   const colorA = radarColorForTeam(series.teamA, series.league)
   const colorB = radarColorForTeam(series.teamB, series.league)
 
-  const goldChartData = useMemo(() => {
-    const maxMinute = 30
-    const minutes = Array.from({ length: maxMinute + 1 }, (_, i) => i)
-    return minutes.map((minute) => {
-      const row: Record<string, number | string> = { minute }
-      for (const [key, seriesRow] of [
-        ['teamA', goldSeriesA],
-        ['teamB', goldSeriesB],
-      ] as const) {
-        if (!seriesRow) continue
-        const exact = seriesRow.points.find((p) => p.minute === minute)
-        row[key] = exact?.goldDiff ?? 0
-      }
-      return row
-    })
-  }, [goldSeriesA, goldSeriesB])
+  const maxMinute = useMemo(() => {
+    if (!goldSeries?.points.length) return 30
+    return Math.min(40, Math.max(...goldSeries.points.map((p) => p.minute), 30))
+  }, [goldSeries])
 
-  const hasGold = goldSeriesA || goldSeriesB
+  const goldChartData = useMemo(() => {
+    if (!goldSeries) return []
+    const minutes = Array.from({ length: maxMinute + 1 }, (_, i) => i)
+    return minutes.map((minute) => ({
+      minute,
+      goldDiff: interpolateGoldAtMinute(goldSeries.points, minute) ?? 0,
+    }))
+  }, [goldSeries, maxMinute])
 
   return (
     <div className="series-game-insights">
-      {hasGold ? (
+      {goldSeries ? (
         <ShareableChart className="card">
           <h3 className="card-title">Gold Timeline</h3>
           <p className="card-subtitle">
-            Gold difference from each team&apos;s perspective (positive = ahead)
+            Cito postgame gold · {recapTeamTag(series.teamA)} perspective (positive = ahead)
           </p>
           <ResponsiveContainer width="100%" height={280}>
             <LineChart data={goldChartData} margin={{ top: 8, right: 12, left: 4, bottom: 8 }}>
@@ -165,34 +184,32 @@ export default function SeriesGameInsights({
               />
               <ReferenceLine y={0} stroke="rgba(240, 236, 226, 0.35)" />
               <Tooltip />
-              {goldSeriesA ? (
-                <Line
-                  type="monotone"
-                  dataKey="teamA"
-                  name={recapTeamTag(series.teamA)}
-                  stroke={colorA}
-                  strokeWidth={2}
-                  dot={false}
-                  connectNulls
-                  isAnimationActive={false}
-                />
-              ) : null}
-              {goldSeriesB ? (
-                <Line
-                  type="monotone"
-                  dataKey="teamB"
-                  name={recapTeamTag(series.teamB)}
-                  stroke={colorB}
-                  strokeWidth={2}
-                  dot={false}
-                  connectNulls
-                  isAnimationActive={false}
-                />
-              ) : null}
+              <Line
+                type="monotone"
+                dataKey="goldDiff"
+                name={recapTeamTag(series.teamA)}
+                stroke={colorA}
+                strokeWidth={2}
+                dot={false}
+                connectNulls
+                isAnimationActive={false}
+              />
             </LineChart>
           </ResponsiveContainer>
         </ShareableChart>
-      ) : null}
+      ) : citoGoldLoading ? (
+        <div className="card">
+          <h3 className="card-title">Gold Timeline</h3>
+          <p className="text-secondary">Loading Cito gold timeline…</p>
+        </div>
+      ) : (
+        <div className="card">
+          <h3 className="card-title">Gold Timeline</h3>
+          <p className="text-secondary">
+            Cito postgame gold not available for this game yet.
+          </p>
+        </div>
+      )}
 
       <div className="overview-grid overview-grid-2">
         <DistributionChart
@@ -216,7 +233,9 @@ export default function SeriesGameInsights({
       {highlights.length ? (
         <section className="card">
           <h3 className="card-title">Key Stat Highlights</h3>
-          <p className="card-subtitle">Standout performances vs split/tournament role averages</p>
+          <p className="card-subtitle">
+            Standout performances vs role average for this split/tournament
+          </p>
           <ul className="series-game-highlights">
             {highlights.map((h) => (
               <li
@@ -228,7 +247,7 @@ export default function SeriesGameInsights({
                 <span className="series-game-highlight-value">{h.formatted}</span>
                 <span className="text-secondary">
                   {' '}
-                  (split avg {h.cohortAvgFormatted})
+                  (role avg {h.cohortAvgFormatted})
                 </span>
               </li>
             ))}
