@@ -1,11 +1,8 @@
 import { useMemo } from 'react'
 import {
-  Bar,
-  BarChart,
-  CartesianGrid,
-  Cell,
   Line,
   LineChart,
+  CartesianGrid,
   ReferenceLine,
   ResponsiveContainer,
   Tooltip,
@@ -20,10 +17,10 @@ import {
   resolveSeriesGameGoldTimeline,
 } from '../../lib/seriesGameInsights'
 import { recapTeamTag } from '../../lib/recapTeamTag'
-import { teamMatchesCanonical } from '../../lib/entities/slugs'
 import { radarColorForTeam } from '../../lib/entities/teamBrandColor'
 import { CHART } from '../../theme/chartTheme'
 import ShareableChart from '../ui/ShareableChart'
+import SeriesShareCharts from './SeriesShareCharts'
 import type { CitoGameGoldRecord } from '../../lib/citoGoldMatch'
 import type { GolGameGoldRecord } from '../../lib/golGoldMatch'
 import { DATA_LOADING, DATA_UNAVAILABLE } from '../../lib/userFacingError'
@@ -62,69 +59,6 @@ function interpolateGoldAtMinute(points: GoldTimelinePoint[], minute: number): n
   return sorted[sorted.length - 1]!.goldDiff
 }
 
-function DistributionChart({
-  title,
-  rows,
-  dataKey,
-  colorA,
-  colorB,
-  teamA,
-}: {
-  title: string
-  rows: ReturnType<typeof buildGameDistributionRows>
-  dataKey: 'dmgShare' | 'goldShare'
-  colorA: string
-  colorB: string
-  teamA: string
-}) {
-  const chartData = rows.map((row) => ({
-    name: row.name,
-    value: row[dataKey],
-    fill:
-      row.team === teamA || teamMatchesCanonical(row.team, teamA)
-        ? colorA
-        : colorB,
-  }))
-
-  if (!chartData.length) return null
-
-  return (
-    <ShareableChart className="card series-game-insight-chart">
-      <h3 className="card-title">{title}</h3>
-      <ResponsiveContainer width="100%" height={200}>
-        <BarChart data={chartData} margin={{ top: 8, right: 8, left: 4, bottom: 24 }}>
-          <CartesianGrid stroke={CHART.grid} strokeDasharray="3 3" vertical={false} />
-          <XAxis
-            dataKey="name"
-            tick={{ fill: CHART.tick, fontSize: 9, fontFamily: CHART.fontFamily }}
-            interval={0}
-            angle={-22}
-            textAnchor="end"
-            height={48}
-          />
-          <YAxis
-            tick={{ fill: CHART.tick, fontSize: 9, fontFamily: CHART.fontFamily }}
-            tickFormatter={(v) => `${Number(v).toFixed(0)}%`}
-            width={40}
-          />
-          <Tooltip
-            formatter={(v: number) => [`${v.toFixed(1)}%`, title]}
-            contentStyle={{
-              background: CHART.tooltip.backgroundColor,
-              border: CHART.tooltip.border,
-            }}
-          />
-          <Bar dataKey="value" radius={0}>
-            {chartData.map((entry) => (
-              <Cell key={entry.name} fill={entry.fill} />
-            ))}
-          </Bar>
-        </BarChart>
-      </ResponsiveContainer>
-    </ShareableChart>
-  )
-}
-
 export default function SeriesGameInsights({
   series,
   game,
@@ -160,7 +94,6 @@ export default function SeriesGameInsights({
   )
 
   const colorA = radarColorForTeam(series.teamA, series.league)
-  const colorB = radarColorForTeam(series.teamB, series.league)
 
   const maxMinute = useMemo(() => {
     if (!goldSeries?.points.length) return 30
@@ -222,24 +155,12 @@ export default function SeriesGameInsights({
         </div>
       )}
 
-      <div className="overview-grid overview-grid-2">
-        <DistributionChart
-          title="Damage Share"
-          rows={distributionRows}
-          dataKey="dmgShare"
-          colorA={colorA}
-          colorB={colorB}
-          teamA={series.teamA}
-        />
-        <DistributionChart
-          title="Gold Share"
-          rows={distributionRows}
-          dataKey="goldShare"
-          colorA={colorA}
-          colorB={colorB}
-          teamA={series.teamA}
-        />
-      </div>
+      <SeriesShareCharts
+        teamA={series.teamA}
+        teamB={series.teamB}
+        league={series.league}
+        rows={distributionRows}
+      />
 
       {highlights.length ? (
         <section className="card">

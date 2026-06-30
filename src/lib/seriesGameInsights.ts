@@ -1,5 +1,6 @@
 import type { Player, PlayerGameLog } from '../hooks/useDashboardData'
 import type { EnrichedSeriesGame, ResolvedSeries, SeriesGameRosterPlayer } from './seriesAnalytics'
+import { seriesGameIds } from './seriesAnalytics'
 import { type TeamGoldGameSeries } from './entities/entityAnalytics'
 import { teamMatchesCanonical } from './entities/slugs'
 import type { CitoGameGoldRecord } from './citoGoldMatch'
@@ -17,6 +18,7 @@ import {
   normalizePosition,
   playersForRole,
   ROLE_METRICS,
+  ROLES,
   type RadarMetricKey,
   type RoleKey,
 } from './playerRadar'
@@ -145,6 +147,45 @@ export function buildGameDistributionRows(
       }
     })
     .filter((r): r is GameDistributionRow => r != null)
+}
+
+function roleSortIndex(role: string): number {
+  const norm = normalizePosition(role)
+  if (!norm) return 99
+  const idx = ROLES.indexOf(norm)
+  return idx >= 0 ? idx : 99
+}
+
+/** Series-average damage and gold share per player (all games in the series). */
+export function buildSeriesDistributionRows(
+  players: Player[],
+  series: ResolvedSeries,
+): GameDistributionRow[] {
+  const ids = seriesGameIds(series)
+
+  return players
+    .map((p) => {
+      const logs = (p.gameLog ?? []).filter((g) => g.gameId && ids.has(g.gameId))
+      if (!logs.length) return null
+
+      const dmgVals = logs.map((g) => g.dmgShare).filter((v): v is number => typeof v === 'number')
+      const goldVals = logs.map((g) => g.goldShare).filter((v): v is number => typeof v === 'number')
+
+      return {
+        name: p.name,
+        team: p.team,
+        role: p.position,
+        dmgShare: dmgVals.length ? dmgVals.reduce((a, b) => a + b, 0) / dmgVals.length : 0,
+        goldShare: goldVals.length ? goldVals.reduce((a, b) => a + b, 0) / goldVals.length : 0,
+      }
+    })
+    .filter((r): r is GameDistributionRow & { role: string } => r != null)
+    .sort((a, b) => {
+      const roleCmp = roleSortIndex(a.role) - roleSortIndex(b.role)
+      if (roleCmp !== 0) return roleCmp
+      return a.team.localeCompare(b.team)
+    })
+    .map(({ role: _role, ...row }) => row)
 }
 
 export interface GameStatHighlight {

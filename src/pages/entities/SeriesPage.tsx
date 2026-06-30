@@ -26,6 +26,8 @@ import SeriesGamePanel from '../../components/series/SeriesGamePanel'
 import { EntityLink, TeamLogo, LeagueLogo } from '../../components/entities'
 import TeamComparisonRadar from '../../components/teams/TeamComparisonRadar'
 import TeamComparisonStatsChart from '../../components/teams/TeamComparisonStatsChart'
+import SeriesShareCharts from '../../components/series/SeriesShareCharts'
+import { buildSeriesDistributionRows } from '../../lib/seriesGameInsights'
 import WeeklyRecap from '../../components/overview/WeeklyRecap'
 
 export default function SeriesPage() {
@@ -62,6 +64,11 @@ export default function SeriesPage() {
         ? buildTeamsForSeries(data.teams ?? [], scopedPlayers, series, citoGoldRows)
         : [],
     [data, scopedPlayers, series, citoGoldRows],
+  )
+
+  const seriesShareRows = useMemo(
+    () => (series ? buildSeriesDistributionRows(scopedPlayers, series) : []),
+    [scopedPlayers, series],
   )
 
   useEffect(() => {
@@ -242,6 +249,19 @@ export default function SeriesPage() {
                   variant="series"
                 />
               </section>
+
+              {seriesShareRows.length ? (
+                <section className="card series-card">
+                  <h2 className="card-title">Resource Share</h2>
+                  <p className="card-subtitle">Average damage and gold share per player across the series</p>
+                  <SeriesShareCharts
+                    teamA={series.teamA}
+                    teamB={series.teamB}
+                    league={series.league}
+                    rows={seriesShareRows}
+                  />
+                </section>
+              ) : null}
 
               <section className="card series-card">
                 <h2 className="card-title">Role-by-Role</h2>

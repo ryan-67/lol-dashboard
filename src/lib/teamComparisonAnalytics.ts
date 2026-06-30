@@ -127,12 +127,6 @@ export function buildSeriesTeamComparisonStatRows(
     format: (v: number) => string
   }> = [
     {
-      metric: 'winrate',
-      label: 'Win Rate',
-      value: (t) => t.winrate,
-      format: (v) => `${v.toFixed(1)}%`,
-    },
-    {
       metric: 'sideWr',
       label: 'Side Win Rate',
       value: () => 0,

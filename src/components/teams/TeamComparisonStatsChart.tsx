@@ -213,7 +213,7 @@ export default function TeamComparisonStatsChart({
       <h3 className="card-title">Team Stats</h3>
       <p className="card-subtitle">
         {variant === 'series'
-          ? 'Win rate, side win rates, objectives, and early-game leads'
+          ? 'Side win rates, objectives, and early-game leads'
           : 'Record, win rate, side win rates, objectives, and pace'}
       </p>
       {variant === 'default' ? (
