@@ -24,6 +24,8 @@ import { seriesPath } from '../../lib/seriesPath'
 import { tournamentPath } from '../../lib/tournamentCatalog'
 import { fetchCitoGoldForTeam } from '../../lib/loadCitoGold'
 import type { CitoGameGoldRecord } from '../../lib/citoGoldMatch'
+import type { GolGameGoldRecord } from '../../lib/golGoldMatch'
+import { fetchGolGoldCache } from '../../lib/loadGolGold'
 import { formatGameDate, formatNum, formatPct, formatProfileDate } from '../../lib/format'
 import TeamRadarChart from '../../components/teams/TeamRadarChart'
 import {
@@ -50,6 +52,7 @@ export default function TeamPage() {
   const [scheduleLoading, setScheduleLoading] = useState(false)
   const [scheduleSource, setScheduleSource] = useState<'loaded' | 'empty' | 'unavailable'>('unavailable')
   const [citoGoldRows, setCitoGoldRows] = useState<CitoGameGoldRecord[]>([])
+  const [golGoldRows, setGolGoldRows] = useState<GolGameGoldRecord[]>([])
   const [citoGoldLoading, setCitoGoldLoading] = useState(false)
 
   const hasData = useCallback(
@@ -162,8 +165,8 @@ export default function TeamPage() {
     [players, team, slug],
   )
   const goldGraphGames = useMemo(
-    () => (team ? buildTeamGoldGraph(players, slug, 30, citoGoldRows) : []),
-    [players, team, slug, citoGoldRows],
+    () => (team ? buildTeamGoldGraph(players, slug, 30, citoGoldRows, golGoldRows) : []),
+    [players, team, slug, citoGoldRows, golGoldRows],
   )
   const objectivesGraphGames = useMemo(
     () => (team ? buildTeamObjectivesGraph(players, slug, citoGoldRows) : []),
@@ -185,6 +188,7 @@ export default function TeamPage() {
     const rosterPlayers = players.filter((p) => teamMatchesCanonical(p.team, slug))
     if (!rosterPlayers.length) {
       setCitoGoldRows([])
+      setGolGoldRows([])
       setCitoGoldLoading(false)
       return
     }
@@ -198,9 +202,13 @@ export default function TeamPage() {
     const oeGameIds = log.map((g) => g.gameId).filter((id): id is string => Boolean(id))
 
     setCitoGoldLoading(true)
-    void fetchCitoGoldForTeam(slug, dates, oeGameIds).then((rows) => {
+    void Promise.all([
+      fetchCitoGoldForTeam(slug, dates, oeGameIds),
+      fetchGolGoldCache(),
+    ]).then(([citoRows, golRows]) => {
       if (cancelled) return
-      setCitoGoldRows(rows)
+      setCitoGoldRows(citoRows)
+      setGolGoldRows(golRows)
       setCitoGoldLoading(false)
     })
 

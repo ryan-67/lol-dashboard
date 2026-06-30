@@ -14,7 +14,7 @@ ROOT = Path(__file__).resolve().parent.parent
 CACHE_PATH = ROOT / "public" / "data" / "gol_game_cache.json"
 GOL_BASE = "https://gol.gg"
 USER_AGENT = "nucky-dashboard-ingest/1.0"
-CACHE_VERSION = 2
+CACHE_VERSION = 3
 
 ROW_LABELS = {
     "objectivesStolen": ("objectives stolen",),
@@ -59,6 +59,62 @@ def _normalize_champion(name: str) -> str:
     return re.sub(r"[^a-z0-9]", "", (name or "").lower())
 
 
+def parse_gold_timeline_html(html: str) -> list[dict]:
+    """Parse per-minute blue-side gold lead from gol.gg page-timeline chart data."""
+    block_match = re.search(r"var golddatas = (\{.*?\n\s*\});", html, flags=re.I | re.S)
+    if not block_match:
+        return []
+
+    block = block_match.group(1)
+    labels_match = re.search(r"labels:\s*\[([^\]]+)\]", block, flags=re.I)
+    if not labels_match:
+        return []
+
+    minutes: list[int] = []
+    for part in labels_match.group(1).split(","):
+        text = part.strip().strip("'\"")
+        if not text:
+            continue
+        try:
+            minutes.append(int(float(text)))
+        except ValueError:
+            continue
+    if not minutes:
+        return []
+
+    data_arrays: list[list[float]] = []
+    for raw in re.findall(r"data:\s*\[([^\]]+)\]", block, flags=re.I):
+        vals: list[float] = []
+        for part in raw.split(","):
+            text = part.strip()
+            if not text:
+                continue
+            try:
+                vals.append(float(text))
+            except ValueError:
+                continue
+        if vals:
+            data_arrays.append(vals)
+
+    if len(data_arrays) < 10:
+        return []
+
+    timeline: list[dict] = []
+    for idx, minute in enumerate(minutes):
+        blue_total = sum(arr[idx] if idx < len(arr) else 0 for arr in data_arrays[:5])
+        red_total = sum(arr[idx] if idx < len(arr) else 0 for arr in data_arrays[5:10])
+        timeline.append({"minute": minute, "goldDiffBlue": round(blue_total - red_total, 1)})
+
+    deduped: list[dict] = []
+    seen: set[int] = set()
+    for point in sorted(timeline, key=lambda p: p["minute"]):
+        if point["minute"] in seen:
+            continue
+        seen.add(point["minute"])
+        deduped.append(point)
+    return deduped
+
+
 def parse_fullstats_html(html: str) -> dict:
     """Return metadata + per-player advanced stats from a gol.gg page-fullstats HTML document."""
     title_match = re.search(r"<title>([^<]+)</title>", html, re.I)
@@ -77,7 +133,7 @@ def parse_fullstats_html(html: str) -> dict:
         flags=re.I | re.S,
     )
     if not player_row:
-        return {"date": date, "teams": team_parts, "players": []}
+        return {"date": date, "teams": team_parts, "players": [], "title": title}
 
     names = [
         re.sub(r"<[^>]+>", "", cell).strip()
@@ -143,15 +199,29 @@ def fetch_game_stats(game_id: str, cache: dict | None = None, delay_s: float = 0
     cache = cache if cache is not None else load_cache()
     key = str(game_id)
     cached = cache.get(key)
-    if cached and cached.get("_cacheVersion") == CACHE_VERSION and cached.get("players"):
+    if (
+        cached
+        and cached.get("_cacheVersion") == CACHE_VERSION
+        and cached.get("players")
+        and cached.get("goldTimelineBlue")
+    ):
         return cached
 
-    url = f"{GOL_BASE}/game/stats/{game_id}/page-fullstats/"
     try:
-        html = _fetch(url)
-        parsed = parse_fullstats_html(html)
+        stats_html = _fetch(f"{GOL_BASE}/game/stats/{game_id}/page-fullstats/")
+        parsed = parse_fullstats_html(stats_html)
         parsed["golGameId"] = key
         parsed["_cacheVersion"] = CACHE_VERSION
+
+        timeline_html = _fetch(f"{GOL_BASE}/game/stats/{game_id}/page-timeline/")
+        timeline = parse_gold_timeline_html(timeline_html)
+        if timeline:
+            parsed["goldTimelineBlue"] = timeline
+            teams = parsed.get("teams") or []
+            if len(teams) >= 2:
+                parsed["blueTeam"] = teams[0]
+                parsed["redTeam"] = teams[1]
+
         cache[key] = parsed
         if delay_s:
             time.sleep(delay_s)

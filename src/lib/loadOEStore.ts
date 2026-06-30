@@ -96,16 +96,12 @@ export async function fetchOESliceCatalog(): Promise<OEStoreMeta> {
   if (fromShards) return fromShards
 
   if (!isSupabaseConfigured) {
-    throw new Error(
-      'Dashboard data is unavailable. CDN shards missing and Supabase is not configured.',
-    )
+    throw new Error('Dashboard data is unavailable.')
   }
 
   const rows = await fetchOESliceCatalogRows()
   if (!rows.length) {
-    throw new Error(
-      'No rows in oe_slices. Run `python scripts/seed_supabase.py` to load dashboard data.',
-    )
+    throw new Error('Dashboard data is unavailable.')
   }
 
   return buildMetaFromCatalogRows(rows)
@@ -198,9 +194,7 @@ export async function fetchOESlices({
   if (fromShards !== null) return fromShards
 
   if (!isSupabaseConfigured) {
-    throw new Error(
-      'Dashboard data is unavailable. CDN shards missing and Supabase is not configured.',
-    )
+    throw new Error('Dashboard data is unavailable.')
   }
 
   if (!leagues.length || !catalogSplits?.length) {

@@ -10,6 +10,7 @@ import {
   XAxis,
   YAxis,
 } from 'recharts'
+import { DATA_LOADING } from '../../lib/userFacingError'
 import type { TeamGoldGameSeries } from '../../lib/entities/entityAnalytics'
 import { averageGoldTimeline } from '../../lib/entities/entityAnalytics'
 import { makeChartTooltipContent } from '../ui/ChartTooltip'
@@ -51,15 +52,10 @@ export default function TeamGoldGraph({ games, loading = false }: TeamGoldGraphP
   const [hidden, setHidden] = useState<Set<string>>(() => new Set())
   const [showAverage, setShowAverage] = useState(true)
 
-  const citoCount = useMemo(() => games.filter((g) => g.dataSource === 'cito').length, [games])
-
   const subtitle = useMemo(() => {
     if (!games.length) return 'Team gold difference over time'
-    if (citoCount === games.length) {
-      return `Cito postgame gold · ${games.length} games · click legend to toggle`
-    }
-    return `${games.length} games with Cito gold timelines · click legend to toggle games`
-  }, [games.length, citoCount])
+    return `${games.length} games · click legend to toggle`
+  }, [games.length])
 
   const visibleGames = useMemo(
     () => games.filter((g) => !hidden.has(g.id)),
@@ -148,7 +144,7 @@ export default function TeamGoldGraph({ games, loading = false }: TeamGoldGraphP
       <div className="entity-gold-graph-layout">
         <ShareableChart className="entity-gold-graph-chart-wrap">
           <h3 className="card-title">Gold Graph</h3>
-          <p className="card-subtitle">{subtitle}{loading ? ' · loading Cito timelines…' : ''}</p>
+          <p className="card-subtitle">{subtitle}{loading ? ` · ${DATA_LOADING}` : ''}</p>
           <div className="entity-chart-body entity-gold-graph-chart">
           <ResponsiveContainer width="100%" height={360}>
             <LineChart data={chartData} margin={{ top: 8, right: 12, left: 4, bottom: 8 }}>

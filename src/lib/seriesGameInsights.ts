@@ -2,12 +2,9 @@ import type { Player, PlayerGameLog } from '../hooks/useDashboardData'
 import type { EnrichedSeriesGame, ResolvedSeries, SeriesGameRosterPlayer } from './seriesAnalytics'
 import { type TeamGoldGameSeries } from './entities/entityAnalytics'
 import { teamMatchesCanonical } from './entities/slugs'
-import {
-  ensureGoldTimelineAtZero,
-  goldTimelineForTeamPerspective,
-  matchCitoGoldToOeGame,
-  type CitoGameGoldRecord,
-} from './citoGoldMatch'
+import type { CitoGameGoldRecord } from './citoGoldMatch'
+import type { GolGameGoldRecord } from './golGoldMatch'
+import { resolveGoldTimelineForGame } from './goldTimelineResolve'
 import {
   ADVANCED_METRICS_BY_ROLE,
   dmgGoldRatioFromGame,
@@ -64,6 +61,7 @@ export function resolveSeriesGameGoldTimeline(
   citoRows: CitoGameGoldRecord[],
   perspectiveTeam: string,
   maxMinute = 35,
+  golRows: GolGameGoldRecord[] = [],
 ): TeamGoldGameSeries | null {
   const roster = players.filter(
     (p) =>
@@ -71,7 +69,7 @@ export function resolveSeriesGameGoldTimeline(
       teamMatchesCanonical(p.team, series.teamA) ||
       teamMatchesCanonical(p.team, series.teamB),
   )
-  if (!roster.length || !citoRows.length) return null
+  if (!roster.length) return null
 
   const anchor = roster.reduce(
     (best, p) => ((p.gameLog ?? []).length > (best.gameLog ?? []).length ? p : best),
@@ -90,12 +88,16 @@ export function resolveSeriesGameGoldTimeline(
         : series.teamA
       : perspectiveTeam)
 
-  const citoMatch = matchCitoGoldToOeGame(log, anchorLog, perspectiveTeam, opponent, citoRows)
-  if (!citoMatch || citoMatch.goldTimelineBlue.length < 4) return null
-
-  const points = ensureGoldTimelineAtZero(
-    goldTimelineForTeamPerspective(citoMatch, perspectiveTeam).filter((p) => p.minute <= maxMinute),
+  const resolved = resolveGoldTimelineForGame(
+    log,
+    anchorLog,
+    perspectiveTeam,
+    opponent,
+    citoRows,
+    golRows,
+    maxMinute,
   )
+  if (!resolved) return null
 
   return {
     id: game.id,
@@ -103,8 +105,8 @@ export function resolveSeriesGameGoldTimeline(
     opponent,
     date: game.date,
     result: log.result === 1 ? 'W' : 'L',
-    points,
-    dataSource: 'cito',
+    points: resolved.points,
+    dataSource: resolved.dataSource,
   }
 }
 

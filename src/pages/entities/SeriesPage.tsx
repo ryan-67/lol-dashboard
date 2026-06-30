@@ -12,6 +12,8 @@ import { useSeriesPageData } from '../../hooks/useSeriesPageData'
 import { fetchSeriesRecapById } from '../../lib/loadWeeklyRecap'
 import { fetchCitoGoldForSeries } from '../../lib/loadCitoGold'
 import type { CitoGameGoldRecord } from '../../lib/citoGoldMatch'
+import { fetchGolGoldCache } from '../../lib/loadGolGold'
+import type { GolGameGoldRecord } from '../../lib/golGoldMatch'
 import { recapLineToText, type WeeklyRecapLine } from '../../lib/weeklyRecap'
 import { recapTeamTag } from '../../lib/recapTeamTag'
 import { formatGameDate } from '../../lib/format'
@@ -33,6 +35,7 @@ export default function SeriesPage() {
   const [recapLine, setRecapLine] = useState<WeeklyRecapLine | null>(null)
   const [recapLoading, setRecapLoading] = useState(true)
   const [citoGoldRows, setCitoGoldRows] = useState<CitoGameGoldRecord[]>([])
+  const [golGoldRows, setGolGoldRows] = useState<GolGameGoldRecord[]>([])
   const [citoGoldLoading, setCitoGoldLoading] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
 
@@ -64,15 +67,20 @@ export default function SeriesPage() {
   useEffect(() => {
     if (!series) {
       setCitoGoldRows([])
+      setGolGoldRows([])
       return
     }
     let cancelled = false
     const dates = series.games.map((g) => g.date).filter(Boolean)
     const oeGameIds = series.games.map((g) => g.id).filter(Boolean)
     setCitoGoldLoading(true)
-    void fetchCitoGoldForSeries(series.teamA, series.teamB, dates, oeGameIds).then((rows) => {
+    void Promise.all([
+      fetchCitoGoldForSeries(series.teamA, series.teamB, dates, oeGameIds),
+      fetchGolGoldCache(),
+    ]).then(([citoRows, golRows]) => {
       if (cancelled) return
-      setCitoGoldRows(rows)
+      setCitoGoldRows(citoRows)
+      setGolGoldRows(golRows)
       setCitoGoldLoading(false)
     })
     return () => {
@@ -211,6 +219,7 @@ export default function SeriesPage() {
                 players={scopedPlayers}
                 champions={data?.champions ?? []}
                 title=""
+                showSeriesLink={false}
               />
             ) : (
               <p className="text-secondary">{recapLineToText(recapLines[0]!)}</p>
@@ -227,7 +236,11 @@ export default function SeriesPage() {
               <section className="card series-card">
                 <h2 className="card-title">Team Comparison</h2>
                 <TeamComparisonRadar teams={scopedTeams} cohort={cohortTeams} embedded />
-                <TeamComparisonStatsChart teams={scopedTeams} players={scopedPlayers} />
+                <TeamComparisonStatsChart
+                  teams={scopedTeams}
+                  players={scopedPlayers}
+                  variant="series"
+                />
               </section>
 
               <section className="card series-card">
@@ -252,6 +265,7 @@ export default function SeriesPage() {
             players={scopedPlayers}
             cohortPlayers={cohortPlayers}
             citoGoldRows={citoGoldRows}
+            golGoldRows={golGoldRows}
             citoGoldLoading={citoGoldLoading}
           />
         </section>

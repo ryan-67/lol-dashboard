@@ -8,6 +8,7 @@ import { teamMatchesCanonical } from '../../lib/entities/slugs'
 import SeriesGameInsights from './SeriesGameInsights'
 
 import type { CitoGameGoldRecord } from '../../lib/citoGoldMatch'
+import type { GolGameGoldRecord } from '../../lib/golGoldMatch'
 
 interface SeriesGamePanelProps {
   series: ResolvedSeries
@@ -15,6 +16,7 @@ interface SeriesGamePanelProps {
   players: Player[]
   cohortPlayers: Player[]
   citoGoldRows: CitoGameGoldRecord[]
+  golGoldRows?: GolGameGoldRecord[]
   citoGoldLoading?: boolean
 }
 
@@ -67,6 +69,7 @@ export default function SeriesGamePanel({
   players,
   cohortPlayers,
   citoGoldRows,
+  golGoldRows = [],
   citoGoldLoading,
 }: SeriesGamePanelProps) {
   const roster = buildGameRoster(players, game)
@@ -144,6 +147,7 @@ export default function SeriesGamePanel({
         players={players}
         cohortPlayers={cohortPlayers}
         citoGoldRows={citoGoldRows}
+        golGoldRows={golGoldRows}
         citoGoldLoading={citoGoldLoading}
       />
     </div>

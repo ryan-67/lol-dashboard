@@ -342,7 +342,7 @@ export default function TournamentPage() {
             <section className="card tournament-card">
               <h2 className="card-title">Results / Standings</h2>
               <p className="card-subtitle">
-                Tournament placement from Cito bracket data · ties ordered by series then match winrate
+                Tournament placement · ties ordered by series then match winrate
               </p>
               {!resultsStandings.length ? (
                 <p className="text-secondary text-sm">No standings data.</p>

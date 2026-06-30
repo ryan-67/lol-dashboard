@@ -25,6 +25,8 @@ import { radarColorForTeam } from '../../lib/entities/teamBrandColor'
 import { CHART } from '../../theme/chartTheme'
 import ShareableChart from '../ui/ShareableChart'
 import type { CitoGameGoldRecord } from '../../lib/citoGoldMatch'
+import type { GolGameGoldRecord } from '../../lib/golGoldMatch'
+import { DATA_LOADING, DATA_UNAVAILABLE } from '../../lib/userFacingError'
 import type { GoldTimelinePoint } from '../../hooks/useDashboardData'
 
 interface SeriesGameInsightsProps {
@@ -34,6 +36,7 @@ interface SeriesGameInsightsProps {
   players: Player[]
   cohortPlayers: Player[]
   citoGoldRows: CitoGameGoldRecord[]
+  golGoldRows?: GolGameGoldRecord[]
   citoGoldLoading?: boolean
 }
 
@@ -129,11 +132,21 @@ export default function SeriesGameInsights({
   players,
   cohortPlayers,
   citoGoldRows,
+  golGoldRows = [],
   citoGoldLoading = false,
 }: SeriesGameInsightsProps) {
   const goldSeries = useMemo(
-    () => resolveSeriesGameGoldTimeline(game, series, players, citoGoldRows, series.teamA, 35),
-    [game, series, players, citoGoldRows],
+    () =>
+      resolveSeriesGameGoldTimeline(
+        game,
+        series,
+        players,
+        citoGoldRows,
+        series.teamA,
+        35,
+        golGoldRows,
+      ),
+    [game, series, players, citoGoldRows, golGoldRows],
   )
 
   const distributionRows = useMemo(
@@ -169,7 +182,7 @@ export default function SeriesGameInsights({
         <ShareableChart className="card">
           <h3 className="card-title">Gold Timeline</h3>
           <p className="card-subtitle">
-            Cito postgame gold · {recapTeamTag(series.teamA)} perspective (positive = ahead)
+            {recapTeamTag(series.teamA)} perspective (positive = ahead)
           </p>
           <ResponsiveContainer width="100%" height={280}>
             <LineChart data={goldChartData} margin={{ top: 8, right: 12, left: 4, bottom: 8 }}>
@@ -200,14 +213,12 @@ export default function SeriesGameInsights({
       ) : citoGoldLoading ? (
         <div className="card">
           <h3 className="card-title">Gold Timeline</h3>
-          <p className="text-secondary">Loading Cito gold timeline…</p>
+          <p className="text-secondary">{DATA_LOADING}</p>
         </div>
       ) : (
         <div className="card">
           <h3 className="card-title">Gold Timeline</h3>
-          <p className="text-secondary">
-            Cito postgame gold not available for this game yet.
-          </p>
+          <p className="text-secondary">{DATA_UNAVAILABLE}</p>
         </div>
       )}
 

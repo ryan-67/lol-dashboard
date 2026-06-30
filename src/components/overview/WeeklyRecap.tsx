@@ -15,9 +15,10 @@ interface WeeklyRecapProps {
   players: Player[]
   champions: Champion[]
   title?: string
+  showSeriesLink?: boolean
 }
 
-function RecapScoreRow({ line }: { line: WeeklyRecapLine }) {
+function RecapScoreRow({ line, showSeriesLink }: { line: WeeklyRecapLine; showSeriesLink: boolean }) {
   const { score } = line
   return (
     <div className="overview-recap-score">
@@ -29,7 +30,7 @@ function RecapScoreRow({ line }: { line: WeeklyRecapLine }) {
         <EntityLink type="team" name={score.loser} className="overview-recap-team">
           {score.loserAbbr}
         </EntityLink>
-        {line.seriesId ? (
+        {line.seriesId && showSeriesLink ? (
           <>
             <span className="overview-recap-score-divider">|</span>
             <Link to={seriesPath(line.seriesId)} className="entity-inline-link overview-recap-series-link">
@@ -116,6 +117,7 @@ export default function WeeklyRecap({
   players,
   champions,
   title = 'Weekly Recap',
+  showSeriesLink = true,
 }: WeeklyRecapProps) {
   const ref = useRef<HTMLDivElement>(null)
 
@@ -138,7 +140,7 @@ export default function WeeklyRecap({
                 {line.dateLabel}
               </time>
               <div className="overview-recap-body">
-                <RecapScoreRow line={line} />
+                <RecapScoreRow line={line} showSeriesLink={showSeriesLink} />
                 <div className="overview-recap-summary">
                   <RecapSummaryBody
                     line={line}

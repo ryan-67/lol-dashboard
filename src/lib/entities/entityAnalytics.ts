@@ -2,7 +2,9 @@ import type { Champion, GoldTimelinePoint, Player, Team, TeamChampion } from '..
 import type { RoleKey } from '../championAnalytics'
 import { ROLES, normalizePosition, computeGameScore, playersForRole } from '../playerRadar'
 import type { CitoGameGoldRecord, CitoObjectiveEvent } from '../citoGoldMatch'
-import { goldTimelineForTeamPerspective, matchCitoGoldToOeGame, ensureGoldTimelineAtZero } from '../citoGoldMatch'
+import { matchCitoGoldToOeGame } from '../citoGoldMatch'
+import type { GolGameGoldRecord } from '../golGoldMatch'
+import { resolveGoldTimelineForGame } from '../goldTimelineResolve'
 import { teamMatchesCanonical } from './slugs'
 import { resolveGameOpponent } from '../gameOpponent'
 import { resolveTournamentDisplay, buildTournamentIdentityFromGame } from '../tournamentCatalog'
@@ -536,8 +538,7 @@ export interface TeamGoldGameSeries {
   date: string
   result: 'W' | 'L'
   points: GoldTimelinePoint[]
-  /** Cito postgame timeline vs OE gd@15 proxy */
-  dataSource?: 'cito' | 'oe_proxy'
+  dataSource?: 'cito' | 'gol' | 'oe'
 }
 
 export function buildTeamGoldGraph(
@@ -545,6 +546,7 @@ export function buildTeamGoldGraph(
   teamSlugOrName: string,
   maxMinute = 30,
   citoGoldRows: CitoGameGoldRecord[] = [],
+  golGoldRows: GolGameGoldRecord[] = [],
 ): TeamGoldGameSeries[] {
   const roster = players.filter((p) => teamMatchesCanonical(p.team, teamSlugOrName))
   if (!roster.length) return []
@@ -562,23 +564,16 @@ export function buildTeamGoldGraph(
     const opponent = game.opponent ?? 'Unknown'
     const result = game.result === 1 ? 'W' : 'L'
 
-    const citoMatch = citoGoldRows.length
-      ? matchCitoGoldToOeGame(game, anchorLog, teamSlugOrName, opponent, citoGoldRows)
-      : null
-
-    let points: GoldTimelinePoint[]
-    let dataSource: TeamGoldGameSeries['dataSource'] = 'oe_proxy'
-
-    if (citoMatch && citoMatch.goldTimelineBlue.length >= 4) {
-      points = ensureGoldTimelineAtZero(
-        goldTimelineForTeamPerspective(citoMatch, teamSlugOrName).filter(
-          (p) => p.minute <= maxMinute,
-        ),
-      )
-      dataSource = 'cito'
-    } else {
-      continue
-    }
+    const resolved = resolveGoldTimelineForGame(
+      game,
+      anchorLog,
+      teamSlugOrName,
+      opponent,
+      citoGoldRows,
+      golGoldRows,
+      maxMinute,
+    )
+    if (!resolved) continue
 
     series.push({
       id,
@@ -586,8 +581,8 @@ export function buildTeamGoldGraph(
       opponent,
       date: game.date,
       result,
-      points,
-      dataSource,
+      points: resolved.points,
+      dataSource: resolved.dataSource,
     })
   }
 
@@ -680,7 +675,7 @@ export function averageGoldTimeline(
 ): GoldTimelinePoint[] {
   if (!games.length) return []
 
-  const hasFineGrain = games.some((g) => g.dataSource === 'cito' || g.points.length > 8)
+  const hasFineGrain = games.some((g) => g.dataSource === 'cito' || g.dataSource === 'gol' || g.points.length > 8)
   const minutes = hasFineGrain
     ? Array.from({ length: maxMinute + 1 }, (_, i) => i)
     : DEFAULT_GOLD_MINUTES.filter((m) => m <= maxMinute)

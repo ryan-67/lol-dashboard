@@ -110,23 +110,129 @@ export function buildTeamComparisonStatRows(
   })
 }
 
-/** Axis scaling for individual stat mini-charts. */
-export type StatAxisKind = 'percent' | 'count' | 'duration'
+/** Series-scoped team stats: combined side WR + @15 diffs instead of game length. */
+export function buildSeriesTeamComparisonStatRows(
+  teams: Team[],
+  players: Player[],
+): TeamComparisonStatRow[] {
+  const sideStats = teams.map((team) => ({
+    team,
+    sides: computeSideWinrates(players, team.name),
+  }))
 
+  const metrics: Array<{
+    metric: string
+    label: string
+    value: (team: Team, index: number) => number
+    format: (v: number) => string
+  }> = [
+    {
+      metric: 'winrate',
+      label: 'Win Rate',
+      value: (t) => t.winrate,
+      format: (v) => `${v.toFixed(1)}%`,
+    },
+    {
+      metric: 'sideWr',
+      label: 'Side Win Rate',
+      value: () => 0,
+      format: () => '',
+    },
+    {
+      metric: 'dragons',
+      label: 'Dragons / Game',
+      value: (t) => t.dragonsPerGame ?? 0,
+      format: (v) => v.toFixed(2),
+    },
+    {
+      metric: 'barons',
+      label: 'Barons / Game',
+      value: (t) => t.baronsPerGame ?? 0,
+      format: (v) => v.toFixed(2),
+    },
+    {
+      metric: 'towers',
+      label: 'Towers / Game',
+      value: (t) => t.towersPerGame ?? 0,
+      format: (v) => v.toFixed(2),
+    },
+    {
+      metric: 'firstBlood',
+      label: 'First Blood %',
+      value: (t) => t.firstBloodRate ?? 0,
+      format: (v) => `${v.toFixed(1)}%`,
+    },
+    {
+      metric: 'gd15',
+      label: 'Gold Diff @15',
+      value: (t) => t.avgGd15 ?? 0,
+      format: (v) => (v > 0 ? `+${v.toFixed(0)}` : v.toFixed(0)),
+    },
+    {
+      metric: 'csd15',
+      label: 'CS Diff @15',
+      value: (t) => t.avgCsd15 ?? 0,
+      format: (v) => (v > 0 ? `+${v.toFixed(0)}` : v.toFixed(0)),
+    },
+    {
+      metric: 'xpd15',
+      label: 'XP Diff @15',
+      value: (t) => t.avgXpd15 ?? 0,
+      format: (v) => (v > 0 ? `+${v.toFixed(0)}` : v.toFixed(0)),
+    },
+  ]
+
+  const rows = metrics.map(({ metric, label, value, format }) => {
+    const row: TeamComparisonStatRow = { metric, label }
+    teams.forEach((team, index) => {
+      const raw = value(team, index)
+      row[`team${index}`] = raw
+      row[`team${index}Label`] = format(raw)
+    })
+    return row
+  })
+
+  // Attach side win rates for the combined side chart.
+  const sideRow = rows.find((r) => r.metric === 'sideWr')
+  if (sideRow) {
+    teams.forEach((team, index) => {
+      sideRow[`team${index}Blue`] = sideStats[index]?.sides.blue.winrate ?? 0
+      sideRow[`team${index}Red`] = sideStats[index]?.sides.red.winrate ?? 0
+      sideRow[`team${index}BlueLabel`] = `${(sideStats[index]?.sides.blue.winrate ?? 0).toFixed(1)}%`
+      sideRow[`team${index}RedLabel`] = `${(sideStats[index]?.sides.red.winrate ?? 0).toFixed(1)}%`
+      sideRow[`team${index}Label`] = team.name
+    })
+  }
+
+  return rows
+}
+
+/** Axis scaling for individual stat mini-charts. */
 export const STAT_AXIS_KIND: Record<string, StatAxisKind> = {
   winrate: 'percent',
   blueWr: 'percent',
   redWr: 'percent',
+  sideWr: 'percent',
   firstBlood: 'percent',
   dragons: 'count',
   barons: 'count',
   towers: 'count',
   gameLength: 'duration',
+  gd15: 'signed',
+  csd15: 'signed',
+  xpd15: 'signed',
 }
+
+export type StatAxisKind = 'percent' | 'count' | 'duration' | 'signed'
 
 export function statChartYDomain(values: number[], kind: StatAxisKind): [number, number] {
   const max = values.length ? Math.max(...values) : 0
   if (kind === 'percent') return [0, 100]
+  if (kind === 'signed') {
+    const maxAbs = values.length ? Math.max(...values.map((v) => Math.abs(v)), 1) : 1
+    const ceiling = Math.ceil(maxAbs * 1.25)
+    return [-ceiling, ceiling]
+  }
   if (kind === 'duration') {
     const ceiling = max > 0 ? Math.ceil(max * 1.08) : 3600
     return [0, ceiling]
@@ -137,6 +243,7 @@ export function statChartYDomain(values: number[], kind: StatAxisKind): [number,
 
 export function statChartTickFormat(value: number, kind: StatAxisKind): string {
   if (kind === 'percent') return `${value}%`
+  if (kind === 'signed') return value > 0 ? `+${value}` : String(value)
   if (kind === 'duration') return formatGameLength(value)
   return value % 1 === 0 ? String(value) : value.toFixed(1)
 }
