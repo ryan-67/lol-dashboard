@@ -1,4 +1,5 @@
 import { fetchLiveResource, isLiveMockMode } from './citoLiveClient'
+import { fetchScheduleCache } from './loadScheduleCache'
 import {
   adaptDraft,
   adaptGames,
@@ -17,9 +18,6 @@ import type {
   LiveMatchSummary,
 } from './types'
 
-/** Window (hours) ahead to include upcoming matches in the hub. */
-const UPCOMING_WINDOW_HOURS = 72
-
 function applyOverlay(summary: LiveMatchSummary, overlay: LiveOverlay): LiveMatchSummary {
   return {
     ...summary,
@@ -37,18 +35,27 @@ function applyOverlay(summary: LiveMatchSummary, overlay: LiveOverlay): LiveMatc
  * live matches first then upcoming by start time.
  */
 export async function fetchLiveHub(): Promise<LiveMatchSummary[]> {
-  const [todayRaw, upcomingRaw, liveRaw] = await Promise.all([
+  const [todayRaw, upcomingRaw, liveRaw, cacheRows] = await Promise.all([
     fetchLiveResource('schedule-today'),
     fetchLiveResource('schedule-upcoming'),
     fetchLiveResource('live'),
+    isLiveMockMode() ? Promise.resolve([] as LiveMatchSummary[]) : fetchScheduleCache(),
   ])
 
   const byId = new Map<string, LiveMatchSummary>()
+
+  // 1) Static CitoAPI schedule cache (always available — primary upcoming source).
+  for (const summary of cacheRows) {
+    if (!isTrackedLeague(summary.leagueSlug, summary.league)) continue
+    byId.set(summary.matchId, summary)
+  }
+
+  // 2) Live edge-function schedule (richer: logos, bestOf) overrides the cache.
   for (const raw of [...extractScheduleList(todayRaw), ...extractScheduleList(upcomingRaw)]) {
     const summary = adaptScheduleEvent(raw)
     if (!summary) continue
     if (!isTrackedLeague(summary.leagueSlug, summary.league)) continue
-    if (!byId.has(summary.matchId)) byId.set(summary.matchId, summary)
+    byId.set(summary.matchId, summary)
   }
 
   // Overlay live in-game state.
@@ -87,8 +94,9 @@ export async function fetchLiveHub(): Promise<LiveMatchSummary[]> {
   }
 
   const now = Date.now()
-  const horizon = now + UPCOMING_WINDOW_HOURS * 3600_000
   const skipTimeWindow = isLiveMockMode()
+  // Show every confirmed upcoming match (sourced from CitoAPI / lolesports),
+  // not just the next few hours — only drop matches whose start is in the past.
   const rows = [...byId.values()].filter((m) => {
     if (m.state === 'live') return true
     if (m.state === 'completed') return false
@@ -96,7 +104,7 @@ export async function fetchLiveHub(): Promise<LiveMatchSummary[]> {
     if (!m.startTime) return true
     const t = Date.parse(m.startTime)
     if (Number.isNaN(t)) return true
-    return t >= now - 3600_000 && t <= horizon
+    return t >= now - 3 * 3600_000
   })
 
   rows.sort((a, b) => {

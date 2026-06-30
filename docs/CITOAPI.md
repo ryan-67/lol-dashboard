@@ -305,6 +305,49 @@ Samples saved to `docs/cito/live-samples.json` + `docs/cito/live-samples2.json`
 - [ ] during a live MSI/LCK game: confirm `game-stats` player field names and
       tighten `adaptPlayerStats` if needed
 
+### Bug-fix pass — 2026-06-30 (gold timeline + schedule accuracy)
+
+Three issues reported after the v1 prototype, with fixes:
+
+1. **Per-game Gold Timeline redesigned to a diverging, two-team chart.**
+   `src/components/series/SeriesGameInsights.tsx` no longer plots a single
+   one-team perspective line. The y-axis is now symmetric (`[-absMax, absMax]`)
+   so 0 sits at center and *both* directions measure the magnitude of a team's
+   gold lead (y-axis labels show absolute values, e.g. `1.6k` top and bottom).
+   The line is split into two sign-clamped series (`aLead` / `bLead`) with a
+   zero point inserted at every lead change, so the visible color is the leading
+   team's brand color at every minute. A legend (team logo + color swatch +
+   "{TEAM} lead") and a custom tooltip ("{TEAM} +X,XXX gold") were added.
+
+2. **Gold timeline "Data unavailable" — root cause + fix.** The resolver order
+   is already CitoAPI → gol.gg → Oracle's Elixir (`goldTimelineResolve.ts`), and
+   only falls to "Data unavailable" when *all* sources miss. The real problem:
+   the gol.gg fallback asset `public/data/gol_game_cache.json` (built by
+   `scripts/enrich_gol_advanced_stats.py`) was **gitignored and never committed**,
+   so production always 404'd it and the fallback was dead — any game missing
+   from the Cito `cito_game_gold` table dropped straight to unavailable. Fix:
+   added `!public/data/gol_game_cache.json` to `.gitignore` and committed the
+   populated cache so the gol.gg gold timelines actually ship.
+   - Refresh when new games are played:
+     `python scripts/enrich_gol_advanced_stats.py --year 2026`
+   - TODO: an on-demand server-side gol.gg proxy for games newer than the last
+     cache build (browser-side is blocked by CORS).
+
+3. **Live hub "no upcoming matches" — schedule now sourced from the static
+   CitoAPI cache.** Previously `fetchLiveHub()` only read the `cito-live` edge
+   function; with no `VITE_SUPABASE_URL` / un-deployed function it returned
+   nothing, so even confirmed MSI matches were absent. Fix: `fetchLiveHub()` now
+   merges `public/data/cito_schedule_cache.json`
+   (`src/lib/live/loadScheduleCache.ts`, built by `scripts/cito/sync-schedule.ts`
+   from CitoAPI) as the always-available primary upcoming source; the edge
+   function (when available) overrides cache rows with richer data (logos,
+   bestOf) and supplies the live overlay. The upcoming horizon cap was removed —
+   the hub now shows *all* confirmed future matches (live first, then by start
+   time). Refresh: `npm run sync:cito-schedule`.
+   - TODO: cross-check the CitoAPI schedule against the official Riot
+     (lolesports.com) persisted schedule inside `sync-schedule.ts` to fill team
+     names/logos for matches Cito still lists as TBD and catch any Cito gaps.
+
 ### TODO / next (v2)
 - [ ] Confirm live `window`/`stats` player field names against a real game.
 - [ ] Webhooks (paid plan: `lol.score.updated`, `lol.live_game.updated`) to replace
