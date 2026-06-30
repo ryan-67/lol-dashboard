@@ -142,8 +142,8 @@ export const ALL_PLAYER_RADAR_METRICS: RadarMetricDef[] = (() => {
   return metrics
 })()
 
-/** Weight keys align with scoring helpers below */
-const SCORE_WEIGHTS: Record<RoleKey, Partial<Record<RadarMetricKey, number>>> = {
+/** Weight keys align with scoring helpers below (also used for Champion OP Score in-game layer). */
+export const ROLE_PERFORMANCE_SCORE_WEIGHTS: Record<RoleKey, Partial<Record<RadarMetricKey, number>>> = {
   top: { kda: 0.2, gd15: 0.25, csd15: 0.2, turretPlates: 0.15, dmgGoldRatio: 0.1, xpd15: 0.1 },
   jungle: { kda: 0.2, kaPerMin: 0.25, kp: 0.2, dmgGoldRatio: 0.15, gd15: 0.1, firstBloodRate: 0.1 },
   mid: { kda: 0.2, gd15: 0.2, csd15: 0.15, dmgGoldRatio: 0.2, dmgPerGold: 0.15, xpd15: 0.1 },
@@ -256,7 +256,7 @@ export function gameMetricRaw(game: PlayerGameLog, key: RadarMetricKey, cohort: 
 }
 
 export function computeGameScore(game: PlayerGameLog, role: RoleKey, cohort: Player[]): number {
-  const weights = SCORE_WEIGHTS[role]
+  const weights = ROLE_PERFORMANCE_SCORE_WEIGHTS[role]
   let total = 0
   let weightSum = 0
 
@@ -278,7 +278,7 @@ export function computeGameScore(game: PlayerGameLog, role: RoleKey, cohort: Pla
 }
 
 export function computeAggregateScore(player: Player, role: RoleKey, cohort: Player[]): number {
-  const weights = SCORE_WEIGHTS[role]
+  const weights = ROLE_PERFORMANCE_SCORE_WEIGHTS[role]
   let total = 0
   let weightSum = 0
 

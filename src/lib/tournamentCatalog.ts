@@ -181,6 +181,20 @@ export function resolveTournamentDisplay(
   return `${year} ${lg} ${rawSplit}`
 }
 
+/** Derive a league logo key from a tournament display label (e.g. "2026 MSI" → MSI). */
+export function leagueFromTournamentLabel(label: string | undefined): string | null {
+  if (!label?.trim()) return null
+  const match = label.trim().match(/^\d{4}\s+(.+)$/)
+  if (!match) return null
+  const rest = match[1]!
+  if (rest.startsWith('MSI')) return 'MSI'
+  if (rest.startsWith('Worlds')) return 'Worlds'
+  if (rest.startsWith('First Stand')) return 'First Stand'
+  const tier1 = rest.split(/\s+/)[0]
+  if (tier1 && ['LCK', 'LPL', 'LEC', 'LCS'].includes(tier1)) return tier1
+  return null
+}
+
 function segmentOrder(segment: TournamentSegment): number {
   if (segment === 'regular') return 0
   if (segment === 'playoffs') return 1

@@ -8,6 +8,7 @@ import {
 } from '../lib/championAnalytics'
 import {
   buildWeeklyChampionStatsFromPlayers,
+  championOpStatBreakdown,
   computeChampionOfWeekScores,
 } from '../lib/championOfWeekScore'
 import {
@@ -71,6 +72,8 @@ const HUB_COPY = {
     playerTitle: 'Player of the Week',
     teamTitle: 'Team of the Week (Best 5 by role)',
     championTitle: 'Champion of the Week',
+    championSubtitle:
+      'Highest OP Score — draft meta (presence, pick/ban, win rate) plus in-game stats from the role radar, confidence-adjusted by games played.',
     topGamesTitle: 'Top 3 games this week (by performance score)',
     noPlayerData: 'No weekly game log data for this filter.',
     noTeamData: 'Not enough weekly team data.',
@@ -90,6 +93,8 @@ const HUB_COPY = {
     playerTitle: 'Player of the Month',
     teamTitle: 'Team of the Month (Best 5 by role)',
     championTitle: 'Champion of the Month',
+    championSubtitle:
+      'Highest OP Score — draft meta (presence, pick/ban, win rate) plus in-game stats from the role radar, confidence-adjusted by games played.',
     topGamesTitle: 'Top 3 games this month (by performance score)',
     noPlayerData: 'No monthly game log data for this filter.',
     noTeamData: 'Not enough monthly team data.',
@@ -111,6 +116,7 @@ const HUB_COPY = {
     playerTitle: string
     teamTitle: string
     championTitle: string
+    championSubtitle: string
     topGamesTitle: string
     noPlayerData: string
     noTeamData: string
@@ -813,6 +819,7 @@ export default function Overview() {
 
       <section className="card overview-hub-card">
         <h2 className="card-title">{copy.championTitle}</h2>
+        <p className="card-subtitle">{copy.championSubtitle}</p>
         {!championOpResult.top ? (
           <p className="text-secondary">{copy.noChampionData}</p>
         ) : (
@@ -822,9 +829,7 @@ export default function Overview() {
             </div>
             <div className="overview-weekly-meta">
               Role: {championOpResult.top.role.toUpperCase()} · {championOpResult.top.samplePicks}{' '}
-              {championOpResult.top.samplePicks === 1 ? 'game' : 'games'} · Presence:{' '}
-              {formatPct(championOpResult.top.champion.presence, 1)} · Winrate:{' '}
-              {formatPct(championOpResult.top.champion.winrate, 1)}
+              {championOpResult.top.samplePicks === 1 ? 'game' : 'games'}
             </div>
             <MetricScoreRow
               label="OP Score"
@@ -832,10 +837,11 @@ export default function Overview() {
               value={formatNum(championOpResult.top.opScore, 2)}
             />
             <div className="overview-hottest-stats">
-              <div>Presence: {formatPct(championOpResult.top.champion.presence, 1)}</div>
-              <div>Winrate: {formatPct(championOpResult.top.champion.winrate, 1)}</div>
-              <div>Ban rate: {formatPct(championOpResult.top.champion.banRate, 1)}</div>
-              <div>Avg KDA: {formatNum(championOpResult.top.champion.avgKda, 2)}</div>
+              {championOpStatBreakdown(championOpResult.top).map((row) => (
+                <div key={row.label}>
+                  {row.label}: {row.value}
+                </div>
+              ))}
               <div>Sample confidence: {formatPct(championOpResult.top.confidence * 100, 0)}</div>
             </div>
           </div>

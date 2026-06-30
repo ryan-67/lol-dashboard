@@ -22,7 +22,7 @@ import {
   type SeriesBucket as GroupedSeriesBucket,
 } from './seriesGrouping'
 import { analyzeSeriesMomentum } from './seriesMomentum'
-import { resolveTournamentDisplay } from './tournamentCatalog'
+import { resolveTournamentDisplay, buildTournamentIdentity } from './tournamentCatalog'
 import { resolveGameOpponent } from './gameOpponent'
 
 export type { SeriesFacts }
@@ -61,6 +61,8 @@ export interface WeeklyRecapScore {
   loserAbbr: string
   score: string
   tournamentLabel?: string
+  /** League/event key for logo lookup (e.g. MSI, LCK). */
+  tournamentLeague?: string
 }
 
 interface GamePlayer {
@@ -1356,6 +1358,12 @@ export function buildWeeklyRecapLines(
       firstGame.playoffs,
       { rawSplit: firstGame.rawSplit, oeYear: firstGame.oeYear },
     )
+    const tournamentLeague = buildTournamentIdentity(
+      firstGame.league ?? '',
+      firstGame.split ?? '',
+      Boolean(firstGame.playoffs),
+      { rawSplit: firstGame.rawSplit, oeYear: firstGame.oeYear },
+    ).league
 
     lines.push({
       ...line,
@@ -1367,6 +1375,7 @@ export function buildWeeklyRecapLines(
         loserAbbr: recapTeamTag(victim),
         score: `${domWins}-${vicWins}`,
         tournamentLabel,
+        tournamentLeague,
       },
     })
   }

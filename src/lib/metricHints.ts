@@ -5,4 +5,4 @@ export const TEAM_SCORE_HINT =
   'Weekly impressiveness score: normalized winrate (42%), GD@15 (18%), KDA (14%), objective control (12%), and opponent split winrate / strength of schedule (10%), plus a bonus for upset wins (+1.5 each). Highest score wins Hottest Team. Scale: 0/100 (upset wins can push slightly above 100).'
 
 export const OP_SCORE_HINT =
-  'Role-weighted z-scores for meta (presence, bans), results (winrate, KDA), and in-game stats (GD@15, DPM, KP, vision, etc.) within each role. Low sample sizes are confidence-adjusted so one-off spikes rank lower. Scale: ±3 (0 = role average; ~1+ is a strong week).'
+  'OP Score ranks champions in the filtered week/month window. Each champion is scored within its most-played role using z-scores (0 = role average). Draft/meta (30%): presence, pick rate, ban rate, win rate. In-game (70%): the same role-specific radar stats that drive player performance scores (e.g. GD@15, CS@15, DPM, KP, vision, dmg/gold). Final score is confidence-adjusted by pick count so 1–2 game spikes rank lower. Scale: roughly ±3.'

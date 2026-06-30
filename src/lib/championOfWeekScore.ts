@@ -1,5 +1,14 @@
 import type { Champion, PlayerGameLog } from '../hooks/useDashboardData'
+import {
+  dmgGoldRatioFromGame,
+  dmgPerGoldFromGame,
+} from './advancedStats'
 import { ROLES, roleForChampion, championPresenceRates, type RoleKey } from './championAnalytics'
+import {
+  ROLE_METRICS,
+  ROLE_PERFORMANCE_SCORE_WEIGHTS,
+  type RadarMetricKey,
+} from './playerRadar'
 import { parseDate } from './weeklyWindow'
 
 export interface WeeklyChampionBuildInput {
@@ -17,12 +26,20 @@ export interface WeeklyChampionStats extends Champion {
   weeklyRole: RoleKey
   avgGd15?: number
   avgXpd15?: number
+  avgCsd15?: number
+  avgDpm?: number
   avgDmgShare?: number
   avgGoldShare?: number
   avgKp?: number
   avgVisionScore?: number
   avgObjControl?: number
   avgFirstBloodRate?: number
+  avgTurretPlates?: number
+  avgKaPerMin?: number
+  avgDmgGoldRatio?: number
+  avgDmgPerGold?: number
+  avgWardsDestroyed?: number
+  avgCampsStolen?: number
 }
 
 export interface WeeklyChampionOpEntry {
@@ -38,80 +55,19 @@ export interface WeeklyChampionOpResult {
   runners: WeeklyChampionOpEntry[]
 }
 
-type MetricKey =
-  | 'presence'
-  | 'pickRate'
-  | 'banRate'
-  | 'winrate'
-  | 'avgKda'
-  | 'avgGd15'
-  | 'avgCsd15'
-  | 'avgXpd15'
-  | 'avgDpm'
-  | 'avgDmgShare'
-  | 'avgGoldShare'
-  | 'avgKp'
-  | 'avgVisionScore'
-  | 'avgObjControl'
-  | 'avgFirstBloodRate'
+/** Draft/meta metrics shared across roles (30% of OP score). */
+type DraftMetricKey = 'presence' | 'pickRate' | 'banRate' | 'winrate'
 
-const ROLE_METRIC_WEIGHTS: Record<RoleKey, Partial<Record<MetricKey, number>>> = {
-  top: {
-    presence: 0.1,
-    banRate: 0.06,
-    winrate: 0.14,
-    avgKda: 0.1,
-    avgGd15: 0.14,
-    avgCsd15: 0.12,
-    avgDpm: 0.1,
-    avgDmgShare: 0.12,
-    avgXpd15: 0.06,
-  },
-  jungle: {
-    presence: 0.1,
-    banRate: 0.06,
-    winrate: 0.14,
-    avgKda: 0.1,
-    avgGd15: 0.1,
-    avgKp: 0.14,
-    avgObjControl: 0.14,
-    avgFirstBloodRate: 0.08,
-    avgCsd15: 0.06,
-  },
-  mid: {
-    presence: 0.1,
-    banRate: 0.06,
-    winrate: 0.14,
-    avgKda: 0.1,
-    avgGd15: 0.12,
-    avgCsd15: 0.1,
-    avgDpm: 0.1,
-    avgDmgShare: 0.12,
-    avgXpd15: 0.06,
-  },
-  adc: {
-    presence: 0.1,
-    banRate: 0.06,
-    winrate: 0.14,
-    avgKda: 0.1,
-    avgDpm: 0.14,
-    avgDmgShare: 0.14,
-    avgGoldShare: 0.1,
-    avgGd15: 0.08,
-    avgCsd15: 0.04,
-  },
-  support: {
-    presence: 0.1,
-    banRate: 0.06,
-    winrate: 0.14,
-    avgKda: 0.12,
-    avgVisionScore: 0.16,
-    avgKp: 0.14,
-    avgGd15: 0.08,
-    avgFirstBloodRate: 0.06,
-    avgDmgShare: 0.04,
-  },
+const DRAFT_METRIC_WEIGHTS: Record<DraftMetricKey, number> = {
+  presence: 0.08,
+  pickRate: 0.06,
+  banRate: 0.06,
+  winrate: 0.1,
 }
+
+const INGAME_SCORE_SHARE = 0.7
+
+type OpMetricKey = DraftMetricKey | `ingame:${RadarMetricKey}`
 
 /** Confidence ramps with sample size so 1–2 game outliers don't dominate. */
 const CONFIDENCE_FULL_AT = 4
@@ -132,6 +88,12 @@ interface Accumulator {
   visionScore: number
   objControl: number
   firstBloodRate: number
+  turretPlates: number
+  kaPerMin: number
+  dmgGoldRatio: number
+  dmgPerGold: number
+  wardsDestroyed: number
+  campsStolen: number
 }
 
 function round(value: number, digits: number): number {
@@ -204,41 +166,99 @@ function countWeeklyMatches(entries: WeeklyChampionBuildInput[]): number {
   return Math.max(Math.ceil(keys.size / 2), 1)
 }
 
-function metricValue(champion: WeeklyChampionStats, key: MetricKey): number {
+/** Role-aware OP weights: draft/meta (30%) + in-game radar metrics (70%, same weights as player performance score). */
+function buildOpWeightsForRole(role: RoleKey): Map<OpMetricKey, number> {
+  const weights = new Map<OpMetricKey, number>()
+  for (const [key, w] of Object.entries(DRAFT_METRIC_WEIGHTS) as [DraftMetricKey, number][]) {
+    weights.set(key, w)
+  }
+
+  const ingame = ROLE_PERFORMANCE_SCORE_WEIGHTS[role]
+  const ingameSum = Object.values(ingame).reduce((a, b) => a + b, 0)
+  if (ingameSum <= 0) return weights
+
+  for (const [key, w] of Object.entries(ingame) as [RadarMetricKey, number][]) {
+    weights.set(`ingame:${key}`, (w / ingameSum) * INGAME_SCORE_SHARE)
+  }
+  return weights
+}
+
+function ingameMetricValue(champion: WeeklyChampionStats, key: RadarMetricKey): number {
   switch (key) {
-    case 'presence':
-      return champion.presence
-    case 'pickRate':
-      return champion.pickRate ?? 0
-    case 'banRate':
-      return champion.banRate ?? 0
-    case 'winrate':
-      return champion.winrate
-    case 'avgKda':
+    case 'kda':
       return champion.avgKda
-    case 'avgGd15':
+    case 'gd15':
       return champion.avgGd15 ?? 0
-    case 'avgCsd15':
+    case 'csd15':
       return champion.avgCsd15 ?? 0
-    case 'avgXpd15':
+    case 'xpd15':
       return champion.avgXpd15 ?? 0
-    case 'avgDpm':
+    case 'dpm':
       return champion.avgDpm ?? 0
-    case 'avgDmgShare':
+    case 'dmgShare':
       return champion.avgDmgShare ?? 0
-    case 'avgGoldShare':
+    case 'goldShare':
       return champion.avgGoldShare ?? 0
-    case 'avgKp':
+    case 'kp':
       return champion.avgKp ?? 0
-    case 'avgVisionScore':
+    case 'visionScore':
       return champion.avgVisionScore ?? 0
-    case 'avgObjControl':
+    case 'objControl':
       return champion.avgObjControl ?? 0
-    case 'avgFirstBloodRate':
+    case 'firstBloodRate':
       return champion.avgFirstBloodRate ?? 0
+    case 'turretPlates':
+      return champion.avgTurretPlates ?? 0
+    case 'kaPerMin':
+      return champion.avgKaPerMin ?? 0
+    case 'dmgGoldRatio':
+      return champion.avgDmgGoldRatio ?? 0
+    case 'dmgPerGold':
+      return champion.avgDmgPerGold ?? 0
+    case 'wardsDestroyed':
+      return champion.avgWardsDestroyed ?? 0
+    case 'campsStolen':
+      return champion.avgCampsStolen ?? 0
     default:
       return 0
   }
+}
+
+function opMetricValue(champion: WeeklyChampionStats, key: OpMetricKey): number {
+  if (key === 'presence') return champion.presence
+  if (key === 'pickRate') return champion.pickRate ?? 0
+  if (key === 'banRate') return champion.banRate ?? 0
+  if (key === 'winrate') return champion.winrate
+  return ingameMetricValue(champion, key.replace('ingame:', '') as RadarMetricKey)
+}
+
+/** Radar value for a weekly champion aggregate (for display in the hub card). */
+export function weeklyChampionRadarValue(
+  champion: WeeklyChampionStats,
+  key: RadarMetricKey,
+): number | null {
+  const v = ingameMetricValue(champion, key)
+  return Number.isFinite(v) ? v : null
+}
+
+/** Role-specific stat rows for the Champion of the Week/Month card. */
+export function championOpStatBreakdown(
+  entry: WeeklyChampionOpEntry,
+): Array<{ label: string; value: string }> {
+  const c = entry.champion
+  const rows: Array<{ label: string; value: string }> = [
+    { label: 'Presence', value: `${c.presence.toFixed(1)}%` },
+    { label: 'Pick rate', value: `${(c.pickRate ?? 0).toFixed(1)}%` },
+    { label: 'Ban rate', value: `${(c.banRate ?? 0).toFixed(1)}%` },
+    { label: 'Win rate', value: `${c.winrate.toFixed(1)}%` },
+  ]
+
+  for (const def of ROLE_METRICS[entry.role]) {
+    const raw = weeklyChampionRadarValue(c, def.key)
+    if (raw == null) continue
+    rows.push({ label: def.shortLabel, value: def.format(raw) })
+  }
+  return rows
 }
 
 /** Build per-champion weekly aggregates from player game logs. */
@@ -287,6 +307,12 @@ export function buildWeeklyChampionStats(
           visionScore: 0,
           objControl: 0,
           firstBloodRate: 0,
+          turretPlates: 0,
+          kaPerMin: 0,
+          dmgGoldRatio: 0,
+          dmgPerGold: 0,
+          wardsDestroyed: 0,
+          campsStolen: 0,
         } satisfies Accumulator)
 
       ex.roleCounts.set(role, (ex.roleCounts.get(role) ?? 0) + 1)
@@ -303,6 +329,12 @@ export function buildWeeklyChampionStats(
       ex.visionScore += g.visionScore ?? 0
       ex.objControl += g.objControl ?? 0
       ex.firstBloodRate += g.firstBloodRate ?? 0
+      ex.turretPlates += g.turretPlates ?? 0
+      ex.kaPerMin += g.kaPerMin ?? 0
+      ex.dmgGoldRatio += dmgGoldRatioFromGame(g) ?? 0
+      ex.dmgPerGold += dmgPerGoldFromGame(g) ?? 0
+      ex.wardsDestroyed += g.wardsDestroyed ?? 0
+      ex.campsStolen += g.campsStolen ?? 0
       map.set(name, ex)
     }
   }
@@ -318,6 +350,7 @@ export function buildWeeklyChampionStats(
       )
       const fallbackRole = roleForChampion(base ?? row.champion)
       const weeklyRole = pickWeeklyRole(row.roleCounts, fallbackRole)
+      const div = Math.max(picks, 1)
 
       return {
         ...row.champion,
@@ -327,25 +360,31 @@ export function buildWeeklyChampionStats(
         pickRate,
         banRate,
         presence,
-        avgKda: row.kda / Math.max(picks, 1),
-        winrate: (row.wins / Math.max(picks, 1)) * 100,
-        avgGd15: row.gd15 / Math.max(picks, 1),
-        avgCsd15: row.csd15 / Math.max(picks, 1),
-        avgXpd15: row.xpd15 / Math.max(picks, 1),
-        avgDpm: row.dpm / Math.max(picks, 1),
-        avgDmgShare: row.dmgShare / Math.max(picks, 1),
-        avgGoldShare: row.goldShare / Math.max(picks, 1),
-        avgKp: row.kp / Math.max(picks, 1),
-        avgVisionScore: row.visionScore / Math.max(picks, 1),
-        avgObjControl: row.objControl / Math.max(picks, 1),
-        avgFirstBloodRate: row.firstBloodRate / Math.max(picks, 1),
+        avgKda: row.kda / div,
+        winrate: (row.wins / div) * 100,
+        avgGd15: row.gd15 / div,
+        avgCsd15: row.csd15 / div,
+        avgXpd15: row.xpd15 / div,
+        avgDpm: row.dpm / div,
+        avgDmgShare: row.dmgShare / div,
+        avgGoldShare: row.goldShare / div,
+        avgKp: row.kp / div,
+        avgVisionScore: row.visionScore / div,
+        avgObjControl: row.objControl / div,
+        avgFirstBloodRate: row.firstBloodRate / div,
+        avgTurretPlates: row.turretPlates / div,
+        avgKaPerMin: row.kaPerMin / div,
+        avgDmgGoldRatio: row.dmgGoldRatio / div,
+        avgDmgPerGold: row.dmgPerGold / div,
+        avgWardsDestroyed: row.wardsDestroyed / div,
+        avgCampsStolen: row.campsStolen / div,
         weeklyRole,
       } as WeeklyChampionStats
     })
     .filter((c) => c.picks >= 1)
 }
 
-/** Role-aware OP score with sample-size confidence for weekly champion ranking. */
+/** Role-aware OP score: draft meta + in-game radar stats, confidence-adjusted. */
 export function computeChampionOfWeekScores(
   champions: WeeklyChampionStats[],
 ): WeeklyChampionOpResult {
@@ -357,16 +396,16 @@ export function computeChampionOfWeekScores(
     byRole.get(c.weeklyRole)?.push(c)
   }
 
-  const metricZ = new Map<string, Map<MetricKey, number>>()
+  const metricZ = new Map<string, Map<OpMetricKey, number>>()
 
   for (const role of ROLES) {
     const group = byRole.get(role) ?? []
     if (!group.length) continue
-    const weights = ROLE_METRIC_WEIGHTS[role]
-    for (const metric of Object.keys(weights) as MetricKey[]) {
-      const z = zScoreById(group.map((c) => ({ id: c.name, value: metricValue(c, metric) })))
+    const weights = buildOpWeightsForRole(role)
+    for (const metric of weights.keys()) {
+      const z = zScoreById(group.map((c) => ({ id: c.name, value: opMetricValue(c, metric) })))
       for (const c of group) {
-        const row = metricZ.get(c.name) ?? new Map<MetricKey, number>()
+        const row = metricZ.get(c.name) ?? new Map<OpMetricKey, number>()
         row.set(metric, z.get(c.name) ?? 0)
         metricZ.set(c.name, row)
       }
@@ -375,11 +414,11 @@ export function computeChampionOfWeekScores(
 
   const scored: WeeklyChampionOpEntry[] = champions.map((champion) => {
     const role = champion.weeklyRole
-    const weights = ROLE_METRIC_WEIGHTS[role]
-    const zRow = metricZ.get(champion.name) ?? new Map<MetricKey, number>()
+    const weights = buildOpWeightsForRole(role)
+    const zRow = metricZ.get(champion.name) ?? new Map<OpMetricKey, number>()
     let total = 0
     let weightSum = 0
-    for (const [metric, weight] of Object.entries(weights) as [MetricKey, number][]) {
+    for (const [metric, weight] of weights) {
       total += (zRow.get(metric) ?? 0) * weight
       weightSum += weight
     }

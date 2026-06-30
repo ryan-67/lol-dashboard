@@ -28,6 +28,7 @@ export function mergeWeeklyRecapLines(
       score: {
         ...line.score,
         tournamentLabel: line.score.tournamentLabel ?? existing?.score.tournamentLabel,
+        tournamentLeague: line.score.tournamentLeague ?? existing?.score.tournamentLeague,
       },
     })
   }

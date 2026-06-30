@@ -1,11 +1,13 @@
 import { useRef } from 'react'
 import { Link } from 'react-router-dom'
 import { useGSAP } from '@gsap/react'
+import { seriesPath } from '../../lib/seriesPath'
 import type { WeeklyRecapLine, WeeklyRecapSegment } from '../../lib/weeklyRecap'
 import { recapTeamTag } from '../../lib/recapTeamTag'
-import { seriesPath } from '../../lib/seriesPath'
+import { leagueFromTournamentLabel } from '../../lib/tournamentCatalog'
 import { scrollEntranceStagger } from '../../theme/animations'
 import EntityLink from '../entities/EntityLink'
+import { LeagueLogo } from '../entities'
 import type { Champion, Player } from '../../hooks/useDashboardData'
 import { buildRecapEntityPatternsForText, linkifyRecapText, recapTeamsForLine } from '../../lib/recapEntityLink'
 
@@ -18,8 +20,13 @@ interface WeeklyRecapProps {
   showSeriesLink?: boolean
 }
 
+function recapTournamentLeague(score: WeeklyRecapLine['score']): string | null {
+  return score.tournamentLeague ?? leagueFromTournamentLabel(score.tournamentLabel) ?? null
+}
+
 function RecapScoreRow({ line, showSeriesLink }: { line: WeeklyRecapLine; showSeriesLink: boolean }) {
   const { score } = line
+  const tournamentLeague = recapTournamentLeague(score)
   return (
     <div className="overview-recap-score">
       <div className="overview-recap-score-main">
@@ -40,7 +47,10 @@ function RecapScoreRow({ line, showSeriesLink }: { line: WeeklyRecapLine; showSe
         ) : null}
       </div>
       {score.tournamentLabel ? (
-        <span className="overview-recap-tournament">{score.tournamentLabel}</span>
+        <span className="overview-recap-tournament">
+          {tournamentLeague ? <LeagueLogo league={tournamentLeague} size={14} /> : null}
+          <span>{score.tournamentLabel}</span>
+        </span>
       ) : null}
     </div>
   )
