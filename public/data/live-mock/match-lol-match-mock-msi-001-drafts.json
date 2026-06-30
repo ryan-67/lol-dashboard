@@ -1,0 +1,25 @@
+{
+  "matchId": "lol-match-mock-msi-001",
+  "gameId": "lol-game-mock-msi-001-g2",
+  "gameNumber": 2,
+  "blueTeam": "t1",
+  "redTeam": "karmine-corp",
+  "winner": null,
+  "blueBans": ["Ambessa", "Skarner", "Corki", "Ashe", "Nautilus"],
+  "redBans": ["Yone", "Wukong", "Hwei", "Jinx", "Renata Glasc"],
+  "bluePicks": [
+    { "championName": "K'Sante", "role": "top" },
+    { "championName": "Vi", "role": "jungle" },
+    { "championName": "Azir", "role": "mid" },
+    { "championName": "Varus", "role": "bottom" },
+    { "championName": "Rakan", "role": "support" }
+  ],
+  "redPicks": [
+    { "championName": "Gnar", "role": "top" },
+    { "championName": "Maokai", "role": "jungle" },
+    { "championName": "Orianna", "role": "mid" },
+    { "championName": "Kalista", "role": "bottom" },
+    { "championName": "Leona", "role": "support" }
+  ],
+  "dataAvailability": { "hasDraft": true, "hasPicks": true, "hasBans": true, "playerRows": 10 }
+}

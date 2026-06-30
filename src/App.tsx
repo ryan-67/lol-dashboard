@@ -19,6 +19,8 @@ import ChampionPage from './pages/entities/ChampionPage'
 import TournamentPage from './pages/entities/TournamentPage'
 import SeriesPage from './pages/entities/SeriesPage'
 import NuckyAI from './pages/NuckyAI'
+import Live from './pages/Live'
+import LiveMatchRoom from './pages/LiveMatchRoom'
 import FAQ from './pages/FAQ'
 import PrivatePolicy from './pages/PrivatePolicy'
 import UserProfile from './pages/UserProfile'
@@ -107,6 +109,8 @@ function App() {
               <Route path="/tournaments/:slug" element={<TournamentPage />} />
               <Route path="/series/:seriesId" element={<SeriesPage />} />
               <Route path="/nuckyai" element={<NuckyAI />} />
+              <Route path="/live" element={<Live />} />
+              <Route path="/live/:matchId" element={<LiveMatchRoom />} />
               <Route path="/faq" element={<FAQ />} />
               <Route path="/private-policy" element={<PrivatePolicy />} />
               <Route path="/profile" element={<UserProfile />} />

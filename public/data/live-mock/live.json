@@ -1,0 +1,20 @@
+{
+  "success": true,
+  "status": "live",
+  "count": 1,
+  "data": [
+    {
+      "matchId": "lol-match-mock-msi-001",
+      "gameId": "lol-game-mock-msi-001-g2",
+      "currentGameId": "lol-game-mock-msi-001-g2",
+      "leagueId": "lol-msi",
+      "state": "in_game",
+      "bestOf": 5,
+      "score": { "blue": 1, "red": 0 },
+      "statsAvailable": true,
+      "gameTime": 692,
+      "blueTeam": { "slug": "t1", "kills": 9, "gold": 22500, "towers": 3, "dragons": 1, "barons": 0 },
+      "redTeam": { "slug": "karmine-corp", "kills": 3, "gold": 18200, "towers": 0, "dragons": 0, "barons": 0 }
+    }
+  ]
+}

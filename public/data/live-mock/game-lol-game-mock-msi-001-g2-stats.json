@@ -1,0 +1,81 @@
+{
+  "success": true,
+  "gameId": "lol-game-mock-msi-001-g2",
+  "status": "ok",
+  "data": {
+    "blue": [
+      {
+        "side": "blue", "role": "top", "summonerName": "Doran", "championName": "K'Sante",
+        "level": 9, "kills": 0, "deaths": 1, "assists": 0, "cs": 122, "totalGold": 5200,
+        "items": [3047, 3068, 1031, 3340],
+        "goldPerMin": 451, "csPerMin": 10.6, "gd15": 540, "csd15": 8, "xpd15": 320,
+        "platesTaken": 2, "damageToChampions": 6840, "damageToTurrets": 1250, "damageToObjectives": 900, "visionScore": 14
+      },
+      {
+        "side": "blue", "role": "jungle", "summonerName": "Oner", "championName": "Vi",
+        "level": 8, "kills": 3, "deaths": 0, "assists": 2, "cs": 96, "totalGold": 5100,
+        "items": [3111, 6692, 1037, 3340],
+        "goldPerMin": 442, "csPerMin": 8.3, "gd15": 760, "csd15": 4, "xpd15": 410,
+        "platesTaken": 0, "damageToChampions": 7320, "damageToTurrets": 400, "damageToObjectives": 5400, "visionScore": 18
+      },
+      {
+        "side": "blue", "role": "mid", "summonerName": "Faker", "championName": "Azir",
+        "level": 9, "kills": 0, "deaths": 0, "assists": 4, "cs": 113, "totalGold": 4700,
+        "items": [3020, 6655, 1058, 3340],
+        "goldPerMin": 407, "csPerMin": 9.8, "gd15": -120, "csd15": -3, "xpd15": 150,
+        "platesTaken": 1, "damageToChampions": 5980, "damageToTurrets": 700, "damageToObjectives": 1200, "visionScore": 11
+      },
+      {
+        "side": "blue", "role": "bottom", "summonerName": "Peyz", "championName": "Varus",
+        "level": 8, "kills": 6, "deaths": 1, "assists": 2, "cs": 93, "totalGold": 6100,
+        "items": [3006, 6672, 1038, 3340],
+        "goldPerMin": 529, "csPerMin": 8.1, "gd15": 1420, "csd15": 11, "xpd15": 260,
+        "platesTaken": 3, "damageToChampions": 9450, "damageToTurrets": 1900, "damageToObjectives": 2100, "visionScore": 9
+      },
+      {
+        "side": "blue", "role": "support", "summonerName": "Keria", "championName": "Rakan",
+        "level": 6, "kills": 0, "deaths": 1, "assists": 8, "cs": 10, "totalGold": 3200,
+        "items": [3158, 3190, 2055, 3364],
+        "goldPerMin": 277, "csPerMin": 0.9, "gd15": 180, "csd15": -1, "xpd15": -90,
+        "platesTaken": 0, "damageToChampions": 3100, "damageToTurrets": 120, "damageToObjectives": 0, "visionScore": 31
+      }
+    ],
+    "red": [
+      {
+        "side": "red", "role": "top", "summonerName": "Canna", "championName": "Gnar",
+        "level": 8, "kills": 0, "deaths": 0, "assists": 1, "cs": 100, "totalGold": 4660,
+        "items": [3047, 3071, 1031, 3340],
+        "goldPerMin": 404, "csPerMin": 8.7, "gd15": -540, "csd15": -8, "xpd15": -320,
+        "platesTaken": 1, "damageToChampions": 4980, "damageToTurrets": 600, "damageToObjectives": 700, "visionScore": 12
+      },
+      {
+        "side": "red", "role": "jungle", "summonerName": "Yike", "championName": "Maokai",
+        "level": 7, "kills": 1, "deaths": 2, "assists": 0, "cs": 90, "totalGold": 3980,
+        "items": [3111, 3068, 1028, 3340],
+        "goldPerMin": 345, "csPerMin": 7.8, "gd15": -760, "csd15": -4, "xpd15": -410,
+        "platesTaken": 0, "damageToChampions": 4210, "damageToTurrets": 200, "damageToObjectives": 3100, "visionScore": 16
+      },
+      {
+        "side": "red", "role": "mid", "summonerName": "kyeahoo", "championName": "Orianna",
+        "level": 9, "kills": 0, "deaths": 0, "assists": 0, "cs": 116, "totalGold": 4820,
+        "items": [3020, 6653, 1058, 3340],
+        "goldPerMin": 418, "csPerMin": 10.1, "gd15": 120, "csd15": 3, "xpd15": -150,
+        "platesTaken": 2, "damageToChampions": 5640, "damageToTurrets": 350, "damageToObjectives": 800, "visionScore": 13
+      },
+      {
+        "side": "red", "role": "bottom", "summonerName": "Caliste", "championName": "Kalista",
+        "level": 7, "kills": 1, "deaths": 3, "assists": 2, "cs": 95, "totalGold": 4310,
+        "items": [3006, 6672, 1018, 3340],
+        "goldPerMin": 374, "csPerMin": 8.2, "gd15": -1420, "csd15": -11, "xpd15": -260,
+        "platesTaken": 0, "damageToChampions": 6120, "damageToTurrets": 500, "damageToObjectives": 1400, "visionScore": 10
+      },
+      {
+        "side": "red", "role": "support", "summonerName": "Busio", "championName": "Leona",
+        "level": 6, "kills": 1, "deaths": 4, "assists": 1, "cs": 14, "totalGold": 2430,
+        "items": [3158, 3869, 2055, 3364],
+        "goldPerMin": 211, "csPerMin": 1.2, "gd15": -180, "csd15": 1, "xpd15": 90,
+        "platesTaken": 0, "damageToChampions": 2890, "damageToTurrets": 80, "damageToObjectives": 0, "visionScore": 27
+      }
+    ]
+  }
+}

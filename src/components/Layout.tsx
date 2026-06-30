@@ -12,6 +12,7 @@ import { GlobalSearch } from './entities'
 const primaryNav = [
   { to: '/', label: 'Overview' },
   { to: '/nuckyai', label: 'nuckyAI' },
+  { to: '/live', label: 'Live' },
 ]
 
 const menuNav = [
@@ -43,12 +44,14 @@ export default function Layout({ children }: { children: React.ReactNode }) {
   const location = useLocation()
   const navigate = useNavigate()
   const hideTopBarRoutes = new Set(['/nuckyai', '/faq', '/profile'])
+  const isLiveRoute = location.pathname === '/live' || location.pathname.startsWith('/live/')
   const isEntityPage =
     /^\/players\/[^/]+/.test(location.pathname) ||
     /^\/teams\/[^/]+/.test(location.pathname) ||
     /^\/champions\/[^/]+/.test(location.pathname) ||
     /^\/tournaments\/[^/]+/.test(location.pathname)
-  const shouldShowTopBar = !hideTopBarRoutes.has(location.pathname) && !isEntityPage
+  const shouldShowTopBar =
+    !hideTopBarRoutes.has(location.pathname) && !isEntityPage && !isLiveRoute
 
   const prevMainTabPathRef = useRef<string | null>(null)
 

@@ -1,0 +1,137 @@
+{
+  "success": true,
+  "status": "ok",
+  "count": 5,
+  "data": [
+    {
+      "matchId": "lol-match-mock-msi-001",
+      "tournamentName": "2026 Mid-Season Invitational",
+      "leagueId": "lol-msi",
+      "leagueName": "MSI",
+      "leagueSlug": "msi",
+      "blockName": "Bracket Stage",
+      "team1": {
+        "slug": "t1",
+        "name": "T1",
+        "code": "T1",
+        "logoUrl": "https://static.lolesports.com/teams/T1-FullonDark.png",
+        "score": 1
+      },
+      "team2": {
+        "slug": "karmine-corp",
+        "name": "Karmine Corp",
+        "code": "KC",
+        "logoUrl": "http://static.lolesports.com/teams/1704714951336_KC.png",
+        "score": 0
+      },
+      "winnerSlug": null,
+      "strategy": "Bo5",
+      "startTime": "2026-06-29T19:00:00.000Z",
+      "state": "inProgress"
+    },
+    {
+      "matchId": "lol-match-mock-lck-010",
+      "tournamentName": "LCK 2026 Summer",
+      "leagueId": "lol-lck",
+      "leagueName": "LCK",
+      "leagueSlug": "lck",
+      "blockName": "Week 5",
+      "team1": {
+        "slug": "gen-g",
+        "name": "Gen.G",
+        "code": "GEN",
+        "logoUrl": "http://static.lolesports.com/teams/1631820630960_geng-2021-worlds.png",
+        "score": 0
+      },
+      "team2": {
+        "slug": "hanwha-life-esports",
+        "name": "Hanwha Life Esports",
+        "code": "HLE",
+        "logoUrl": null,
+        "score": 0
+      },
+      "winnerSlug": null,
+      "strategy": "Bo3",
+      "startTime": "2026-06-30T08:00:00.000Z",
+      "state": "unstarted"
+    },
+    {
+      "matchId": "lol-match-mock-lpl-022",
+      "tournamentName": "LPL 2026 Summer",
+      "leagueId": "lol-lpl",
+      "leagueName": "LPL",
+      "leagueSlug": "lpl",
+      "blockName": "Regular Season",
+      "team1": {
+        "slug": "bilibili-gaming",
+        "name": "Bilibili Gaming",
+        "code": "BLG",
+        "logoUrl": null,
+        "score": 0
+      },
+      "team2": {
+        "slug": "top-esports",
+        "name": "Top Esports",
+        "code": "TES",
+        "logoUrl": null,
+        "score": 0
+      },
+      "winnerSlug": null,
+      "strategy": "Bo3",
+      "startTime": "2026-06-30T10:00:00.000Z",
+      "state": "unstarted"
+    },
+    {
+      "matchId": "lol-match-mock-lec-031",
+      "tournamentName": "LEC 2026 Summer",
+      "leagueId": "lol-lec",
+      "leagueName": "LEC",
+      "leagueSlug": "lec",
+      "blockName": "Week 3",
+      "team1": {
+        "slug": "g2-esports",
+        "name": "G2 Esports",
+        "code": "G2",
+        "logoUrl": null,
+        "score": 0
+      },
+      "team2": {
+        "slug": "fnatic",
+        "name": "Fnatic",
+        "code": "FNC",
+        "logoUrl": null,
+        "score": 0
+      },
+      "winnerSlug": null,
+      "strategy": "Bo1",
+      "startTime": "2026-06-30T17:00:00.000Z",
+      "state": "unstarted"
+    },
+    {
+      "matchId": "lol-match-mock-lcs-040",
+      "tournamentName": "LTA North 2026",
+      "leagueId": "lol-lta",
+      "leagueName": "LTA North",
+      "leagueSlug": "lta-n",
+      "blockName": "Week 4",
+      "team1": {
+        "slug": "team-liquid",
+        "name": "Team Liquid",
+        "code": "TL",
+        "logoUrl": null,
+        "score": 0
+      },
+      "team2": {
+        "slug": "flyquest",
+        "name": "FlyQuest",
+        "code": "FLY",
+        "logoUrl": null,
+        "score": 0
+      },
+      "winnerSlug": null,
+      "strategy": "Bo3",
+      "startTime": "2026-06-30T23:00:00.000Z",
+      "state": "unstarted"
+    }
+  ]
+}

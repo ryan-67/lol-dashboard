@@ -177,7 +177,8 @@ nuckyAI should become a stronger evidence-grounded analyst with lower dependency
 
 ## 4) Live Match Hub Scope with Cito
 
-Goal: real-time analytics companion, not scoreboard clone.
+Goal: a lolesports-flavored live match center (think Real / FotMob for LoL esports):
+live scores + stats now, community discussion layer later. Not a raw scoreboard clone.
 
 ## Core live architecture
 
@@ -201,6 +202,120 @@ Goal: real-time analytics companion, not scoreboard clone.
 - Live timeline with “why this matters” annotations.
 - Team win-path tracker (conditions currently met vs unmet).
 - nuckyAI “live analyst mode” for in-game Q&A.
+
+---
+
+## 4a) Live Match Hub — v1 Prototype (IMPLEMENTED 2026-06-30)
+
+Status: shipped behind the new **Live** top-nav tab. Built during MSI 2026 to
+validate the live pipeline. The architecture is "edge proxy + client polling".
+
+### Architecture (decided)
+
+```
+Browser (SPA)
+  └─ src/lib/live/citoLiveClient.ts   ── fetch ──▶  Supabase Edge Function
+                                                     supabase/functions/cito-live
+                                                       └─ injects CITO_API_KEY (server-side)
+                                                       └─ allowlisted resources only
+                                                       └─ short Cache-Control per resource
+                                                          └─ CitoAPI
+```
+
+- The Cito key is **server-side only** (`.env`, GitHub Actions, and
+  `supabase secrets set CITO_API_KEY=...`). The browser never sees it.
+- Client polls: hub list every 15s, match room every 10s.
+- All UI renders from a normalized model (`src/lib/live/types.ts`); raw Cito
+  shapes are mapped in `src/lib/live/liveAdapters.ts`. Swapping providers or
+  adjusting to a new live shape only touches the adapter.
+
+### Endpoints used (real shapes captured 2026-06-30)
+
+Samples saved to `docs/cito/live-samples.json` + `docs/cito/live-samples2.json`
+(run `tsx scripts/cito/probe-live.ts` / `probe-live2.ts` to refresh during a live game).
+
+| Resource (edge param) | Cito path | Notes |
+|---|---|---|
+| `live` | `/lol/live` | `{ data: [LiveItem], lastKnown: [...], retryAfterSeconds }`. `data` empty when nothing live; `lastKnown` is stale cache. LiveItem (when live): `matchId, currentGameId, state, score:{blue,red}, statsAvailable, blueTeam/redTeam {slug,kills,gold,towers,dragons,barons}, gameTime`. |
+| `schedule-today` / `schedule-upcoming` | `/lol/schedule/today` `/lol/schedule/upcoming` | `{ data: [event] }`. event: `matchId, leagueName, leagueSlug, tournamentName, blockName, team1/team2 {slug,name,code,logoUrl,score}, strategy:"Bo5", startTime, state:"unstarted|inProgress|completed"`. |
+| `match` | `/lol/matches/{id}` | `{ matchId, team1/team2 {slug,name,shortName,logoUrl,score}, strategy, state, gameCount, vodUrl }`. |
+| `match-games` | `/lol/matches/{id}/games` | `[{ gameId, gameNumber, blueTeam/redTeam {slug,name,shortName,logoUrl,kills,gold,towers,dragons,barons,heralds,inhibitors,bans}, winnerSlug, winningSide, duration, patch, firstObjectives }]`. |
+| `match-player-stats` | `/lol/matches/{id}/player-stats` | `{ data:[{ gameId, gameNumber, teams:{blue,red}, players:[...] }] }`. `players` populated post-sync. |
+| `match-drafts` | `/lol/analytics/drafts/{id}` | `{ gameId, gameNumber, blueTeam, redTeam, blueBans, redBans, bluePicks, redPicks, dataAvailability:{hasDraft} }`. |
+| `match-series` | `/lol/live/{id}/series` | Series-level live state (often `not_active_or_not_ready` outside a live window). |
+| `game-window` | `/lol/live/{gameId}/window` | Riot live feed window (per-player gold/cs/kda). `not_ready` until the game is actually live. |
+| `game-stats` | `/lol/live/{gameId}/stats` | Live per-player stats (the scoreboard feed). `not_ready` until live; stored fallback `/lol/games/{gameId}/stats` after completion. |
+| `game-gold` | `/lol/games/{gameId}/gold` | `[{ timestamp(ms), blueGold, redGold, goldDiff }]`. |
+
+> Live `window`/`stats` per-player field names could NOT be observed (no game was
+> live during the build). The adapter (`adaptPlayerStats`) reads a defensive set
+> of aliases (`summonerName|playerName|name`, `championName|champion`,
+> `cs|creepScore|minionsKilled`, `gold|totalGold`, `items`, plus `gd15`,
+> `csd15`, `xpd15`, `platesTaken`, `damageToChampions/Turrets/Objectives`, etc.).
+> **TODO: confirm exact live field names during a real game and tighten the adapter.**
+
+### What v1 ships
+- **Live** top-nav tab (right of nuckyAI) → `/live`.
+- League filter tabs: **ALL / LCK / LPL / LEC / LCS**. ALL = tier-1 regions +
+  internationals (First Stand, MSI, Worlds); region tabs show only that region;
+  internationals appear under ALL only. Minor leagues are excluded.
+  (See `src/lib/live/leagues.ts`.)
+- Hub list: live + confirmed upcoming rows with date/time; **live rows carry an
+  animated blinking red marker** (`.live-badge-dot`, respects reduced-motion).
+- Each row links to a match room `/live/:matchId`.
+- Match room:
+  - team logos + names, series score X–Y, current game # + status badge
+  - in-game stats bar: kills, team gold (+diff), towers, dragons, barons, clock
+  - draft (picks/bans per side, bans visibly struck through)
+  - live scoreboard per team (champ icon, level, name, KDA, CS, gold, GD@15, items)
+  - **click a player name → expandable detailed stats** (KDA, CS & CS/min, gold &
+    G/min, GD/CSD/XPD@15, plates taken, damage to champions/turrets/objectives, vision)
+  - games list (per-game results)
+  - discussion teaser (v2 placeholder)
+- Data-source-neutral copy throughout (never names Cito/OE; "Data unavailable",
+  "stats will appear once the feed is published", etc.).
+
+### File map
+- `src/lib/live/types.ts` — normalized model
+- `src/lib/live/leagues.ts` — filter + league classification
+- `src/lib/live/citoLiveClient.ts` — edge-proxy fetch + **mock mode**
+- `src/lib/live/liveAdapters.ts` — Cito → normalized mappers
+- `src/lib/live/loadLive.ts` — `fetchLiveHub()`, `fetchMatchRoom(matchId)`
+- `src/components/live/*` — UI (list, badge, team logo, stats bar, draft, scoreboard, tabs)
+- `src/pages/Live.tsx`, `src/pages/LiveMatchRoom.tsx`
+- `supabase/functions/cito-live/index.ts` — server-side proxy
+- `public/data/live-mock/*.json` — offline test fixtures
+
+### Testing without a live match (answers the "how to test?" question)
+1. **Mock mode (primary).** Append `?mock=1` to any live URL
+   (`/live?mock=1`, `/live/lol-match-mock-msi-001?mock=1`) or set
+   `VITE_LIVE_MOCK=1` in `.env`, or `localStorage['nucky-live-mock']='1'`.
+   All requests are served from `public/data/live-mock/*.json` — a full synthetic
+   live MSI match (T1 vs KC, Game 2, scoreboard + draft + expandable player stats)
+   plus upcoming rows for every league filter. The entire UI is exercisable offline.
+2. **Real probe (when a game is live).** `tsx scripts/cito/probe-live.ts` captures
+   the real `/lol/live` + per-game shapes so the adapter can be confirmed/tightened.
+3. **Stored games.** Completed games still return `match-games`, drafts, and gold,
+   so the room renders real team/series data even between live windows.
+
+### Deploy checklist (for the live path, not needed for mock testing)
+- [ ] `supabase functions deploy cito-live`
+- [ ] `supabase secrets set CITO_API_KEY=...`
+- [ ] verify `VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY` in the frontend build env
+- [ ] during a live MSI/LCK game: confirm `game-stats` player field names and
+      tighten `adaptPlayerStats` if needed
+
+### TODO / next (v2)
+- [ ] Confirm live `window`/`stats` player field names against a real game.
+- [ ] Webhooks (paid plan: `lol.score.updated`, `lol.live_game.updated`) to replace
+      polling for cleaner updates and lower request volume.
+- [ ] Momentum / win-path annotations + live gold-diff chart in the room.
+- [ ] **Discussion layer** (Real-style): comments, reactions/stickers, player
+      ratings. Read = public; post = logged-in. See `nuckyLive_scope.txt` §3–§6
+      for the schema (`match_comments`, `match_ratings`, `match_player_tags`) — the
+      hub/room shell built here is the surface those bolt onto.
+- [ ] nuckyAI "live analyst" mode inside the room.
+- [ ] Persist live snapshots to Supabase (optional cron) for history + cheaper reads.
 
 ---
 

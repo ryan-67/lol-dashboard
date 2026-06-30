@@ -1,0 +1,41 @@
+[
+  {
+    "gameId": "lol-game-mock-msi-001-g1",
+    "matchId": "lol-match-mock-msi-001",
+    "gameNumber": 1,
+    "blueTeam": {
+      "slug": "karmine-corp", "name": "Karmine Corp", "shortName": "KC",
+      "logoUrl": "http://static.lolesports.com/teams/1704714951336_KC.png",
+      "kills": 8, "gold": 58400, "towers": 4, "dragons": 2, "barons": 0, "heralds": 1, "inhibitors": 0
+    },
+    "redTeam": {
+      "slug": "t1", "name": "T1", "shortName": "T1",
+      "logoUrl": "https://static.lolesports.com/teams/T1-FullonDark.png",
+      "kills": 18, "gold": 66200, "towers": 9, "dragons": 3, "barons": 1, "heralds": 1, "inhibitors": 2
+    },
+    "winnerSlug": "t1",
+    "winningSide": "red",
+    "duration": 1834,
+    "patch": "16.12"
+  },
+  {
+    "gameId": "lol-game-mock-msi-001-g2",
+    "matchId": "lol-match-mock-msi-001",
+    "gameNumber": 2,
+    "blueTeam": {
+      "slug": "t1", "name": "T1", "shortName": "T1",
+      "logoUrl": "https://static.lolesports.com/teams/T1-FullonDark.png",
+      "kills": 9, "gold": 22500, "towers": 3, "dragons": 1, "barons": 0, "heralds": 1, "inhibitors": 0
+    },
+    "redTeam": {
+      "slug": "karmine-corp", "name": "Karmine Corp", "shortName": "KC",
+      "logoUrl": "http://static.lolesports.com/teams/1704714951336_KC.png",
+      "kills": 3, "gold": 18200, "towers": 0, "dragons": 0, "barons": 0, "heralds": 0, "inhibitors": 0
+    },
+    "winnerSlug": null,
+    "winningSide": null,
+    "duration": null,
+    "gameTime": 692,
+    "patch": "16.12"
+  }
+]

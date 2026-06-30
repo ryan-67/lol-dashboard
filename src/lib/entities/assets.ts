@@ -74,6 +74,11 @@ export function championIconUrl(ddragonKey: string): string {
   return `https://ddragon.leagueoflegends.com/cdn/${ddragonManifest.version}/img/champion/${ddragonKey}.png`
 }
 
+/** Data Dragon item icon URL for an item id (e.g. 3006 → Berserker's Greaves). */
+export function itemIconUrl(itemId: number): string {
+  return `https://ddragon.leagueoflegends.com/cdn/${ddragonManifest.version}/img/item/${itemId}.png`
+}
+
 export function teamLogoUrlsFromName(name: string): string[] {
   const esportsSlug = resolveEsportsTeamSlug(name)
   const fromSlug = logoForEsportsSlug(esportsSlug)

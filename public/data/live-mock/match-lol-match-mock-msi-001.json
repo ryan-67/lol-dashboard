@@ -1,0 +1,30 @@
+{
+  "matchId": "lol-match-mock-msi-001",
+  "esportsApiId": "mock-msi-001",
+  "tournamentName": "2026 Mid-Season Invitational",
+  "leagueId": "lol-msi",
+  "leagueName": "MSI",
+  "leagueSlug": "msi",
+  "blockName": "Bracket Stage",
+  "team1": {
+    "slug": "t1",
+    "name": "T1",
+    "shortName": "T1",
+    "code": "T1",
+    "logoUrl": "https://static.lolesports.com/teams/T1-FullonDark.png",
+    "score": 1
+  },
+  "team2": {
+    "slug": "karmine-corp",
+    "name": "Karmine Corp",
+    "shortName": "KC",
+    "code": "KC",
+    "logoUrl": "http://static.lolesports.com/teams/1704714951336_KC.png",
+    "score": 0
+  },
+  "winnerSlug": null,
+  "strategy": "Bo5",
+  "startTime": "2026-06-29T19:00:00.000Z",
+  "state": "inProgress",
+  "gameCount": 2
+}
