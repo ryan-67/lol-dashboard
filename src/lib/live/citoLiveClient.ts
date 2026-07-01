@@ -44,7 +44,11 @@ export function isLiveMockMode(): boolean {
 }
 
 function functionBase(): string {
-  return readEnv('VITE_SUPABASE_URL').replace(/\/$/, '')
+  const raw = readEnv('VITE_SUPABASE_URL').replace(/\/$/, '')
+  if (!raw) return ''
+  // Be tolerant of env misconfiguration where users set VITE_SUPABASE_URL
+  // to the functions base instead of the project base.
+  return raw.replace(/\/functions\/v1$/i, '')
 }
 
 /** Map a resource + id to its mock fixture filename. */
