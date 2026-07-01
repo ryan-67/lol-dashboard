@@ -14,6 +14,7 @@ import {
 import { isTrackedLeague } from './leagues'
 import type {
   LiveGameSummary,
+  LiveMatchDraft,
   LiveMatchRoom,
   LiveMatchSummary,
 } from './types'
@@ -121,7 +122,7 @@ function pickCurrentGame(
 ): LiveGameSummary | null {
   if (!games.length) return null
   if (preferredGameId) {
-    const match = games.find((g) => g.gameId === preferredGameId)
+    const match = games.find((g) => sameGameId(g.gameId, preferredGameId))
     if (match) return match
   }
   // Prefer the last game that has any recorded activity, else highest number.
@@ -130,6 +131,62 @@ function pickCurrentGame(
   )
   const pool = withActivity.length ? withActivity : games
   return pool.reduce((acc, g) => ((g.gameNumber ?? 0) >= (acc.gameNumber ?? 0) ? g : acc), pool[0])
+}
+
+function toLiveGameId(gameId: string | null): string | null {
+  if (!gameId) return null
+  return gameId.replace(/^lol-game-/i, '')
+}
+
+function sameGameId(a: string | null, b: string | null): boolean {
+  if (!a || !b) return false
+  return toLiveGameId(a) === toLiveGameId(b)
+}
+
+function isObj(v: unknown): v is Record<string, unknown> {
+  return typeof v === 'object' && v !== null
+}
+
+function parseSeriesCurrentGame(payload: unknown): { gameId: string | null; gameNumber: number | null } | null {
+  if (!isObj(payload) || !Array.isArray(payload.games)) return null
+  const games = payload.games.filter(isObj)
+  const inProgress = games.find((g) => String(g.state ?? '').toLowerCase() === 'inprogress')
+  const target = inProgress ?? games[games.length - 1]
+  if (!target) return null
+  const gameId = typeof target.gameId === 'string' ? target.gameId : null
+  const gameNumber = typeof target.gameNumber === 'number' ? target.gameNumber : null
+  return { gameId, gameNumber }
+}
+
+function seriesFallbackDraft(payload: unknown, gameId: string | null): LiveMatchDraft | null {
+  if (!isObj(payload) || !Array.isArray(payload.games)) return null
+  const games = payload.games.filter(isObj)
+  const target =
+    games.find((g) => sameGameId(typeof g.gameId === 'string' ? g.gameId : null, gameId)) ??
+    games.find((g) => String(g.state ?? '').toLowerCase() === 'inprogress') ??
+    games[games.length - 1]
+  if (!target || !isObj(target.picks)) return null
+  const picks = target.picks as Record<string, unknown>
+  const blue = Array.isArray(picks.blue) ? picks.blue : []
+  const red = Array.isArray(picks.red) ? picks.red : []
+  if (!blue.length && !red.length) return null
+  const mapPicks = (rows: unknown[]) =>
+    rows
+      .filter(isObj)
+      .map((p) => ({
+        championName:
+          (typeof p.championName === 'string' && p.championName) ||
+          (typeof p.championId === 'string' && p.championId) ||
+          'Unknown',
+        role: typeof p.role === 'string' ? p.role : null,
+      }))
+  return {
+    gameId: typeof target.gameId === 'string' ? target.gameId : gameId,
+    gameNumber: typeof target.gameNumber === 'number' ? target.gameNumber : null,
+    blue: { side: 'blue', teamSlug: null, bans: [], picks: mapPicks(blue) },
+    red: { side: 'red', teamSlug: null, bans: [], picks: mapPicks(red) },
+    hasData: true,
+  }
 }
 
 function seriesScore(
@@ -149,11 +206,12 @@ function seriesScore(
 
 /** Assemble a full live match room for `/live/:matchId`. */
 export async function fetchMatchRoom(matchId: string): Promise<LiveMatchRoom | null> {
-  const [detailRaw, gamesRaw, draftRaw, liveRaw] = await Promise.all([
+  const [detailRaw, gamesRaw, draftRaw, liveRaw, seriesRaw] = await Promise.all([
     fetchLiveResource('match', matchId),
     fetchLiveResource('match-games', matchId),
     fetchLiveResource('match-drafts', matchId),
     fetchLiveResource('live'),
+    fetchLiveResource('match-series', matchId),
   ])
 
   const detail = adaptMatchDetail(detailRaw)
@@ -165,7 +223,9 @@ export async function fetchMatchRoom(matchId: string): Promise<LiveMatchRoom | n
     .map(adaptLiveOverlay)
     .find((o): o is LiveOverlay => o?.matchId === matchId)
 
-  const currentGame = pickCurrentGame(games, overlay?.currentGameId ?? null)
+  const seriesCurrent = parseSeriesCurrentGame(seriesRaw)
+  const preferredCurrentGameId = overlay?.currentGameId ?? seriesCurrent?.gameId ?? null
+  const currentGame = pickCurrentGame(games, preferredCurrentGameId)
   const { a: scoreA, b: scoreB } = seriesScore(games, detail.team1.slug, detail.team2.slug)
 
   const summary: LiveMatchSummary = {
@@ -179,8 +239,8 @@ export async function fetchMatchRoom(matchId: string): Promise<LiveMatchRoom | n
     state: overlay ? 'live' : (detail.state ?? 'upcoming'),
     team1: { ...detail.team1, score: detail.team1.score ?? scoreA },
     team2: { ...detail.team2, score: detail.team2.score ?? scoreB },
-    currentGameId: currentGame?.gameId ?? null,
-    currentGameNumber: currentGame?.gameNumber ?? null,
+    currentGameId: currentGame?.gameId ?? preferredCurrentGameId ?? null,
+    currentGameNumber: currentGame?.gameNumber ?? seriesCurrent?.gameNumber ?? null,
     statsAvailable: overlay?.statsAvailable ?? false,
   }
 
@@ -188,8 +248,13 @@ export async function fetchMatchRoom(matchId: string): Promise<LiveMatchRoom | n
   let players: LiveMatchRoom['players'] = []
   let notice: string | null = null
   if (currentGame?.gameId) {
-    const statsRaw = await fetchLiveResource('game-stats', currentGame.gameId)
+    const liveGameId = toLiveGameId(currentGame.gameId)
+    const statsRaw = await fetchLiveResource('game-stats', liveGameId ?? undefined)
     players = adaptPlayerStats(statsRaw)
+    if (!players.length) {
+      const windowRaw = await fetchLiveResource('game-window', liveGameId ?? undefined)
+      players = adaptPlayerStats(windowRaw)
+    }
     if (!players.length) {
       notice =
         summary.state === 'live'
@@ -200,7 +265,7 @@ export async function fetchMatchRoom(matchId: string): Promise<LiveMatchRoom | n
     notice = 'Draft and live stats will appear here once the game begins.'
   }
 
-  const draft = adaptDraft(draftRaw)
+  const draft = adaptDraft(draftRaw) ?? seriesFallbackDraft(seriesRaw, currentGame?.gameId ?? null)
 
   return {
     summary,
