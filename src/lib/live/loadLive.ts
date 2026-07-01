@@ -189,6 +189,27 @@ function seriesFallbackDraft(payload: unknown, gameId: string | null): LiveMatch
   }
 }
 
+function playersFallbackDraft(
+  players: LiveMatchRoom['players'],
+  currentGame: LiveGameSummary | null,
+): LiveMatchDraft | null {
+  if (!players.length) return null
+  const blue = players.filter((p) => p.side === 'blue' && p.championName)
+  const red = players.filter((p) => p.side === 'red' && p.championName)
+  if (!blue.length && !red.length) return null
+  const mapPicks = (rows: LiveMatchRoom['players']) =>
+    rows
+      .filter((p) => p.championName)
+      .map((p) => ({ championName: p.championName ?? 'Unknown', role: p.role }))
+  return {
+    gameId: currentGame?.gameId ?? null,
+    gameNumber: currentGame?.gameNumber ?? null,
+    blue: { side: 'blue', teamSlug: currentGame?.blue?.slug ?? null, bans: [], picks: mapPicks(blue) },
+    red: { side: 'red', teamSlug: currentGame?.red?.slug ?? null, bans: [], picks: mapPicks(red) },
+    hasData: true,
+  }
+}
+
 function seriesScore(
   games: LiveGameSummary[],
   team1Slug: string,
@@ -265,7 +286,10 @@ export async function fetchMatchRoom(matchId: string): Promise<LiveMatchRoom | n
     notice = 'Draft and live stats will appear here once the game begins.'
   }
 
-  const draft = adaptDraft(draftRaw) ?? seriesFallbackDraft(seriesRaw, currentGame?.gameId ?? null)
+  const draft =
+    adaptDraft(draftRaw) ??
+    seriesFallbackDraft(seriesRaw, currentGame?.gameId ?? null) ??
+    playersFallbackDraft(players, currentGame)
 
   return {
     summary,
