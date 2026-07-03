@@ -113,7 +113,7 @@ Deno.serve(async (req) => {
   const authHeader = req.headers.get("authorization");
   const userClient = createUserClient(authHeader);
   const serviceClient = createServiceClient();
-  const { openrouterApiKey, tavilyApiKey, kalshiApiKey } = getEnv();
+  const { openrouterApiKey, tavilyApiKey, citoApiKey, kalshiApiKey } = getEnv();
 
   if (!openrouterApiKey) {
     return new Response(JSON.stringify({ error: "OPENROUTER_API_KEY not configured" }), {
@@ -245,6 +245,7 @@ Deno.serve(async (req) => {
           serviceClient,
           openrouterApiKey,
           tavilyApiKey,
+          citoApiKey,
           kalshiApiKey,
           message: pipelineMessage,
           history: conversation.history,

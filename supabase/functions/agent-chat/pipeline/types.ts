@@ -48,6 +48,7 @@ export interface GuardrailResult {
 export interface SourceTrace {
   oracleElixir: boolean;
   rag: boolean;
+  cito: boolean;
   web: boolean;
   schedule: boolean;
   kalshi: boolean;
@@ -91,6 +92,11 @@ export interface Evidence {
 
   /** Live Kalshi market block for synthesis (empty if none). */
   kalshiOddsBlock: string;
+
+  /** Raw CitoAPI context (also merged into externalContext when present). */
+  citoContext: string;
+  /** Atomic facts extracted from Cito responses for immediate RAG write-back. */
+  citoFacts: import("../helpers/citoSearch.ts").CitoVerifiedFact[];
 
   /** True when message contains structured [DRAFT_EXTRACTED] from text draft input. */
   draftAnalysisIntent: boolean;

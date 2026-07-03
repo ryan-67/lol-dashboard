@@ -26,6 +26,7 @@ export function getEnv() {
   return {
     openrouterApiKey: Deno.env.get("OPENROUTER_API_KEY") ?? "",
     tavilyApiKey: Deno.env.get("TAVILY_API_KEY") ?? "",
+    citoApiKey: Deno.env.get("CITO_API_KEY") ?? "",
     kalshiApiKey: Deno.env.get("KALSHI_API_KEY") ?? "",
     supabaseUrl: SUPABASE_URL,
   };

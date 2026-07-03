@@ -15,7 +15,7 @@ import { isOddsQuestion } from "../helpers/kalshi.ts";
 import { streamFallback, streamFinalAnswer } from "../helpers/stream.ts";
 import { pickFinalModel } from "../helpers/classify.ts";
 import { extractCandidateFacts, verifyFact, type VerifiedFact } from "../helpers/factVerifier.ts";
-import { writeBackVerifiedFacts } from "../helpers/ragWriteback.ts";
+import { writeBackVerifiedFacts, writeBackCitoFacts } from "../helpers/ragWriteback.ts";
 import { isSentimentDomain, rankSnippets } from "../helpers/tavilySearch.ts";
 import { shouldRefuseForeignEntity, foreignEntityRefusal } from "../helpers/entityGuard.ts";
 import type { Evidence, HistoryMessage, SynthesisResult } from "./types.ts";
@@ -89,6 +89,9 @@ export async function synthesize(deps: SynthesisDeps): Promise<SynthesisResult> 
   const { block: webVerifiedBlock, verified } = await crossVerify(openrouterApiKey, evidence, usageTracker);
   const analysisIntent = resolveAnalysisIntent(evidence, message);
 
+  const usedTavily = evidence.sources.web;
+  const lowConfidenceWeb = usedTavily && verified.length === 0 && evidence.webSnippets.length > 0;
+
   const promptCtx = {
     league: evidence.league,
     split: evidence.resolvedSplit,
@@ -103,6 +106,8 @@ export async function synthesize(deps: SynthesisDeps): Promise<SynthesisResult> 
     hasMatchStats: Object.keys(evidence.matchStats).length > 0,
     mentionedRosterBlock: evidence.mentionedRosterBlock,
     webVerified: webVerifiedBlock,
+    citoContext: evidence.citoContext,
+    lowConfidenceWeb,
     careerIntent: evidence.careerIntent,
     analysisIntent,
     subjectiveIntent: evidence.subjectiveIntent,
@@ -139,7 +144,17 @@ export async function synthesize(deps: SynthesisDeps): Promise<SynthesisResult> 
 
   let assistantText = chartPrefix + answer;
   if (!assistantText.trim()) {
-    assistantText = "couldn't get a clean read on that — try again or narrow the league/split.";
+    assistantText = "i couldn't determine an accurate answer for that — try narrowing the league, split, or rephrasing.";
+  }
+
+  if (evidence.citoFacts.length) {
+    await writeBackCitoFacts(
+      serviceClient,
+      openrouterApiKey,
+      evidence.resolvedSplit,
+      evidence.citoFacts,
+      usageTracker,
+    );
   }
 
   if (verified.length) {

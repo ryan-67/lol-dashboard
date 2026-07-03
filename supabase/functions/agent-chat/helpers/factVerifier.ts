@@ -3,7 +3,6 @@ import type { UsageTracker } from "./usageTracker.ts";
 import { MODEL_JSON } from "./models.ts";
 import {
   isAllowlisted,
-  isAuthoritativeSingle,
   type TavilyResult,
 } from "./tavilySearch.ts";
 
@@ -91,7 +90,7 @@ function snippetSupports(fact: string, snippet: TavilyResult): boolean {
 
 /**
  * Verify a candidate fact against the snippets.
- * PASS if 2+ allowlisted sources agree, OR one Liquipedia/Fandom source matches.
+ * PASS only when 2+ distinct allowlisted sources agree (Tavily cross-verify requirement).
  */
 export function verifyFact(fact: CandidateFact, snippets: TavilyResult[]): VerifiedFact {
   const supporting = snippets.filter(
@@ -109,12 +108,8 @@ export function verifyFact(fact: CandidateFact, snippets: TavilyResult[]): Verif
   const sources = supporting.map((s) => s.url);
 
   const crossVerified = uniqueDomains.size >= 2;
-  const authoritativeSingle = supporting.some((s) => isAuthoritativeSingle(s.url));
 
-  // Conflict check: a competing snippet that shares the SAME metric noun (titles /
-  // championships / worlds / etc.) but states a different number. We require a metric
-  // overlap — not just any shared word like the player name — otherwise a snippet about
-  // a different achievement (e.g. Worlds wins) would falsely "conflict" with an LCK count.
+  // Conflict check: competing snippets with same metric noun but different numbers.
   const factNumbers = fact.fact.match(/\d+/g) ?? [];
   const metricNouns = (fact.fact.toLowerCase().match(
     /\b(titles?|championships?|trophy|trophies|worlds?|msi|mvp|splits?)\b/g,
@@ -134,10 +129,8 @@ export function verifyFact(fact: CandidateFact, snippets: TavilyResult[]): Verif
     }
   }
 
-  // A single authoritative Liquipedia/Leaguepedia match is trusted even if the noisy
-  // conflict heuristic fires; cross-verified (2+ sources) still must be conflict-free.
-  const verified = authoritativeSingle || (crossVerified && !conflict);
-  const confidence = authoritativeSingle ? 0.85 : crossVerified ? (conflict ? 0 : 0.9) : 0.3;
+  const verified = crossVerified && !conflict;
+  const confidence = crossVerified ? (conflict ? 0 : 0.92) : 0.25;
 
   return {
     verified,

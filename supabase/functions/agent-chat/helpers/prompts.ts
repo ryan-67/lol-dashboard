@@ -32,9 +32,13 @@ when to use your head vs the numbers:
 
 source hierarchy (use in this order — never skip up to training memory):
 1) MATCH_STATS / WORLD_CONTEXT — verified OE pro numbers + current rosters. highest trust for stats & rosters.
-2) EXTERNAL_CONTEXT — liquipedia / reddit / patch notes / kalshi RAG chunks.
-3) WEB_VERIFIED — cross-checked web facts (titles, history). cite casually ("liquipedia has him at 4 worlds titles"), never mention search/tavily/tools.
+2) EXTERNAL_CONTEXT — RAG chunks (liquipedia, patch notes, kalshi) + CitoAPI structured data ([cito — …] blocks).
+3) WEB_VERIFIED — cross-checked web facts (2+ agreeing sources). use ONLY facts listed here.
 4) if none of the above answer it → say you can't confirm it. DO NOT pull career stats, titles, or rosters from your own memory.
+
+citations:
+- by default, NEVER cite or mention sources, tools, databases, or where data came from.
+- ONLY when you had to lean on unverified web snippets (low-confidence web fallback) may you briefly name 1-2 sources and suggest the user double-check.
 
 grounding (when MATCH_STATS / WORLD_CONTEXT is present):
 0) DEFAULT TIME SCOPE: current split in WORLD_CONTEXT unless user names another.
@@ -123,6 +127,9 @@ export interface PromptContext {
   hasMatchStats?: boolean;
   mentionedRosterBlock?: string;
   webVerified?: string;
+  citoContext?: string;
+  /** Tavily was used but facts failed 2-source cross-verify — may cite sources cautiously. */
+  lowConfidenceWeb?: boolean;
   careerIntent?: boolean;
   /** When set, inject deep matchup/draft/macro synthesis instructions. */
   analysisIntent?: AnalysisIntent;
@@ -204,15 +211,24 @@ Your streamed reply is shown directly to the user. NEVER echo, quote, or restate
 
   if (ctx?.webVerified?.trim()) {
     parts.push(
-      `[WEB_VERIFIED_RULES]\nCross-checked facts from authoritative sources. Cite casually (e.g. "liquipedia has…"). Do NOT mention web search or tools.`,
+      `[WEB_VERIFIED_RULES]\nCross-checked facts from 2+ agreeing sources. State them confidently. Do NOT mention web search, Tavily, or source names unless LOW_CONFIDENCE_WEB is set.`,
+    );
+  }
+
+  if (ctx?.lowConfidenceWeb) {
+    parts.push(
+      `[LOW_CONFIDENCE_WEB]\nWeb snippets were fetched but could NOT be cross-verified across multiple sources. You may answer ONLY with facts explicitly in WEB_VERIFIED. If WEB_VERIFIED is empty, say you couldn't determine an accurate answer. If you include any unverified context, name the source(s) briefly and tell the user to verify.`,
     );
   }
 
   const hasVerifiedCareerSource =
-    Boolean(ctx?.webVerified?.trim()) || /\[web_verified/i.test(externalContext ?? "");
+    Boolean(ctx?.webVerified?.trim()) ||
+    /\[web_verified/i.test(externalContext ?? "") ||
+    /\[cito_verified/i.test(externalContext ?? "") ||
+    /\[cito —/i.test(externalContext ?? "");
   if (ctx?.careerIntent && !hasVerifiedCareerSource && !ctx?.worldsHistoryIntent) {
     parts.push(
-      `[NO_VERIFIED_SOURCE]\nNo verified title/championship count is available for this question. Do NOT state a specific number from memory or estimate one. Say plainly you can't confirm the exact count right now. You may add non-numeric context only if it's literally in EXTERNAL_CONTEXT.`,
+      `[NO_VERIFIED_SOURCE]\nNo verified title/championship/award data is available for this question. Do NOT state a specific number from memory or estimate one. Say plainly you couldn't determine an accurate answer. You may add non-numeric context only if it's literally in EXTERNAL_CONTEXT or WEB_VERIFIED.`,
     );
   }
 
@@ -245,6 +261,9 @@ function buildUserEvidenceContent(
   if (hasStats) parts.push(`[MATCH_STATS]\n${JSON.stringify(matchStats)}`);
 
   if (externalContext?.trim()) parts.push(`[EXTERNAL_CONTEXT]\n${externalContext.trim()}`);
+  if (ctx?.citoContext?.trim() && !externalContext?.includes("[cito —")) {
+    parts.push(`[CITO_CONTEXT]\n${ctx.citoContext.trim()}`);
+  }
   if (ctx?.kalshiOddsBlock?.trim()) parts.push(ctx.kalshiOddsBlock.trim());
   if (ctx?.sentimentContext?.trim()) {
     parts.push(`[COMMUNITY_SENTIMENT]\n${ctx.sentimentContext.trim()}`);

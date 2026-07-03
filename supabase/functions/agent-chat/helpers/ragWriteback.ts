@@ -2,6 +2,7 @@ import type { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { embedText } from "./openrouter.ts";
 import type { UsageTracker } from "./usageTracker.ts";
 import type { VerifiedFact } from "./factVerifier.ts";
+import type { CitoVerifiedFact } from "./citoSearch.ts";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 const EMBEDDING_DIM = 1536;
@@ -82,6 +83,8 @@ export async function upsertVerifiedFact(
     return { ok: false, skipped: true, error: "unsupported fact kind" };
   }
 
+  const source = "web_verified" as const;
+
   const hash = await factHash(fact.entityId || fact.fact, fact.factKind, split);
 
   let lastErr: Error | null = null;
@@ -96,7 +99,7 @@ export async function upsertVerifiedFact(
       const row = {
         content: fact.fact,
         embedding,
-        source: "web_verified" as const,
+        source,
         source_url: fact.sources[0] ?? "https://liquipedia.net/leagueoflegends/Main_Page",
         chunk_index: 0,
         title: fact.entityId || null,
@@ -168,6 +171,102 @@ export async function writeBackVerifiedFacts(
     );
   } else if (succeeded > 0) {
     console.log(`[nuckyAI write-back] stored ${succeeded} verified fact(s) in pgvector`);
+  }
+
+  return { succeeded, failed, skipped, results };
+}
+
+export interface CitoWritebackInput {
+  fact: CitoVerifiedFact;
+  apiKey: string;
+  split: string;
+  usageTracker?: UsageTracker;
+}
+
+/** Persist a CitoAPI-sourced fact into documents (trusted API — no web cross-verify). */
+export async function upsertCitoFact(
+  service: SupabaseClient,
+  { fact, apiKey, split, usageTracker }: CitoWritebackInput,
+): Promise<WritebackResult> {
+  const hash = await factHash(`cito:${fact.entityId}:${fact.fact}`, fact.factKind, split);
+
+  let lastErr: Error | null = null;
+  for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
+    try {
+      const embedding = await embedWithRetry(apiKey, fact.fact, usageTracker);
+      const ttlDays = fact.factKind === "roster" ? 30 : 60;
+      const expiresAt = new Date(Date.now() + ttlDays * DAY_MS).toISOString();
+
+      const row = {
+        content: fact.fact,
+        embedding,
+        source: "cito_verified" as const,
+        source_url: `https://api.citoapi.com${fact.citoPath}`,
+        chunk_index: 0,
+        title: fact.entityId || null,
+        content_kind: "fact" as const,
+        verification: "api_verified" as const,
+        source_urls: [`https://api.citoapi.com${fact.citoPath}`],
+        expires_at: expiresAt,
+        entity_type: fact.entityType,
+        entity_id: fact.entityId || null,
+        fact_hash: hash,
+        metadata: {
+          kind: fact.factKind,
+          confidence: 1,
+          split,
+          cito_path: fact.citoPath,
+          written_by: "nuckyai_cito_writeback",
+          written_at: new Date().toISOString(),
+        },
+      };
+
+      const { error } = await service.from("documents").upsert(row, {
+        onConflict: "fact_hash",
+        ignoreDuplicates: false,
+      });
+
+      if (error) throw new Error(error.message);
+      return { ok: true, factHash: hash };
+    } catch (err) {
+      lastErr = err instanceof Error ? err : new Error(String(err));
+      if (attempt < MAX_RETRIES - 1) {
+        await sleep(RETRY_BASE_MS * (attempt + 1));
+      }
+    }
+  }
+
+  return { ok: false, factHash: hash, error: lastErr?.message ?? "cito write-back failed" };
+}
+
+/** Batch write-back for facts discovered via CitoAPI during Layer 2. */
+export async function writeBackCitoFacts(
+  service: SupabaseClient,
+  apiKey: string,
+  split: string,
+  facts: CitoVerifiedFact[],
+  usageTracker?: UsageTracker,
+): Promise<WritebackBatchResult> {
+  const results: WritebackResult[] = [];
+  let succeeded = 0;
+  let failed = 0;
+  let skipped = 0;
+
+  for (const fact of facts) {
+    const result = await upsertCitoFact(service, { fact, apiKey, split, usageTracker });
+    results.push(result);
+    if (result.skipped) skipped++;
+    else if (result.ok) succeeded++;
+    else failed++;
+  }
+
+  if (failed > 0) {
+    console.error(
+      `[nuckyAI cito write-back] ${failed}/${facts.length} failed`,
+      results.filter((r) => !r.ok && !r.skipped),
+    );
+  } else if (succeeded > 0) {
+    console.log(`[nuckyAI cito write-back] stored ${succeeded} Cito fact(s) in pgvector`);
   }
 
   return { succeeded, failed, skipped, results };

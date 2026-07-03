@@ -4,8 +4,8 @@
 // tiered priority:
 //   1. Oracle's Elixir (oe_slices) — verified pro stats via deterministic analyst tools
 //   2. RAG knowledge base (documents / pgvector) — patch/reddit/kalshi/liquipedia chunks
-//   3. Web fallback (Tavily over a Leaguepedia/Liquipedia/gol.gg allowlist) — only when
-//      OE + RAG can't cover the ask (career titles, roster gaps, fresh factual questions)
+//   3. CitoAPI — structured esports data (transfers, rankings, trends, schedule, meta)
+//   4. Web fallback (Tavily) — only when OE + RAG + Cito cannot cover the ask
 //
 // Always assumes the CURRENT day/split/year (from client_now → WORLD_CONTEXT) unless the
 // dashboard filters or the message name another. Returns raw evidence; cross-verification
@@ -39,6 +39,8 @@ import type { UsageTracker } from "../helpers/usageTracker.ts";
 import { detectAnalysisIntent } from "../helpers/prompts.ts";
 import { parseDraftExtractionBlock } from "../helpers/draftTypes.ts";
 import { fetchDraftAnalysisContext } from "../helpers/draftContextFetch.ts";
+import { detectCitoIntent, fetchCitoContext, type CitoVerifiedFact } from "../helpers/citoSearch.ts";
+import { hasSufficientKnowledge } from "../helpers/knowledgeCoverage.ts";
 
 const CAREER_ENTITY_STOPWORDS = new Set([
   "LCK", "LPL", "LEC", "LCS", "MSI", "Worlds", "World", "Championship", "Championships",
@@ -237,28 +239,11 @@ function buildWebEntities(
   return [];
 }
 
-function externalCoversIntent(intent: TavilySearchIntent, externalContext: string): boolean {
-  const ctx = externalContext.toLowerCase();
-  if (!ctx.trim()) return false;
-  switch (intent) {
-    case "career":
-      return /web_verified/i.test(externalContext) ||
-        /\b(title|championship|worlds|won \d|msi)\b/.test(ctx);
-    case "roster":
-      return /\b(roster|lineup|substitute|sub|joined|transferred|plays for)\b/.test(ctx);
-    case "patch":
-      return /\b(patch|nerf|buff|balance|changes)\b/.test(ctx);
-    case "tournament":
-      return /\b(bracket|format|groups|swiss|playoffs|qualif|seeding)\b/.test(ctx);
-    default:
-      return ctx.length > 120;
-  }
-}
-
 export interface DecideDeps {
   serviceClient: SupabaseClient;
   openrouterApiKey: string;
   tavilyApiKey: string;
+  citoApiKey: string;
   kalshiApiKey?: string;
   message: string;
   history: HistoryMessage[];
@@ -269,7 +254,7 @@ export interface DecideDeps {
 }
 
 export async function decideAndFetch(deps: DecideDeps): Promise<Evidence> {
-  const { serviceClient, openrouterApiKey, tavilyApiKey, message, history, guardrail, filters, usageTracker } =
+  const { serviceClient, openrouterApiKey, tavilyApiKey, citoApiKey, message, history, guardrail, filters, usageTracker } =
     deps;
   const { scope, thread, queryForTools } = guardrail;
 
@@ -312,7 +297,7 @@ export async function decideAndFetch(deps: DecideDeps): Promise<Evidence> {
   if (thread.isClarification) runTools = true;
   const runRag = scope.needs_rag;
 
-  const sources = { oracleElixir: false, rag: false, web: false, schedule: false, kalshi: false, sentiment: false };
+  const sources = { oracleElixir: false, rag: false, cito: false, web: false, schedule: false, kalshi: false, sentiment: false };
   let matchStats: Record<string, unknown> = {};
   let externalContext = "";
   let chartPrefix = "";
@@ -416,12 +401,14 @@ export async function decideAndFetch(deps: DecideDeps): Promise<Evidence> {
 
   // ---- Source 2: RAG knowledge base (career/roster always vector-search) ----
   const forceVector = careerIntent || rosterDepthIntent;
+  const factualScope = scope.scope !== "lolesports_chat";
   if (
     (runRag &&
       (plan.needs_vector ||
         forceVector ||
         /\b(favorite|favou?rite|odds|kalshi|prediction)\b/i.test(message))) ||
-    forceVector
+    forceVector ||
+    (factualScope && !hasWebVerifiedChunk && !externalContext.trim())
   ) {
     const isOdds = /\b(odds|kalshi|favorite|favou?rite|prediction)\b/i.test(message);
     const vectorRoute = isOdds
@@ -460,10 +447,6 @@ export async function decideAndFetch(deps: DecideDeps): Promise<Evidence> {
     if (kalshi.markets.length) sources.kalshi = true;
   }
 
-  // ---- Source 3: Web fallback (Tavily) — intent-specific domain targeting ----
-  const hasExternal = externalContext.trim().length > 0;
-  const hasUsefulStats = Object.keys(matchStats).length > 0;
-  const factualGeneral = scope.scope === "lolesports_general";
   const webSearchIntent = detectWebSearchIntent(
     message,
     thread.inheritedTopic,
@@ -472,12 +455,55 @@ export async function decideAndFetch(deps: DecideDeps): Promise<Evidence> {
     subjectiveIntent,
     matchStats,
   );
-  const patchIntent = webSearchIntent === "patch";
-  const tournamentIntent = webSearchIntent === "tournament";
-  const rosterWebIntent = webSearchIntent === "roster";
-  const statsWebIntent = webSearchIntent === "stats" || playerChampionIntent;
-  const metaThinSample = (webSearchIntent === "matchup" || webSearchIntent === "meta") &&
-    oeSampleIsThin(matchStats);
+  const citoIntent = detectCitoIntent(message);
+
+  // ---- Source 3: CitoAPI — structured fallback before Tavily ----
+  let citoContext = "";
+  let citoFacts: CitoVerifiedFact[] = [];
+  const preCitoCoverage = hasSufficientKnowledge({
+    chatOnly,
+    scope: scope.scope,
+    careerIntent,
+    hasWebVerifiedChunk,
+    matchStats,
+    externalContext,
+    citoContext: "",
+    citoHit: false,
+    webSearchIntent,
+    citoIntent,
+    subjectiveIntent,
+  });
+
+  if (citoApiKey && factualScope && !preCitoCoverage) {
+    const cito = await fetchCitoContext(
+      citoApiKey,
+      queryForTools,
+      citoIntent,
+      filters.league,
+    );
+    citoContext = cito.context;
+    citoFacts = cito.facts;
+    if (cito.hit) {
+      sources.cito = true;
+      externalContext = citoContext +
+        (externalContext ? `\n\n${externalContext}` : "");
+    }
+  }
+
+  // ---- Source 4: Web fallback (Tavily) — last resort ----
+  const sufficientKnowledge = hasSufficientKnowledge({
+    chatOnly,
+    scope: scope.scope,
+    careerIntent,
+    hasWebVerifiedChunk,
+    matchStats,
+    externalContext,
+    citoContext,
+    citoHit: sources.cito,
+    webSearchIntent,
+    citoIntent,
+    subjectiveIntent,
+  });
 
   const needWeb =
     Boolean(tavilyApiKey) &&
@@ -485,14 +511,7 @@ export async function decideAndFetch(deps: DecideDeps): Promise<Evidence> {
     scope.scope !== "lolesports_chat" &&
     (
       subjectiveIntent ||
-      (careerIntent && !hasWebVerifiedChunk) ||
-      (rosterDepthIntent && !analystToolNames.includes("team_role_depth") && !hasExternal) ||
-      (rosterWebIntent && !externalCoversIntent("roster", externalContext)) ||
-      (patchIntent && !externalCoversIntent("patch", externalContext)) ||
-      (tournamentIntent && !externalCoversIntent("tournament", externalContext)) ||
-      statsWebIntent ||
-      metaThinSample ||
-      (factualGeneral && !hasExternal && !hasUsefulStats)
+      !sufficientKnowledge
     );
 
   let webSnippets: Evidence["webSnippets"] = [];
@@ -599,6 +618,8 @@ export async function decideAndFetch(deps: DecideDeps): Promise<Evidence> {
     resolvedSplit,
     league: filters.league,
     year: filters.year,
+    citoContext,
+    citoFacts,
     sources,
   };
 }
