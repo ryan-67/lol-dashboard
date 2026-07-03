@@ -424,6 +424,41 @@ function buildWeekChampionCounts(games: ParsedGame[]): Map<string, number> {
   return counts
 }
 
+/** Career/split games a player has on a champion (from OE championPool or gameLog). */
+function playerChampCareerGames(players: Player[], playerName: string, champion: string): number {
+  const player = players.find((p) => p.name.toLowerCase() === playerName.toLowerCase())
+  if (!player) return 99
+  const fromPool = player.championPool?.find(
+    (c) => c.champion.toLowerCase() === champion.toLowerCase(),
+  )
+  if (fromPool) return fromPool.games
+  return (player.gameLog ?? []).filter(
+    (g) => g.champion.toLowerCase() === champion.toLowerCase(),
+  ).length
+}
+
+function buildPlayerChampGameIndex(players: Player[]): Map<string, Map<string, number>> {
+  const out = new Map<string, Map<string, number>>()
+  for (const p of players) {
+    const byChamp = new Map<string, number>()
+    for (const c of p.championPool ?? []) {
+      byChamp.set(c.champion.toLowerCase(), c.games)
+    }
+    for (const g of p.gameLog ?? []) {
+      if (!g.champion) continue
+      const key = g.champion.toLowerCase()
+      if (!byChamp.has(key)) {
+        byChamp.set(
+          key,
+          (p.gameLog ?? []).filter((x) => x.champion.toLowerCase() === key).length,
+        )
+      }
+    }
+    out.set(p.name.toLowerCase(), byChamp)
+  }
+  return out
+}
+
 function aggregateSeriesPlayerStats(bucket: SeriesBucket): SeriesPlayerStats[] {
   const map = new Map<string, SeriesPlayerStats>()
 
@@ -1021,13 +1056,22 @@ function buildContextInsights(
     })
   }
 
+  // Pocket picks only when champ is rare in-window AND player rarely plays it (career ≤3 games).
   const pocketPicks: PocketPickStats[] = winPlayers
     .filter((p) => {
-      const rareChamp = p.champions.find((c) => (weekCounts.get(c) ?? 0) <= 2)
-      return rareChamp && p.avgKda >= 2.5
+      const rareChamp = p.champions.find((c) => {
+        const weekPresence = weekCounts.get(c) ?? 0
+        const career = playerChampCareerGames(players, p.name, c)
+        return weekPresence <= 2 && career <= 3 && p.avgKda >= 2.5
+      })
+      return Boolean(rareChamp)
     })
     .map((p) => {
-      const champ = p.champions.find((c) => (weekCounts.get(c) ?? 0) <= 2)!
+      const champ = p.champions.find((c) => {
+        const weekPresence = weekCounts.get(c) ?? 0
+        const career = playerChampCareerGames(players, p.name, c)
+        return weekPresence <= 2 && career <= 3
+      })!
       return { ...p, pocketChamp: champ }
     })
     .sort((a, b) => b.avgKda - a.avgKda)
@@ -1041,9 +1085,9 @@ function buildContextInsights(
       segments: [
         segText(
           ledger.pick(`${id}-pp`, salt, [
-            ` — ${playerLabel(p.name)} pulled out the ${champLabel(p.pocketChamp)}${r ? ` ${r}` : ''}`,
-            `, ${playerLabel(p.name)} whipped out ${champLabel(p.pocketChamp)}${r ? ` ${r}` : ''} and it worked`,
-            ` with ${playerLabel(p.name)}'s ${champLabel(p.pocketChamp)} pocket pick paying off`,
+            ` — ${playerLabel(p.name)} pulled out the rare ${champLabel(p.pocketChamp)}${r ? ` ${r}` : ''}`,
+            `, ${playerLabel(p.name)} whipped out off-meta ${champLabel(p.pocketChamp)}${r ? ` ${r}` : ''} and it worked`,
+            ` with ${playerLabel(p.name)}'s rare ${champLabel(p.pocketChamp)} pocket pick paying off`,
           ]),
         ),
       ],
@@ -1444,7 +1488,9 @@ export function stableSeriesId(
   latestDate: string,
   sessionIndex = 0,
 ): string {
-  const base = `${seriesKey(teamA, teamB)}|${latestDate}`
+  const a = resolveTeamCanonicalName(teamA)
+  const b = resolveTeamCanonicalName(teamB)
+  const base = `${seriesKey(a, b)}|${latestDate}`
   return sessionIndex > 0 ? `${base}|${sessionIndex}` : base
 }
 
@@ -1464,9 +1510,36 @@ export function collectSeriesBriefs(
   if (!games.length) return []
 
   const weekCounts = buildWeekChampionCounts(games)
+  const playerChampGames = buildPlayerChampGameIndex(players)
   const series = groupSeries(games)
   const ledger = new RecapLedger()
   const briefs: SeriesBrief[] = []
+
+  // First pass: lightweight refs for tournament advancement / elimination hints.
+  const tournamentPeers: import('./recapFacts').TournamentSeriesRef[] = []
+  for (const bucket of series) {
+    if (!bucket.games.length) continue
+    const winsA = bucket.games.filter((g) => g.winner === bucket.teamA).length
+    const winsB = bucket.games.length - winsA
+    if (!isValidSeriesScore(winsA, winsB)) continue
+    const winner = winsA >= winsB ? bucket.teamA : bucket.teamB
+    const loser = winner === bucket.teamA ? bucket.teamB : bucket.teamA
+    const ordered = [...bucket.games].sort(compareSeriesGames)
+    const latestDate = ordered[ordered.length - 1]?.date ?? bucket.games[0]!.date
+    const g0 = bucket.games[0]!
+    const league = (g0.league ?? 'LCK').toUpperCase()
+    const year = g0.oeYear ?? latestDate.slice(0, 4)
+    const tournamentLabel = ['MSI', 'WLDS', 'WORLDS', 'FST'].includes(league)
+      ? `${year} ${league === 'WLDS' || league === 'WORLDS' ? 'Worlds' : league === 'FST' ? 'First Stand' : 'MSI'}`
+      : g0.split ?? `${year} ${league}`
+    tournamentPeers.push({
+      date: latestDate,
+      winner: resolveTeamCanonicalName(winner),
+      loser: resolveTeamCanonicalName(loser),
+      league,
+      tournamentLabel,
+    })
+  }
 
   for (let i = 0; i < series.length; i++) {
     const bucket = series[i]!
@@ -1501,6 +1574,8 @@ export function collectSeriesBriefs(
       blowout: domWins >= 2 && vicWins === 0,
       seriesStreak: domWins > vicWins ? seriesStreak : 0,
       victimSlump: vicWins > domWins ? 0 : victimSlump,
+      playerChampGames,
+      tournamentPeers,
     })
 
     const templateBase = summarizeSeries(bucket, teams, players, weekCounts, i, ledger, gameCatalog)

@@ -9,12 +9,15 @@ interface LiveScoreboardProps {
   redLabel: string
 }
 
-const ROLE_ORDER = ['top', 'jungle', 'mid', 'middle', 'bottom', 'bot', 'adc', 'support', 'sup']
-
 function roleRank(role: string | null): number {
   if (!role) return 99
-  const idx = ROLE_ORDER.indexOf(role.toLowerCase())
-  return idx === -1 ? 99 : idx
+  const r = role.toLowerCase().trim()
+  if (r === 'top' || r.startsWith('top')) return 0
+  if (r === 'jng' || r === 'jungle' || r.startsWith('jung')) return 1
+  if (r === 'mid' || r === 'middle' || r.startsWith('mid')) return 2
+  if (r === 'bot' || r === 'adc' || r === 'bottom' || r.startsWith('ad')) return 3
+  if (r === 'sup' || r === 'support' || r.startsWith('supp')) return 4
+  return 99
 }
 
 function fmtGold(gold: number | null): string {

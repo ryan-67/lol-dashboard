@@ -48,6 +48,8 @@ export interface SeriesFacts {
   loserAbbr: string
   score: string
   league: string
+  /** Display label e.g. "2026 MSI" — use for stakes / advancement copy. */
+  tournamentLabel: string
   domWins: number
   vicWins: number
   gameCount: number
@@ -117,7 +119,20 @@ interface SeriesBucket {
     winner: string
     loser: string
     players: GamePlayer[]
+    league?: string
+    split?: string
+    playoffs?: boolean
+    rawSplit?: string
+    oeYear?: string
   }>
+}
+
+export interface TournamentSeriesRef {
+  date: string
+  winner: string
+  loser: string
+  league: string
+  tournamentLabel: string
 }
 
 interface LaneDuelDomination {
@@ -223,14 +238,20 @@ function aggregateSeriesPlayerStats(bucket: SeriesBucket): PlayerPerformanceFact
   )
 }
 
+/** GD@15 lane dominance is meaningful for solo lanes (top/mid), not bot-lane shared gold. */
+function roleUsesLaneGold(role: RoleKey | null): boolean {
+  return role === 'top' || role === 'mid'
+}
+
 function lostLaneEveryGame(bucket: SeriesBucket, playerName: string): boolean {
   const gamesPlayed = bucket.games.filter((g) => g.players.some((p) => p.name === playerName))
   if (gamesPlayed.length < 2) return false
   for (const g of gamesPlayed) {
     const me = g.players.find((p) => p.name === playerName)
-    if (!me?.role) return false
+    if (!me?.role || !roleUsesLaneGold(me.role)) return false
     const opp = g.players.find((p) => p.role === me.role && p.team !== me.team)
-    if (!opp || me.gd15 >= opp.gd15) return false
+    // Require a meaningful gap — ~500 gold is slight, not a stomp.
+    if (!opp || me.gd15 >= opp.gd15 - 200) return false
   }
   return true
 }
@@ -240,9 +261,9 @@ function wonLaneEveryGame(bucket: SeriesBucket, playerName: string): boolean {
   if (gamesPlayed.length < 2) return false
   for (const g of gamesPlayed) {
     const me = g.players.find((p) => p.name === playerName)
-    if (!me?.role) return false
+    if (!me?.role || !roleUsesLaneGold(me.role)) return false
     const opp = g.players.find((p) => p.role === me.role && p.team !== me.team)
-    if (!opp || me.gd15 <= opp.gd15) return false
+    if (!opp || me.gd15 <= opp.gd15 + 200) return false
   }
   return true
 }
@@ -326,23 +347,24 @@ function annotatePlayer(
 
   if (p.champions.length) notes.push(`champs: ${p.champions.join(', ')}`)
 
-  if (wonLaneEveryGame(bucket, p.name)) {
-    const verb = role === 'jungle' ? 'outjungled' : 'outlaned'
-    notes.push(`${verb} lane opponent every game`)
+  // Solo-lane GD@15 only — never call ADC/support "gapped" from bot-lane gold share.
+  if (roleUsesLaneGold(role) && wonLaneEveryGame(bucket, p.name)) {
+    notes.push(`outlaned opponent every game`)
   }
-  if (lostLaneEveryGame(bucket, p.name)) {
-    const verb = role === 'jungle' ? 'outjungled by' : 'lost lane to'
-    notes.push(`${verb} opponent every game`)
-    if (p.team !== seriesWinner) {
+  if (roleUsesLaneGold(role) && lostLaneEveryGame(bucket, p.name)) {
+    notes.push(`lost lane to opponent every game`)
+    if (p.team !== seriesWinner && p.avgGd15 <= -800) {
       notes.push(
         fraudEligible
-          ? 'gapped every game — fraud watch candidate (expected to perform on strong roster)'
-          : 'gapped every game — stinker (weak-side / low expectations)',
+          ? 'heavily gapped in lane — fraud watch candidate (expected to perform on strong roster)'
+          : 'heavily gapped in lane — stinker (weak-side / low expectations)',
       )
+    } else if (p.team !== seriesWinner) {
+      notes.push('slightly outlaned early — not a full gap')
     }
   }
 
-  if (p.team === seriesWinner && lostLaneEveryGame(bucket, p.name)) {
+  if (p.team === seriesWinner && roleUsesLaneGold(role) && lostLaneEveryGame(bucket, p.name) && p.avgGd15 <= -800) {
     notes.push(
       fraudEligible
         ? 'fraud watch — lost lane every game on the winning team (carried by teammates)'
@@ -352,14 +374,18 @@ function annotatePlayer(
 
   switch (role) {
     case 'top': {
-      if (p.avgGd15 >= 120) notes.push(`${fmtSigned(p.avgGd15)} gd@15 avg — lane kingdom`)
-      else if (p.avgGd15 >= 50) notes.push(`${fmtSigned(p.avgGd15)} gd@15 avg — won lane`)
-      else if (p.avgGd15 <= -100) notes.push(`${fmtSigned(p.avgGd15)} gd@15 avg — got gapped`)
+      // Early laning is the primary signal for tops.
+      if (p.avgGd15 >= 800) notes.push(`${fmtSigned(p.avgGd15)} gd@15 avg — lane kingdom`)
+      else if (p.avgGd15 >= 300) notes.push(`${fmtSigned(p.avgGd15)} gd@15 avg — won lane`)
+      else if (p.avgGd15 >= 100) notes.push(`${fmtSigned(p.avgGd15)} gd@15 avg — slight lane edge`)
+      else if (p.avgGd15 <= -800) notes.push(`${fmtSigned(p.avgGd15)} gd@15 avg — heavily gapped`)
+      else if (p.avgGd15 <= -300) notes.push(`${fmtSigned(p.avgGd15)} gd@15 avg — lost lane`)
       if (Math.abs(p.avgXpd15) >= 80) notes.push(`${fmtSigned(p.avgXpd15)} xpd@15 avg`)
       if (Math.abs(p.avgCsd15) >= 8) notes.push(`${fmtSigned(p.avgCsd15, 1)} cs@15 diff avg`)
       break
     }
     case 'jungle': {
+      // Map activity / early influence — not solo-lane gold.
       if (p.avgKp >= 72) notes.push(`${p.avgKp.toFixed(0)}% kp — early facilitator`)
       else if (p.avgKp <= 45) notes.push(`${p.avgKp.toFixed(0)}% kp — low early impact`)
       if (p.avgKaPerMin >= 0.16) notes.push(`${p.avgKaPerMin.toFixed(2)} k+a/min — active map`)
@@ -367,6 +393,7 @@ function annotatePlayer(
       break
     }
     case 'mid': {
+      // Carry impact: damage share / efficiency. GD@15 only as secondary lane note.
       if (p.avgDmg >= 30) notes.push(`${p.avgDmg.toFixed(0)}% dmg share — hard carry`)
       else if (p.avgDmg >= 25) notes.push(`${p.avgDmg.toFixed(0)}% dmg share — strong`)
       else if (p.avgDmg <= 20) notes.push(`${p.avgDmg.toFixed(0)}% dmg share — quiet`)
@@ -374,17 +401,24 @@ function annotatePlayer(
       else if (p.avgDmgGoldRatio > 0 && p.avgDmgGoldRatio <= 0.85) {
         notes.push(`${p.avgDmgGoldRatio.toFixed(2)} dmg%/gold% — ate gold, low impact`)
       }
-      if (p.avgDmgPerGold >= 0.01) notes.push(`${p.avgDmgPerGold.toFixed(3)} dmg/gold`)
+      if (p.avgGd15 >= 400) notes.push(`${fmtSigned(p.avgGd15)} gd@15 — also won lane`)
+      else if (p.avgGd15 <= -800) notes.push(`${fmtSigned(p.avgGd15)} gd@15 — lost lane hard`)
       break
     }
     case 'adc': {
+      // Carry roles: dmg share / efficiency. Never lead with GD@15 (bot shares gold).
       if (p.avgDmg >= 30) notes.push(`${p.avgDmg.toFixed(0)}% dmg share — hard carry`)
+      else if (p.avgDmg >= 25) notes.push(`${p.avgDmg.toFixed(0)}% dmg share — solid output`)
       else if (p.avgDmg <= 22) notes.push(`${p.avgDmg.toFixed(0)}% dmg share — low output`)
       if (p.avgKda >= 5) notes.push(`${p.avgKda.toFixed(1)} kda — clean positioning`)
       else if (p.avgKda < 2) notes.push(`${p.avgKda.toFixed(1)} kda — dying too much`)
       if (p.avgDmgGoldRatio >= 1.2) notes.push(`${p.avgDmgGoldRatio.toFixed(2)} dmg%/gold% — efficient`)
       else if (p.avgDmgGoldRatio > 0 && p.avgDmgGoldRatio <= 0.85) {
         notes.push(`${p.avgDmgGoldRatio.toFixed(2)} dmg%/gold% — resource hog`)
+      }
+      // Optional mild bot-lane note only at extreme gaps; never "completely gapped".
+      if (p.avgGd15 <= -1000) {
+        notes.push(`${fmtSigned(p.avgGd15)} bot gd@15 — bot lane was starved early (shared gold, not solo gap)`)
       }
       break
     }
@@ -430,33 +464,50 @@ function findLaneDuelDomination(series: SeriesBucket): LaneDuelDomination | null
 
     let aLaneWins = 0
     let aDmgWins = 0
+    let aImpactWins = 0
     for (const { a, b } of perGame) {
-      if (a.gd15 > b.gd15) aLaneWins++
+      // Solo-lane gold only for top/mid; jungle/support use KP; carries use damage.
+      if (role === 'top' || role === 'mid') {
+        if (a.gd15 > b.gd15 + 200) aLaneWins++
+      } else if (role === 'jungle' || role === 'support') {
+        if (a.kp > b.kp) aImpactWins++
+      }
       if (a.dmgShare > b.dmgShare) aDmgWins++
     }
-    const bLaneWins = perGame.length - aLaneWins
+    const bLaneWins = roleUsesLaneGold(role) ? perGame.length - aLaneWins : 0
     const bDmgWins = perGame.length - aDmgWins
+    const bImpactWins =
+      role === 'jungle' || role === 'support' ? perGame.length - aImpactWins : 0
     const sample = perGame[0]!
 
     const candidates: LaneDuelDomination[] = []
-    if (aLaneWins === perGame.length || aDmgWins === perGame.length) {
+    const aWonLane = roleUsesLaneGold(role) && aLaneWins === perGame.length
+    const bWonLane = roleUsesLaneGold(role) && bLaneWins === perGame.length
+    const aWonDmg = (role === 'mid' || role === 'adc') && aDmgWins === perGame.length
+    const bWonDmg = (role === 'mid' || role === 'adc') && bDmgWins === perGame.length
+    const aWonImpact =
+      (role === 'jungle' || role === 'support') && aImpactWins === perGame.length
+    const bWonImpact =
+      (role === 'jungle' || role === 'support') && bImpactWins === perGame.length
+
+    if (aWonLane || aWonDmg || aWonImpact) {
       candidates.push({
         dominator: sample.a.name,
         victim: sample.b.name,
         role,
         games: perGame.length,
-        wonLaneEveryGame: aLaneWins === perGame.length,
-        wonDmgEveryGame: aDmgWins === perGame.length,
+        wonLaneEveryGame: aWonLane,
+        wonDmgEveryGame: aWonDmg || aWonImpact,
       })
     }
-    if (bLaneWins === perGame.length || bDmgWins === perGame.length) {
+    if (bWonLane || bWonDmg || bWonImpact) {
       candidates.push({
         dominator: sample.b.name,
         victim: sample.a.name,
         role,
         games: perGame.length,
-        wonLaneEveryGame: bLaneWins === perGame.length,
-        wonDmgEveryGame: bDmgWins === perGame.length,
+        wonLaneEveryGame: bWonLane,
+        wonDmgEveryGame: bWonDmg || bWonImpact,
       })
     }
     for (const c of candidates) {
@@ -560,6 +611,87 @@ function buildNarrativeHints(opts: {
   return hints
 }
 
+function seriesTournamentLabel(bucket: SeriesBucket, fallbackLeague: string): string {
+  const g = bucket.games[0]
+  if (!g) return fallbackLeague
+  const year = g.oeYear ?? g.date?.slice(0, 4) ?? ''
+  const league = (g.league ?? fallbackLeague).toUpperCase()
+  if (['MSI', 'WLDS', 'WORLDS', 'FST', 'FIRST STAND'].includes(league)) {
+    const name =
+      league === 'WLDS' || league === 'WORLDS'
+        ? 'Worlds'
+        : league === 'FST' || league === 'FIRST STAND'
+          ? 'First Stand'
+          : 'MSI'
+    return year ? `${year} ${name}` : name
+  }
+  const split = g.split ?? ''
+  if (split) return split
+  return year ? `${year} ${league}` : league
+}
+
+function buildTournamentImplicationHints(
+  winner: string,
+  loser: string,
+  date: string,
+  tournamentLabel: string,
+  league: string,
+  peers: TournamentSeriesRef[],
+): string[] {
+  const hints: string[] = []
+  const intl = ['MSI', 'WLDS', 'WORLDS', 'FST', 'FIRST STAND'].includes(league.toUpperCase())
+  if (!intl && !/playoff/i.test(tournamentLabel)) return hints
+
+  const sameEvent = peers.filter(
+    (p) =>
+      p.tournamentLabel === tournamentLabel ||
+      p.league.toUpperCase() === league.toUpperCase(),
+  )
+  const laterWinner = sameEvent
+    .filter(
+      (p) =>
+        p.date > date &&
+        (teamMatchesCanonical(p.winner, winner) || teamMatchesCanonical(p.loser, winner)),
+    )
+    .sort((a, b) => a.date.localeCompare(b.date))
+  const laterLoser = sameEvent.filter(
+    (p) =>
+      p.date > date &&
+      (teamMatchesCanonical(p.winner, loser) || teamMatchesCanonical(p.loser, loser)),
+  )
+
+  // Only claim elimination when this looks like a play-in / qualification final:
+  // same matchup already happened earlier in the event, and loser has no further games.
+  const priorMeeting = sameEvent.find(
+    (p) =>
+      p.date < date &&
+      ((teamMatchesCanonical(p.winner, winner) && teamMatchesCanonical(p.loser, loser)) ||
+        (teamMatchesCanonical(p.winner, loser) && teamMatchesCanonical(p.loser, winner))),
+  )
+  if (priorMeeting && !laterLoser.length && intl) {
+    hints.push(
+      `${tournamentLabel} play-in finals stakes — ${recapTeamTag(winner)} advances to the main bracket, ${recapTeamTag(loser)} is eliminated and sent home`,
+    )
+  }
+
+  if (laterWinner.length) {
+    const next = laterWinner[0]!
+    const opp = teamMatchesCanonical(next.winner, winner) ? next.loser : next.winner
+    hints.push(
+      `${recapTeamTag(winner)} advances and next faces ${recapTeamTag(opp)} in ${tournamentLabel}`,
+    )
+    if (laterLoser.length) {
+      const nextL = laterLoser.sort((a, b) => a.date.localeCompare(b.date))[0]!
+      const oppL = teamMatchesCanonical(nextL.winner, loser) ? nextL.loser : nextL.winner
+      hints.push(
+        `${recapTeamTag(loser)} continues in ${tournamentLabel} (next: ${recapTeamTag(oppL)}) — not eliminated`,
+      )
+    }
+  }
+
+  return hints
+}
+
 export function buildSeriesFacts(
   bucket: SeriesBucket,
   teams: Team[],
@@ -568,6 +700,10 @@ export function buildSeriesFacts(
     blowout: boolean
     seriesStreak: number
     victimSlump: number
+    /** Player ign → champion → career/split games (for pocket-pick gating). */
+    playerChampGames?: Map<string, Map<string, number>>
+    /** Other series in the same event window (for advancement / elimination). */
+    tournamentPeers?: TournamentSeriesRef[]
   },
 ): SeriesFacts {
   const winsA = bucket.games.filter((g) => g.winner === bucket.teamA).length
@@ -581,7 +717,13 @@ export function buildSeriesFacts(
 
   const domSplitWr = splitWinrate(teams, winner)
   const vicSplitWr = splitWinrate(teams, loser)
-  const league = teamLeague(teams, winner)
+  // Prefer game league (MSI/Worlds) over team's home region (LCK/LEC/…).
+  const gameLeague = (bucket.games[0]?.league ?? teamLeague(teams, winner)).toUpperCase()
+  const league = gameLeague === 'WLDS' ? 'WORLDS' : gameLeague
+  const tournamentLabel = seriesTournamentLabel(bucket, league)
+  const orderedDates = [...bucket.games].sort((a, b) => a.date.localeCompare(b.date))
+  const latestDate = orderedDates[orderedDates.length - 1]?.date ?? bucket.games[0]?.date ?? ''
+
   const playerStats = aggregateSeriesPlayerStats(bucket).map((p) =>
     annotatePlayer(p, bucket, winner, teams),
   )
@@ -616,14 +758,23 @@ export function buildSeriesFacts(
 
   const topCarry = winnerStars[0] ?? null
 
+  // Pocket pick only when champ is rare in the window AND player rarely plays it.
   const pocket = winPlayers.find((p) => {
-    const champ = p.champions.find((c) => (weekCounts.get(c) ?? 0) <= 2)
-    return champ && p.avgKda >= 2.5
+    const champ = p.champions.find((c) => {
+      const weekPresence = weekCounts.get(c) ?? 0
+      const career = opts.playerChampGames?.get(p.name.toLowerCase())?.get(c.toLowerCase()) ?? 99
+      return weekPresence <= 2 && career <= 3 && p.avgKda >= 2.5
+    })
+    return Boolean(champ)
   })
   const pocketPick = pocket
     ? {
         name: pocket.name,
-        champion: pocket.champions.find((c) => (weekCounts.get(c) ?? 0) <= 2)!,
+        champion: pocket.champions.find((c) => {
+          const weekPresence = weekCounts.get(c) ?? 0
+          const career = opts.playerChampGames?.get(pocket.name.toLowerCase())?.get(c.toLowerCase()) ?? 99
+          return weekPresence <= 2 && career <= 3
+        })!,
         role: pocket.role,
       }
     : null
@@ -634,6 +785,7 @@ export function buildSeriesFacts(
   }))
 
   const narrativeHints = [
+    `tournament: ${tournamentLabel}`,
     ...buildNarrativeHints({
       reverseSweep,
       droppedGame1,
@@ -649,6 +801,14 @@ export function buildSeriesFacts(
       loser: loserCanon,
     }),
     ...buildEarlyGameHints(bucket, winnerCanon, loserCanon),
+    ...buildTournamentImplicationHints(
+      winnerCanon,
+      loserCanon,
+      latestDate,
+      tournamentLabel,
+      league,
+      opts.tournamentPeers ?? [],
+    ),
   ]
 
   const laneDuelPlayer = laneDuel
@@ -669,6 +829,7 @@ export function buildSeriesFacts(
     loserAbbr: recapTeamTag(loserCanon),
     score: `${domWins}-${vicWins}`,
     league,
+    tournamentLabel,
     domWins,
     vicWins,
     gameCount: bucket.games.length,

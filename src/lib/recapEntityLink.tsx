@@ -83,6 +83,81 @@ const RECAP_LINK_STOPWORDS = new Set([
   'mid',
   'bot',
   'jg',
+  // Recap prose words that collide with pro player igns
+  'ice',
+  'cold',
+  'form',
+  'gap',
+  'lead',
+  'edge',
+  'core',
+  'king',
+  'queen',
+  'ghost',
+  'angel',
+  'devil',
+  'beast',
+  'wolf',
+  'bear',
+  'fish',
+  'bird',
+  'rain',
+  'snow',
+  'fire',
+  'wind',
+  'star',
+  'moon',
+  'sun',
+  'dark',
+  'light',
+  'hope',
+  'fate',
+  'luck',
+  'time',
+  'life',
+  'home',
+  'away',
+  'back',
+  'down',
+  'over',
+  'only',
+  'even',
+  'still',
+  'just',
+  'also',
+  'very',
+  'much',
+  'more',
+  'most',
+  'best',
+  'last',
+  'next',
+  'early',
+  'late',
+  'clean',
+  'hard',
+  'soft',
+  'free',
+  'open',
+  'close',
+  'high',
+  'low',
+  'big',
+  'small',
+  'main',
+  'side',
+  'map',
+  'lane',
+  'pick',
+  'ban',
+  'draft',
+  'series',
+  'game',
+  'match',
+  'round',
+  'stage',
+  'final',
+  'finals',
 ])
 
 function escapeRegex(value: string): string {
@@ -134,6 +209,7 @@ export function buildRecapEntityPatternsForText(
 
   const patterns: RecapEntityPattern[] = []
   const seen = new Set<string>()
+  const teamSet = new Set(teams.map((t) => resolveTeamCanonicalName(t).toLowerCase()))
 
   const add = (pattern: RecapEntityPattern) => {
     const key = `${pattern.kind}:${pattern.pattern.toLowerCase()}`
@@ -143,8 +219,11 @@ export function buildRecapEntityPatternsForText(
     patterns.push(pattern)
   }
 
+  // Only link players on the series teams — avoids "ice cold" → player Ice, etc.
   for (const player of players) {
     if (!isEligiblePlayerName(player.name)) continue
+    const playerTeam = resolveTeamCanonicalName(player.team).toLowerCase()
+    if (teamSet.size && !teamSet.has(playerTeam)) continue
     add({
       kind: 'player',
       pattern: player.name,

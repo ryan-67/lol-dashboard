@@ -475,11 +475,19 @@ export function buildGameRoster(
   }
 
   return roster.sort((a, b) => {
-    const order = ['top', 'jng', 'mid', 'bot', 'sup', 'jungle', 'adc', 'support']
-    const ia = order.findIndex((r) => a.role.toLowerCase().includes(r))
-    const ib = order.findIndex((r) => b.role.toLowerCase().includes(r))
+    const rank = (role: string) => {
+      const r = role.toLowerCase().trim()
+      if (r === 'top' || r.startsWith('top')) return 0
+      if (r === 'jng' || r === 'jungle' || r.startsWith('jung')) return 1
+      if (r === 'mid' || r === 'middle' || r.startsWith('mid')) return 2
+      if (r === 'bot' || r === 'adc' || r === 'bottom' || r.startsWith('ad')) return 3
+      if (r === 'sup' || r === 'support' || r.startsWith('supp')) return 4
+      return 99
+    }
+    const ia = rank(a.role)
+    const ib = rank(b.role)
     if (ia !== ib) return ia - ib
-    return a.team.localeCompare(b.team)
+    return a.name.localeCompare(b.name)
   })
 }
 
