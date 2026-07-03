@@ -41,7 +41,6 @@ function rowToLine(row: RecapRow): WeeklyRecapLine {
       winnerAbbr: recapTeamTag(winner),
       loserAbbr: recapTeamTag(loser),
       score: `${domWins}-${vicWins}`,
-      tournamentLeague: row.league || undefined,
     },
   }
 }

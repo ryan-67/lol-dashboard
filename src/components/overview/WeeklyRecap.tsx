@@ -21,7 +21,7 @@ interface WeeklyRecapProps {
 }
 
 function recapTournamentLeague(score: WeeklyRecapLine['score']): string | null {
-  return score.tournamentLeague ?? leagueFromTournamentLabel(score.tournamentLabel) ?? null
+  return leagueFromTournamentLabel(score.tournamentLabel) ?? score.tournamentLeague ?? null
 }
 
 function RecapScoreRow({ line, showSeriesLink }: { line: WeeklyRecapLine; showSeriesLink: boolean }) {
