@@ -10,13 +10,6 @@ function recapLineKey(line: WeeklyRecapLine): string {
   return `match:${line.date}|${seriesKey(winner, loser)}|${line.score.score}|${winner}`
 }
 
-/** Same series outcome even when stale cache rows use an older series_id / date. */
-function seriesOutcomeKey(line: WeeklyRecapLine): string {
-  const winner = resolveTeamCanonicalName(line.score.winner)
-  const loser = resolveTeamCanonicalName(line.score.loser)
-  return `${seriesKey(winner, loser)}|${line.score.score}|${winner}`
-}
-
 function mergeRecapPair(a: WeeklyRecapLine, b: WeeklyRecapLine): WeeklyRecapLine {
   const primary = a.segments.length >= b.segments.length ? a : b
   const secondary = primary === a ? b : a
@@ -53,14 +46,8 @@ export function mergeWeeklyRecapLines(
     byKey.set(key, mergeRecapPair(byKey.get(key) ?? line, line))
   }
 
-  const byOutcome = new Map<string, WeeklyRecapLine>()
-  for (const line of byKey.values()) {
-    const outcomeKey = seriesOutcomeKey(line)
-    const existing = byOutcome.get(outcomeKey)
-    byOutcome.set(outcomeKey, existing ? mergeRecapPair(existing, line) : line)
-  }
-
-  return [...byOutcome.values()]
+  // Do NOT dedupe by matchup+score — rematches (e.g. T1 vs TL 3-0 twice in one week) stay separate.
+  return [...byKey.values()]
     .sort((a, b) => b.date.localeCompare(a.date) || a.id.localeCompare(b.id))
     .slice(0, limit)
 }

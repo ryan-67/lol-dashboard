@@ -631,7 +631,7 @@ function buildFormPrefix(
       segText(
         ledger.pick(`${id}-peak`, salt, [
           ` are peaking, stomping `,
-          ` keep rolling — another clean `,
+          ` stay hot, taking down `,
           ` extend their hot streak, dismantling `,
         ]),
       ),
@@ -784,7 +784,7 @@ function buildResultSegments(
     const templates = [
       () => [
         segTeam(dominant),
-        segText(` rolled `),
+        segText(` ran through `),
         segTeam(victim),
         segText(` ${domWins}-0 this week`),
       ],

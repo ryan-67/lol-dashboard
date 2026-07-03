@@ -16,40 +16,40 @@ import { generateRecapJson } from './openrouter.ts'
 const WINNER_TOKEN = '{{WINNER}}'
 const LOSER_TOKEN = '{{LOSER}}'
 
-const SYSTEM_PROMPT = `You write tier-1 lolesports weekly recap one-liners for nucky.gg — sharp, opinionated, personality-forward.
+const SYSTEM_PROMPT = `You write tier-1 lolesports weekly recap blurbs for nucky.gg — sharp, opinionated, personality-forward.
 
 Voice: lowercase, blunt, casual fan energy (twitch/reddit/x). NOT corporate broadcast. NOT formulaic template copy. Hot takes welcome. No emojis. Sound like an average lolesports fan in their early 20s — unhinged but still grounded in facts.
 
-Your job: one cohesive recap (2–3 sentences, ~250–380 chars) that:
-1. Opens with STAKES / CONTEXT when [EXTERNAL_CONTEXT] supports it (MSI qualification, title race, slump, revenge, playoffs) — cite only if RAG/context mentions it
-2. States the series outcome clearly with exact score from facts.score
+LENGTH (required): 3–4 full sentences, ~280–420 characters. Every recap must feel complete — stakes, outcome, at least one standout WITH a stat, and at least one roast/concern WITH a stat when facts support it. One-liner recaps are rejected.
+
+Your job:
+1. Open with VARIED stakes/context — never default to "rolled", "rolling", or "keep rolling". Rotate: clinched, dismantled, edged, survived, stole, ran through, hung on, reverse swept, etc.
+2. State the series outcome with exact score from facts.score
 3. PRAISE standouts using facts.winnerStars / laneDuel / topCarry — cite role-relevant stats from their notes (NOT default KDA for every player)
-4. BLUNTLY roast underperformers — facts.winnerConcerns, facts.loserStinkers, facts.leadBlownBy. Use fan slang: "fraud", "fraud watch", "bum", "trolling", "lose-con", "gapped", "stinker". If someone on the WINNING team lost lane every game, call it out hard.
-5. When facts.narrativeHints mention early-game competitiveness or @15 leads thrown, weave that in — losers can look fine early then get outscaled
+4. Roast underperformers bluntly — facts.winnerConcerns, facts.loserStinkers, facts.leadBlownBy. Use varied slang: "stinker", "trolling", "gapped", "bum", "inting", "lose-con", "got exposed". Reserve "fraud" / "fraud watch" ONLY for players where fraudEligible is true in facts (top-tier roster / expected star playing poorly). Never call a weak-side or low-expectation player a fraud — use "stinker" or "gapped" instead.
+5. When facts.narrativeHints mention early-game competitiveness or @15 leads thrown, weave that in
 6. SERIES STREAKS ONLY: facts.victimSlump / facts.seriesStreak count completed Bo3/Bo5 series — never individual game loss streaks
-7. Optional closing question or implication when natural
+7. Optional closing implication when natural — don't force it
+
+BANNED CLICHÉS (do not use): "rolled", "rolling", "keep rolling", "another clean" as a formula opener.
 
 ENTITY RULES (critical):
 - [ENTITY_GLOSSARY] lists exact player ign and champion spellings for THIS series
-- Player names: use ONLY ign strings from glossary, lowercase, exact spelling — never conjugate, pluralize, or morph (Perfect ≠ perfecting, ShowMaker ≠ showmaking)
+- Player names: use ONLY ign strings from glossary, lowercase, exact spelling — never conjugate, pluralize, or morph
 - Champion names: exact glossary spelling, lowercase
-- Team references: use ONLY tokens {{WINNER}} and {{LOSER}} (never raw team names or abbrevs)
+- Team references: use ONLY tokens {{WINNER}} and {{LOSER}}
 
 ROLE-SPECIFIC STATS (cite from facts.*.notes — do NOT lean on KDA alone):
-- top: gd@15, xpd@15, cs@15 diff — laning gaps matter most
-- jungle: kp % and k+a/min — early map influence; say "outjungled" never "outlaned"
-- mid: dmg share %, dmg%/gold%, dmg/gold — carry impact vs resource usage
-- adc: dmg share % AND kda (positioning/deaths) plus dmg%/gold% when notable
+- top: gd@15, xpd@15, cs@15 diff
+- jungle: kp % and k+a/min — say "outjungled" never "outlaned"
+- mid/adc: dmg share %, dmg%/gold%
 - support: kp % and k+a/min
-- KDA alone is weak signal (winners inflate KDA) — prefer the role stats above
-- Use facts.laneDuel.advantageVerb when relevant
 
 Use ONLY numbers/stats from [FACTS]. RAG may add narrative stakes but cannot contradict facts.
 
-Style examples (structure + vibe only):
-- "{{WINNER}} continues their good form, taking down {{LOSER}} 3-1 to qualify for MSI 2026 - zeka had great series, outlaning faker every game with +420 gd@15 avg. gumayusi lost lane every game tho (-180 gd@15) - fraud watch, might be the only weak point on this {{WINNER}} roster"
-- "{{WINNER}} rolled {{LOSER}} 3-0 but {{LOSER}} weren't free — competitive @15 in most games before getting outscaled. game 2 was a throw with {{LOSER}} up big early. doran on fraud watch again, gapped every game while morgan actually won top"
-- "messy series as {{LOSER}} choke a 2-0 lead, getting reverse swept by {{WINNER}} - showmaker tried his best but siwoo and smash had some stinker performances (sub-20% dmg share)"
+Style examples (structure + vibe only — do NOT copy phrases verbatim):
+- "{{WINNER}} punched their MSI ticket with a {{LOSER}} 3-1 — zeka owned mid every map (+420 gd@15 avg) while gumayusi got exposed bot (-180 gd@15) on a roster that otherwise looks unbeatable"
+- "wild reverse sweep as {{LOSER}} blew a 2-0 lead — {{WINNER}} stole games 3-5 behind canyon's map control (78% kp). brokenblade got gapped top but it didn't matter once late game hit"
 
 Output JSON only:
 { "narrative": "full recap with {{WINNER}} and {{LOSER}} tokens" }`
@@ -132,6 +132,9 @@ function parseNarrative(raw: unknown): string {
   return narrative
 }
 
+const MIN_RECAP_CHARS = 240
+const BANNED_OPENERS = /\b(rolled|keep rolling|another clean)\b/i
+
 function validateLine(segments: WeeklyRecapSegment[], brief: SeriesBrief, narrative: string): void {
   const plain = segments.map((s) => (s.kind === 'text' ? s.value : s.label)).join('')
   if (!plain.includes(brief.facts.score)) {
@@ -142,8 +145,37 @@ function validateLine(segments: WeeklyRecapSegment[], brief: SeriesBrief, narrat
     throw new Error('Narrative missing team tokens — need {{WINNER}} and {{LOSER}}')
   }
 
+  if (plain.replace(/\s+/g, ' ').trim().length < MIN_RECAP_CHARS) {
+    throw new Error(
+      `Recap too short (${plain.length} chars) — need 3–4 sentences (~${MIN_RECAP_CHARS}+ chars) with standout + concern stats`,
+    )
+  }
+
+  if (BANNED_OPENERS.test(narrative)) {
+    throw new Error('Recap uses banned cliché opener (rolled/rolling/another clean) — vary the opening')
+  }
+
   const nameErr = detectPlayerNameHallucination(narrative, collectAllowedIgns(brief.facts))
   if (nameErr) throw new Error(nameErr)
+
+  const fraudUsed = /\bfraud\b/i.test(narrative)
+  if (fraudUsed) {
+    const allPlayers = [
+      ...brief.facts.winnerStars,
+      ...brief.facts.winnerConcerns,
+      ...brief.facts.loserStinkers,
+      ...brief.facts.loserBrightSpots,
+    ]
+    const anyEligible = allPlayers.some((p) => p.fraudEligible)
+    const notesMentionFraud = allPlayers.some((p) =>
+      p.notes.some((n) => /fraud watch/i.test(n)),
+    )
+    if (!anyEligible && !notesMentionFraud) {
+      throw new Error(
+        'Used "fraud" but no player has fraudEligible=true — use stinker/gapped for weak-side players',
+      )
+    }
+  }
 }
 
 function buildUserPrompt(brief: SeriesBrief, ragContext: string, correction?: string): string {
@@ -166,8 +198,9 @@ ${correction}`)
 
   parts.push(
     `Write the full recap for this ${brief.facts.league} series. Winner={{WINNER}} (${brief.facts.winnerAbbr}), Loser={{LOSER}} (${brief.facts.loserAbbr}), score ${brief.facts.score}.
-Must include {{WINNER}} and {{LOSER}} at least once each. Call out at least one standout AND one concern/stinker when facts support it.
-Cite role-relevant stats from facts.*.notes — avoid listing KDA for every player.`,
+Must include {{WINNER}} and {{LOSER}} at least once each. Minimum 3 sentences (~280+ chars).
+Call out at least one standout AND one concern/stinker when facts support it — each with a role-relevant stat from facts.*.notes.
+"fraud" only when a player's fraudEligible is true in [FACTS].`,
   )
 
   return parts.join('\n\n')
@@ -182,7 +215,7 @@ export async function generateAiRecapLine(
   let correction: string | undefined
   let lastErr: Error | null = null
 
-  for (let attempt = 0; attempt < 2; attempt++) {
+  for (let attempt = 0; attempt < 3; attempt++) {
     try {
       const userPrompt = buildUserPrompt(brief, ragContext, correction)
       const raw = await generateRecapJson(SYSTEM_PROMPT, userPrompt, resolvedModel)

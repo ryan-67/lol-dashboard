@@ -23,6 +23,8 @@ export interface PlayerPerformanceFact {
   avgDmgGoldRatio: number
   avgDmgPerGold: number
   champions: string[]
+  /** True when "fraud" slang is appropriate — top-tier team / expected star, not a weak-side underdog. */
+  fraudEligible?: boolean
   /** Role-weighted stat callouts the LLM should cite instead of defaulting to KDA. */
   notes: string[]
 }
@@ -304,13 +306,23 @@ function playerImpactScore(p: PlayerPerformanceFact): number {
   }
 }
 
+/** "Fraud" applies to expected stars on strong rosters — not weak teams playing badly. */
+function isFraudEligible(p: PlayerPerformanceFact, teams: Team[], seriesWinner: string): boolean {
+  const wr = splitWinrate(teams, p.team)
+  if (wr >= 55) return true
+  if (p.team === seriesWinner && wr >= 48) return true
+  return false
+}
+
 function annotatePlayer(
   p: PlayerPerformanceFact,
   bucket: SeriesBucket,
   seriesWinner: string,
+  teams: Team[],
 ): PlayerPerformanceFact {
   const notes: string[] = []
   const role = p.role
+  const fraudEligible = isFraudEligible(p, teams, seriesWinner)
 
   if (p.champions.length) notes.push(`champs: ${p.champions.join(', ')}`)
 
@@ -322,12 +334,20 @@ function annotatePlayer(
     const verb = role === 'jungle' ? 'outjungled by' : 'lost lane to'
     notes.push(`${verb} opponent every game`)
     if (p.team !== seriesWinner) {
-      notes.push('gapped every single game — fraud watch candidate')
+      notes.push(
+        fraudEligible
+          ? 'gapped every game — fraud watch candidate (expected to perform on strong roster)'
+          : 'gapped every game — stinker (weak-side / low expectations)',
+      )
     }
   }
 
   if (p.team === seriesWinner && lostLaneEveryGame(bucket, p.name)) {
-    notes.push('fraud watch — lost lane every game on the winning team (winning despite them)')
+    notes.push(
+      fraudEligible
+        ? 'fraud watch — lost lane every game on the winning team (carried by teammates)'
+        : 'lost lane every game despite series win — teammates hard 1v9',
+    )
   }
 
   switch (role) {
@@ -385,7 +405,7 @@ function annotatePlayer(
     notes.push('series standout')
   }
 
-  return { ...p, notes: [...new Set(notes)] }
+  return { ...p, notes: [...new Set(notes)], fraudEligible }
 }
 
 function findLaneDuelDomination(series: SeriesBucket): LaneDuelDomination | null {
@@ -563,7 +583,7 @@ export function buildSeriesFacts(
   const vicSplitWr = splitWinrate(teams, loser)
   const league = teamLeague(teams, winner)
   const playerStats = aggregateSeriesPlayerStats(bucket).map((p) =>
-    annotatePlayer(p, bucket, winner),
+    annotatePlayer(p, bucket, winner, teams),
   )
   const laneDuel = findLaneDuelDomination(bucket)
   const winPlayers = playerStats.filter((p) => p.team === winner)
