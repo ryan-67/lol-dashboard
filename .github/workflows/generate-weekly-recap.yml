@@ -2,7 +2,7 @@
 #
 # Manual: workflow_dispatch. Set regenerate_recaps=true to overwrite existing AI rows.
 #
-# Secrets: SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, OPENROUTER_API_KEY
+# Secrets: SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, OPENROUTER_API_KEY, CITO_API_KEY (power ranks)
 
 name: Generate Weekly Recap
 
@@ -45,6 +45,7 @@ jobs:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
           OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          CITO_API_KEY: ${{ secrets.CITO_API_KEY }}
           RECAP_FROM_SUPABASE: '1'
           RECAP_REGENERATE: ${{ github.event_name == 'schedule' && '0' || (inputs.regenerate_recaps && '1' || '0') }}
         run: npm run generate:weekly-recap

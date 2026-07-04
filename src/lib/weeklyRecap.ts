@@ -2,7 +2,7 @@ import type { GameCatalogEntry, Player, PlayerGameLog, Team } from '../hooks/use
 import { resolveTeamCanonicalName, teamMatchesCanonical } from './entities/slugs'
 import { findTeamByName } from './teamAnalytics'
 import { normalizePosition, type RoleKey } from './playerRadar'
-import { buildSeriesFacts, type SeriesFacts } from './recapFacts'
+import { buildSeriesFacts, type PowerRankMap, type SeriesFacts } from './recapFacts'
 import { findPocketPick } from './recapPocketPick'
 import { recapTeamTag } from './recapTeamTag'
 import {
@@ -112,6 +112,30 @@ interface TeamGameRecord {
   date: string
   opponent: string
   won: boolean
+  league?: string
+  split?: string
+  oeYear?: string
+}
+
+/** Scope streaks to the same event (MSI/Worlds) or same regional split — never bleed LEC playoffs into MSI. */
+function eventKeyForGame(g: {
+  league?: string
+  split?: string
+  oeYear?: string
+  date?: string
+}): string {
+  const year = g.oeYear ?? g.date?.slice(0, 4) ?? ''
+  const league = (g.league ?? '').toUpperCase()
+  if (['MSI', 'WLDS', 'WORLDS', 'FST', 'FIRST STAND'].includes(league)) {
+    const name =
+      league === 'WLDS' || league === 'WORLDS'
+        ? 'WORLDS'
+        : league === 'FST' || league === 'FIRST STAND'
+          ? 'FST'
+          : 'MSI'
+    return `${year}|${name}`
+  }
+  return `${year}|${league}|${g.split ?? ''}`
 }
 
 interface HistoricalSeries {
@@ -335,6 +359,9 @@ function collectTeamGames(
         date: g.date,
         opponent,
         won: g.result === 1,
+        league: g.league,
+        split: g.split,
+        oeYear: g.oeYear,
       })
     }
   }
@@ -342,10 +369,17 @@ function collectTeamGames(
   return games.sort((a, b) => a.date.localeCompare(b.date) || a.id.localeCompare(b.id))
 }
 
-function groupTeamSeriesHistory(games: TeamGameRecord[], team: string): HistoricalSeries[] {
-  if (!games.length) return []
+function groupTeamSeriesHistory(
+  games: TeamGameRecord[],
+  team: string,
+  eventKey?: string,
+): HistoricalSeries[] {
+  const scoped = eventKey
+    ? games.filter((g) => eventKeyForGame(g) === eventKey)
+    : games
+  if (!scoped.length) return []
 
-  const chrono = games.map((g) => ({
+  const chrono = scoped.map((g) => ({
     id: g.id,
     date: g.date,
     winner: g.won ? team : g.opponent,
@@ -1281,8 +1315,17 @@ function summarizeSeries(
   const blowout = domWins >= 2 && vicWins === 0
   const upset = upsetFromWr(domSplitWr, vicSplitWr)
 
-  const domHistory = groupTeamSeriesHistory(collectTeamGames(players, dominant, gameCatalog), dominant)
-  const vicHistory = groupTeamSeriesHistory(collectTeamGames(players, victim, gameCatalog), victim)
+  const eventKey = eventKeyForGame(games[0] ?? {})
+  const domHistory = groupTeamSeriesHistory(
+    collectTeamGames(players, dominant, gameCatalog),
+    dominant,
+    eventKey,
+  )
+  const vicHistory = groupTeamSeriesHistory(
+    collectTeamGames(players, victim, gameCatalog),
+    victim,
+    eventKey,
+  )
   const seriesStreak =
     countSeriesWinStreak(domHistory, firstGameDate, victim) +
     (domWins > vicWins ? 1 : 0)
@@ -1533,6 +1576,7 @@ export function collectSeriesBriefs(
   options?: {
     gameFilter?: (g: PlayerGameLog) => boolean
     gameCatalog?: Record<string, GameCatalogEntry>
+    powerRanks?: PowerRankMap
   },
 ): SeriesBrief[] {
   if (!window && !options?.gameFilter) return []
@@ -1599,8 +1643,17 @@ export function collectSeriesBriefs(
     const latestDate = ordered[ordered.length - 1]?.date ?? bucket.games[0]!.date
     const firstGameDate = ordered[0]!.date
 
-    const domHistory = groupTeamSeriesHistory(collectTeamGames(players, dominant, gameCatalog), dominant)
-    const vicHistory = groupTeamSeriesHistory(collectTeamGames(players, victim, gameCatalog), victim)
+    const eventKey = eventKeyForGame(bucket.games[0] ?? {})
+    const domHistory = groupTeamSeriesHistory(
+      collectTeamGames(players, dominant, gameCatalog),
+      dominant,
+      eventKey,
+    )
+    const vicHistory = groupTeamSeriesHistory(
+      collectTeamGames(players, victim, gameCatalog),
+      victim,
+      eventKey,
+    )
     const seriesStreak =
       countSeriesWinStreak(domHistory, firstGameDate, victim) + (domWins > vicWins ? 1 : 0)
     const victimSlump = countSeriesLossStreak(vicHistory, firstGameDate)
@@ -1612,6 +1665,7 @@ export function collectSeriesBriefs(
       playerChampGames,
       tournamentPeers,
       champions: championMeta,
+      powerRanks: options?.powerRanks,
     })
 
     const templateBase = summarizeSeries(

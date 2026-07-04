@@ -328,23 +328,150 @@ function playerImpactScore(p: PlayerPerformanceFact): number {
   }
 }
 
-/** "Fraud" applies to expected stars on strong rosters — not weak teams playing badly. */
-function isFraudEligible(p: PlayerPerformanceFact, teams: Team[], seriesWinner: string): boolean {
-  const wr = splitWinrate(teams, p.team)
-  if (wr >= 55) return true
-  if (p.team === seriesWinner && wr >= 48) return true
-  return false
+/** Global power rank map: canonical team name (lowercase) → rank (1 = best). */
+export type PowerRankMap = Map<string, number>
+
+export interface MatchupContext {
+  favorite: string | null
+  underdog: string | null
+  rankWinner: number | null
+  rankLoser: number | null
+  /** Positive when winner was favored (underdog lost as expected). */
+  rankGap: number | null
+  /** True when `team` was a significant underdog in this series. */
+  isSignificantUnderdog: (team: string) => boolean
+  /** True when `team` was favorite or near-even (not a big underdog). */
+  isFavoriteSide: (team: string) => boolean
+  summary: string
+}
+
+function powerRankFor(map: PowerRankMap | undefined, team: string): number | null {
+  if (!map?.size) return null
+  return map.get(resolveTeamCanonicalName(team).toLowerCase()) ?? null
+}
+
+/**
+ * Favorite / underdog from global power ranks, else split winrate gap.
+ * Significant underdogs (e.g. TL #16 vs T1 #2) never get fraud labels.
+ */
+export function buildMatchupContext(
+  winner: string,
+  loser: string,
+  teams: Team[],
+  powerRanks?: PowerRankMap,
+): MatchupContext {
+  const w = resolveTeamCanonicalName(winner)
+  const l = resolveTeamCanonicalName(loser)
+  const rankW = powerRankFor(powerRanks, w)
+  const rankL = powerRankFor(powerRanks, l)
+
+  let favorite: string | null = null
+  let underdog: string | null = null
+  let rankGap: number | null = null
+
+  if (rankW != null && rankL != null) {
+    // Lower rank number = stronger team.
+    rankGap = rankL - rankW
+    if (rankGap >= 3) {
+      favorite = w
+      underdog = l
+    } else if (rankGap <= -3) {
+      favorite = l
+      underdog = w
+      rankGap = -rankGap
+    } else {
+      rankGap = Math.abs(rankGap)
+    }
+  } else {
+    const wrW = splitWinrate(teams, w)
+    const wrL = splitWinrate(teams, l)
+    const wrGap = wrW - wrL
+    if (wrGap >= 12) {
+      favorite = w
+      underdog = l
+      rankGap = Math.round(wrGap / 4)
+    } else if (wrGap <= -12) {
+      favorite = l
+      underdog = w
+      rankGap = Math.round(-wrGap / 4)
+    }
+  }
+
+  const isSignificantUnderdog = (team: string) => {
+    const t = resolveTeamCanonicalName(team)
+    if (underdog && teamMatchesCanonical(t, underdog) && (rankGap ?? 0) >= 5) return true
+    if (rankW != null && rankL != null) {
+      const r = teamMatchesCanonical(t, w) ? rankW : teamMatchesCanonical(t, l) ? rankL : null
+      const opp = teamMatchesCanonical(t, w) ? rankL : teamMatchesCanonical(t, l) ? rankW : null
+      if (r != null && opp != null && r - opp >= 5) return true
+    }
+    return false
+  }
+
+  const isFavoriteSide = (team: string) => {
+    const t = resolveTeamCanonicalName(team)
+    if (isSignificantUnderdog(t)) return false
+    if (favorite && teamMatchesCanonical(t, favorite)) return true
+    if (!favorite && !underdog) {
+      // Even matchup — either side can be fraud-eligible if they underperform.
+      return true
+    }
+    // Slight underdog (gap 3–4): still not fraud-eligible.
+    if (underdog && teamMatchesCanonical(t, underdog)) return false
+    return true
+  }
+
+  const rankBit = (team: string, rank: number | null) =>
+    rank != null ? `${recapTeamTag(team)} (#${rank})` : recapTeamTag(team)
+
+  let summary: string
+  if (favorite && underdog && rankGap != null && rankGap >= 5) {
+    summary =
+      `${rankBit(favorite, powerRankFor(powerRanks, favorite))} heavily favored over ` +
+      `${rankBit(underdog, powerRankFor(powerRanks, underdog))} — underdog poor performances are expected, NEVER fraud`
+  } else if (favorite && underdog) {
+    summary =
+      `${rankBit(favorite, powerRankFor(powerRanks, favorite))} favored over ` +
+      `${rankBit(underdog, powerRankFor(powerRanks, underdog))} — only fraud the favorite side if they underperform`
+  } else {
+    summary = 'relatively even matchup — fraud only for expected stars who massively underperformed'
+  }
+
+  return {
+    favorite,
+    underdog,
+    rankWinner: rankW,
+    rankLoser: rankL,
+    rankGap,
+    isSignificantUnderdog,
+    isFavoriteSide,
+    summary,
+  }
+}
+
+/**
+ * "Fraud" only for perceived top-tier / favored-side players who underperformed.
+ * Significant underdogs (e.g. Pun on TSW vs Zeus/HLE, Morgan on TL vs T1) are never fraud.
+ */
+function isFraudEligible(
+  p: PlayerPerformanceFact,
+  matchup: MatchupContext,
+): boolean {
+  if (matchup.isSignificantUnderdog(p.team)) return false
+  if (!matchup.isFavoriteSide(p.team)) return false
+  return true
 }
 
 function annotatePlayer(
   p: PlayerPerformanceFact,
   bucket: SeriesBucket,
   seriesWinner: string,
-  teams: Team[],
+  _teams: Team[],
+  matchup: MatchupContext,
 ): PlayerPerformanceFact {
   const notes: string[] = []
   const role = p.role
-  const fraudEligible = isFraudEligible(p, teams, seriesWinner)
+  const fraudEligible = isFraudEligible(p, matchup)
 
   if (p.champions.length) notes.push(`champs: ${p.champions.join(', ')}`)
 
@@ -355,21 +482,32 @@ function annotatePlayer(
   if (roleUsesLaneGold(role) && lostLaneEveryGame(bucket, p.name)) {
     notes.push(`lost lane to opponent every game`)
     if (p.team !== seriesWinner && p.avgGd15 <= -800) {
-      notes.push(
-        fraudEligible
-          ? 'heavily gapped in lane — fraud watch candidate (expected to perform on strong roster)'
-          : 'heavily gapped in lane — stinker (weak-side / low expectations)',
-      )
+      if (fraudEligible) {
+        notes.push(
+          'heavily gapped in lane — fraud watch candidate (favored/top-tier side, expected to perform)',
+        )
+      } else if (matchup.isSignificantUnderdog(p.team)) {
+        notes.push(
+          'heavily gapped in lane — expected vs a much stronger opponent (NOT fraud)',
+        )
+      } else {
+        notes.push('heavily gapped in lane — stinker (not a fraud-eligible favorite)')
+      }
     } else if (p.team !== seriesWinner) {
       notes.push('slightly outlaned early — not a full gap')
     }
   }
 
-  if (p.team === seriesWinner && roleUsesLaneGold(role) && lostLaneEveryGame(bucket, p.name) && p.avgGd15 <= -800) {
+  if (
+    p.team === seriesWinner &&
+    roleUsesLaneGold(role) &&
+    lostLaneEveryGame(bucket, p.name) &&
+    p.avgGd15 <= -800
+  ) {
     notes.push(
       fraudEligible
         ? 'fraud watch — lost lane every game on the winning team (carried by teammates)'
-        : 'lost lane every game despite series win — teammates hard 1v9',
+        : 'lost lane every game despite series win — teammates hard 1v9 (not fraud)',
     )
   }
 
@@ -586,8 +724,11 @@ function buildNarrativeHints(opts: {
   vicSplitWr: number
   winner: string
   loser: string
+  tournamentLabel: string
+  matchup: MatchupContext
 }): string[] {
   const hints: string[] = []
+  const event = opts.tournamentLabel || 'this event'
   if (opts.leadBlownBy) {
     hints.push(`${recapTeamTag(opts.leadBlownBy)} blew a 2-0 lead and got reverse swept`)
   } else if (opts.reverseSweep) {
@@ -596,15 +737,35 @@ function buildNarrativeHints(opts: {
     hints.push(`${recapTeamTag(opts.winner)} dropped game 1 then rallied`)
   }
   if (opts.blowout) hints.push('clean sweep — no games dropped')
-  if (opts.upset) hints.push(`${recapTeamTag(opts.winner)} upset the higher split-WR favorite`)
+  if (opts.upset) hints.push(`${recapTeamTag(opts.winner)} upset the higher-ranked / higher-WR favorite`)
   if (opts.messySeries) hints.push('back-and-forth series — multiple momentum swings')
-  if (opts.seriesStreak >= 3) hints.push(`${recapTeamTag(opts.winner)} on a ${opts.seriesStreak}-series win streak`)
-  else if (opts.seriesStreak >= 2) hints.push(`${recapTeamTag(opts.winner)} building momentum (${opts.seriesStreak} series wins)`)
-  if (opts.victimSlump >= 2) {
+
+  // Streaks are tournament-scoped only (e.g. MSI series, not LEC playoffs bleed-in).
+  if (opts.seriesStreak >= 3) {
     hints.push(
-      `${recapTeamTag(opts.loser)} on a ${opts.victimSlump}-series losing streak (count completed series only, not individual games)`,
+      `${recapTeamTag(opts.winner)} on a ${opts.seriesStreak}-series win streak within ${event} only (ignore other splits/leagues)`,
+    )
+  } else if (opts.seriesStreak >= 2) {
+    hints.push(
+      `${recapTeamTag(opts.winner)} building momentum in ${event} (${opts.seriesStreak} series wins in this event only)`,
     )
   }
+  if (opts.victimSlump >= 2) {
+    hints.push(
+      `${recapTeamTag(opts.loser)} on a ${opts.victimSlump}-series losing streak within ${event} only (not career/other splits)`,
+    )
+  }
+
+  hints.push(`matchup context: ${opts.matchup.summary}`)
+  if (opts.matchup.rankWinner != null || opts.matchup.rankLoser != null) {
+    hints.push(
+      `power ranks: ${recapTeamTag(opts.winner)}` +
+        (opts.matchup.rankWinner != null ? ` #${opts.matchup.rankWinner}` : ' (unranked)') +
+        ` vs ${recapTeamTag(opts.loser)}` +
+        (opts.matchup.rankLoser != null ? ` #${opts.matchup.rankLoser}` : ' (unranked)'),
+    )
+  }
+
   if (opts.domSplitWr >= 65) hints.push(`${recapTeamTag(opts.winner)} strong split form (${opts.domSplitWr.toFixed(0)}% WR)`)
   if (opts.vicSplitWr >= 65 && opts.upset) {
     hints.push(`${recapTeamTag(opts.loser)} entered as split favorite (${opts.vicSplitWr.toFixed(0)}% WR)`)
@@ -660,9 +821,18 @@ function buildTournamentImplicationHints(
       p.date > date &&
       (teamMatchesCanonical(p.winner, loser) || teamMatchesCanonical(p.loser, loser)),
   )
+  const priorWinner = sameEvent.filter(
+    (p) =>
+      p.date < date &&
+      (teamMatchesCanonical(p.winner, winner) || teamMatchesCanonical(p.loser, winner)),
+  )
+  const priorLoser = sameEvent.filter(
+    (p) =>
+      p.date < date &&
+      (teamMatchesCanonical(p.winner, loser) || teamMatchesCanonical(p.loser, loser)),
+  )
 
-  // Only claim elimination when this looks like a play-in / qualification final:
-  // same matchup already happened earlier in the event, and loser has no further games.
+  // Play-in / qualification final: same matchup earlier in the event, loser has no further games.
   const priorMeeting = sameEvent.find(
     (p) =>
       p.date < date &&
@@ -673,6 +843,24 @@ function buildTournamentImplicationHints(
     hints.push(
       `${tournamentLabel} play-in finals stakes — ${recapTeamTag(winner)} advances to the main bracket, ${recapTeamTag(loser)} is eliminated and sent home`,
     )
+  } else if (
+    intl &&
+    !laterLoser.length &&
+    !laterWinner.length &&
+    priorWinner.length >= 1 &&
+    priorLoser.length >= 1
+  ) {
+    // Both teams already played in this event; this looks like a stage-deciding series
+    // (e.g. play-in final) even if the prior meeting was against other opponents.
+    const latestEventDate = sameEvent.reduce(
+      (max, p) => (p.date > max ? p.date : max),
+      date,
+    )
+    if (date >= latestEventDate) {
+      hints.push(
+        `${tournamentLabel} stage stakes — ${recapTeamTag(winner)} advances toward the main bracket, ${recapTeamTag(loser)} is eliminated from ${tournamentLabel}`,
+      )
+    }
   }
 
   if (laterWinner.length) {
@@ -688,6 +876,13 @@ function buildTournamentImplicationHints(
         `${recapTeamTag(loser)} continues in ${tournamentLabel} (next: ${recapTeamTag(oppL)}) — not eliminated`,
       )
     }
+  } else if (laterLoser.length && !laterWinner.length && intl) {
+    // Winner done for now (bracket TBD), loser still playing — don't claim winner eliminated anyone else.
+    const nextL = laterLoser.sort((a, b) => a.date.localeCompare(b.date))[0]!
+    const oppL = teamMatchesCanonical(nextL.winner, loser) ? nextL.loser : nextL.winner
+    hints.push(
+      `${recapTeamTag(loser)} continues in ${tournamentLabel} (next: ${recapTeamTag(oppL)})`,
+    )
   }
 
   return hints
@@ -707,6 +902,8 @@ export function buildSeriesFacts(
     tournamentPeers?: TournamentSeriesRef[]
     /** Split-level champion meta for rare/off-role pocket picks. */
     champions?: Champion[]
+    /** Global power ranks (1 = best) for favorite/underdog fraud gating. */
+    powerRanks?: PowerRankMap
   },
 ): SeriesFacts {
   const winsA = bucket.games.filter((g) => g.winner === bucket.teamA).length
@@ -727,8 +924,10 @@ export function buildSeriesFacts(
   const orderedDates = [...bucket.games].sort((a, b) => a.date.localeCompare(b.date))
   const latestDate = orderedDates[orderedDates.length - 1]?.date ?? bucket.games[0]?.date ?? ''
 
+  const matchup = buildMatchupContext(winnerCanon, loserCanon, teams, opts.powerRanks)
+
   const playerStats = aggregateSeriesPlayerStats(bucket).map((p) =>
-    annotatePlayer(p, bucket, winner, teams),
+    annotatePlayer(p, bucket, winner, teams, matchup),
   )
   const laneDuel = findLaneDuelDomination(bucket)
   const winPlayers = playerStats.filter((p) => p.team === winner)
@@ -797,6 +996,8 @@ export function buildSeriesFacts(
       vicSplitWr,
       winner: winnerCanon,
       loser: loserCanon,
+      tournamentLabel,
+      matchup,
     }),
     ...buildEarlyGameHints(bucket, winnerCanon, loserCanon),
     ...buildTournamentImplicationHints(

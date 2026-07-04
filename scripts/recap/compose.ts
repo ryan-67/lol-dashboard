@@ -26,10 +26,10 @@ Your job:
 1. Open with TOURNAMENT CONTEXT when available (facts.tournamentLabel + narrativeHints about play-in finals, advancement, elimination, next opponent). Example stakes: play-in finals sending a team home, advancing to bracket, reverse sweep sending a team to lower bracket.
 2. State the series outcome with exact score from facts.score — vary verbs (dismantled, edged, reverse swept, survived, stole, hung on). NEVER use "rolled" / "rolling" / "keep rolling" / "another clean".
 3. PRAISE standouts using facts.winnerStars / laneDuel / topCarry — cite ONLY role-correct stats from their notes.
-4. Roast underperformers using facts.winnerConcerns / loserStinkers — role-correct stats only. Reserve "fraud" / "fraud watch" ONLY when fraudEligible is true. Never call a weak-side player a fraud.
+4. Roast underperformers using facts.winnerConcerns / loserStinkers — role-correct stats only. Reserve "fraud" / "fraud watch" ONLY when fraudEligible is true AND matchup context says they were on the favored/top-tier side. NEVER fraud significant underdogs (e.g. Pun on TSW vs Zeus, Morgan on TL vs T1 when TL is #16 and T1 is #2) — poor underdog performances are expected.
 5. Include loser bright spots when facts.loserBrightSpots has someone (e.g. solid dmg share in a loss).
 6. Close with implications from narrativeHints when present (advances to face X, eliminated/sent home, continues in lower bracket). Do NOT invent next opponents or eliminations not in facts/RAG.
-7. SERIES STREAKS ONLY: facts.victimSlump / facts.seriesStreak count completed Bo3/Bo5 series.
+7. SERIES STREAKS: facts.victimSlump / facts.seriesStreak are ALREADY scoped to this tournament/split only (e.g. MSI series only). Never invent longer streaks from other leagues/playoffs. If streak is 0 or 1, do not mention a streak.
 
 ROLE-SPECIFIC PERFORMANCE (critical — wrong metrics = failed recap):
 - TOP: gd@15, csd@15, xpd@15. "heavily gapped" only if notes say so (typically |gd@15| ≥ 800). ~500 gold is a slight lane edge, NOT a stomp.
@@ -164,14 +164,33 @@ function validateLine(segments: WeeklyRecapSegment[], brief: SeriesBrief, narrat
       ...brief.facts.loserStinkers,
       ...brief.facts.loserBrightSpots,
     ]
-    const anyEligible = allPlayers.some((p) => p.fraudEligible)
-    const notesMentionFraud = allPlayers.some((p) =>
-      p.notes.some((n) => /fraud watch/i.test(n)),
-    )
-    if (!anyEligible && !notesMentionFraud) {
+    const eligible = allPlayers.filter((p) => p.fraudEligible)
+    if (!eligible.length) {
       throw new Error(
-        'Used "fraud" but no player has fraudEligible=true — use stinker/gapped for weak-side players',
+        'Used "fraud" but no player has fraudEligible=true — underdogs / weak-side players are never fraud',
       )
+    }
+    // Fraud must attach to an eligible player name, not a random underdog.
+    const mentionsEligible = eligible.some((p) =>
+      new RegExp(`\\b${p.name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i').test(narrative),
+    )
+    if (!mentionsEligible) {
+      throw new Error(
+        'Fraud language must name a fraudEligible player (favored/top-tier side only)',
+      )
+    }
+    // Explicitly reject fraud on known underdog names in this series.
+    const ineligible = allPlayers.filter((p) => !p.fraudEligible)
+    for (const p of ineligible) {
+      const re = new RegExp(
+        `\\b${p.name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b[^.\\n]{0,48}fraud`,
+        'i',
+      )
+      if (re.test(narrative)) {
+        throw new Error(
+          `Do not put ${p.name} on fraud watch — they are not on the favored/top-tier side`,
+        )
+      }
     }
   }
 
@@ -262,7 +281,9 @@ ${correction}`)
 Must include {{WINNER}} and {{LOSER}} at least once each. Minimum 3–4 sentences (~320+ chars).
 ${stakes.length ? 'REQUIRED: include tournament stakes from [TOURNAMENT_STAKES] (who advances / who goes home / who they face next).' : 'If narrativeHints include tournament context, include it.'}
 Call out at least one standout AND one concern or loser bright spot — each with ROLE-CORRECT stats from facts.*.notes (top=gd@15, jg/sup=kp, mid/adc=dmg share — never "gapped" an ADC from gd@15).
-"fraud" only when a player's fraudEligible is true. Only mention "pulled out [champ]" if facts.pocketPick is set (bottom-5% presence or off-role — never common/meta champs).`,
+"fraud" ONLY when fraudEligible is true on a FAVORED/top-tier player — never fraud underdogs (see matchup context / power ranks in narrativeHints).
+Series streaks in facts are tournament-scoped only — do not invent LEC/LCK playoff streaks for an MSI recap.
+Only mention "pulled out [champ]" if facts.pocketPick is set.`,
   )
 
   return parts.join('\n\n')

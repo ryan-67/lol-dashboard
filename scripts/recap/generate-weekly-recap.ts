@@ -28,6 +28,7 @@ import { fetchRecapRagBundle } from './rag.ts'
 import { generateAiRecapLine, briefToTemplateLine } from './compose.ts'
 import { recapLineToText } from '../../src/lib/weeklyRecap.ts'
 import { DEFAULT_RECAP_MODEL } from './openrouter.ts'
+import { fetchGlobalPowerRanks } from './powerRankings.ts'
 
 function dedupeBriefs(briefs: SeriesBrief[]): SeriesBrief[] {
   const map = new Map<string, SeriesBrief>()
@@ -45,12 +46,16 @@ async function main(): Promise<void> {
   console.log(`Loading tier-1 OE data for ${year}...`)
   let { players, teams } = await loadTier1Data(client, year)
 
+  const citoKey = process.env.CITO_API_KEY?.trim() ?? ''
+  const powerRanks = citoKey ? await fetchGlobalPowerRanks(citoKey) : new Map()
+
   let briefs: SeriesBrief[] = []
 
   if (bulkPlayoffs2026) {
     console.log('Mode: 2026 Spring playoffs bulk backfill (all leagues)')
     briefs = collectSeriesBriefs(players, teams, null, {
       gameFilter: is2026SpringPlayoffGame,
+      powerRanks,
     })
   } else {
     const window = getHubWindow(players, 'monthly')
@@ -60,7 +65,7 @@ async function main(): Promise<void> {
     }
 
     let recapWindow = windowToWeeklyRecapWindow(window)
-    briefs = collectSeriesBriefs(players, teams, recapWindow)
+    briefs = collectSeriesBriefs(players, teams, recapWindow, { powerRanks })
 
     if (!briefs.length && client && process.env.RECAP_FROM_SUPABASE !== '1') {
       console.log('No series from local shards — loading fresh oe_slices from Supabase...')
@@ -68,12 +73,13 @@ async function main(): Promise<void> {
       const retryWindow = getHubWindow(players, 'monthly')
       if (retryWindow) {
         recapWindow = windowToWeeklyRecapWindow(retryWindow)
-        briefs = collectSeriesBriefs(players, teams, recapWindow)
+        briefs = collectSeriesBriefs(players, teams, recapWindow, { powerRanks })
       }
     }
 
     const recentBriefs = collectSeriesBriefs(players, teams, null, {
       gameFilter: (g) => isRecentCompletedGame(g, 14),
+      powerRanks,
     })
     briefs = dedupeBriefs([...briefs, ...recentBriefs])
     console.log(`Monthly window ${window.label}: ${briefs.length} series (incl. recent completions)`)
