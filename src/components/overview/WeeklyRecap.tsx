@@ -9,7 +9,13 @@ import { scrollEntranceStagger } from '../../theme/animations'
 import EntityLink from '../entities/EntityLink'
 import { LeagueLogo } from '../entities'
 import type { Champion, Player } from '../../hooks/useDashboardData'
-import { buildRecapEntityPatternsForText, linkifyRecapText, recapTeamsForLine } from '../../lib/recapEntityLink'
+import {
+  buildRecapEntityPatternsForText,
+  buildRecapLinkAllowlist,
+  linkifyRecapText,
+  recapTeamsForLine,
+  type RecapLinkAllowlist,
+} from '../../lib/recapEntityLink'
 
 interface WeeklyRecapProps {
   lines: WeeklyRecapLine[]
@@ -64,6 +70,7 @@ function RecapSegmentBody({
   champions,
   teams,
   allPlayers,
+  allowlist,
 }: {
   seg: WeeklyRecapSegment
   lineId: string
@@ -72,6 +79,7 @@ function RecapSegmentBody({
   champions: Champion[]
   teams: string[]
   allPlayers: Player[]
+  allowlist: RecapLinkAllowlist
 }) {
   if (seg.kind === 'team') {
     return (
@@ -81,7 +89,13 @@ function RecapSegmentBody({
     )
   }
 
-  const patterns = buildRecapEntityPatternsForText(seg.value, players, champions, teams)
+  const patterns = buildRecapEntityPatternsForText(
+    seg.value,
+    players,
+    champions,
+    teams,
+    allowlist,
+  )
 
   return (
     <span key={`${lineId}-t-${index}`}>
@@ -102,6 +116,7 @@ function RecapSummaryBody({
   allPlayers: Player[]
 }) {
   const lineTeams = recapTeamsForLine(line)
+  const allowlist = buildRecapLinkAllowlist(line, players)
 
   return (
     <>
@@ -115,6 +130,7 @@ function RecapSummaryBody({
           champions={champions}
           teams={lineTeams}
           allPlayers={allPlayers}
+          allowlist={allowlist}
         />
       ))}
     </>

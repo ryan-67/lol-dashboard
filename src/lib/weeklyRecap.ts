@@ -3,6 +3,7 @@ import { resolveTeamCanonicalName, teamMatchesCanonical } from './entities/slugs
 import { findTeamByName } from './teamAnalytics'
 import { normalizePosition, type RoleKey } from './playerRadar'
 import { buildSeriesFacts, type SeriesFacts } from './recapFacts'
+import { findPocketPick } from './recapPocketPick'
 import { recapTeamTag } from './recapTeamTag'
 import {
   enrichPlayerWithAdvancedStats,
@@ -141,10 +142,6 @@ interface SeriesPlayerStats {
   avgGd15: number
   avgKp: number
   champions: string[]
-}
-
-interface PocketPickStats extends SeriesPlayerStats {
-  pocketChamp: string
 }
 
 interface SeriesContext {
@@ -424,17 +421,63 @@ function buildWeekChampionCounts(games: ParsedGame[]): Map<string, number> {
   return counts
 }
 
-/** Career/split games a player has on a champion (from OE championPool or gameLog). */
-function playerChampCareerGames(players: Player[], playerName: string, champion: string): number {
-  const player = players.find((p) => p.name.toLowerCase() === playerName.toLowerCase())
-  if (!player) return 99
-  const fromPool = player.championPool?.find(
-    (c) => c.champion.toLowerCase() === champion.toLowerCase(),
-  )
-  if (fromPool) return fromPool.games
-  return (player.gameLog ?? []).filter(
-    (g) => g.champion.toLowerCase() === champion.toLowerCase(),
-  ).length
+/** Lightweight champion meta from the recap game window (presence, primary role, dates). */
+function buildChampionMetaFromGames(games: ParsedGame[]): import('../hooks/useDashboardData').Champion[] {
+  const totalGames = Math.max(games.length, 1)
+  type Acc = {
+    name: string
+    picks: number
+    roleCounts: Map<string, number>
+    gameDates: Set<string>
+  }
+  const byChamp = new Map<string, Acc>()
+
+  for (const g of games) {
+    const seenInGame = new Set<string>()
+    for (const p of g.players) {
+      if (!p.champion) continue
+      const key = p.champion
+      const acc = byChamp.get(key) ?? {
+        name: p.champion,
+        picks: 0,
+        roleCounts: new Map<string, number>(),
+        gameDates: new Set<string>(),
+      }
+      if (!seenInGame.has(key)) {
+        acc.picks++
+        seenInGame.add(key)
+        acc.gameDates.add(g.date)
+      }
+      if (p.role) {
+        acc.roleCounts.set(p.role, (acc.roleCounts.get(p.role) ?? 0) + 1)
+      }
+      byChamp.set(key, acc)
+    }
+  }
+
+  return [...byChamp.values()].map((acc) => {
+    let primaryRole = ''
+    let best = -1
+    for (const [role, n] of acc.roleCounts) {
+      if (n > best) {
+        best = n
+        primaryRole = role
+      }
+    }
+    const presence = (acc.picks / totalGames) * 100
+    return {
+      name: acc.name,
+      positions: primaryRole ? [primaryRole] : [],
+      picks: acc.picks,
+      bans: 0,
+      presence,
+      pickRate: presence,
+      winrate: 0,
+      avgKda: 0,
+      primaryRole: primaryRole || undefined,
+      gameDates: [...acc.gameDates].sort(),
+    }
+  })
 }
 
 function buildPlayerChampGameIndex(players: Player[]): Map<string, Map<string, number>> {
@@ -967,7 +1010,7 @@ function buildContextInsights(
   gap: LaneGapInfo | null,
   laneDuel: LaneDuelDomination | null,
   playerStats: SeriesPlayerStats[],
-  weekCounts: Map<string, number>,
+  _weekCounts: Map<string, number>,
   flags: {
     reverseSweep: boolean
     blowout: boolean
@@ -978,6 +1021,8 @@ function buildContextInsights(
   ledger: RecapLedger,
   id: string,
   salt: number,
+  championMeta: import('../hooks/useDashboardData').Champion[] = [],
+  asOfDate = '',
 ): SeriesContext[] {
   const insights: SeriesContext[] = []
   const role = gap ? ROLE_CHAT[gap.role] : 'mid'
@@ -1056,38 +1101,32 @@ function buildContextInsights(
     })
   }
 
-  // Pocket picks only when champ is rare in-window AND player rarely plays it (career ≤3 games).
-  const pocketPicks: PocketPickStats[] = winPlayers
-    .filter((p) => {
-      const rareChamp = p.champions.find((c) => {
-        const weekPresence = weekCounts.get(c) ?? 0
-        const career = playerChampCareerGames(players, p.name, c)
-        return weekPresence <= 2 && career <= 3 && p.avgKda >= 2.5
-      })
-      return Boolean(rareChamp)
-    })
-    .map((p) => {
-      const champ = p.champions.find((c) => {
-        const weekPresence = weekCounts.get(c) ?? 0
-        const career = playerChampCareerGames(players, p.name, c)
-        return weekPresence <= 2 && career <= 3
-      })!
-      return { ...p, pocketChamp: champ }
-    })
-    .sort((a, b) => b.avgKda - a.avgKda)
+  // Pocket picks: bottom-5% presence (not a recent riser) or off-role surprise only.
+  const playerChampGames = buildPlayerChampGameIndex(players)
+  const pocketHit = findPocketPick(
+    winPlayers.map((p) => ({
+      name: p.name,
+      champions: p.champions,
+      role: p.role,
+      avgKda: p.avgKda,
+    })),
+    championMeta,
+    asOfDate || bucket.games[bucket.games.length - 1]?.date || '',
+    playerChampGames,
+  )
 
-  if (pocketPicks.length) {
-    const p = pocketPicks[0]!
-    const r = p.role ? ROLE_CHAT[p.role] : ''
+  if (pocketHit) {
+    const r = pocketHit.role ? ROLE_CHAT[pocketHit.role] : ''
+    const offRoleNote = pocketHit.reason === 'off_role' ? ' off-role' : ''
     insights.push({
       kind: 'pocket_pick',
       priority: 78,
       segments: [
         segText(
           ledger.pick(`${id}-pp`, salt, [
-            ` — ${playerLabel(p.name)} pulled out the rare ${champLabel(p.pocketChamp)}${r ? ` ${r}` : ''}`,
-            `, ${playerLabel(p.name)} whipped out off-meta ${champLabel(p.pocketChamp)}${r ? ` ${r}` : ''} and it worked`,
-            ` with ${playerLabel(p.name)}'s rare ${champLabel(p.pocketChamp)} pocket pick paying off`,
+            ` — ${playerLabel(pocketHit.name)} pulled out the rare${offRoleNote} ${champLabel(pocketHit.champion)}${r ? ` ${r}` : ''}`,
+            `, ${playerLabel(pocketHit.name)} whipped out unexpected ${champLabel(pocketHit.champion)}${r ? ` ${r}` : ''} and it worked`,
+            ` with ${playerLabel(pocketHit.name)}'s rare ${champLabel(pocketHit.champion)} pocket pick paying off`,
           ]),
         ),
       ],
@@ -1237,6 +1276,7 @@ function summarizeSeries(
   lineIndex: number,
   ledger: RecapLedger,
   gameCatalog?: Record<string, GameCatalogEntry>,
+  championMeta: import('../hooks/useDashboardData').Champion[] = [],
 ): Omit<WeeklyRecapLine, 'score'> | null {
   const { teamA, teamB, games } = bucket
   if (!games.length) return null
@@ -1336,6 +1376,8 @@ function summarizeSeries(
     ledger,
     id,
     salt,
+    championMeta,
+    latestDate,
   )
 
   let added = 0
@@ -1373,6 +1415,8 @@ export function buildWeeklyRecapLines(
   if (!games.length) return []
 
   const weekCounts = buildWeekChampionCounts(games)
+  const allGamesForMeta = collectParsedGames(players, { gameCatalog })
+  const championMeta = buildChampionMetaFromGames(allGamesForMeta.length ? allGamesForMeta : games)
   const series = groupSeries(games)
   const ledger = new RecapLedger()
   const lines: WeeklyRecapLine[] = []
@@ -1385,7 +1429,16 @@ export function buildWeeklyRecapLines(
     const winsB = bucket.games.length - winsA
     if (!isValidSeriesScore(winsA, winsB)) continue
 
-    const line = summarizeSeries(bucket, teams, players, weekCounts, i, ledger, gameCatalog)
+    const line = summarizeSeries(
+      bucket,
+      teams,
+      players,
+      weekCounts,
+      i,
+      ledger,
+      gameCatalog,
+      championMeta,
+    )
     if (!line) continue
 
     const dominant = winsA >= winsB ? bucket.teamA : bucket.teamB
@@ -1511,6 +1564,9 @@ export function collectSeriesBriefs(
 
   const weekCounts = buildWeekChampionCounts(games)
   const playerChampGames = buildPlayerChampGameIndex(players)
+  // Presence/meta from full player logs (not just the recap window) for pocket-pick gating.
+  const allGamesForMeta = collectParsedGames(players, { gameCatalog })
+  const championMeta = buildChampionMetaFromGames(allGamesForMeta.length ? allGamesForMeta : games)
   const series = groupSeries(games)
   const ledger = new RecapLedger()
   const briefs: SeriesBrief[] = []
@@ -1576,9 +1632,19 @@ export function collectSeriesBriefs(
       victimSlump: vicWins > domWins ? 0 : victimSlump,
       playerChampGames,
       tournamentPeers,
+      champions: championMeta,
     })
 
-    const templateBase = summarizeSeries(bucket, teams, players, weekCounts, i, ledger, gameCatalog)
+    const templateBase = summarizeSeries(
+      bucket,
+      teams,
+      players,
+      weekCounts,
+      i,
+      ledger,
+      gameCatalog,
+      championMeta,
+    )
     if (!templateBase) continue
 
     const templateLine: WeeklyRecapLine = {

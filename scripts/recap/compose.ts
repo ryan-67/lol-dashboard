@@ -35,7 +35,7 @@ ROLE-SPECIFIC PERFORMANCE (critical — wrong metrics = failed recap):
 - TOP: gd@15, csd@15, xpd@15. "heavily gapped" only if notes say so (typically |gd@15| ≥ 800). ~500 gold is a slight lane edge, NOT a stomp.
 - JUNGLE / SUPPORT: kp %, k+a/min. Never judge them primarily on gd@15. Say "outjungled" for jungle, not "outlaned".
 - MID / ADC (carries): dmg share %, dmg%/gold%, kda. NEVER say an ADC was "completely gapped" from gd@15 — bot lane gold is shared. GD@15 for ADC is at most a mild "bot was starved early" note when extreme (≤ -1000) and notes say so.
-- Do NOT invent "pulled out the [champ]" lines unless facts.pocketPick is present (rare champ + low career games on it).
+- Do NOT invent "pulled out the [champ]" / "whipped out [champ]" lines unless facts.pocketPick is present. Pocket picks are ONLY bottom-5% presence champs (not recent risers) or true off-role surprises (e.g. rumble mid).
 
 ENTITY RULES:
 - [ENTITY_GLOSSARY] lists exact player ign and champion spellings for THIS series
@@ -199,7 +199,7 @@ ${correction}`)
 Must include {{WINNER}} and {{LOSER}} at least once each. Minimum 3–4 sentences (~320+ chars).
 Use tournament/advancement/elimination hints from facts.narrativeHints when present.
 Call out at least one standout AND one concern or loser bright spot — each with ROLE-CORRECT stats from facts.*.notes (top=gd@15, jg/sup=kp, mid/adc=dmg share — never "gapped" an ADC from gd@15).
-"fraud" only when a player's fraudEligible is true. Only mention rare pocket picks if facts.pocketPick is set.`,
+"fraud" only when a player's fraudEligible is true. Only mention "pulled out [champ]" if facts.pocketPick is set (bottom-5% presence or off-role — never common/meta champs).`,
   )
 
   return parts.join('\n\n')

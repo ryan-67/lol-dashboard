@@ -1,10 +1,11 @@
-import type { Team } from '../hooks/useDashboardData'
+import type { Champion, Team } from '../hooks/useDashboardData'
 import { resolveTeamCanonicalName, teamMatchesCanonical } from './entities/slugs'
 import { findTeamByName } from './teamAnalytics'
 import { type RoleKey } from './playerRadar'
 import { recapTeamTag } from './recapTeamTag'
 import { analyzeSeriesMomentum } from './seriesMomentum'
 import { compareSeriesGames } from './seriesGrouping'
+import { findPocketPick } from './recapPocketPick'
 
 export interface PlayerPerformanceFact {
   name: string
@@ -695,7 +696,7 @@ function buildTournamentImplicationHints(
 export function buildSeriesFacts(
   bucket: SeriesBucket,
   teams: Team[],
-  weekCounts: Map<string, number>,
+  _weekCounts: Map<string, number>,
   opts: {
     blowout: boolean
     seriesStreak: number
@@ -704,6 +705,8 @@ export function buildSeriesFacts(
     playerChampGames?: Map<string, Map<string, number>>
     /** Other series in the same event window (for advancement / elimination). */
     tournamentPeers?: TournamentSeriesRef[]
+    /** Split-level champion meta for rare/off-role pocket picks. */
+    champions?: Champion[]
   },
 ): SeriesFacts {
   const winsA = bucket.games.filter((g) => g.winner === bucket.teamA).length
@@ -758,25 +761,20 @@ export function buildSeriesFacts(
 
   const topCarry = winnerStars[0] ?? null
 
-  // Pocket pick only when champ is rare in the window AND player rarely plays it.
-  const pocket = winPlayers.find((p) => {
-    const champ = p.champions.find((c) => {
-      const weekPresence = weekCounts.get(c) ?? 0
-      const career = opts.playerChampGames?.get(p.name.toLowerCase())?.get(c.toLowerCase()) ?? 99
-      return weekPresence <= 2 && career <= 3 && p.avgKda >= 2.5
-    })
-    return Boolean(champ)
-  })
-  const pocketPick = pocket
-    ? {
-        name: pocket.name,
-        champion: pocket.champions.find((c) => {
-          const weekPresence = weekCounts.get(c) ?? 0
-          const career = opts.playerChampGames?.get(pocket.name.toLowerCase())?.get(c.toLowerCase()) ?? 99
-          return weekPresence <= 2 && career <= 3
-        })!,
-        role: pocket.role,
-      }
+  // Pocket pick: bottom-5% presence (not a recent riser) or off-role surprise.
+  const pocketHit = findPocketPick(
+    winPlayers.map((p) => ({
+      name: p.name,
+      champions: p.champions,
+      role: p.role,
+      avgKda: p.avgKda,
+    })),
+    opts.champions ?? [],
+    latestDate,
+    opts.playerChampGames,
+  )
+  const pocketPick = pocketHit
+    ? { name: pocketHit.name, champion: pocketHit.champion, role: pocketHit.role }
     : null
 
   const gameFlow = ordered.map((g, i) => ({
