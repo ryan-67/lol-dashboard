@@ -174,11 +174,66 @@ function validateLine(segments: WeeklyRecapSegment[], brief: SeriesBrief, narrat
       )
     }
   }
+
+  const stakes = tournamentStakeHints(brief)
+  if (stakes.length) {
+    const label = brief.facts.tournamentLabel ?? ''
+    const mentionsEvent =
+      !/MSI|Worlds|First Stand/i.test(label) ||
+      new RegExp(label.replace(/\s+/g, '\\s+'), 'i').test(narrative) ||
+      /\b(msi|worlds|first stand)\b/i.test(narrative)
+    const hasStakeLanguage =
+      /\b(eliminat|advances?|play-?in|bracket|sent home|goes home|next (?:faces?|round|up)|qualification|lower bracket|main bracket|reverse swept|blew a 2-0)\b/i.test(
+        narrative,
+      )
+    if (!mentionsEvent) {
+      throw new Error(`Recap must name the event (${label || 'MSI/Worlds/First Stand'})`)
+    }
+    if (!hasStakeLanguage && stakes.some((s) => /eliminat|advances?|play-?in|bracket|next faces?/i.test(s))) {
+      throw new Error(
+        'Missing required tournament stakes (advancement / elimination / next opponent / play-in / bracket)',
+      )
+    }
+  }
+
+  // Carry roles must not be described as "completely gapped" from lane gold.
+  if (/\b(completely gapped|heavily gapped|gapped every)\b/i.test(narrative)) {
+    const adcNames = [
+      ...brief.facts.winnerStars,
+      ...brief.facts.winnerConcerns,
+      ...brief.facts.loserStinkers,
+      ...brief.facts.loserBrightSpots,
+    ]
+      .filter((p) => p.role === 'adc')
+      .map((p) => p.name.toLowerCase())
+    for (const name of adcNames) {
+      const re = new RegExp(`${name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}[^.\\n]{0,40}gapped`, 'i')
+      if (re.test(narrative)) {
+        throw new Error(
+          `Do not say ADC ${name} was "gapped" from gd@15 — use dmg share / dmg%/gold% instead`,
+        )
+      }
+    }
+  }
+}
+
+function tournamentStakeHints(brief: SeriesBrief): string[] {
+  const hints = (brief.facts.narrativeHints ?? []).filter((h) =>
+    /\b(eliminat|advances?|play-?in|bracket|sent home|next faces?|qualification|lower bracket|tournament:|reverse swept|blew a 2-0)\b/i.test(
+      h,
+    ),
+  )
+  const label = brief.facts.tournamentLabel ?? ''
+  if (/MSI|Worlds|First Stand/i.test(label) && !hints.some((h) => /tournament:/i.test(h))) {
+    hints.unshift(`tournament: ${label} — name this event in the recap`)
+  }
+  return hints
 }
 
 function buildUserPrompt(brief: SeriesBrief, ragContext: string, correction?: string): string {
   const factsJson = factsToPromptJson(brief.facts)
   const glossaryJson = glossaryToPromptJson(buildRecapEntityGlossary(brief.facts))
+  const stakes = tournamentStakeHints(brief)
 
   const parts = [
     `[FACTS]
@@ -189,6 +244,14 @@ ${glossaryJson}`,
 ${ragContext || '(none — lean on facts.narrativeHints and stats)'}`,
   ]
 
+  if (stakes.length) {
+    parts.push(
+      `[TOURNAMENT_STAKES — REQUIRED in the recap opening or closing]
+${stakes.map((s) => `- ${s}`).join('\n')}
+You MUST weave at least one of these stakes into the recap (advancement, elimination, next opponent, play-in finals, bracket). Do not ignore this block.`,
+    )
+  }
+
   if (correction) {
     parts.push(`[CORRECTION — previous draft rejected]
 ${correction}`)
@@ -197,7 +260,7 @@ ${correction}`)
   parts.push(
     `Write the full recap for this ${brief.facts.tournamentLabel ?? brief.facts.league} series. Winner={{WINNER}} (${brief.facts.winnerAbbr}), Loser={{LOSER}} (${brief.facts.loserAbbr}), score ${brief.facts.score}.
 Must include {{WINNER}} and {{LOSER}} at least once each. Minimum 3–4 sentences (~320+ chars).
-Use tournament/advancement/elimination hints from facts.narrativeHints when present.
+${stakes.length ? 'REQUIRED: include tournament stakes from [TOURNAMENT_STAKES] (who advances / who goes home / who they face next).' : 'If narrativeHints include tournament context, include it.'}
 Call out at least one standout AND one concern or loser bright spot — each with ROLE-CORRECT stats from facts.*.notes (top=gd@15, jg/sup=kp, mid/adc=dmg share — never "gapped" an ADC from gd@15).
 "fraud" only when a player's fraudEligible is true. Only mention "pulled out [champ]" if facts.pocketPick is set (bottom-5% presence or off-role — never common/meta champs).`,
   )

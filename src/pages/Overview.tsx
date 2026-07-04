@@ -506,9 +506,11 @@ export default function Overview() {
   const [hubPeriod, setHubPeriod] = useState<HubPeriod>('weekly')
   const [displayPeriod, setDisplayPeriod] = useState<HubPeriod>('weekly')
   const [isPeriodPending, startPeriodTransition] = useTransition()
-  const [recapLoading, setRecapLoading] = useState(false)
+  // Start true so we never flash template recaps before Supabase AI cache loads.
+  const [recapLoading, setRecapLoading] = useState(true)
+  const [recapReady, setRecapReady] = useState(false)
 
-  const hubContentLoading = isPeriodPending || recapLoading
+  const hubContentLoading = isPeriodPending || recapLoading || !recapReady
 
   const handleHubPeriodChange = (period: HubPeriod) => {
     if (period === hubPeriod) return
@@ -581,21 +583,33 @@ export default function Overview() {
     if (!hubWindow) {
       setCachedRecapLines([])
       setRecapLoading(false)
+      setRecapReady(true)
       return
     }
 
     let cancelled = false
+    setRecapLoading(true)
+    setRecapReady(false)
     void fetchCachedWeeklyRecapLines(
       hubWindow.start,
       hubWindow.end,
       selectedLeagues,
       copy.recapLimit,
-    ).then((lines) => {
-      if (!cancelled) {
-        setCachedRecapLines(lines)
-        setRecapLoading(false)
-      }
-    })
+    )
+      .then((lines) => {
+        if (!cancelled) {
+          setCachedRecapLines(lines)
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setCachedRecapLines([])
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setRecapLoading(false)
+          setRecapReady(true)
+        }
+      })
     return () => {
       cancelled = true
     }

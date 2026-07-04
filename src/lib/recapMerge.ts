@@ -30,17 +30,30 @@ function seriesOccurrenceKey(line: WeeklyRecapLine): string {
   return `${line.date}|${seriesKey(winner, loser)}|${line.score.score}|${winner}`
 }
 
-function recapTextLength(line: WeeklyRecapLine): number {
+function recapQualityScore(line: WeeklyRecapLine): number {
+  let text = ''
   try {
-    return recapLineToText(line).length
+    text = recapLineToText(line)
   } catch {
     return line.segments.length
   }
+  let score = text.length
+  // Prefer recaps that include tournament stakes (advancement / elimination / next matchup).
+  if (/\b(eliminat|advances?|play-?in|bracket|sent home|goes home|next (?:faces?|round)|qualification|lower bracket|main bracket)\b/i.test(text)) {
+    score += 250
+  }
+  // Prefer role-correct carry language over "adc was gapped" style.
+  if (/\b(dmg share|damage share|dmg%\/gold%|k\+a\/min)\b/i.test(text)) score += 40
+  // Penalize broken template patterns ("DCG stay ice cold against DCG").
+  if (/\bstay ice cold against\b/i.test(text) && /\bagainst\s+([A-Za-z0-9.]+)\s+\1\b/i.test(text)) {
+    score -= 200
+  }
+  return score
 }
 
 function mergeRecapPair(a: WeeklyRecapLine, b: WeeklyRecapLine): WeeklyRecapLine {
-  // Prefer the richer AI narrative over short template fallbacks.
-  const primary = recapTextLength(a) >= recapTextLength(b) ? a : b
+  // Prefer richer AI narratives with tournament stakes over short/stale templates.
+  const primary = recapQualityScore(a) >= recapQualityScore(b) ? a : b
   const secondary = primary === a ? b : a
   // Prefer seriesId from the line that carries tournament metadata (template).
   const seriesId =

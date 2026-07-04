@@ -794,32 +794,10 @@ function buildResultSegments(
 ): WeeklyRecapSegment[] {
   const { reverseSweep, droppedGame1, blowout, upset, domSplitWr, vicSplitWr, hasPrefix } = flags
 
-  if (hasPrefix && (reverseSweep || droppedGame1)) {
-    return [
-      segTeam(dominant),
-      segText(` ${domWins}-${vicWins}`),
-    ]
-  }
-
-  if (hasPrefix && blowout) {
-    return [
-      segTeam(victim),
-      segText(` ${domWins}-0`),
-    ]
-  }
-
-  if (hasPrefix && domSplitWr >= 72) {
-    return [
-      segTeam(victim),
-      segText(` ${domWins}-${vicWins}`),
-    ]
-  }
-
-  if (hasPrefix && flags.victimSlump >= 2) {
-    return [
-      segTeam(dominant),
-      segText(` ${domWins}-${vicWins}`),
-    ]
+  // Prefix already named the teams — only append the score (never a second team token).
+  // Fixes "DCG stay ice cold against DCG 3-0" and "taking G2 3-2".
+  if (hasPrefix) {
+    return [segText(` ${domWins}-${vicWins}`)]
   }
 
   if (reverseSweep && domWins >= 2) {
@@ -1564,16 +1542,17 @@ export function collectSeriesBriefs(
 
   const weekCounts = buildWeekChampionCounts(games)
   const playerChampGames = buildPlayerChampGameIndex(players)
-  // Presence/meta from full player logs (not just the recap window) for pocket-pick gating.
+  // Presence/meta + tournament peers from full player logs (not just the recap window).
   const allGamesForMeta = collectParsedGames(players, { gameCatalog })
   const championMeta = buildChampionMetaFromGames(allGamesForMeta.length ? allGamesForMeta : games)
   const series = groupSeries(games)
+  const peerSeries = groupSeries(allGamesForMeta.length ? allGamesForMeta : games)
   const ledger = new RecapLedger()
   const briefs: SeriesBrief[] = []
 
   // First pass: lightweight refs for tournament advancement / elimination hints.
   const tournamentPeers: import('./recapFacts').TournamentSeriesRef[] = []
-  for (const bucket of series) {
+  for (const bucket of peerSeries) {
     if (!bucket.games.length) continue
     const winsA = bucket.games.filter((g) => g.winner === bucket.teamA).length
     const winsB = bucket.games.length - winsA

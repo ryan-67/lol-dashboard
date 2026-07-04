@@ -18,6 +18,7 @@ import { getHubWindow, windowToWeeklyRecapWindow } from '../../src/lib/weeklyWin
 import {
   createServiceClient,
   currentYear,
+  deleteConflictingRecapRows,
   fetchExistingRecapMeta,
   loadTier1Data,
   loadTier1DataFromSupabase,
@@ -137,7 +138,13 @@ async function main(): Promise<void> {
         rag_context: ragContext || null,
         model,
       })
-      console.log('  saved.')
+      const removed = await deleteConflictingRecapRows(client, {
+        series_id: brief.seriesId,
+        series_date: brief.date,
+        team_a: brief.teamA,
+        team_b: brief.teamB,
+      })
+      console.log(removed ? `  saved (removed ${removed} stale series_id row(s)).` : '  saved.')
     } catch (err) {
       console.error('  FAILED:', err instanceof Error ? err.message : err)
     }

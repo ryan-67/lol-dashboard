@@ -6,6 +6,7 @@ import { fileURLToPath } from 'url'
 import { config } from 'dotenv'
 import type { Player, Team } from '../../src/hooks/useDashboardData.ts'
 import { mergeSlices, type OEStore, type OEStoreMeta } from '../../src/lib/mergeSlices.ts'
+import { resolveTeamCanonicalName } from '../../src/lib/entities/slugs.ts'
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..')
 
@@ -156,4 +157,49 @@ export interface RecapRow {
 export async function upsertRecapRow(client: SupabaseClient, row: RecapRow): Promise<void> {
   const { error } = await client.from('weekly_recap_lines').upsert(row, { onConflict: 'series_id' })
   if (error) throw new Error(`Failed to upsert recap ${row.series_id}: ${error.message}`)
+}
+
+/**
+ * Remove stale recap rows for the same series date + matchup under a different series_id
+ * (e.g. old "Team Liquid Alienware" ids after canonical rename).
+ */
+export async function deleteConflictingRecapRows(
+  client: SupabaseClient,
+  row: Pick<RecapRow, 'series_id' | 'series_date' | 'team_a' | 'team_b'>,
+): Promise<number> {
+  const { data, error } = await client
+    .from('weekly_recap_lines')
+    .select('series_id, team_a, team_b')
+    .eq('series_date', row.series_date)
+
+  if (error) {
+    console.warn(`  warn: could not list recaps for ${row.series_date}: ${error.message}`)
+    return 0
+  }
+
+  const target = [resolveTeamCanonicalName(row.team_a), resolveTeamCanonicalName(row.team_b)]
+    .map((t) => t.toLowerCase())
+    .sort()
+
+  const orphanIds = (data ?? [])
+    .filter((r) => {
+      if (r.series_id === row.series_id) return false
+      const other = [
+        resolveTeamCanonicalName(String(r.team_a ?? '')),
+        resolveTeamCanonicalName(String(r.team_b ?? '')),
+      ]
+        .map((t) => t.toLowerCase())
+        .sort()
+      return other[0] === target[0] && other[1] === target[1]
+    })
+    .map((r) => r.series_id as string)
+
+  if (!orphanIds.length) return 0
+
+  const { error: delErr } = await client.from('weekly_recap_lines').delete().in('series_id', orphanIds)
+  if (delErr) {
+    console.warn(`  warn: failed to delete orphan recaps: ${delErr.message}`)
+    return 0
+  }
+  return orphanIds.length
 }
