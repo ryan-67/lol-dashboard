@@ -1,0 +1,34 @@
+{
+  "exported_at": "2026-07-06T23:00:51.165605+00:00",
+  "algo": "xgboost",
+  "inference_mode": "logistic_linear_v1",
+  "model_file": "series_model.json",
+  "trained_rows": 3474,
+  "trained_series": 1737,
+  "date_range": [
+    "2024-07-07",
+    "2026-06-28"
+  ],
+  "feature_count": 824,
+  "walk_forward_metrics": {
+    "aggregate": {
+      "log_loss": 0.6160873448482926,
+      "brier": 0.2122322848590467,
+      "accuracy": 0.6603252661285207
+    },
+    "baseline_aggregate": {
+      "log_loss": 0.6978171631858194,
+      "brier": 0.24443709509092681,
+      "accuracy": 0.5945182772581976
+    },
+    "beats_baseline": true,
+    "holdout_weeks": 20,
+    "holdout_rows": 960
+  },
+  "ship_gate_passed": true,
+  "phase3_modes": [
+    "prematch",
+    "draft",
+    "full"
+  ]
+}

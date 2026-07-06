@@ -27,6 +27,10 @@ import {
   type TavilySearchIntent,
 } from "../helpers/tavilySearch.ts";
 import { fetchEsportsMarketOdds, isOddsQuestion } from "../helpers/kalshi.ts";
+import {
+  buildPredictionPacket,
+  isMlAnalysisQuestion,
+} from "../helpers/predictionPacket.ts";
 import { isCareerQuestion, isPlayerChampionPerformanceAsk, isRosterDepthQuestion } from "../helpers/scope.ts";
 import { isWorldsHistoryQuestion, lookupWorldsHistory } from "../helpers/worldsHistory.ts";
 import {
@@ -297,7 +301,7 @@ export async function decideAndFetch(deps: DecideDeps): Promise<Evidence> {
   if (thread.isClarification) runTools = true;
   const runRag = scope.needs_rag;
 
-  const sources = { oracleElixir: false, rag: false, cito: false, web: false, schedule: false, kalshi: false, sentiment: false };
+  const sources = { oracleElixir: false, rag: false, cito: false, web: false, schedule: false, kalshi: false, sentiment: false, mlPrediction: false };
   let matchStats: Record<string, unknown> = {};
   let externalContext = "";
   let chartPrefix = "";
@@ -441,10 +445,30 @@ export async function decideAndFetch(deps: DecideDeps): Promise<Evidence> {
 
   // ---- Kalshi live odds (Layer 2 data source) ----
   let kalshiOddsBlock = "";
+  let kalshiMarkets: import("../helpers/kalshi.ts").KalshiMarketQuote[] = [];
   if (isOddsQuestion(message) || scope.scope === "lolesports_general" && /\b(predict|favorite)\b/i.test(message)) {
     const kalshi = await fetchEsportsMarketOdds(message, deps.kalshiApiKey);
     kalshiOddsBlock = kalshi.block;
+    kalshiMarkets = kalshi.markets;
     if (kalshi.markets.length) sources.kalshi = true;
+  }
+
+  // ---- ML prediction packet (Phase 3: prematch / draft / full) ----
+  let predictionPacketBlock = "";
+  let predictionPacket: import("../helpers/predictionPacket.ts").PredictionPacket | null = null;
+  let predictionMode: import("../helpers/predictionPacket.ts").PredictionMode | null = null;
+  if (isMlAnalysisQuestion(message) || draftAnalysisIntent) {
+    const pred = buildPredictionPacket({
+      message,
+      split: resolvedSplit,
+      league: filters.league,
+      draft: draftExtracted,
+      kalshiMarkets,
+    });
+    predictionPacketBlock = pred.block;
+    predictionPacket = pred.packet;
+    predictionMode = pred.packet?.mode ?? null;
+    if (pred.packet) sources.mlPrediction = true;
   }
 
   const webSearchIntent = detectWebSearchIntent(
@@ -613,6 +637,9 @@ export async function decideAndFetch(deps: DecideDeps): Promise<Evidence> {
     sentimentSnippets,
     sentimentContext,
     kalshiOddsBlock,
+    predictionPacketBlock,
+    predictionPacket,
+    predictionMode,
     draftAnalysisIntent,
     analysisIntent,
     resolvedSplit,

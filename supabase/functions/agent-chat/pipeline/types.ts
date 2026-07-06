@@ -53,6 +53,7 @@ export interface SourceTrace {
   schedule: boolean;
   kalshi: boolean;
   sentiment: boolean;
+  mlPrediction: boolean;
 }
 
 export interface Evidence {
@@ -92,6 +93,11 @@ export interface Evidence {
 
   /** Live Kalshi market block for synthesis (empty if none). */
   kalshiOddsBlock: string;
+
+  /** ML prediction packet block for synthesis (empty if none). */
+  predictionPacketBlock: string;
+  predictionPacket: import("../helpers/predictionPacket.ts").PredictionPacket | null;
+  predictionMode: import("../helpers/predictionPacket.ts").PredictionMode | null;
 
   /** Raw CitoAPI context (also merged into externalContext when present). */
   citoContext: string;

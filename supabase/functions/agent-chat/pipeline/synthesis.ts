@@ -12,6 +12,7 @@ import {
   finalMessages,
 } from "../helpers/prompts.ts";
 import { isOddsQuestion } from "../helpers/kalshi.ts";
+import { isMlAnalysisQuestion } from "../helpers/predictionPacket.ts";
 import { streamFallback, streamFinalAnswer } from "../helpers/stream.ts";
 import { pickFinalModel } from "../helpers/classify.ts";
 import { extractCandidateFacts, verifyFact, type VerifiedFact } from "../helpers/factVerifier.ts";
@@ -116,7 +117,9 @@ export async function synthesize(deps: SynthesisDeps): Promise<SynthesisResult> 
     draftAnalysisIntent: evidence.draftAnalysisIntent,
     sentimentContext: evidence.sentimentContext,
     kalshiOddsBlock: evidence.kalshiOddsBlock,
+    predictionPacketBlock: evidence.predictionPacketBlock,
     isOddsQuestion: isOddsQuestion(message),
+    isPredictionQuestion: isMlAnalysisQuestion(message) || Boolean(evidence.predictionPacket),
   };
 
   const finalModel = pickFinalModel(evidence.plan);

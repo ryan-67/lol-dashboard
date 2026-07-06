@@ -23,18 +23,43 @@ python scripts/ml/build_feature_mart.py
 # 2. Train + walk-forward-validate the series win-probability model
 python scripts/ml/train_series_model.py
 
-# 3. Export JSON artifacts for future Deno (Phase 3) inference
+# 3. Draft/comp artifacts (Phase 3b)
+python scripts/ml/train_draft_model.py
+
+# 4. Trend / condition recognition (GD@15 buckets, objectives, champ lift)
+python scripts/ml/build_trend_insights.py
+
+# 5. Team playstyle + player win conditions + strengths/weaknesses
+python scripts/ml/build_team_profiles.py
+
+# 6. Export + deploy JSON to supabase/functions/agent-chat/ml/
 python scripts/ml/export_artifacts.py
 ```
 
-Outputs land in `data/ml/` (gitignored — regenerate locally or in CI):
+Outputs land in `data/ml/` (gitignored — regenerate locally or in CI) and
+`supabase/functions/agent-chat/ml/` (committed — Deno edge function loads these):
 
 - `feature_mart.parquet` — training data, ~940 features, one row per (series, team perspective)
 - `team_form_snapshot.parquet` — current "as of now" rolling form per team, for live inference
 - `models/series_model.json` — trained XGBoost/LightGBM booster (winner picked automatically)
 - `models/feature_schema.json` — final (SHAP-pruned) feature list
 - `models/metrics.json` — walk-forward log-loss/Brier/accuracy vs naive baseline, calibration curve
-- `artifacts/` — the subset of the above re-packaged for Deno consumption
+- `artifacts/` — full artifact set re-packaged locally
+- `supabase/functions/agent-chat/ml/` — deployed subset for `predictionPacket.ts`
+
+## Phase 3 (nuckyAI integration)
+
+After the pipeline above, `helpers/predictionPacket.ts` loads artifacts and builds
+`[PREDICTION_PACKET]` blocks for three modes:
+
+| Mode | Use case |
+|------|----------|
+| `prematch` | Team vs team, no draft (+ optional Kalshi edge) |
+| `draft` | Comp vs comp from `[DRAFT_EXTRACTED]` |
+| `full` | Team + draft blended (65/35 prematch/draft) |
+
+Wired in `pipeline/toolDecider.ts`; synthesis prompts enforce `[PREDICTION_RULES]`.
+See [`docs/nuckyAI_model.md`](../../docs/nuckyAI_model.md) §8.
 
 ## Design notes
 
@@ -74,6 +99,6 @@ Outputs land in `data/ml/` (gitignored — regenerate locally or in CI):
   history rather than being backfilled with their home-region season form.
 - Team rebrand map only covers orgs already in `entityMap.ts`; anything
   missing there falls back to treating the OE name literally.
-- `predictionPacket.ts` / Deno-side scoring (Phase 3) is not implemented —
-  `export_artifacts.py` produces the JSON a future tree-traversal scorer
-  would consume, but nothing wires it into `agent-chat` yet.
+- Deno v1 uses a **scaled logistic linear approximation** of the XGBoost model
+  (`inference_bundle.json`), not full tree traversal — good enough for chat;
+  raw `series_model.json` is kept for a future native scorer.
