@@ -197,12 +197,37 @@ interface PredictionPacket {
 |-----------|-------------|----------|
 | **M0** | OE → RAG → Cito → Tavily fallback chain | Factual Q&A coverage |
 | **M1** | Feature mart + walk-forward validation harness | Measurable ML baseline |
-| **M2** | Series outcome model + `predictionPacket` in agent-chat | Competent matchup answers |
+| **M2** | Series outcome model (offline) | Competent matchup answers |
+| **M2.5** | `predictionPacket.ts` + Deno-side tree scorer in agent-chat | Wire model into nuckyAI chat |
 | **M3** | Draft leverage + patch buckets | Draft analysis quality |
 | **M4** | Automated retrain pipeline | Continuous improvement |
 | **M5** | Pre-match analysis UI | User-facing predictions |
 
 **M0 shipped:** 2026-07-03 (`agent-chat` Cito tier + Tavily 2-source verify).
+
+**M1 + M2 shipped (offline):** 2026-07-06 (`scripts/ml/` — see
+[scripts/ml/README.md](../scripts/ml/README.md) for pipeline details). Walk-forward
+holdout (20 weeks, 960 series-perspective rows): XGBoost log-loss 0.616 / Brier
+0.212 / accuracy 66.0% vs. naive "own recent series win-rate" baseline log-loss
+0.698 / Brier 0.244 / accuracy 59.5% — **beats the M2 ship gate.** (An earlier
+pass had a same-day head-to-head leak — the two perspective rows of a series
+could see each other's own outcome — that inflated accuracy to ~75%; fixed by
+computing both perspectives from identical pre-series state before updating
+history. 66% is the trustworthy number.) Top SHAP drivers are smooth and
+sensible: 20-game earned-gold-per-minute diff, top-lane gold-share diff,
+gold-spent-diff%, late-game gold@25 diff, 20-series win rate, ADC CS@20 diff,
+and decayed head-to-head win rate. `predictionPacket.ts` (M2.5) is not built
+yet — the raw tree-JSON model + feature schema + per-team current-form
+snapshot are exported to `data/ml/artifacts/` and ready for a Deno-side scorer
+to consume.
+
+**Known follow-up (found during M1, not yet fixed):** `scripts/ingest_csv.py`'s
+`TARGET_LEAGUES` filter only matches the literal league code `"LCS"`, but NA's
+top flight was tagged `"LTA"` / `"LTA N"` in Oracle's Elixir for the entire
+2025 season (reverted to `"LCS"` for 2026). That means the **dashboard/recap
+data currently has zero 2025 NA regional-season coverage.** The ML pipeline
+works around this with its own region grouping (`scripts/ml/oe_leagues.py`),
+but the dashboard ingest itself still needs the same fix.
 
 ---
 

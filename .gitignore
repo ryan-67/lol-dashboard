@@ -51,3 +51,6 @@ supabase/migrations/**
 
 scripts/rag-indexer/src/
 scripts/rag-indexer/tsconfig.json
+
+# ML pipeline generated artifacts (scripts/ml/) — regenerate via build_feature_mart.py etc.
+data/ml/

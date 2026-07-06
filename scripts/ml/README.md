@@ -1,0 +1,79 @@
+# nuckyAI ML pipeline (Phase 1 + 2)
+
+Implements the Feature Mart (Phase 1) and Series Outcome Model v1 (Phase 2) from
+[`docs/nuckyAI_model.md`](../../docs/nuckyAI_model.md). Offline, local-only —
+no Supabase Storage upload yet (Phase 3 scope).
+
+## Setup
+
+```bash
+pip install -r scripts/requirements-ml.txt
+```
+
+Requires the Oracle's Elixir CSVs in `lol/*.csv` (same files `scripts/ingest_csv.py`
+uses). Optional: `SUPABASE_URL` / `SUPABASE_SERVICE_ROLE_KEY` in `.env` to pull the
+Cito gold-timeline supplement (best-effort — the pipeline runs fine without it).
+
+## Pipeline
+
+```bash
+# 1. Build the feature mart (one row per series x team-perspective)
+python scripts/ml/build_feature_mart.py
+
+# 2. Train + walk-forward-validate the series win-probability model
+python scripts/ml/train_series_model.py
+
+# 3. Export JSON artifacts for future Deno (Phase 3) inference
+python scripts/ml/export_artifacts.py
+```
+
+Outputs land in `data/ml/` (gitignored — regenerate locally or in CI):
+
+- `feature_mart.parquet` — training data, ~940 features, one row per (series, team perspective)
+- `team_form_snapshot.parquet` — current "as of now" rolling form per team, for live inference
+- `models/series_model.json` — trained XGBoost/LightGBM booster (winner picked automatically)
+- `models/feature_schema.json` — final (SHAP-pruned) feature list
+- `models/metrics.json` — walk-forward log-loss/Brier/accuracy vs naive baseline, calibration curve
+- `artifacts/` — the subset of the above re-packaged for Deno consumption
+
+## Design notes
+
+- **Data source:** raw `lol/*.csv` (Oracle's Elixir), not the pre-aggregated
+  `oe_slices` Supabase table — the CSVs have the full per-game/per-player box
+  score (every `@10/15/20/25` diff, damage, vision, objectives) that the
+  aggregated slices don't retain.
+- **League continuity:** NA's OE league code changed `LCS` → `LTA`/`LTA N`
+  for the 2025 season then back to `LCS` for 2026. `oe_leagues.py` groups
+  these under one canonical `LCS` region so 2025 NA data isn't silently
+  dropped like it currently is in `scripts/ingest_csv.py`'s `TARGET_LEAGUES`
+  filter — **that's a real dashboard data gap worth fixing separately.**
+- **Team identity:** reuses `src/lib/entities/entityMap.ts`'s `TEAM_ENTITIES`
+  rebrand table (parsed directly, no duplicated JSON) so ratings/H2H survive
+  renames like DWG KIA → Dplus Kia.
+- **Series grouping:** a Python port of `src/lib/seriesGrouping.ts`'s Bo3/Bo5
+  algorithm, so the ML grain matches what the dashboard/recap pages call one
+  series.
+- **Walk-forward safety:** every rolling/H2H/roster feature is computed with
+  `shift(1)` or a single chronological pass, so a series' features never see
+  its own games or anything after it. Validation is by ISO calendar week
+  (expanding window), never a random split.
+- **Recency weighting:** `sample_weight = exp(-ln(2)/45 * days_ago)`, ~45 day half-life.
+- **CitoAPI's role:** OE is the base truth layer. Cito only fills gaps — a
+  historical gold-timeline "throw" signal (joined via `cito_game_linkage`,
+  safe for training since it's tied to a specific past game) and, separately,
+  current global power rankings (snapshot-only, no history — exposed via
+  `cito_supplement.fetch_current_power_ranks()` for future live/Phase-3 use
+  only, never joined into historical training rows to avoid leakage).
+- **Feature pruning:** the model is first trained on the full ~940-feature
+  set, then SHAP mean(|value|) drops near-zero-importance features (~25% in
+  practice), and a pruned model is retrained + re-validated.
+
+## Known limitations (documented, not blocking)
+
+- Minor-region/wildcard teams appearing at MSI/Worlds get their own (short)
+  history rather than being backfilled with their home-region season form.
+- Team rebrand map only covers orgs already in `entityMap.ts`; anything
+  missing there falls back to treating the OE name literally.
+- `predictionPacket.ts` / Deno-side scoring (Phase 3) is not implemented —
+  `export_artifacts.py` produces the JSON a future tree-traversal scorer
+  would consume, but nothing wires it into `agent-chat` yet.
