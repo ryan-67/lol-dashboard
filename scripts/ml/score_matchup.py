@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Local prematch scorer — mirrors Deno inference + recent-form blend.
+"""Local prematch scorer — mirrors Deno inference + form + region/SOS blend.
 
 Usage:
     python scripts/ml/score_matchup.py --team-a T1 --team-b "G2 Esports"
@@ -26,6 +26,7 @@ def score_structural(team_a: str, team_b: str) -> float:
     snap = json.loads((ML / "team_form_snapshot.json").read_text(encoding="utf-8"))
     h2h = json.loads((ML / "h2h_lookup.json").read_text(encoding="utf-8"))
     state = json.loads((ML / "team_inference_state.json").read_text(encoding="utf-8"))
+    strength = json.loads((ML / "region_strength.json").read_text(encoding="utf-8")).get("teams", {})
 
     if team_a not in snap or team_b not in snap:
         raise SystemExit(f"Team not in snapshot: {team_a in snap}, {team_b in snap}")
@@ -33,6 +34,8 @@ def score_structural(team_a: str, team_b: str) -> float:
     ts, os_ = snap[team_a]["stats"], snap[team_b]["stats"]
     series = state.get(team_a, {})
     h2h_wr = h2h.get(f"{team_a}|{team_b}", {}).get("winrate")
+    ra = strength.get(team_a, {}).get("rating")
+    rb = strength.get(team_b, {}).get("rating")
 
     logit = bundle["intercept"]
     for feat in bundle["features"]:
@@ -41,17 +44,23 @@ def score_structural(team_a: str, team_b: str) -> float:
             s = feat[5:]
             if s == "h2h_winrate_decayed" and h2h_wr is not None:
                 v = h2h_wr
+            elif s == "strength_elo" and ra is not None:
+                v = ra
             elif s in series:
                 v = series[s]
             elif s in ts:
                 v = ts[s]
         elif feat.startswith("opp_"):
             s = feat[4:]
-            if s in os_:
+            if s == "strength_elo" and rb is not None:
+                v = rb
+            elif s in os_:
                 v = os_[s]
         elif feat.startswith("diff_"):
             s = feat[5:]
-            if s in ts and s in os_:
+            if s in ("strength_elo", "region_strength_elo") and ra is not None and rb is not None:
+                v = ra - rb
+            elif s in ts and s in os_:
                 v = ts[s] - os_[s]
         mean = bundle.get("scalerMean", {}).get(feat)
         scale = bundle.get("scalerScale", {}).get(feat)
@@ -61,14 +70,37 @@ def score_structural(team_a: str, team_b: str) -> float:
     return sigmoid(logit)
 
 
-def blend_recent_form(team_a: str, team_b: str, base: float, weight: float = 0.35) -> tuple[float, str]:
+def blend_recent_form(team_a: str, team_b: str, base: float) -> tuple[float, float]:
     profiles = json.loads((ML / "team_profiles.json").read_text(encoding="utf-8")).get("teams", {})
     sa = profiles.get(team_a, {}).get("recentForm", {}).get("recentFormScore", 0.5)
     sb = profiles.get(team_b, {}).get("recentForm", {}).get("recentFormScore", 0.5)
     form_a = sa / (sa + sb)
-    blended = (1 - weight) * base + weight * form_a
-    note = profiles.get(team_a, {}).get("recentForm", {}).get("summary", "")
-    return blended, note
+    blended = 0.65 * base + 0.35 * form_a
+    return blended, form_a
+
+
+def strength_prob(team_a: str, team_b: str, cross_region: bool = False) -> float | None:
+    strength = json.loads((ML / "region_strength.json").read_text(encoding="utf-8"))
+    teams = strength.get("teams", {})
+    ra = teams.get(team_a, {}).get("rating")
+    rb = teams.get(team_b, {}).get("rating")
+    if ra is None or rb is None:
+        return None
+    scale = 72 if cross_region else 130
+    return sigmoid((ra - rb) / scale)
+
+
+def blend_all(team_a: str, team_b: str, structural: float, form_a: float) -> float:
+    profiles = json.loads((ML / "team_profiles.json").read_text(encoding="utf-8")).get("teams", {})
+    home_a = profiles.get(team_a, {}).get("homeRegion")
+    home_b = profiles.get(team_b, {}).get("homeRegion")
+    cross = bool(home_a and home_b and home_a != home_b)
+    sp = strength_prob(team_a, team_b, cross)
+    if sp is None:
+        return 0.65 * structural + 0.35 * form_a
+    if cross:
+        return 0.07 * structural + 0.05 * form_a + 0.88 * sp
+    return 0.20 * structural + 0.15 * form_a + 0.65 * sp
 
 
 def main() -> None:
@@ -78,13 +110,20 @@ def main() -> None:
     args = p.parse_args()
 
     base = score_structural(args.team_a, args.team_b)
-    blended, form_note = blend_recent_form(args.team_a, args.team_b, base)
+    _, form_a = blend_recent_form(args.team_a, args.team_b, base)
+    final = blend_all(args.team_a, args.team_b, base, form_a)
+    sp = strength_prob(args.team_a, args.team_b)
+
+    strength = json.loads((ML / "region_strength.json").read_text(encoding="utf-8"))
+    ta = strength.get("teams", {}).get(args.team_a, {})
+    tb = strength.get("teams", {}).get(args.team_b, {})
 
     print(f"\n{args.team_a} vs {args.team_b}")
     print(f"  Structural model P({args.team_a}): {base*100:.1f}%")
-    print(f"  With recent-form blend:        {blended*100:.1f}%")
-    if form_note:
-        print(f"  {args.team_a} form: {form_note}")
+    print(f"  Region/SOS strength: {ta.get('homeRegion')} {ta.get('rating')} vs {tb.get('homeRegion')} {tb.get('rating')}")
+    if sp is not None:
+        print(f"  Strength-implied P({args.team_a}):     {sp*100:.1f}%")
+    print(f"  Final blended P({args.team_a}):          {final*100:.1f}%")
 
 
 if __name__ == "__main__":

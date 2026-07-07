@@ -26,7 +26,7 @@ for p in (SCRIPTS_DIR, SCRIPTS_ROOT):
         sys.path.insert(0, str(p))
 
 from oe_csv_io import discover_local_csv_files, normalize_oe_row  # noqa: E402
-from oe_leagues import ALL_ALLOWED_LEAGUE_CODES  # noqa: E402
+from oe_leagues import ALL_ALLOWED_LEAGUE_CODES, region_for_league_code, TIER1_REGIONS  # noqa: E402
 from team_identity import canonical_team  # noqa: E402
 from series_grouping import ChronoGame, group_games_into_series, count_series_wins  # noqa: E402
 
@@ -43,6 +43,8 @@ MIN_PLAYER_GAMES = 12
 MIN_PLAYER_SPLIT = 6
 MIN_TEAM_PATTERN_GAMES = 18
 MIN_LIFT_PP = 12
+MIN_DEVIATION_INSIGHT_PP = 15
+MIN_REGION_GD_DEVIATION = 55
 
 # Eye-test overrides when stats are borderline (Inspired / LYON jungler-centric).
 JG_CENTRIC_TEAMS = frozenset({"Lyon Gaming", "LYON"})
@@ -109,6 +111,7 @@ def load_player_rows(years: list[str]) -> pd.DataFrame:
                 "ka15": ka15,
                 "kp": float(row.get("killparticipation", 0) or 0) * 100,
                 "dmg_share": float(row.get("damageshare", 0) or 0) * 100,
+                "dpm": float(row.get("dpm", 0) or 0) if row.get("dpm") not in (None, "") else np.nan,
             })
     return pd.DataFrame(rows)
 
@@ -147,6 +150,7 @@ def load_team_rows(years: list[str]) -> pd.DataFrame:
                 "team": canonical_team(str(row.get("teamname", "")).strip()),
                 "won": int(float(row.get("result", 0) or 0) == 1),
                 "gd15": float(gd15) if gd15 not in (None, "") else np.nan,
+                "dpm": float(row.get("dpm", 0) or 0) if row.get("dpm") not in (None, "") else np.nan,
                 "firstdragon": int(float(row.get("firstdragon", 0) or 0) == 1),
                 "firstherald": int(float(row.get("firstherald", 0) or 0) == 1),
                 "firsttower": int(float(row.get("firsttower", 0) or 0) == 1),
@@ -193,6 +197,114 @@ def load_chrono_games(years: list[str]) -> list[ChronoGame]:
             continue
         games.append(ChronoGame(id=gid, game_date=gdate, winner=winner, loser=loser))
     return games
+
+
+def infer_team_home_region(player_df: pd.DataFrame, team: str) -> str | None:
+    sub = player_df[player_df["team"] == team]
+    if sub.empty:
+        return None
+    domestic = sub[~sub["league"].isin({"MSI", "WLDs", "FST"})]
+    src = domestic if not domestic.empty else sub
+    regions = src["league"].map(region_for_league_code).dropna()
+    if regions.empty:
+        return None
+    return str(regions.mode().iloc[0])
+
+
+def build_home_region_map(player_df: pd.DataFrame, teams: list[str]) -> dict[str, str]:
+    return {t: r for t in teams if (r := infer_team_home_region(player_df, t))}
+
+
+def build_region_stat_baselines_from_players(
+    player_df: pd.DataFrame, home_map: dict[str, str],
+) -> dict[str, dict]:
+    """Per-region team GD@15 / DPM medians for deviation narratives."""
+    team_stats = (
+        player_df.groupby("team")
+        .agg(gd15=("gd15", "mean"), dpm=("dpm", "mean"))
+        .reset_index()
+    )
+    team_stats["home_region"] = team_stats["team"].map(home_map)
+    baselines: dict[str, dict] = {
+        "_global": {
+            "golddiffat15_median": round(float(player_df["gd15"].median()), 1),
+            "dpm_median": round(float(player_df["dpm"].median()), 1),
+        },
+    }
+    for region in TIER1_REGIONS:
+        rg = team_stats[team_stats["home_region"] == region]
+        if len(rg) < 4:
+            continue
+        baselines[region] = {
+            "golddiffat15_median": round(float(rg["gd15"].median()), 1),
+            "dpm_median": round(float(rg["dpm"].median()), 1),
+            "teams": int(len(rg)),
+        }
+    return baselines
+
+
+def build_region_role_medians(
+    player_df: pd.DataFrame, home_map: dict[str, str],
+) -> dict[tuple[str, str], dict[str, float]]:
+    df = player_df.copy()
+    df["home_region"] = df["team"].map(home_map)
+    out: dict[tuple[str, str], dict[str, float]] = {}
+    for (region, role), grp in df.groupby(["home_region", "role"]):
+        if pd.isna(region) or role not in LANE_ROLES + ("jungle", "support"):
+            continue
+        valid = grp["gd15"].dropna()
+        if len(valid) < 40:
+            continue
+        out[(str(region), str(role))] = {"gd15": float(valid.median())}
+    return out
+
+
+def build_stat_deviations(
+    team_games: pd.DataFrame,
+    team: str,
+    home_region: str | None,
+    baselines: dict[str, dict],
+) -> list[dict]:
+    """Highlight where a team differs from regional / global tier-1 medians."""
+    if not home_region:
+        return []
+    sub = team_games[team_games["team"] == team]
+    if len(sub) < MIN_TEAM_PATTERN_GAMES:
+        return []
+    region_base = baselines.get(home_region, {})
+    global_base = baselines.get("_global", {})
+    out: list[dict] = []
+
+    checks = [
+        ("golddiffat15", "gd15", "GD@15", MIN_REGION_GD_DEVIATION),
+        ("dpm", "dpm", "DPM", 25),
+    ]
+    for stat_key, col, label, min_dev in checks:
+        if col not in sub.columns or f"{stat_key}_median" not in region_base:
+            continue
+        team_avg = float(sub[col].mean())
+        reg_med = float(region_base[f"{stat_key}_median"])
+        glob_med = float(global_base.get(f"{stat_key}_median", reg_med))
+        vs_region = team_avg - reg_med
+        if abs(vs_region) < min_dev:
+            continue
+        vs_global = team_avg - glob_med
+        out.append({
+            "stat": stat_key,
+            "teamAvg": round(team_avg, 1),
+            "regionMedian": round(reg_med, 1),
+            "globalMedian": round(glob_med, 1),
+            "vsRegion": round(vs_region, 1),
+            "vsGlobal": round(vs_global, 1),
+            "favorable": vs_region > 0,
+            "label": (
+                f"{team} {label} {team_avg:+.0f} vs {home_region} median {reg_med:+.0f} "
+                f"(global tier-1 {glob_med:+.0f}) — "
+                f"{'stronger' if vs_region > 0 else 'weaker'} than typical {home_region} competition"
+            ),
+        })
+    out.sort(key=lambda x: abs(x["vsRegion"]), reverse=True)
+    return out[:4]
 
 
 def build_recent_form(chrono_games: list[ChronoGame], team: str, limit: int = 3) -> dict:
@@ -380,11 +492,16 @@ def build_playstyle(player_df: pd.DataFrame, team: str, roster: dict[str, str]) 
 
 
 def build_player_win_conditions(
-    player_df: pd.DataFrame, team: str, roster: dict[str, str],
+    player_df: pd.DataFrame,
+    team: str,
+    roster: dict[str, str],
+    home_region: str | None,
+    role_medians: dict[tuple[str, str], dict[str, float]],
 ) -> list[dict]:
     sub = player_df[player_df["team"] == team]
     out: list[dict] = []
     roster_players = set(roster.values()) if roster else None
+    team_baseline_wr = float(sub["won"].mean()) if len(sub) else 0.5
 
     for player, grp in sub.groupby("player"):
         if roster_players and player not in roster_players:
@@ -394,29 +511,31 @@ def build_player_win_conditions(
         valid = grp[grp["gd15"].notna()]
         if len(valid) < MIN_PLAYER_SPLIT * 2:
             continue
-        ahead = valid[valid["gd15"] >= 0]
-        behind = valid[valid["gd15"] < 0]
+        role = grp["role"].mode().iloc[0] if not grp["role"].empty else "unknown"
+        median_gd = role_medians.get((home_region or "", role), {}).get("gd15", 0.0)
+        ahead = valid[valid["gd15"] >= median_gd]
+        behind = valid[valid["gd15"] < median_gd]
         if len(ahead) < MIN_PLAYER_SPLIT or len(behind) < MIN_PLAYER_SPLIT:
             continue
         ahead_wr = ahead["won"].mean() * 100
         behind_wr = behind["won"].mean() * 100
         lift = ahead_wr - behind_wr
-        if abs(lift) < MIN_LIFT_PP:
+        if abs(lift) < MIN_DEVIATION_INSIGHT_PP:
             continue
-        role = grp["role"].mode().iloc[0] if not grp["role"].empty else "unknown"
         if lift > 0:
             label = (
-                f"{team} wins significantly more when {player} is ahead at 15m "
-                f"({ahead_wr:.0f}% in {len(ahead)}g vs {behind_wr:.0f}% when behind)"
+                f"When {player} beats {home_region or 'role'} {role} median GD@15 ({median_gd:+.0f}), "
+                f"{team} wins {ahead_wr:.0f}% ({lift:+.0f}pp vs {team_baseline_wr*100:.0f}% team baseline)"
             )
         else:
             label = (
-                f"{team} win rate drops when {player} is behind at 15m "
-                f"({behind_wr:.0f}% behind vs {ahead_wr:.0f}% ahead)"
+                f"When {player} trails {home_region or 'role'} {role} median GD@15 ({median_gd:+.0f}), "
+                f"{team} wins only {behind_wr:.0f}% ({abs(lift):.0f}pp below baseline)"
             )
         out.append({
             "player": player,
             "role": role,
+            "medianGd15": round(median_gd, 1),
             "games": len(valid),
             "aheadGames": len(ahead),
             "aheadWinrate": round(ahead_wr, 1),
@@ -427,7 +546,7 @@ def build_player_win_conditions(
             "label": label,
         })
     out.sort(key=lambda x: abs(x["liftPp"]), reverse=True)
-    return out[:8]
+    return out[:6]
 
 
 def _team_pattern(
@@ -503,11 +622,21 @@ def build_team_patterns(team_games: pd.DataFrame, team: str) -> tuple[list[dict]
 
 
 def derive_strengths_weaknesses(
-    playstyle: dict, win_patterns: list[dict], loss_patterns: list[dict],
-    player_conditions: list[dict], recent_form: dict | None = None,
+    playstyle: dict,
+    win_patterns: list[dict],
+    loss_patterns: list[dict],
+    player_conditions: list[dict],
+    stat_deviations: list[dict],
+    recent_form: dict | None = None,
 ) -> tuple[list[str], list[str]]:
     strengths: list[str] = []
     weaknesses: list[str] = []
+
+    for dev in stat_deviations[:2]:
+        if dev.get("favorable"):
+            strengths.append(dev["label"])
+        else:
+            weaknesses.append(dev["label"])
 
     strengths.append(playstyle["summary"])
     if playstyle.get("skirmishNote"):
@@ -521,15 +650,15 @@ def derive_strengths_weaknesses(
         else:
             strengths.append(recent_form["summary"])
 
-    for pc in player_conditions[:3]:
-        if pc["favorableWhenAhead"] and pc.get("liftPp", 0) >= MIN_LIFT_PP:
+    for pc in player_conditions[:2]:
+        if pc["favorableWhenAhead"] and pc.get("liftPp", 0) >= MIN_DEVIATION_INSIGHT_PP:
             strengths.append(pc["label"])
 
-    for pc in player_conditions[:5]:
-        if not pc["favorableWhenAhead"] and pc.get("liftPp", 0) <= -MIN_LIFT_PP:
+    for pc in player_conditions[:4]:
+        if not pc["favorableWhenAhead"] and pc.get("liftPp", 0) <= -MIN_DEVIATION_INSIGHT_PP:
             weaknesses.append(pc["label"])
 
-    for p in win_patterns[:2]:
+    for p in win_patterns[:1]:
         if not p.get("generic"):
             strengths.append(p["label"])
     for p in loss_patterns[:1]:
@@ -539,8 +668,15 @@ def derive_strengths_weaknesses(
     return strengths[:5], weaknesses[:4]
 
 
-def build_profiles(player_df: pd.DataFrame, team_games: pd.DataFrame, chrono_games: list[ChronoGame]) -> dict:
+def build_profiles(
+    player_df: pd.DataFrame,
+    team_games: pd.DataFrame,
+    chrono_games: list[ChronoGame],
+) -> dict:
     teams = sorted(set(player_df["team"].unique()) | set(team_games["team"].unique()))
+    home_map = build_home_region_map(player_df, teams)
+    baselines = build_region_stat_baselines_from_players(player_df, home_map)
+    role_medians = build_region_role_medians(player_df, home_map)
     out: dict[str, dict] = {}
     as_of = player_df["date"].max() if not player_df.empty else ""
 
@@ -550,22 +686,28 @@ def build_profiles(player_df: pd.DataFrame, team_games: pd.DataFrame, chrono_gam
         team_player = player_df[player_df["team"] == team]
         if len(team_player) < MIN_TEAM_PATTERN_GAMES:
             continue
+        home_region = home_map.get(team)
         roster = infer_roster(player_df, team)
         playstyle = build_playstyle(player_df, team, roster)
-        player_conditions = build_player_win_conditions(player_df, team, roster)
+        player_conditions = build_player_win_conditions(
+            player_df, team, roster, home_region, role_medians,
+        )
+        stat_deviations = build_stat_deviations(team_games, team, home_region, baselines)
         win_patterns, loss_patterns = build_team_patterns(team_games, team)
         recent_form = build_recent_form(chrono_games, team)
         strengths, weaknesses = derive_strengths_weaknesses(
-            playstyle, win_patterns, loss_patterns, player_conditions, recent_form,
+            playstyle, win_patterns, loss_patterns, player_conditions, stat_deviations, recent_form,
         )
         league_rows = team_player.sort_values("date")
         out[team] = {
             "league": league_rows["league"].iloc[-1] if not league_rows.empty else "",
+            "homeRegion": home_region,
             "gamesAnalyzed": len(team_player["gameid"].unique()),
             "asOf": as_of,
             "roster": roster,
             "playstyle": playstyle,
             "recentForm": recent_form,
+            "statDeviations": stat_deviations,
             "playerWinConditions": player_conditions,
             "winPatterns": win_patterns,
             "lossPatterns": loss_patterns,

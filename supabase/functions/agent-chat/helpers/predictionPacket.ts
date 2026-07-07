@@ -19,6 +19,7 @@ import {
   getTeamAliases,
   getTeamFormSnapshot,
   getTeamProfile,
+  teamStrengthRating,
   type TeamProfile,
 } from "./mlArtifacts.ts";
 import { estimateConfidence, scorePrematch } from "./linearScorer.ts";
@@ -36,6 +37,8 @@ export interface TeamProfileSummary {
   recentFormSummary?: string;
   recentFormScore?: number;
   recentFormMomentum?: string;
+  homeRegion?: string;
+  statDeviations?: string[];
   strengths: string[];
   weaknesses: string[];
   playerWinConditions: string[];
@@ -135,6 +138,8 @@ function summarizeTeamProfile(team: string, profile: TeamProfile): TeamProfileSu
     recentFormSummary: profile.recentForm?.summary,
     recentFormScore: profile.recentForm?.recentFormScore,
     recentFormMomentum: profile.recentForm?.momentum,
+    homeRegion: profile.homeRegion,
+    statDeviations: profile.statDeviations?.map((d) => d.label),
     strengths: profile.strengths,
     weaknesses: profile.weaknesses,
     playerWinConditions: profile.playerWinConditions.map((p) => p.label),
@@ -267,11 +272,27 @@ function buildRisks(winProb: number, confidence: number, mode: PredictionMode): 
   return risks.slice(0, 3);
 }
 
+function sigmoid(x: number): number {
+  if (x >= 0) {
+    const z = Math.exp(-x);
+    return 1 / (1 + z);
+  }
+  const z = Math.exp(x);
+  return z / (1 + z);
+}
+
+function strengthWinProb(teamA: string, teamB: string, scale = 130): number | null {
+  const ratingA = teamStrengthRating(teamA);
+  const ratingB = teamStrengthRating(teamB);
+  if (ratingA == null || ratingB == null) return null;
+  return sigmoid((ratingA - ratingB) / scale);
+}
+
 function blendWithRecentForm(
   teamA: string,
   teamB: string,
   baseProbA: number,
-): { probA: number; formNotes: string[] } {
+): { probA: number; formProbA: number; formNotes: string[] } {
   const profA = getTeamProfile(teamA);
   const profB = getTeamProfile(teamB);
   const scoreA = profA?.recentForm?.recentFormScore ?? 0.5;
@@ -283,9 +304,42 @@ function blendWithRecentForm(
   if (profA?.recentForm?.summary) formNotes.push(`${teamA}: ${profA.recentForm.summary}`);
   if (profB?.recentForm?.summary) formNotes.push(`${teamB}: ${profB.recentForm.summary}`);
   formNotes.push(
-    `Recent-form blend (${Math.round(weight * 100)}% weight): ${teamA} ${Math.round(formProbA * 100)}% vs structural model ${Math.round(baseProbA * 100)}% → combined ${Math.round(probA * 100)}%`,
+    `Recent-form blend (${Math.round(weight * 100)}% weight): ${teamA} ${Math.round(formProbA * 100)}% vs structural ${Math.round(baseProbA * 100)}%`,
   );
-  return { probA, formNotes };
+  return { probA, formProbA, formNotes };
+}
+
+function blendWithRegionStrength(
+  teamA: string,
+  teamB: string,
+  structuralProbA: number,
+  formProbA: number,
+): { probA: number; notes: string[] } {
+  const profA = getTeamProfile(teamA);
+  const profB = getTeamProfile(teamB);
+  const homeA = profA?.homeRegion;
+  const homeB = profB?.homeRegion;
+  const crossRegion = Boolean(homeA && homeB && homeA !== homeB);
+
+  const scale = crossRegion ? 72 : 130;
+  const strengthProbA = strengthWinProb(teamA, teamB, scale);
+  if (strengthProbA == null) {
+    return { probA: 0.65 * structuralProbA + 0.35 * formProbA, notes: [] };
+  }
+
+  const ratingA = teamStrengthRating(teamA)!;
+  const ratingB = teamStrengthRating(teamB)!;
+
+  const wStrength = crossRegion ? 0.88 : 0.65;
+  const wStruct = crossRegion ? 0.07 : 0.20;
+  const wForm = crossRegion ? 0.05 : 0.15;
+  const probA = wStruct * structuralProbA + wForm * formProbA + wStrength * strengthProbA;
+
+  const notes = [
+    `Region/SOS Elo${crossRegion ? " (cross-region)" : ""}: ${teamA} (${homeA ?? "?"}) ${ratingA.toFixed(0)} vs ${teamB} (${homeB ?? "?"}) ${ratingB.toFixed(0)} → ${Math.round(strengthProbA * 100)}% ${teamA}`,
+    `Final blend (${Math.round(wStruct * 100)}% structural / ${Math.round(wForm * 100)}% form / ${Math.round(wStrength * 100)}% SOS): ${Math.round(probA * 100)}% ${teamA}`,
+  ];
+  return { probA, notes };
 }
 
 function relevantTrends(
@@ -297,7 +351,10 @@ function relevantTrends(
   if (teamName) {
     const profile = getTeamProfile(teamName);
     if (profile) {
-      for (const label of profile.playerWinConditions.slice(0, 3).map((p) => p.label)) {
+      for (const dev of profile.statDeviations?.slice(0, 2) ?? []) {
+        out.push({ label: dev.label, favorable: dev.favorable, lift: dev.vsRegion });
+      }
+      for (const label of profile.playerWinConditions.slice(0, 2).map((p) => p.label)) {
         out.push({ label, favorable: true });
       }
       for (const p of profile.winPatterns.slice(0, 1)) {
@@ -493,9 +550,11 @@ export function buildPredictionPacket(opts: BuildPredictionOptions): {
 
   let winProbA = score.winProbA;
   let drivers = buildDrivers(score.featureContributions);
+  const structuralProbA = winProbA;
   const formBlend = blendWithRecentForm(teamA, teamB, winProbA);
-  winProbA = formBlend.probA;
-  drivers = [...formBlend.formNotes.slice(0, 2), ...drivers].slice(0, 6);
+  const regionBlend = blendWithRegionStrength(teamA, teamB, structuralProbA, formBlend.formProbA);
+  winProbA = regionBlend.notes.length ? regionBlend.probA : formBlend.probA;
+  drivers = [...regionBlend.notes, ...formBlend.formNotes.slice(0, 1), ...drivers].slice(0, 6);
 
   let draftEdges: DraftEdge[] | undefined;
   let playerNotes: PredictionPacket["playerChampionNotes"];

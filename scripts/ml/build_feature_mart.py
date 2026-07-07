@@ -42,6 +42,7 @@ from feature_engineering import (  # noqa: E402
     build_series_rows,
 )
 from oe_loader import LOL_DIR, build_team_game_rows  # noqa: E402
+from region_elo import attach_strength_features, walk_forward_ratings, write_strength_snapshot  # noqa: E402
 
 DEFAULT_OUT = ROOT / "data" / "ml" / "feature_mart.parquet"
 DEFAULT_SNAPSHOT_OUT = ROOT / "data" / "ml" / "team_form_snapshot.parquet"
@@ -103,6 +104,13 @@ def main() -> None:
     print("Adding diff features + series-grain history (H2H, streaks, roster, rest)...")
     mart = add_diff_features(mart)
     mart = add_series_history_features(mart)
+
+    print("Attaching region/team strength (walk-forward Elo)...")
+    home, region_elo, team_elo, elo_timeline = walk_forward_ratings(team_games)
+    mart = attach_strength_features(mart, elo_timeline, home)
+    strength_path = ROOT / "data" / "ml" / "artifacts" / "region_strength.json"
+    write_strength_snapshot(team_games, strength_path)
+    print(f"  Region Elo: { {k: round(v, 1) for k, v in region_elo.items()} }")
 
     before = len(mart)
     mart = mart[mart["date"] >= cutoff_date].reset_index(drop=True)

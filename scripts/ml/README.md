@@ -36,6 +36,30 @@ python scripts/ml/build_team_profiles.py
 python scripts/ml/export_artifacts.py
 ```
 
+### After new OE games ingest (keep predictions current)
+
+When Oracle's Elixir CSVs in `lol/` are updated (GitHub Actions **Refresh Dashboard Data**, or manual `python scripts/ingest_csv.py`), re-run the **full ML pipeline** so rolling form, recent series, and region Elo include the latest games:
+
+```bash
+cd D:/Projects/lol-dashboard
+pip install -r scripts/requirements-ml.txt   # once per venv
+
+python scripts/ml/build_feature_mart.py      # rebuild mart + region_strength.json
+python scripts/ml/train_series_model.py    # retrain + SHAP prune (optional but recommended)
+python scripts/ml/build_team_profiles.py   # playstyle, SOS-adjusted insights
+python scripts/ml/train_draft_model.py     # if draft artifacts needed
+python scripts/ml/build_trend_insights.py  # optional trend buckets
+python scripts/ml/export_artifacts.py      # deploy to supabase/functions/agent-chat/ml/
+
+npx supabase functions deploy agent-chat     # push new JSON to edge
+```
+
+Quick sanity check before deploy:
+
+```bash
+python scripts/ml/score_matchup.py --team-a T1 --team-b "G2 Esports"
+```
+
 Outputs land in `data/ml/` (gitignored — regenerate locally or in CI) and
 `supabase/functions/agent-chat/ml/` (committed — Deno edge function loads these):
 
@@ -92,6 +116,12 @@ See [`docs/nuckyAI_model.md`](../../docs/nuckyAI_model.md) §8.
 - **Feature pruning:** the model is first trained on the full ~940-feature
   set, then SHAP mean(|value|) drops near-zero-importance features (~25% in
   practice), and a pruned model is retrained + re-validated.
+- **Region / SOS weighting:** `region_elo.py` maintains walk-forward team +
+  region Elo from domestic + international results. Cross-region prematch
+  inference blends **65% SOS strength / 15% recent form / 20% structural**
+  (`predictionPacket.ts`) so LEC rolling stats are not treated as equal to LCK.
+  Team profiles surface **median-deviation** insights (vs regional + global
+  tier-1 baselines) instead of generic “ahead at 15 = win” copy.
 
 ## Known limitations (documented, not blocking)
 

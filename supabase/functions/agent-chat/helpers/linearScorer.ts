@@ -5,6 +5,7 @@ import {
   getTeamFormSnapshot,
   getTeamInferenceState,
   getH2hLookup,
+  teamStrengthRating,
   type InferenceBundle,
 } from "./mlArtifacts.ts";
 
@@ -28,6 +29,10 @@ export function statValue(
 ): number {
   if (feature.startsWith("team_")) {
     const stat = feature.slice(5);
+    if (stat === "strength_elo") {
+      const v = teamStrengthRating(ctx.teamA);
+      if (v != null) return v;
+    }
     if (stat === "h2h_winrate_decayed") {
       return h2hWinrate ?? bundle.medians[feature] ?? 0.5;
     }
@@ -43,12 +48,21 @@ export function statValue(
   }
   if (feature.startsWith("opp_")) {
     const stat = feature.slice(4);
+    if (stat === "strength_elo") {
+      const v = teamStrengthRating(ctx.teamB);
+      if (v != null) return v;
+    }
     const v = oppStats[stat];
     if (v != null) return v;
     return bundle.medians[feature] ?? 0;
   }
   if (feature.startsWith("diff_")) {
     const stat = feature.slice(5);
+    if (stat === "strength_elo" || stat === "region_strength_elo") {
+      const a = teamStrengthRating(ctx.teamA);
+      const b = teamStrengthRating(ctx.teamB);
+      if (a != null && b != null) return a - b;
+    }
     const t = teamStats[stat];
     const o = oppStats[stat];
     if (t != null && o != null) return t - o;

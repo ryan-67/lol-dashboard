@@ -11,6 +11,7 @@ import draftSynergy from "../ml/draft_synergy.json" with { type: "json" };
 import playerChampRatings from "../ml/player_champ_ratings.json" with { type: "json" };
 import trendInsights from "../ml/trend_insights.json" with { type: "json" };
 import teamProfiles from "../ml/team_profiles.json" with { type: "json" };
+import regionStrength from "../ml/region_strength.json" with { type: "json" };
 import modelMetadata from "../ml/model_metadata.json" with { type: "json" };
 
 export type TeamFormEntry = {
@@ -181,6 +182,17 @@ export type TeamProfile = {
   lossPatterns: Array<{ label: string; liftPp?: number; favorable?: boolean }>;
   strengths: string[];
   weaknesses: string[];
+  homeRegion?: string;
+  statDeviations?: Array<{
+    stat: string;
+    teamAvg: number;
+    regionMedian: number;
+    globalMedian: number;
+    vsRegion: number;
+    vsGlobal: number;
+    favorable: boolean;
+    label: string;
+  }>;
 };
 
 export function getTeamProfiles(): Record<string, TeamProfile> {
@@ -195,6 +207,24 @@ export function getTeamProfile(team: string): TeamProfile | null {
 
 export function getModelMetadata() {
   return modelMetadata as Record<string, unknown>;
+}
+
+export type RegionStrengthSnapshot = {
+  generatedAt?: string;
+  eloScale?: number;
+  regions?: Record<string, number>;
+  teams?: Record<string, { homeRegion: string; rating: number; regionRating: number }>;
+  statBaselines?: Record<string, Record<string, number>>;
+};
+
+export function getRegionStrength(): RegionStrengthSnapshot {
+  return regionStrength as RegionStrengthSnapshot;
+}
+
+export function teamStrengthRating(team: string): number | null {
+  const snap = getRegionStrength();
+  const entry = snap.teams?.[team];
+  return entry?.rating ?? null;
 }
 
 export function currentPatchBucket(): string {

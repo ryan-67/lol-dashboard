@@ -42,6 +42,7 @@ NON_FEATURE_COLS = {
     "series_id", "date", "end_date", "team", "opponent", "team_wins_series",
     "score_for", "score_against", "sample_weight", "wf_week",
     "team_roster", "opponent_roster",
+    "team_home_region", "opp_home_region",
     # total_games (how many games the series actually took) is only known
     # AFTER the series ends — e.g. it reveals a sweep vs a full-distance
     # series — so it must never be a pre-series feature. best_of (Bo3 vs Bo5)

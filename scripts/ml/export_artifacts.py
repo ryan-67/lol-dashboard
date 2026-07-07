@@ -42,6 +42,8 @@ for p in (SCRIPTS_DIR, SCRIPTS_ROOT):
         sys.path.insert(0, str(p))
 
 from team_identity import load_team_rebrand_map  # noqa: E402
+from region_elo import write_strength_snapshot  # noqa: E402
+from oe_loader import build_team_game_rows, LOL_DIR  # noqa: E402
 
 MODEL_DIR = ROOT / "data" / "ml" / "models"
 MART_PATH = ROOT / "data" / "ml" / "feature_mart.parquet"
@@ -209,6 +211,7 @@ def deploy_artifacts() -> None:
         "player_champ_ratings.json",
         "trend_insights.json",
         "team_profiles.json",
+        "region_strength.json",
         "model_metadata.json",
     ]
     for name in names:
@@ -283,6 +286,16 @@ def main() -> None:
     }
     with (ARTIFACTS_DIR / "model_metadata.json").open("w", encoding="utf-8") as f:
         json.dump(metadata, f, indent=2)
+
+    strength_path = ARTIFACTS_DIR / "region_strength.json"
+    if not strength_path.exists():
+        try:
+            years = [str(y) for y in range(pd.Timestamp.utcnow().year - 1, pd.Timestamp.utcnow().year + 1)]
+            tg = build_team_game_rows(years, LOL_DIR)
+            write_strength_snapshot(tg, strength_path)
+            print(f"  Built region_strength.json ({len(json.loads(strength_path.read_text())['teams'])} teams)")
+        except Exception as exc:
+            print(f"WARNING: could not build region_strength.json: {exc}", file=sys.stderr)
 
     deploy_artifacts()
 
