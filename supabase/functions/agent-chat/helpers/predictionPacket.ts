@@ -9,6 +9,7 @@
 
 import type { DraftExtraction } from "./draftTypes.ts";
 import type { KalshiMarketQuote } from "./kalshi.ts";
+import { pickMatchupKalshiEdge } from "./kalshi.ts";
 import {
   currentPatchBucket,
   getChampMeta,
@@ -18,9 +19,7 @@ import {
   getTeamAliases,
   getTeamFormSnapshot,
   getTeamProfile,
-  getTrendInsights,
   type TeamProfile,
-  type TrendInsight,
 } from "./mlArtifacts.ts";
 import { estimateConfidence, scorePrematch } from "./linearScorer.ts";
 
@@ -29,9 +28,14 @@ export type PredictionMode = "prematch" | "draft" | "full" | "team_profile";
 export interface TeamProfileSummary {
   team: string;
   playstyle: string;
+  focusMode?: string;
   skirmishNote?: string | null;
   earlyFocusRoles: string[];
   roleEarlyKa15: Record<string, number>;
+  roleEarlyKp15?: Record<string, number>;
+  recentFormSummary?: string;
+  recentFormScore?: number;
+  recentFormMomentum?: string;
   strengths: string[];
   weaknesses: string[];
   playerWinConditions: string[];
@@ -123,9 +127,14 @@ function summarizeTeamProfile(team: string, profile: TeamProfile): TeamProfileSu
   return {
     team,
     playstyle: profile.playstyle.summary,
+    focusMode: profile.playstyle.focusMode,
     skirmishNote: profile.playstyle.skirmishNote,
     earlyFocusRoles: profile.playstyle.earlyFocusRoles,
     roleEarlyKa15: profile.playstyle.roleEarlyKa15,
+    roleEarlyKp15: profile.playstyle.roleEarlyKp15,
+    recentFormSummary: profile.recentForm?.summary,
+    recentFormScore: profile.recentForm?.recentFormScore,
+    recentFormMomentum: profile.recentForm?.momentum,
     strengths: profile.strengths,
     weaknesses: profile.weaknesses,
     playerWinConditions: profile.playerWinConditions.map((p) => p.label),
@@ -258,45 +267,51 @@ function buildRisks(winProb: number, confidence: number, mode: PredictionMode): 
   return risks.slice(0, 3);
 }
 
+function blendWithRecentForm(
+  teamA: string,
+  teamB: string,
+  baseProbA: number,
+): { probA: number; formNotes: string[] } {
+  const profA = getTeamProfile(teamA);
+  const profB = getTeamProfile(teamB);
+  const scoreA = profA?.recentForm?.recentFormScore ?? 0.5;
+  const scoreB = profB?.recentForm?.recentFormScore ?? 0.5;
+  const formProbA = scoreA / (scoreA + scoreB);
+  const weight = 0.35;
+  const probA = (1 - weight) * baseProbA + weight * formProbA;
+  const formNotes: string[] = [];
+  if (profA?.recentForm?.summary) formNotes.push(`${teamA}: ${profA.recentForm.summary}`);
+  if (profB?.recentForm?.summary) formNotes.push(`${teamB}: ${profB.recentForm.summary}`);
+  formNotes.push(
+    `Recent-form blend (${Math.round(weight * 100)}% weight): ${teamA} ${Math.round(formProbA * 100)}% vs structural model ${Math.round(baseProbA * 100)}% → combined ${Math.round(probA * 100)}%`,
+  );
+  return { probA, formNotes };
+}
+
 function relevantTrends(
   patch: string,
-  teamStats?: Record<string, number>,
   teamName?: string,
 ): Array<{ label: string; favorable: boolean; lift?: number }> {
-  const insights = getTrendInsights();
-  const global = insights.teamTrends?.global ?? [];
-  const patchTrends = insights.teamTrends?.byPatch?.[patch] ?? [];
-  const pool: TrendInsight[] = [...patchTrends, ...global];
-
   const out: Array<{ label: string; favorable: boolean; lift?: number }> = [];
 
   if (teamName) {
     const profile = getTeamProfile(teamName);
     if (profile) {
-      for (const p of profile.winPatterns.slice(0, 2)) {
-        out.push({ label: p.label, favorable: true, lift: p.liftPp });
+      for (const label of profile.playerWinConditions.slice(0, 3).map((p) => p.label)) {
+        out.push({ label, favorable: true });
       }
-      for (const p of profile.lossPatterns.slice(0, 1)) {
-        out.push({ label: p.label, favorable: false, lift: p.liftPp });
+      for (const p of profile.winPatterns.slice(0, 1)) {
+        if (!p.generic) out.push({ label: p.label, favorable: true, lift: p.liftPp });
+      }
+      if (profile.recentForm?.summary) {
+        out.push({
+          label: profile.recentForm.summary,
+          favorable: profile.recentForm.momentum !== "cold",
+        });
       }
     }
   }
 
-  const gd15 = teamStats?.golddiffat15_last10 ?? teamStats?.golddiffat15_last20;
-
-  for (const t of pool.slice(0, 8)) {
-    if (out.length >= 4) break;
-    if (t.metric === "gd15" && gd15 != null && t.threshold != null) {
-      const matches =
-        (t.direction === "above" && gd15 >= t.threshold) ||
-        (t.direction === "below" && gd15 <= t.threshold);
-      if (matches) {
-        out.push({ label: t.label, favorable: Boolean(t.favorable), lift: t.lift });
-      }
-    } else if (out.length < 3) {
-      out.push({ label: t.label, favorable: Boolean(t.favorable), lift: t.lift });
-    }
-  }
   return out.slice(0, 5);
 }
 
@@ -357,24 +372,18 @@ function playerChampionNotes(
 
 function matchKalshiEdge(
   teamA: string,
+  teamB: string,
   markets: KalshiMarketQuote[],
   modelProbA: number,
 ): KalshiEdgeInfo | undefined {
-  if (!markets.length) return undefined;
-  const normA = normTeam(teamA);
-  const hit = markets.find((m) => {
-    const blob = `${m.title} ${m.subtitle}`.toLowerCase();
-    return normTeam(blob).includes(normA) || blob.includes(teamA.toLowerCase());
-  }) ?? markets[0];
-  if (!hit?.yesPercent) return undefined;
-  const implied = hit.yesPercent / 100;
-  const model = modelProbA;
+  const hit = pickMatchupKalshiEdge(teamA, teamB, markets, modelProbA);
+  if (!hit) return undefined;
   return {
     ticker: hit.ticker,
     title: hit.title,
-    impliedYesPercent: hit.yesPercent,
-    modelProbPercent: Math.round(model * 1000) / 10,
-    edgePp: Math.round((model - implied) * 1000) / 10,
+    impliedYesPercent: hit.impliedYesPercent,
+    modelProbPercent: hit.modelProbPercent,
+    edgePp: hit.edgePp,
   };
 }
 
@@ -430,7 +439,7 @@ export function buildPredictionPacket(opts: BuildPredictionOptions): {
         ...scoreA.edges.slice(0, 2).map((e) => `${e.champion} ${e.winrate}% patch WR`),
       ],
       risks: buildRisks(winProbA, confidence, "draft"),
-    trends: relevantTrends(patch, undefined, leftTeam),
+    trends: relevantTrends(patch, leftTeam),
       teamProfiles,
       draftEdges: [
         ...scoreA.edges.map((e) => ({ ...e, side: "A" as const })),
@@ -483,6 +492,11 @@ export function buildPredictionPacket(opts: BuildPredictionOptions): {
   }
 
   let winProbA = score.winProbA;
+  let drivers = buildDrivers(score.featureContributions);
+  const formBlend = blendWithRecentForm(teamA, teamB, winProbA);
+  winProbA = formBlend.probA;
+  drivers = [...formBlend.formNotes.slice(0, 2), ...drivers].slice(0, 6);
+
   let draftEdges: DraftEdge[] | undefined;
   let playerNotes: PredictionPacket["playerChampionNotes"];
 
@@ -505,7 +519,6 @@ export function buildPredictionPacket(opts: BuildPredictionOptions): {
   }
 
   const confidence = estimateConfidence(teamA, teamB, winProbA);
-  const teamStats = snapshot[teamA]?.stats;
   const teamProfiles = attachTeamProfiles(teamA, teamB);
 
   const packet: PredictionPacket = {
@@ -516,14 +529,17 @@ export function buildPredictionPacket(opts: BuildPredictionOptions): {
     winProbA: Math.round(winProbA * 1000) / 1000,
     winProbB: Math.round((1 - winProbA) * 1000) / 1000,
     confidence: Math.round(confidence * 1000) / 1000,
-    drivers: buildDrivers(score.featureContributions),
+    drivers,
     risks: buildRisks(winProbA, confidence, mode),
-    trends: relevantTrends(patch, teamStats, teamA),
+    trends: [
+      ...relevantTrends(patch, teamA),
+      ...relevantTrends(patch, teamB),
+    ].slice(0, 6),
     teamProfiles,
     draftEdges,
     playerChampionNotes: playerNotes,
     kalshiEdge: opts.kalshiMarkets?.length
-      ? matchKalshiEdge(teamA, opts.kalshiMarkets, winProbA)
+      ? matchKalshiEdge(teamA, teamB, opts.kalshiMarkets, winProbA)
       : undefined,
     modelAsOf: snapshot[teamA]?.as_of,
   };
@@ -594,13 +610,23 @@ function formatTeamProfileBlock(tag: string, profile: TeamProfileSummary): strin
     `  playstyle: ${profile.playstyle}`,
   ];
   if (profile.skirmishNote) lines.push(`  skirmish: ${profile.skirmishNote}`);
+  if (profile.recentFormSummary) lines.push(`  recent_form: ${profile.recentFormSummary}`);
+  if (profile.focusMode) lines.push(`  focus_mode: ${profile.focusMode}`);
   if (profile.earlyFocusRoles.length) {
-    lines.push(`  early_focus_roles: ${profile.earlyFocusRoles.join(", ")}`);
+    lines.push(`  early_focus_lanes: ${profile.earlyFocusRoles.join(", ")}`);
   }
   const ka = Object.entries(profile.roleEarlyKa15)
+    .filter(([role]) => role !== "support" || profile.focusMode === "jungle_centric")
     .map(([role, v]) => `${role} K+A@15=${v}`)
     .join("; ");
   if (ka) lines.push(`  role_early_ka15: ${ka}`);
+  if (profile.roleEarlyKp15 && Object.keys(profile.roleEarlyKp15).length) {
+    const kp = Object.entries(profile.roleEarlyKp15)
+      .filter(([role]) => ["top", "mid", "adc", "jungle"].includes(role))
+      .map(([role, v]) => `${role} KP@15=${v}%`)
+      .join("; ");
+    if (kp) lines.push(`  role_early_kp15: ${kp}`);
+  }
   if (profile.roster && Object.keys(profile.roster).length) {
     const rosterStr = Object.entries(profile.roster).map(([r, p]) => `${r}=${p}`).join(", ");
     lines.push(`  roster: ${rosterStr}`);

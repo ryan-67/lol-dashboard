@@ -213,7 +213,7 @@ Your streamed reply is shown directly to the user. NEVER echo, quote, or restate
 
   if (ctx?.predictionPacketBlock?.trim()) {
     parts.push(
-      `[PREDICTION_RULES]\nUse ONLY the [PREDICTION_PACKET] block for win probabilities, confidence, drivers, risks, trend insights, team profiles (playstyle, K+A@15 by role, player win conditions, strengths/weaknesses), draft edges, player-champion notes, and Kalshi edge (if present). Explain drivers and team styles in plain language — do NOT invent new percentages or player trends. If confidence < 60%, say the model isn't confident enough for a strong pick. For team_profile mode, focus on playstyle and win/loss patterns — do not invent a series win %. Never cite stats from training memory.`,
+      `[PREDICTION_RULES]\nUse ONLY the [PREDICTION_PACKET] block for win probabilities, confidence, drivers, risks, trend insights, team profiles (lane focus playstyle — top/mid/bot NOT jungle/support by default, player win conditions, recent form, strengths/weaknesses), draft edges, player-champion notes, and Kalshi edge (if present). Do NOT cite generic "win more when ahead in gold" snowball stats — prioritize player-specific win conditions and lane focus. For Kalshi: use ONLY head-to-head series markets from the block — never tournament-outright lines (e.g. "win MSI") as series odds. If no head-to-head Kalshi market is listed, say you don't have series odds. Explain drivers in plain language — do NOT invent new percentages. If confidence < 60%, say the model isn't confident enough for a strong pick. Never cite stats from training memory.`,
     );
   } else if (ctx?.isPredictionQuestion) {
     parts.push(

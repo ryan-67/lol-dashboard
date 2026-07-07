@@ -150,6 +150,107 @@ function resolveLoLSeries(message: string): string[] {
   return [...out];
 }
 
+function isOutrightMarket(title: string, subtitle: string): boolean {
+  const hay = `${title} ${subtitle}`.toLowerCase();
+  const outrightHints =
+    /\b(win (the )?(msi|worlds|tournament|event|championship|title)|tournament winner|outright|to win msi|to win worlds|msi champion|worlds champion|win msi|win worlds)\b/;
+  const matchupHints = /\b(vs\.?|versus| v |beat|defeat|match|series|game \d|map \d|bo[35])\b/i;
+  return outrightHints.test(hay) && !matchupHints.test(hay);
+}
+
+/** Both teams must appear — excludes tournament-outright markets (e.g. "T1 wins MSI"). */
+export function isHeadToHeadMarket(
+  m: { title?: string; subtitle?: string },
+  teamA: string,
+  teamB: string,
+): boolean {
+  const title = m.title ?? "";
+  const subtitle = m.subtitle ?? "";
+  if (isOutrightMarket(title, subtitle)) return false;
+  const hay = `${title} ${subtitle}`.toLowerCase();
+  const tokensA = [teamA.toLowerCase(), normKalshiTeam(teamA)];
+  const tokensB = [teamB.toLowerCase(), normKalshiTeam(teamB)];
+  const hasA = tokensA.some((t) => t.length >= 2 && hay.includes(t));
+  const hasB = tokensB.some((t) => t.length >= 2 && hay.includes(t));
+  return hasA && hasB;
+}
+
+function normKalshiTeam(value: string): string {
+  return value.toLowerCase().replace(/[^a-z0-9]/g, "");
+}
+
+/** Which team does YES on this market refer to? Returns canonical-ish token or null. */
+export function inferYesTeamFromMarket(
+  m: { title?: string; subtitle?: string },
+  teamA: string,
+  teamB: string,
+): string | null {
+  const hay = `${m.title ?? ""} ${m.subtitle ?? ""}`.toLowerCase();
+  for (const team of [teamA, teamB]) {
+    const t = team.toLowerCase();
+    const n = normKalshiTeam(team);
+    if (
+      new RegExp(`\\b${t.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b.*\\b(win|beat|defeat|advance|qualify)`, "i").test(hay) ||
+      new RegExp(`(will|does)\\s+.*\\b${t.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`, "i").test(hay)
+    ) {
+      return team;
+    }
+    if (n.length >= 2 && hay.includes(n) && /\bwin\b/.test(hay)) return team;
+  }
+  // "Team A vs Team B" with no winner named — cannot infer side
+  return null;
+}
+
+export function filterHeadToHeadMarkets(
+  markets: KalshiMarketQuote[],
+  teamA: string,
+  teamB: string,
+): KalshiMarketQuote[] {
+  return markets.filter((m) => isHeadToHeadMarket(m, teamA, teamB));
+}
+
+export function pickMatchupKalshiEdge(
+  teamA: string,
+  teamB: string,
+  markets: KalshiMarketQuote[],
+  modelProbA: number,
+): MatchupKalshiEdge | null {
+  const h2h = filterHeadToHeadMarkets(markets, teamA, teamB);
+  if (!h2h.length) return null;
+
+  for (const m of h2h) {
+    if (m.yesPercent == null) continue;
+    const yesTeam = inferYesTeamFromMarket(m, teamA, teamB);
+    const implied = m.yesPercent / 100;
+    let modelForYes = modelProbA;
+    if (yesTeam && normKalshiTeam(yesTeam) === normKalshiTeam(teamB)) {
+      modelForYes = 1 - modelProbA;
+    } else if (yesTeam && normKalshiTeam(yesTeam) !== normKalshiTeam(teamA)) {
+      continue;
+    }
+    return {
+      ticker: m.ticker,
+      title: m.subtitle ? `${m.title} — ${m.subtitle}` : m.title,
+      impliedYesPercent: m.yesPercent,
+      modelProbPercent: Math.round(modelForYes * 1000) / 10,
+      edgePp: Math.round((modelForYes - implied) * 1000) / 10,
+      marketKind: "head_to_head",
+      yesTeam: yesTeam ?? teamA,
+    };
+  }
+  return null;
+}
+
+export interface MatchupKalshiEdge {
+  ticker: string;
+  title: string;
+  impliedYesPercent: number;
+  modelProbPercent: number;
+  edgePp: number;
+  marketKind?: string;
+  yesTeam?: string;
+}
+
 function marketMatchesTeams(
   m: NonNullable<KalshiMarketsResponse["markets"]>[0],
   teamTokens: string[],
@@ -157,6 +258,21 @@ function marketMatchesTeams(
   if (!teamTokens.length) return true;
   const hay = `${m.title ?? ""} ${m.subtitle ?? ""} ${m.ticker ?? ""}`.toLowerCase();
   return teamTokens.some((t) => hay.includes(t.toLowerCase()));
+}
+
+function extractOrderedTeamPair(message: string): [string, string] | null {
+  const found: string[] = [];
+  const seen = new Set<string>();
+  for (const match of message.matchAll(TEAM_TOKENS)) {
+    const tok = match[0]!.trim();
+    const key = tok.toLowerCase();
+    if (!seen.has(key)) {
+      seen.add(key);
+      found.push(tok);
+    }
+  }
+  if (found.length >= 2) return [found[0]!, found[1]!];
+  return null;
 }
 
 function isLoLMarket(m: NonNullable<KalshiMarketsResponse["markets"]>[0]): boolean {
@@ -280,9 +396,26 @@ export async function fetchEsportsMarketOdds(
     });
 
     const priced = quotes.filter((q) => q.yesPercent != null);
-    const display = (priced.length ? priced : quotes).slice(0, 12);
+    let display = (priced.length ? priced : quotes);
+
+    const pair = extractOrderedTeamPair(message);
+    if (pair) {
+      const h2h = filterHeadToHeadMarkets(display, pair[0], pair[1]);
+      if (h2h.length) {
+        display = h2h;
+      } else {
+        display = display.filter((q) => !isOutrightMarket(q.title, q.subtitle));
+      }
+    } else {
+      display = display.filter((q) => !isOutrightMarket(q.title, q.subtitle));
+    }
+    display = display.slice(0, 12);
 
     if (!display.length) return { block: "", markets: [] };
+
+    const header = pair
+      ? "Live Kalshi head-to-head markets for this matchup (implied yes %). For series predictions use ONLY markets naming BOTH teams — never tournament-outright lines (e.g. 'win MSI')."
+      : "Live Kalshi League of Legends markets (implied yes % from market or orderbook).";
 
     const lines = display.map((q) => {
       const label = q.subtitle ? `${q.title} — ${q.subtitle}` : q.title;
@@ -293,7 +426,7 @@ export async function fetchEsportsMarketOdds(
     });
 
     return {
-      block: `[KALSHI_ODDS]\nLive Kalshi League of Legends markets (implied yes % from market or orderbook). Cite these numbers casually; do NOT invent odds beyond this block.\n${lines.join("\n")}`,
+      block: `[KALSHI_ODDS]\n${header} Cite these numbers casually; do NOT invent odds beyond this block.\n${lines.join("\n")}`,
       markets: display,
     };
   } catch {

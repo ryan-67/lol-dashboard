@@ -155,10 +155,18 @@ export type TeamProfile = {
     earlyFocusRoles: string[];
     secondaryRoles: string[];
     roleEarlyKa15: Record<string, number>;
+    roleEarlyKp15?: Record<string, number>;
     roleAvgGd15?: Record<string, number>;
+    focusMode?: string;
     tempo: string;
     summary: string;
     skirmishNote?: string | null;
+  };
+  recentForm?: {
+    recentFormScore: number;
+    momentum: string;
+    summary: string;
+    series: Array<{ label: string; opponent: string; score: string; won: boolean }>;
   };
   playerWinConditions: Array<{
     player: string;
@@ -169,7 +177,7 @@ export type TeamProfile = {
     favorableWhenAhead: boolean;
     label: string;
   }>;
-  winPatterns: Array<{ label: string; liftPp?: number; favorable?: boolean }>;
+  winPatterns: Array<{ label: string; liftPp?: number; favorable?: boolean; generic?: boolean }>;
   lossPatterns: Array<{ label: string; liftPp?: number; favorable?: boolean }>;
   strengths: string[];
   weaknesses: string[];
