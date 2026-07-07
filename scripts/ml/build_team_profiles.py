@@ -10,6 +10,7 @@ Usage:
 from __future__ import annotations
 
 import json
+import math
 import sys
 from collections import defaultdict
 from datetime import datetime, timezone
@@ -60,8 +61,28 @@ def _json_safe(obj):
     if isinstance(obj, (np.integer,)):
         return int(obj)
     if isinstance(obj, (np.floating,)):
-        return float(obj)
+        val = float(obj)
+        return val if math.isfinite(val) else None
     raise TypeError(type(obj))
+
+
+def _sanitize_nan(obj):
+    """Recursively replace NaN/Infinity floats with None.
+
+    Python's json.dump writes bare NaN/Infinity tokens (valid to Python's own
+    json.loads) but Deno's JSON.parse rejects them, crashing the edge worker at
+    boot. Every float that reaches the artifact must be finite or null.
+    """
+    if isinstance(obj, float):
+        return obj if math.isfinite(obj) else None
+    if isinstance(obj, (np.floating,)):
+        val = float(obj)
+        return val if math.isfinite(val) else None
+    if isinstance(obj, dict):
+        return {k: _sanitize_nan(v) for k, v in obj.items()}
+    if isinstance(obj, (list, tuple)):
+        return [_sanitize_nan(v) for v in obj]
+    return obj
 
 
 def load_player_rows(years: list[str]) -> pd.DataFrame:
@@ -282,9 +303,16 @@ def build_stat_deviations(
     for stat_key, col, label, min_dev in checks:
         if col not in sub.columns or f"{stat_key}_median" not in region_base:
             continue
-        team_avg = float(sub[col].mean())
+        col_valid = sub[col].dropna()
+        if col_valid.empty:
+            continue
+        team_avg = float(col_valid.mean())
         reg_med = float(region_base[f"{stat_key}_median"])
         glob_med = float(global_base.get(f"{stat_key}_median", reg_med))
+        # NaN guard: abs(NaN) < min_dev is False, so an unguarded NaN would
+        # slip through and serialize as invalid JSON (Deno rejects `NaN`).
+        if not np.isfinite(team_avg) or not np.isfinite(reg_med):
+            continue
         vs_region = team_avg - reg_med
         if abs(vs_region) < min_dev:
             continue
@@ -726,15 +754,17 @@ def main() -> None:
     print(f"  {len(player_df)} player-game rows, {player_df['team'].nunique()} teams")
 
     profiles = build_profiles(player_df, team_games, chrono_games)
-    payload = {
+    payload = _sanitize_nan({
         "generatedAt": pd.Timestamp.utcnow().isoformat(),
         "teams": profiles,
-    }
+    })
 
     OUT_DIR.mkdir(parents=True, exist_ok=True)
     path = OUT_DIR / "team_profiles.json"
     with path.open("w", encoding="utf-8") as f:
-        json.dump(payload, f, separators=(",", ":"), default=_json_safe)
+        # allow_nan=False makes a stray NaN raise here at build time instead of
+        # silently producing JSON that Deno's JSON.parse rejects at worker boot.
+        json.dump(payload, f, separators=(",", ":"), default=_json_safe, allow_nan=False)
     print(f"  Wrote {path} ({path.stat().st_size / 1024:.1f} KB, {len(profiles)} teams)")
 
 

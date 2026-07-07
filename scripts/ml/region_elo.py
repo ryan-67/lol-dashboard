@@ -245,11 +245,25 @@ def build_strength_snapshot(
     }
 
 
+def _sanitize_nan(obj):
+    """Replace NaN/Infinity floats with None — Deno's JSON.parse rejects them."""
+    if isinstance(obj, float):
+        return obj if math.isfinite(obj) else None
+    if isinstance(obj, (np.floating,)):
+        val = float(obj)
+        return val if math.isfinite(val) else None
+    if isinstance(obj, dict):
+        return {k: _sanitize_nan(v) for k, v in obj.items()}
+    if isinstance(obj, (list, tuple)):
+        return [_sanitize_nan(v) for v in obj]
+    return obj
+
+
 def write_strength_snapshot(team_games: pd.DataFrame, out_path: Path) -> dict:
-    payload = build_strength_snapshot(team_games)
+    payload = _sanitize_nan(build_strength_snapshot(team_games))
     out_path.parent.mkdir(parents=True, exist_ok=True)
     with out_path.open("w", encoding="utf-8") as f:
-        json.dump(payload, f, separators=(",", ":"))
+        json.dump(payload, f, separators=(",", ":"), allow_nan=False)
     return payload
 
 
