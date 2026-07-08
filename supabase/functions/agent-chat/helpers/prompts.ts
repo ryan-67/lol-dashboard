@@ -143,6 +143,11 @@ export interface PromptContext {
   isPredictionQuestion?: boolean;
   worldsHistoryIntent?: boolean;
   draftAnalysisIntent?: boolean;
+  /** "prematch" | "draft" | "full" | "team_profile" — from PredictionPacket.mode. */
+  predictionMode?: string | null;
+  predictionTeamA?: string;
+  predictionTeamB?: string;
+  predictionHasKalshi?: boolean;
 }
 
 /** Developer-only instructions — never placed in the user message body. */
@@ -213,12 +218,22 @@ Your streamed reply is shown directly to the user. NEVER echo, quote, or restate
 
   if (ctx?.predictionPacketBlock?.trim()) {
     parts.push(
-      `[PREDICTION_RULES]\nUse ONLY the [PREDICTION_PACKET] block for win probabilities, confidence, drivers, risks, trend insights, team profiles (lane focus playstyle — top/mid/bot NOT jungle/support by default, stat deviations vs regional/global medians, player win conditions vs role-region median GD@15, recent form, strengths/weaknesses), draft_edges (champion role_fact/style_fact/archetype tags — trust these over training memory), comp_style (aggregate comp identity per side), player-champion notes, and Kalshi edge (if present). Do NOT cite generic "win more when ahead in gold" snowball stats as your main point — lead with SOS-adjusted stat deviations, player-specific conditions, and comp-style interactions; a stat is only worth mentioning if it deviates meaningfully from the norm, not because it's on the list. The final win % blends the structural model, recent form, and team strength — the strength signal is the official lolesports Global Power Rankings (labeled "Official GPR" in drivers) when available, or a home-grown region Elo as fallback — explain drivers including that line when present, and don't second-guess an "Official GPR" figure as if it were our own guess (it's Riot/lolesports' own published ranking). For Kalshi: use ONLY head-to-head series markets from the block — never tournament-outright lines (e.g. "win MSI") as series odds. If no head-to-head Kalshi market is listed, say you don't have series odds. Explain drivers in plain language — do NOT invent new percentages. If confidence < 55%, say it's close to a coin-flip / the model isn't confident enough for a strong pick — confidence now varies by matchup closeness and data coverage, it is NOT always high. Never cite stats from training memory.`,
+      `[PREDICTION_RULES]\nUse ONLY the [PREDICTION_PACKET] block for win probabilities, confidence, drivers, risks, trend insights, team profiles (lane focus playstyle — top/mid/bot NOT jungle/support by default, stat deviations vs regional/global medians, player win conditions vs role-region median GD@15, recent form, strengths/weaknesses, priority_champs per player), draft_edges (champion role_fact/style_fact/archetype tags — trust these over training memory), comp_style (aggregate comp identity per side), player-champion notes, and Kalshi edge (if present). Do NOT cite generic "win more when ahead in gold" snowball stats as your main point — lead with SOS-adjusted stat deviations, player-specific conditions, and comp-style interactions; a stat is only worth mentioning if it deviates meaningfully from the norm, not because it's on the list. JUNGLE PLAYSTYLE: focus_mode "jungle_centric" means the jungler runs a real CS/farm lead (jungle CSD@15 well above baseline) and the team lets him build his own resources — that is the ONLY case where you should say a team "plays for" its jungler. A jungler with merely high early K+A (kills+assists) is just proactive/gank-heavy — that's a normal trait of the jungle/support roles and does NOT mean the team plays around him; call it out as "aggressive/proactive jungler" instead, not "jungle-centric". The final win % already blends the structural model, recent form, team strength (official lolesports Global Power Rankings, labeled "Official GPR" in drivers, when available, else home-grown region Elo), AND — when a live head-to-head Kalshi market exists — the market price itself (labeled "Live market blend" in drivers). Because of that market blend, your own final number should already sit close to Kalshi/the books; do not act surprised if it's near the market, and do not describe a small (1-10pp) gap from the market as a huge disagreement — that gap IS the model's edge. Explain drivers including the GPR/region-strength and market-blend lines when present, in plain language — do NOT invent new percentages. If confidence < 55%, say it's close to a coin-flip / the model isn't confident enough for a strong pick. Never cite stats from training memory.`,
     );
   } else if (ctx?.isPredictionQuestion) {
     parts.push(
       `[NO_PREDICTION_PACKET]\nNo ML prediction packet was built (missing teams, draft, or model coverage). Do NOT invent win probabilities. Say plainly you couldn't run the matchup model for that ask.`,
     );
+  }
+
+  if (
+    ctx?.predictionPacketBlock?.trim() &&
+    (ctx.predictionMode === "prematch" || ctx.predictionMode === "full") &&
+    ctx.predictionTeamA &&
+    ctx.predictionTeamB &&
+    ctx.predictionTeamB !== "—"
+  ) {
+    parts.push(matchupPreviewFormatBlock(ctx.predictionTeamA, ctx.predictionTeamB, Boolean(ctx.predictionHasKalshi)));
   }
 
   if (ctx?.webVerified?.trim()) {
@@ -437,6 +452,27 @@ Rules:
 - Never echo [DRAFT_EXTRACTED] JSON, internal block names, or the literal words "role_fact"/"style_fact"/"comp_style" in the reply — translate them into natural analyst language.
 - Do not fabricate player names not on the roster in MATCH_STATS.
 - Lead with analyst voice, weave stats as proof — no stat dumps.`;
+}
+
+/** Pre-match / full (team + draft) two-team matchup preview — structured, table-based
+ * output. Overrides the global "no tables" synthesis rule for THIS response only. */
+export function matchupPreviewFormatBlock(teamA: string, teamB: string, hasKalshi: boolean): string {
+  const kalshiLine = hasKalshi
+    ? `2) "Kalshi odds: X% <team>" on its own line — pull straight from the packet's kalshi_edge line (implied % + which team it favors). Never invent this if kalshi_edge is absent.`
+    : `2) Skip the Kalshi odds line entirely — no live head-to-head market is in the packet for this series. Do not invent one.`;
+  return `[MATCHUP_PREVIEW_FORMAT]
+This is a two-team pre-match prediction (${teamA} vs ${teamB}). For THIS response only, override the general "no markdown tables" synthesis rule and use this exact structure:
+
+1) Header line: "${teamA.toUpperCase()} VS ${teamB.toUpperCase()}" — add the event/tournament name only if it's mentioned in the user's question or MATCH_STATS/WORLD_CONTEXT.
+${kalshiLine}
+3) "Model edge: Y% <team>" on its own line — the packet's P(...) wins line, which already blends structural model, recent form, official GPR/region strength, AND (when a live market exists) the Kalshi price itself. Round to whole percent.
+4) A markdown table — columns are the two teams (${teamA} | ${teamB}), rows are: Playstyle | Early Game | Performance Trends | Strengths | Weaknesses | Key Champions. Each cell is 2-4 short "-" bullet points, not paragraphs.
+   - Playstyle / Early Game: pull from that team's team_a_profile/team_b_profile playstyle, focus_mode, skirmish, role_early_ka15/kp15 lines. Distinguish "plays for the jungler" (jungle_centric focus_mode) from a merely proactive/gank-heavy jungler — don't conflate the two.
+   - Performance Trends: recent_form line + any player_win_conditions / stat_deviations that are genuinely notable (skip generic "wins more when ahead in gold" filler).
+   - Strengths / Weaknesses: pull directly from that team's strengths/weaknesses lines.
+   - Key Champions: pull from that team's priority_champs lines (role: player — champ list). If draft_edges/comp_style are present (full mode), fold those picks in too. Never invent a champion not present in the packet.
+5) After the table, 2-4 short analyst-voice paragraphs explaining WHY the model favors one side — this is the most important part, not a restatement of the table. Cover: the key stylistic matchup (which team's early-game plan or macro identity beats the other's), specific player/role matchups with the actual stat backing it (cite GD@15/CSD@15/stat-deviation numbers from the packet), and champion/comp-pool comparisons where relevant. Explicitly name the driver(s) from the packet's drivers list that matter most, including the live-market blend line when present.
+Do not repeat internal field names (team_a_profile, focus_mode, priority_champs, etc.) verbatim — translate into natural analyst language. Do not fabricate any stat, bullet, or champion not present in the [PREDICTION_PACKET].`;
 }
 
 export function finalMessages(

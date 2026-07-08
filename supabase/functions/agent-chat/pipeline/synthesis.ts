@@ -120,6 +120,10 @@ export async function synthesize(deps: SynthesisDeps): Promise<SynthesisResult> 
     predictionPacketBlock: evidence.predictionPacketBlock,
     isOddsQuestion: isOddsQuestion(message),
     isPredictionQuestion: isMlAnalysisQuestion(message) || Boolean(evidence.predictionPacket),
+    predictionMode: evidence.predictionPacket?.mode ?? evidence.predictionMode,
+    predictionTeamA: evidence.predictionPacket?.teamA,
+    predictionTeamB: evidence.predictionPacket?.teamB,
+    predictionHasKalshi: Boolean(evidence.predictionPacket?.kalshiEdge),
   };
 
   const finalModel = pickFinalModel(evidence.plan);

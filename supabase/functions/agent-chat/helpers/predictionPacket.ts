@@ -50,6 +50,8 @@ export interface TeamProfileSummary {
   winPatterns: string[];
   lossPatterns: string[];
   roster: Record<string, string>;
+  /** Per-player current priority champs (recent-window aware) — "role: player — champ (Ng, WR%), ..." */
+  priorityChampions?: string[];
 }
 
 export interface DraftEdge {
@@ -161,6 +163,37 @@ export function isMlAnalysisQuestion(message: string): boolean {
   return isTeamAnalysisQuestion(message);
 }
 
+const MIN_PRIORITY_CHAMP_GAMES = 3;
+
+/** A player's current priority champs — recent-window (45d) games first, season-wide as
+ * fallback, so we don't surface a champ they haven't touched in over a year. */
+function topChampionsForPlayer(player: string, limit = 3): string[] {
+  const ratings = getPlayerChampRatings()[player];
+  if (!ratings) return [];
+  const entries = Object.entries(ratings)
+    .map(([champ, r]) => {
+      const useRecent = (r.recentGames ?? 0) >= MIN_PRIORITY_CHAMP_GAMES;
+      return {
+        champ,
+        games: useRecent ? r.recentGames! : r.games,
+        winrate: useRecent ? r.recentWinrate ?? r.winrate : r.winrate,
+        sortKey: (useRecent ? r.recentGames! * 100 : r.games) + (r.recentGames ?? 0),
+      };
+    })
+    .sort((a, b) => b.sortKey - a.sortKey);
+  return entries.slice(0, limit).map((e) => `${e.champ} (${e.games}g, ${e.winrate}% WR)`);
+}
+
+function buildPriorityChampions(roster: Record<string, string>): string[] {
+  const out: string[] = [];
+  for (const [role, player] of Object.entries(roster)) {
+    if (!player) continue;
+    const champs = topChampionsForPlayer(player);
+    if (champs.length) out.push(`${role}: ${player} — ${champs.join(", ")}`);
+  }
+  return out;
+}
+
 function summarizeTeamProfile(team: string, profile: TeamProfile): TeamProfileSummary {
   return {
     team,
@@ -181,6 +214,7 @@ function summarizeTeamProfile(team: string, profile: TeamProfile): TeamProfileSu
     winPatterns: profile.winPatterns.map((p) => p.label),
     lossPatterns: profile.lossPatterns.map((p) => p.label),
     roster: profile.roster,
+    priorityChampions: buildPriorityChampions(profile.roster ?? {}),
   };
 }
 
@@ -567,6 +601,48 @@ function matchKalshiEdge(
   };
 }
 
+/** Weight given to the live Kalshi market when blending it into our own win probability.
+ * The market aggregates information we can't see (scouting reports, morale, roster news,
+ * sharp bettor consensus) — treat it as a strong prior. Our own signal should only move the
+ * final number a handful of points off market, which is what "finding an edge" should mean;
+ * a model that routinely lands 20-40pp away from a liquid head-to-head market is more likely
+ * wrong than the market. */
+const KALSHI_BLEND_WEIGHT = 0.8;
+
+/** Market-implied P(teamA wins) from a live head-to-head Kalshi market, independent of our
+ * own model probability (unlike matchKalshiEdge's display-only "edge" framing). */
+function kalshiImpliedProbA(
+  teamA: string,
+  teamB: string,
+  markets: KalshiMarketQuote[] | undefined,
+): { probA: number; ticker: string; title: string } | null {
+  if (!markets?.length) return null;
+  // modelProbA arg only affects the returned edge/modelProbPercent fields, which we ignore —
+  // yesTeam attribution and impliedYesPercent are independent of it.
+  const hit = pickMatchupKalshiEdge(teamA, teamB, markets, 0.5);
+  if (!hit) return null;
+  const impliedForYesTeam = hit.impliedYesPercent / 100;
+  const yesIsTeamB = hit.yesTeam != null && normTeam(hit.yesTeam) === normTeam(teamB);
+  const probA = yesIsTeamB ? 1 - impliedForYesTeam : impliedForYesTeam;
+  return { probA, ticker: hit.ticker, title: hit.title };
+}
+
+function blendWithKalshi(
+  teamA: string,
+  teamB: string,
+  ownProbA: number,
+  markets: KalshiMarketQuote[] | undefined,
+): { probA: number; note?: string } {
+  const hit = kalshiImpliedProbA(teamA, teamB, markets);
+  if (!hit) return { probA: ownProbA };
+  const probA = KALSHI_BLEND_WEIGHT * hit.probA + (1 - KALSHI_BLEND_WEIGHT) * ownProbA;
+  const note =
+    `Live market blend (${Math.round(KALSHI_BLEND_WEIGHT * 100)}% weight): Kalshi implies ` +
+    `${Math.round(hit.probA * 100)}% ${teamA} vs our own signal ${Math.round(ownProbA * 100)}% ` +
+    `→ blended ${Math.round(probA * 100)}% ${teamA}`;
+  return { probA, note };
+}
+
 function detectMode(message: string, draft: DraftExtraction | null, teams: [string, string] | null): PredictionMode {
   if (draft?.teams?.length === 2 && teams) return "full";
   if (draft?.teams?.length === 2) return "draft";
@@ -709,6 +785,13 @@ export function buildPredictionPacket(opts: BuildPredictionOptions): {
     ];
   }
 
+  // Final step: anchor to the live market when one exists for this series. Do this AFTER
+  // the draft blend (full mode) so it reflects our complete own-signal estimate, not just
+  // the structural/form/strength blend.
+  const kalshiBlend = blendWithKalshi(teamA, teamB, winProbA, opts.kalshiMarkets);
+  winProbA = kalshiBlend.probA;
+  if (kalshiBlend.note) drivers = [kalshiBlend.note, ...drivers].slice(0, 6);
+
   const confidence = estimateConfidence(teamA, teamB, winProbA);
   const teamProfiles = attachTeamProfiles(teamA, teamB);
 
@@ -832,6 +915,10 @@ function formatTeamProfileBlock(tag: string, profile: TeamProfileSummary): strin
   if (profile.roster && Object.keys(profile.roster).length) {
     const rosterStr = Object.entries(profile.roster).map(([r, p]) => `${r}=${p}`).join(", ");
     lines.push(`  roster: ${rosterStr}`);
+  }
+  if (profile.priorityChampions?.length) {
+    lines.push("  priority_champs:");
+    for (const p of profile.priorityChampions) lines.push(`    - ${p}`);
   }
   if (profile.playerWinConditions.length) {
     lines.push("  player_win_conditions:");

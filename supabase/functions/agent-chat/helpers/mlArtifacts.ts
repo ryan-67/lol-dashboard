@@ -58,6 +58,11 @@ export type PlayerChampEntry = {
   avgDmgShare?: number;
   avgDpm?: number;
   avgKp?: number;
+  /** Last-45-day cut — use this over the season-wide `games`/`winrate` to find a player's
+   * CURRENT priority champs; season totals can be dominated by champs from a year+ ago. */
+  recentGames?: number;
+  recentWinrate?: number;
+  recentAvgGd15?: number | null;
   byPatch?: Record<string, { games: number; winrate: number; avgGd15?: number | null }>;
 };
 

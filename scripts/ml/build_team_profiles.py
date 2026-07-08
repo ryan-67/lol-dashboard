@@ -49,6 +49,11 @@ MIN_REGION_GD_DEVIATION = 55
 CLUTCH_GD15_THRESHOLD = 1000.0
 MIN_CLUTCH_SAMPLE = 8
 MIN_CLUTCH_DEVIATION_PP = 10
+# Jungle CS@15 lead over the jungle-role baseline (region, else global) required to call a
+# team "jungle-centric" — i.e. the jungler builds his own farm/CS lead instead of ganking.
+# Calibrated off real data: jungle CS@15 median ~112, std ~12; LYON/Inspired (the canonical
+# jungle-centric example) sits ~+7.7 above median — the clear outlier among tier-1 teams.
+JG_FARM_LEAD_CS15 = 6.0
 
 # Eye-test overrides when stats are borderline (Inspired / LYON jungler-centric).
 JG_CENTRIC_TEAMS = frozenset({"Lyon Gaming", "LYON"})
@@ -97,7 +102,7 @@ def load_player_rows(years: list[str]) -> pd.DataFrame:
         df = pd.read_csv(path, usecols=lambda c: c in {
             "gameid", "date", "league", "patch", "position", "teamname", "result",
             "playername", "name", "datacompleteness",
-            "golddiffat15", "golddiffat10", "csdiffat15", "xpdiffat15",
+            "golddiffat15", "golddiffat10", "csdiffat15", "csat15", "xpdiffat15",
             "killsat15", "assistsat15", "deathsat15",
             "killsat10", "assistsat10",
             "damageshare", "dpm", "killparticipation",
@@ -118,6 +123,9 @@ def load_player_rows(years: list[str]) -> pd.DataFrame:
             if not player or not team_raw:
                 continue
             gd15 = row.get("golddiffat15")
+            csd15 = row.get("csdiffat15")
+            cs15 = row.get("csat15")
+            xpd15 = row.get("xpdiffat15")
             k15 = row.get("killsat15")
             a15 = row.get("assistsat15")
             ka15 = None
@@ -132,6 +140,9 @@ def load_player_rows(years: list[str]) -> pd.DataFrame:
                 "role": role,
                 "won": int(float(row.get("result", 0) or 0) == 1),
                 "gd15": float(gd15) if gd15 not in (None, "") else np.nan,
+                "csd15": float(csd15) if csd15 not in (None, "") else np.nan,
+                "cs15": float(cs15) if cs15 not in (None, "") else np.nan,
+                "xpd15": float(xpd15) if xpd15 not in (None, "") else np.nan,
                 "ka15": ka15,
                 "kp": float(row.get("killparticipation", 0) or 0) * 100,
                 "dmg_share": float(row.get("damageshare", 0) or 0) * 100,
@@ -279,7 +290,27 @@ def build_region_role_medians(
         valid = grp["gd15"].dropna()
         if len(valid) < 40:
             continue
-        out[(str(region), str(role))] = {"gd15": float(valid.median())}
+        entry: dict[str, float] = {"gd15": float(valid.median())}
+        if "cs15" in grp.columns:
+            cs_valid = grp["cs15"].dropna()
+            if len(cs_valid) >= 40:
+                entry["cs15"] = float(cs_valid.median())
+        out[(str(region), str(role))] = entry
+
+    # Global per-role fallback for regions with too thin a sample (e.g. jungle CS@15
+    # baseline used to detect "team plays for jungler's own farm" regardless of region).
+    if "cs15" in df.columns:
+        for role, grp in df.groupby("role"):
+            if role not in LANE_ROLES + ("jungle", "support"):
+                continue
+            cs_valid = grp["cs15"].dropna()
+            gd_valid = grp["gd15"].dropna()
+            if len(cs_valid) < 40 and len(gd_valid) < 40:
+                continue
+            out[("_global", str(role))] = {
+                **({"gd15": float(gd_valid.median())} if len(gd_valid) >= 40 else {}),
+                **({"cs15": float(cs_valid.median())} if len(cs_valid) >= 40 else {}),
+            }
     return out
 
 
@@ -413,12 +444,28 @@ def infer_roster(player_df: pd.DataFrame, team: str) -> dict[str, str]:
     return roster
 
 
-def build_playstyle(player_df: pd.DataFrame, team: str, roster: dict[str, str]) -> dict:
+def build_playstyle(
+    player_df: pd.DataFrame,
+    team: str,
+    roster: dict[str, str],
+    home_region: str | None = None,
+    role_medians: dict[tuple[str, str], dict[str, float]] | None = None,
+) -> dict:
     """Early focus = which LANE (top/mid/adc) gets jungle/support attention via K+A@15 / KP@15.
 
     Jungle/support naturally have high K+A — they are not default "focus" unless
-    jungle-centric (e.g. LYON/Inspired): jungle K+A dwarfs all lanes.
+    jungle-centric.
+
+    IMPORTANT distinction (jungle K+A@15 vs jungle CSD@15):
+    - High jungle K+A@15 alone just means the jungler ganks/fights a lot early — it does
+      NOT mean the team plays "for" the jungler. Jungle/support are the two enabling roles
+      and naturally rack up K+A by ganking other lanes.
+    - "Team plays for the jungler" (e.g. LYON/Inspired) means the jungler is allowed to
+      build their OWN early lead — reflected by a jungle CS diff @15 that's meaningfully
+      above the jungle-role baseline (they prioritize clearing/farming over proactive ganks
+      that would otherwise help a lane or contest objectives at the cost of their own CS).
     """
+    role_medians = role_medians or {}
     sub = player_df[player_df["team"] == team]
     role_ka: dict[str, float] = {}
     role_kp: dict[str, float] = {}
@@ -442,27 +489,52 @@ def build_playstyle(player_df: pd.DataFrame, team: str, roster: dict[str, str]) 
     avg_lane = sum(lane_values) / len(lane_values) if lane_values else 0.0
     max_lane_ka = max(lane_values) if lane_values else 0.0
 
-    # Jungle-centric: jg K+A dwarfs every lane (Inspired/LYON). Normal jg+sup pairs still
-    # leave a lane within ~80% of jungle K+A — those teams use lane focus instead.
-    jungle_centric = (
-        team in JG_CENTRIC_TEAMS
-        or (
-            jg_ka > 0
-            and max_lane_ka > 0
-            and max_lane_ka < jg_ka * 0.78
-            and jg_ka >= avg_lane * 1.25
-        )
+    # "Plays for the jungler" — jungle CS@15 (absolute farm, not diff-vs-enemy-jungler)
+    # meaningfully above the jungle-role baseline (region if available, else global), i.e.
+    # the jungler builds their own farm lead instead of spending that time on ganks/objectives.
+    # Absolute CS beats CSD@15 (diff vs opposing jungler) here: two junglers who both just
+    # farm still cancel out to ~0 diff, hiding the "farms a lot" signal CSD@15 was meant to catch.
+    jg_sub = sub[sub["role"] == "jungle"]
+    jg_cs15_games = int(jg_sub["cs15"].notna().sum()) if not jg_sub.empty else 0
+    jg_cs15 = float(jg_sub["cs15"].mean()) if jg_cs15_games else None
+    jg_cs15_baseline = (
+        role_medians.get((home_region or "", "jungle"), {}).get("cs15")
+        if home_region
+        else None
+    )
+    if jg_cs15_baseline is None:
+        jg_cs15_baseline = role_medians.get(("_global", "jungle"), {}).get("cs15")
+    jg_cs15_dev = (
+        jg_cs15 - jg_cs15_baseline if jg_cs15 is not None and jg_cs15_baseline is not None else None
+    )
+
+    jungle_centric = team in JG_CENTRIC_TEAMS or (
+        jg_cs15_games >= MIN_CLUTCH_SAMPLE
+        and jg_cs15_dev is not None
+        and jg_cs15_dev >= JG_FARM_LEAD_CS15
+    )
+
+    # Distinct signal: jungler is unusually involved in early kills/assists (ganks/fights a
+    # lot) — worth noting, but NOT the same claim as "team plays for the jungler".
+    jungle_aggressive = (
+        jg_ka > 0
+        and max_lane_ka > 0
+        and max_lane_ka < jg_ka * 0.78
+        and jg_ka >= avg_lane * 1.25
     )
 
     if jungle_centric:
         focus = ["jungle"]
         secondary: list[str] = []
         jg_name = roster.get("jungle", "jungle")
+        dev_str = f"+{jg_cs15_dev:.0f}" if jg_cs15_dev is not None else "n/a"
+        cs_str = f"{jg_cs15:.0f}" if jg_cs15 is not None else "n/a"
         summary = (
-            f"{team} plays around their jungler ({jg_name}) — jungle has the highest early "
-            f"K+A@15 on the team ({jg_ka:.1f}), not a specific lane."
+            f"{team} plays for their jungler ({jg_name}) — {jg_name} averages {cs_str} CS@15 "
+            f"({dev_str} vs {'region' if home_region else 'global'} jungle median), well above normal, "
+            f"meaning {team} lets him build his own early farm/lead rather than proactively ganking lanes."
         )
-        skirmish_note = f"{team} pathing and early fights flow through {jg_name} — rare jungler-centric setup."
+        skirmish_note = f"{team}'s jungle pathing prioritizes {jg_name}'s own camps/farm over lane ganks — rare jungler-centric setup."
         focus_mode = "jungle_centric"
     else:
         # Lane focus: share of (top+mid+adc) early involvement
@@ -495,6 +567,13 @@ def build_playstyle(player_df: pd.DataFrame, team: str, roster: dict[str, str]) 
             skirmish_note = f"{team} often funnels early resources mid — watch for mid prio and river fights."
         elif "adc" in focus:
             skirmish_note = f"{team} plays toward bot side early — bot lane K+A/KP lead the team."
+
+        if jungle_aggressive:
+            jg_name = roster.get("jungle", "jungle")
+            summary += (
+                f" {jg_name} is a highly proactive jungler (team-high early K+A@15 of {jg_ka:.1f}) — "
+                f"he ganks/fights a lot early to set up {focus_str}, not a sign the team plays for his own farm."
+            )
 
     avg_team_gd = float(sub["gd15"].mean()) if sub["gd15"].notna().any() else 0.0
     if avg_team_gd >= 200:
@@ -823,7 +902,7 @@ def build_profiles(
             continue
         home_region = home_map.get(team)
         roster = infer_roster(player_df, team)
-        playstyle = build_playstyle(player_df, team, roster)
+        playstyle = build_playstyle(player_df, team, roster, home_region, role_medians)
         player_conditions = build_player_win_conditions(
             player_df, team, roster, home_region, role_medians,
         )

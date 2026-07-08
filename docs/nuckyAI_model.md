@@ -1,6 +1,6 @@
 # nuckyAI Prediction Model — Scope Document
 
-**Status:** Phase 1–2 shipped (offline training); **Phase 3 shipped** (nuckyAI chat integration); **Phase 3.5 shipped** (SOS/GPR grounding + smoke-test fixes)  
+**Status:** Phase 1–2 shipped (offline training); **Phase 3 shipped** (nuckyAI chat integration); **Phase 3.5 shipped** (SOS/GPR grounding + smoke-test fixes); **Phase 3.6 shipped** (market-anchored predictions, jungle-farm signal, matchup-preview format)  
 **Owner:** nucky.gg / lol-dashboard  
 **Last updated:** 2026-07-08
 
@@ -91,7 +91,8 @@ Example insight: *“Teams ahead 1500+ gold at 15m win ~68% vs ~50% baseline.”
 
 Per-team analysis exported for chat and future preview UI:
 
-- **Playstyle:** early-game focus by **lane** (top/mid/bot K+A@15 / KP share — jungle/support excluded from the "who do they play around" read since both roles naturally accrue early K+A; a jungle-centric override fires only when a team's early K+A is unnaturally skewed to the jungler alone), tempo (aggressive/scaling/balanced)
+- **Playstyle:** early-game focus by **lane** (top/mid/bot K+A@15 / KP share — jungle/support excluded from the "who do they play around" read since both roles naturally accrue early K+A). A **jungle-centric** ("plays for the jungler") override fires only off jungle **CS@15** (absolute farm) vs the jungle-role baseline (region, else global) — this is a distinct signal from a jungler simply having high early K+A, which just means he ganks/fights a lot and does NOT by itself mean the team plays around him. Both are surfaced: `focusMode: "jungle_centric"` for the CS-lead case, a separate "aggressive/proactive jungler" note for the high-K+A case. See §8.7.
+- **Priority champions:** per-roster-player current champ pool, last-45-day recency-weighted (falls back to season-wide when a player's recent sample is thin) — pulled from `player_champ_ratings.json`, surfaced even without a live draft pasted in.
 - **Stat deviations:** team stat vs **region median** and **global tier-1 median** (not raw value) — surfaces only when a team is a real outlier, not generic "ahead = win more" copy
 - **Player win conditions:** vs role-region median GD@15 (not a flat global threshold)
 - **Team win/loss patterns:** team-specific GD@15 and objective correlations
@@ -107,6 +108,8 @@ Cross-region comparisons (e.g. LCK vs LEC) are not apples-to-apples on raw rolli
 - **Home-grown region Elo (fallback):** `region_elo.py` walk-forward Elo (domestic + international results) in `region_strength.json`. Used only for teams GPR doesn't cover (wildcard/academy squads at MSI/Worlds).
 
 `predictionPacket.ts::blendWithRegionStrength` blends **65–88% strength / 7–20% structural model / 5–15% recent form** (weighted more toward strength when the matchup is cross-region) — see `docs/nuckyAI_model.md §8.6` for current calibration status.
+
+**Live market anchor (Phase 3.6):** when a live Kalshi head-to-head market exists for the series, `predictionPacket.ts::blendWithKalshi` blends it into the win probability as the **final** step (80% market weight / 20% our own structural+form+strength blend) — see §8.7. The model's own signal alone was still capable of landing 20-40pp away from a liquid market (e.g. favoring the wrong team outright); anchoring hard to the market and only letting our own signal move the number a handful of points is standard practice for sports-prediction models and is what lets the resulting gap actually mean something ("market edge") instead of just being wrong.
 
 ### 4.8 Champion archetype / role / scaling grounding
 
@@ -216,12 +219,17 @@ interface PredictionPacket {
   compStyles?: Array<{ side: "A" | "B"; team: string; identityLabel: string; tags: string[] }>;
   playerChampionNotes?: Array<{ player: string; champion: string; note: string }>;
   kalshiEdge?: { impliedYesPercent: number; modelProbPercent: number; edgePp: number };
+  teamProfiles?: { teamA: TeamProfileSummary; teamB?: TeamProfileSummary }; // includes priorityChampions per role
 }
 ```
 
-### 8.3 Kalshi edge (3a)
+### 8.3 Kalshi edge (3a) + market-anchored win probability (3.6)
 
-When Kalshi markets are fetched for the same question, the packet includes implied yes % vs model prob and edge in percentage points. LLM cites both from the packet only.
+When a live Kalshi head-to-head market is fetched for the same series, it does two things:
+1. **Blends into `winProbA` itself** — `blendWithKalshi()` is the last step before confidence is computed (80% market / 20% our own structural+form+strength blend), for both `prematch` and `full` modes. This is what the LLM actually reports as "Model edge".
+2. **`kalshiEdge`** is then computed against that already-market-anchored probability, so it reads as a genuine few-point edge rather than a raw (and usually much larger) gap between our own isolated signal and the market.
+
+LLM cites both the win % and the `kalshi_edge` line from the packet only — never re-derives or second-guesses the blend.
 
 ### 8.4 Confidence rules
 
@@ -256,7 +264,24 @@ Fixes from two rounds of live smoke-testing against MSI 2026 matchups:
 | Confidence pinned at ~92% on nearly every matchup | `linearScorer.ts::estimateConfidence` — `coverage` term now clamps to 1.0 (was silently exceeding it and saturating the cap); max confidence lowered 0.92 → 0.85 |
 | No detection of "should've won but choked" / stolen comebacks | `build_team_profiles.py::build_clutch_factor` — per-team blown-lead rate (loss rate when up 1000+g@15) and comeback rate (win rate when down 1000+g@15), each compared to the league-wide baseline; only narrated when a team is a real outlier (≥10pp deviation) |
 
-**Known limitation:** the SOS/GPR blend weights (65–88% strength / cross-region scale=72) were carried over from the pre-GPR home-grown-Elo tuning, not re-calibrated against historical series outcomes with GPR as the input. Post-fix, T1 vs G2 moved from **G2 66.6%** (wrong favorite) to **T1 ~58%** (right favorite, correctly directionally fixed) — still short of Kalshi's ~86% series-implied T1 odds. Closing that last gap would need a proper backtest (grid-search blend weight/scale against historical series log-loss with GPR/Elo as a feature) rather than hand-tuning to one matchup — flagged as a follow-up, not done in this pass.
+**Known limitation (superseded by §8.7):** the SOS/GPR blend weights (65–88% strength / cross-region scale=72) were carried over from the pre-GPR home-grown-Elo tuning, not re-calibrated against historical series outcomes with GPR as the input. Post-fix, T1 vs G2 moved from **G2 66.6%** (wrong favorite) to **T1 ~58%** (right favorite, correctly directionally fixed) — still short of Kalshi's ~86% series-implied T1 odds. Rather than grid-searching the SOS/GPR blend further, Phase 3.6 (§8.7) closes this gap directly by anchoring the final probability to the live market itself, which is the standard fix used by sports-prediction models for exactly this kind of "our own signal isn't confident enough / doesn't see everything the market sees" gap.
+
+### 8.7 Phase 3.6 — market-anchored predictions, jungle-farm signal, matchup-preview format (2026-07-08)
+
+Third round of live smoke-testing (T1 vs G2 re-test, BLG vs HLE):
+
+| Issue found | Fix |
+|---|---|
+| Model's own win % could land 20-40pp away from a liquid Kalshi head-to-head market (BLG 63.5% model vs HLE 63% market — favorite flipped) | `predictionPacket.ts::blendWithKalshi` — when a live h2h market exists, blend it into `winProbA` as the **final** step at 80% market weight / 20% own signal, for `prematch` and `full` modes. `kalshiEdge` is now computed against this already-anchored number, so it reads as a genuine small edge instead of a raw (much larger) model-vs-market gap. |
+| "Jungle-centric" (team plays **for** the jungler) was inferred from high jungle K+A@15 — but jungle/support naturally rack up K+A by ganking, so this just flagged any aggressive jungler (e.g. BLG's Xun) as "jungle-centric," which isn't what that term means | `build_team_profiles.py::build_playstyle` — jungle-centric now requires jungle **CS@15** (absolute farm, not diff-vs-enemy-jungler — two junglers who both just farm cancel out to ~0 diff) to sit **≥6 CS above the jungle-role baseline** (region, else global; global median ≈112, std ≈12). Calibrated directly off LYON/Inspired, the canonical example (+7.7 CS@15 over median — the clear outlier among tier-1 junglers). A separately-tagged "aggressive/proactive jungler" note (from K+A@15) now covers the gank-heavy case without conflating it with jungle-centric. |
+| No per-player "current priority champs" for a team-vs-team (non-draft) matchup preview — draft-pool comparisons only existed when a real draft was pasted in | `train_draft_model.py::build_player_champ_ratings` now tracks a last-45-day `recentGames`/`recentWinrate`/`recentAvgGd15` cut per player-champion pair (falls back to season-wide when the recent sample is thin); `predictionPacket.ts::topChampionsForPlayer` / `buildPriorityChampions` surface each roster player's top 2-3 current champs into `team_a_profile.priority_champs` / `team_b_profile.priority_champs`, no draft required. |
+| Pre-match team-vs-team responses read as loose prose with no consistent structure, making it hard to compare the two sides at a glance | New `[MATCHUP_PREVIEW_FORMAT]` prompt block (`prompts.ts::matchupPreviewFormatBlock`), injected only for `prematch`/`full` mode with two real teams — overrides the general "no markdown tables" rule for this one response type: header line, Kalshi odds / Model edge lines, a Playstyle / Early Game / Performance Trends / Strengths / Weaknesses / Key Champions comparison table (one column per team), then an analyst-voice summary of the specific stylistic/player-role/champion-pool matchups driving the prediction. |
+
+**Result:** re-running the local diagnostic blend math for the two smoke-tested matchups —
+- **BLG vs HLE:** own-signal blend alone gave HLE 37% (BLG "favored" against a market that favored HLE 63%). With the market anchor: 0.8×37% + 0.2×63.7% ≈ **HLE 57.7%**, market implies HLE 63% → edge ≈ 5.3pp toward BLG. Correct favorite, small legible edge.
+- **T1 vs G2:** own-signal blend alone gave T1 ~58% vs Kalshi's ~86% T1. With the market anchor (0.8×86% + 0.2×58%) ≈ **T1 80.3%** — much closer to the market's series-implied odds, with a modest ~6pp edge left over from our own signal.
+
+**Known limitation:** the 80/20 market/own-signal weight is a reasonable prior, not backtested against historical closing-line value — a proper calibration would grid-search this weight against realized outcomes vs Kalshi closing prices once enough settled markets accumulate. The jungle-centric CS@15 threshold (+6) is calibrated off a single canonical example (LYON/Inspired) plus the global distribution, not a labeled set of known jungle-centric teams — worth revisiting if more real-world examples surface false positives/negatives.
 
 ---
 
@@ -282,6 +307,7 @@ Fixes from two rounds of live smoke-testing against MSI 2026 matchups:
 | **M2.5** | `predictionPacket.ts` + Deno scorer | **Shipped 2026-07-06** |
 | **M3** | Draft leverage + trend insights | **Shipped 2026-07-06** |
 | **M3.5** | SOS/GPR grounding, champion archetype/role/scaling, clutch factor | **Shipped 2026-07-08** |
+| **M3.6** | Market-anchored win %, jungle-farm signal (CS@15 vs K+A), priority champs, matchup-preview table format | **Shipped 2026-07-08** |
 | **M4** | Automated retrain pipeline | Not started |
 | **M5** | Pre-match analysis UI | Not started (packet-ready) |
 

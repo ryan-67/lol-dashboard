@@ -234,10 +234,17 @@ def build_synergy(games: pd.DataFrame) -> dict:
 
 
 def build_player_champ_ratings(players: pd.DataFrame) -> dict:
+    """Player x champion comfort. Includes a recent-window (45d) cut so callers can surface
+    a player's CURRENT priority champs rather than champs they haven't touched in 2 years."""
     out: dict[str, dict] = {}
     if players.empty:
         return out
-    for (player, champ), grp in players.groupby(["player", "champion"]):
+    df = players.copy()
+    df["_dt"] = pd.to_datetime(df["date"], errors="coerce", utc=True)
+    max_date = df["_dt"].max()
+    recent_cutoff = max_date - pd.Timedelta(days=RECENT_WINDOW_DAYS) if pd.notna(max_date) else None
+
+    for (player, champ), grp in df.groupby(["player", "champion"]):
         games = len(grp)
         if games < MIN_PLAYER_CHAMP:
             continue
@@ -250,6 +257,13 @@ def build_player_champ_ratings(players: pd.DataFrame) -> dict:
             "avgKp": round(float(grp["kp"].mean()), 1),
             "byPatch": {},
         }
+        if recent_cutoff is not None:
+            recent = grp[grp["_dt"] >= recent_cutoff]
+            if len(recent):
+                entry["recentGames"] = int(len(recent))
+                entry["recentWinrate"] = round(float(recent["won"].mean() * 100), 1)
+                if recent["gd15"].notna().any():
+                    entry["recentAvgGd15"] = round(float(recent["gd15"].mean()), 1)
         for patch, pgrp in grp.groupby("patch"):
             if len(pgrp) < MIN_PLAYER_CHAMP:
                 continue
