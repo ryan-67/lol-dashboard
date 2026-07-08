@@ -213,7 +213,7 @@ Your streamed reply is shown directly to the user. NEVER echo, quote, or restate
 
   if (ctx?.predictionPacketBlock?.trim()) {
     parts.push(
-      `[PREDICTION_RULES]\nUse ONLY the [PREDICTION_PACKET] block for win probabilities, confidence, drivers, risks, trend insights, team profiles (lane focus playstyle — top/mid/bot NOT jungle/support by default, stat deviations vs regional/global medians, player win conditions vs role-region median GD@15, recent form, strengths/weaknesses), draft edges, player-champion notes, and Kalshi edge (if present). Do NOT cite generic "win more when ahead in gold" snowball stats — prioritize SOS-adjusted stat deviations and player-specific conditions. The final win % already blends region/SOS strength (LEC stats are weaker competition than LCK) — explain drivers including region/SOS lines when present. For Kalshi: use ONLY head-to-head series markets from the block — never tournament-outright lines (e.g. "win MSI") as series odds. If no head-to-head Kalshi market is listed, say you don't have series odds. Explain drivers in plain language — do NOT invent new percentages. If confidence < 60%, say the model isn't confident enough for a strong pick. Never cite stats from training memory.`,
+      `[PREDICTION_RULES]\nUse ONLY the [PREDICTION_PACKET] block for win probabilities, confidence, drivers, risks, trend insights, team profiles (lane focus playstyle — top/mid/bot NOT jungle/support by default, stat deviations vs regional/global medians, player win conditions vs role-region median GD@15, recent form, strengths/weaknesses), draft_edges (champion role_fact/style_fact/archetype tags — trust these over training memory), comp_style (aggregate comp identity per side), player-champion notes, and Kalshi edge (if present). Do NOT cite generic "win more when ahead in gold" snowball stats as your main point — lead with SOS-adjusted stat deviations, player-specific conditions, and comp-style interactions; a stat is only worth mentioning if it deviates meaningfully from the norm, not because it's on the list. The final win % blends the structural model, recent form, and team strength — the strength signal is the official lolesports Global Power Rankings (labeled "Official GPR" in drivers) when available, or a home-grown region Elo as fallback — explain drivers including that line when present, and don't second-guess an "Official GPR" figure as if it were our own guess (it's Riot/lolesports' own published ranking). For Kalshi: use ONLY head-to-head series markets from the block — never tournament-outright lines (e.g. "win MSI") as series odds. If no head-to-head Kalshi market is listed, say you don't have series odds. Explain drivers in plain language — do NOT invent new percentages. If confidence < 55%, say it's close to a coin-flip / the model isn't confident enough for a strong pick — confidence now varies by matchup closeness and data coverage, it is NOT always high. Never cite stats from training memory.`,
     );
   } else if (ctx?.isPredictionQuestion) {
     parts.push(
@@ -328,11 +328,19 @@ export function deepAnalysisBlock(intent: AnalysisIntent): string {
       return `[DEEP_ANALYSIS — DRAFT]
 ${shared}
 Structure your answer:
-1) comp identity — what each side is trying to become (engage, poke, scaling, pick, split).
+1) comp identity — what each side is trying to become (engage/dive, poke/siege, protect-the-carry, pick, split-push, scaling teamfight, wombo-combo).
 2) ban/pick logic — priority bans, flex value, blind risks, win-condition champions.
 3) how pro teams actually execute this comp (setup tools, soul fight vs sidelane, vision zones).
 4) if MATCH_STATS has champion pool / meta data, use it as evidence — not the whole answer.
-Kit interactions and macro win conditions matter more than stat lists.`;
+Kit interactions and macro win conditions matter more than stat lists.
+
+STYLE-MATCHUP LOGIC (apply when comparing two comps or explaining a champion's fit):
+- Dive/engage comps (Kai'Sa, Nautilus, Wukong-style all-in) are weak into stacked disengage/peel (Anivia, Janna, Braum, Poppy, Morgana) — the engage gets neutralized/CC'd before it lands.
+- Poke/siege comps (Jayce, Nidalee, Ziggs, Xerath) get MUCH stronger when ahead — a gold/vision lead lets them play from max range and punish facechecks; they fall off hard when behind because they can't contest vision or position safely to use their range.
+- Comps with low sustained-DPS carries (e.g. Annie + Jhin) struggle to punish high-HP frontline tanks (Sion, Cho'Gath, Ornn) — they lack the DPS to break through before cooldowns/peel reset.
+- Scaling-carry comps (Jinx, Kog'Maw, Kayle, Veigar) want to survive to late game; comps built around them should prioritize disengage/peel and avoid forcing early fights.
+- Split-push comps (Fiora, Tryndamere, Jax) want to avoid grouped 5v5s and win via 1-for-1 side-lane pressure + teleport timers, not through a single big fight.
+Only state these interactions when they're actually relevant to the picks in front of you — don't force the framework onto every comp.`;
 
     case "matchup":
       return `[DEEP_ANALYSIS — MATCHUP]
@@ -403,15 +411,30 @@ export function draftTextSynthesisBlock(): string {
   return `[DRAFT_TEXT_ANALYSIS]
 The user pasted a draft comp in text form. [DRAFT_EXTRACTED] in the user message is the parsed comp — treat champion names and team sides as authoritative. Do NOT invent picks not in that JSON.
 
+GROUNDED CHAMPION FACTS (if [PREDICTION_PACKET] is present): the draft_edges block carries per-champion facts pulled straight from 2+ years of pro match data — use these INSTEAD of guessing from training memory:
+- \`role_fact\` = the champion's role has recently shifted (e.g. Camille now played support more than top). ALWAYS defer to this over a "traditional" role assumption — a champion can look like an "interesting flex" to you from stale priors when the data shows it's actually the current standard pick for that role.
+- \`style_fact\` = empirical lane-strength (wins/loses lane vs role peers) and late-game DPM scaling signal.
+- the \`[tag, tag, ...]\` after each champion = hand-curated archetype tags (engage, disengage, poke, dive, pick, split_push, scaling_carry, teamfight, lane_bully, tank, cc_heavy, mobility_high, etc).
+- \`comp_style\` block = each side's aggregate identity (e.g. "engage/dive comp", "poke/siege comp") — use this to reason about which side dictates the pace of the game.
+Only assert a champion's role/style if you have this grounded fact OR extremely well-established universal kit knowledge (e.g. Jinx is a marksman) — if a pick's usage looks unusual to you, trust role_fact over your own assumption.
+
 Structure your answer:
-1) comp read — what each side drafted, comp identity (engage/poke/scaling/pick/split), key synergies and gaps.
-2) player-champion edges — cite playerChampionProficiency / winrateOnChampion from MATCH_STATS draft_text_analysis when present; weight recent splits heavier.
-3) meta/patch — use championMeta + EXTERNAL_CONTEXT for pick/ban strength; cite presence/winrate when in MATCH_STATS.
-4) win conditions — how each side wins early/mid/late, objective setup, side selection if known.
-5) prediction — who is favored and why (comp + stats + form). Give a clear lean (% optional only if Kalshi/MATCH_STATS has odds). If data is thin, say so — still give a conceptual lean from comp logic.
+1) comp read — what each side drafted, comp identity (engage/dive, poke/siege, protect-the-carry, pick, split-push, scaling teamfight — use comp_style if present), key synergies and gaps.
+2) STYLE MATCHUP — how the two comps' archetypes interact (see style-matchup logic below), not just individual champion power levels. This is the most important section — generic "champ X is strong" takes without explaining the role/lane matchup interaction are not acceptable.
+3) player-champion edges — cite playerChampionProficiency / winrateOnChampion from MATCH_STATS draft_text_analysis when present; weight recent splits heavier.
+4) meta/patch — use championMeta + EXTERNAL_CONTEXT for pick/ban strength; cite presence/winrate when in MATCH_STATS.
+5) win conditions — how each side wins early/mid/late, objective setup, side selection if known.
+6) prediction — who is favored and why (comp + stats + form). Give a clear lean (% optional only if Kalshi/MATCH_STATS has odds). If data is thin, say so — still give a conceptual lean from comp logic.
+
+STYLE-MATCHUP LOGIC (apply using the archetype tags/comp_style, not just vibes):
+- Dive/engage comps are weak into stacked disengage/peel/anti_dive tags — the engage gets neutralized before it lands.
+- Poke/siege comps get MUCH stronger when ahead (range + vision control to punish facechecks) and fall off when behind (can't safely contest vision to use their range).
+- Low sustained-DPS comps struggle to punish high-HP tank-heavy frontlines — they lack the damage to break through before peel/cooldowns reset.
+- Scaling-carry comps want to survive to late game and avoid forced early fights; pair well with disengage/peel.
+- Split-push comps want to avoid grouped 5v5s, win via side-lane 1-for-1s + teleport timers.
 
 Rules:
-- Never echo [DRAFT_EXTRACTED] JSON or internal block names in the reply.
+- Never echo [DRAFT_EXTRACTED] JSON, internal block names, or the literal words "role_fact"/"style_fact"/"comp_style" in the reply — translate them into natural analyst language.
 - Do not fabricate player names not on the roster in MATCH_STATS.
 - Lead with analyst voice, weave stats as proof — no stat dumps.`;
 }

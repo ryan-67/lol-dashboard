@@ -79,11 +79,20 @@ def blend_recent_form(team_a: str, team_b: str, base: float) -> tuple[float, flo
     return blended, form_a
 
 
+def team_strength_rating(team: str) -> tuple[float | None, str | None]:
+    """Mirrors mlArtifacts.ts teamStrengthRating: prefer official GPR elo, fall back to region_strength.json."""
+    gpr = json.loads((ML / "gpr_snapshot.json").read_text(encoding="utf-8")).get("teams", {}) if (ML / "gpr_snapshot.json").exists() else {}
+    if team in gpr:
+        return gpr[team]["elo"], "gpr"
+    strength = json.loads((ML / "region_strength.json").read_text(encoding="utf-8")).get("teams", {})
+    if team in strength:
+        return strength[team]["rating"], "region_elo"
+    return None, None
+
+
 def strength_prob(team_a: str, team_b: str, cross_region: bool = False) -> float | None:
-    strength = json.loads((ML / "region_strength.json").read_text(encoding="utf-8"))
-    teams = strength.get("teams", {})
-    ra = teams.get(team_a, {}).get("rating")
-    rb = teams.get(team_b, {}).get("rating")
+    ra, _ = team_strength_rating(team_a)
+    rb, _ = team_strength_rating(team_b)
     if ra is None or rb is None:
         return None
     scale = 72 if cross_region else 130
@@ -109,18 +118,23 @@ def main() -> None:
     p.add_argument("--team-b", required=True)
     args = p.parse_args()
 
+    profiles = json.loads((ML / "team_profiles.json").read_text(encoding="utf-8")).get("teams", {})
+    home_a = profiles.get(args.team_a, {}).get("homeRegion")
+    home_b = profiles.get(args.team_b, {}).get("homeRegion")
+    cross = bool(home_a and home_b and home_a != home_b)
+
     base = score_structural(args.team_a, args.team_b)
     _, form_a = blend_recent_form(args.team_a, args.team_b, base)
     final = blend_all(args.team_a, args.team_b, base, form_a)
-    sp = strength_prob(args.team_a, args.team_b)
+    sp = strength_prob(args.team_a, args.team_b, cross)
 
-    strength = json.loads((ML / "region_strength.json").read_text(encoding="utf-8"))
-    ta = strength.get("teams", {}).get(args.team_a, {})
-    tb = strength.get("teams", {}).get(args.team_b, {})
+    ra, source_a = team_strength_rating(args.team_a)
+    rb, source_b = team_strength_rating(args.team_b)
 
     print(f"\n{args.team_a} vs {args.team_b}")
     print(f"  Structural model P({args.team_a}): {base*100:.1f}%")
-    print(f"  Region/SOS strength: {ta.get('homeRegion')} {ta.get('rating')} vs {tb.get('homeRegion')} {tb.get('rating')}")
+    print(f"  Recent form P({args.team_a}):       {form_a*100:.1f}%")
+    print(f"  Strength source: {args.team_a}={source_a} ({ra}) [{home_a}], {args.team_b}={source_b} ({rb}) [{home_b}]  cross_region={cross}")
     if sp is not None:
         print(f"  Strength-implied P({args.team_a}):     {sp*100:.1f}%")
     print(f"  Final blended P({args.team_a}):          {final*100:.1f}%")

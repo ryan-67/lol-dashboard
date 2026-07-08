@@ -13,6 +13,7 @@ Usage:
 from __future__ import annotations
 
 import json
+import math
 import sys
 from collections import defaultdict
 from datetime import datetime, timezone
@@ -37,6 +38,30 @@ OUT_DIR = ROOT / "data" / "ml" / "artifacts"
 MIN_CHAMP_GAMES = 8
 MIN_PAIR_GAMES = 12
 MIN_PLAYER_CHAMP = 3
+MIN_ROLE_GAMES = 5
+MIN_SCALING_GAMES = 10
+RECENT_WINDOW_DAYS = 45
+DURATION_BUCKETS = [("lt25", 0, 1500), ("25to35", 1500, 2100), ("gt35", 2100, 10 ** 9)]
+POSITION_MAP = {
+    "top": "top", "jng": "jungle", "jungle": "jungle", "mid": "mid",
+    "bot": "adc", "adc": "adc", "sup": "support", "support": "support",
+}
+
+
+def _sanitize_nan(obj):
+    """Recursively replace NaN/Infinity with None (Deno's JSON.parse rejects bare NaN)."""
+    if isinstance(obj, float):
+        return obj if math.isfinite(obj) else None
+    if isinstance(obj, (np.floating,)):
+        val = float(obj)
+        return val if math.isfinite(val) else None
+    if isinstance(obj, (np.bool_, bool)):
+        return bool(obj)
+    if isinstance(obj, dict):
+        return {k: _sanitize_nan(v) for k, v in obj.items()}
+    if isinstance(obj, (list, tuple)):
+        return [_sanitize_nan(v) for v in obj]
+    return obj
 
 
 def patch_bucket(raw: str) -> str:
@@ -86,6 +111,10 @@ def load_game_drafts(years: list[str]) -> pd.DataFrame:
     return pd.DataFrame(rows)
 
 
+def _norm_pos(raw: str) -> str:
+    return POSITION_MAP.get(str(raw or "").strip().lower(), "")
+
+
 def load_player_champ_rows(years: list[str]) -> pd.DataFrame:
     rows: list[dict] = []
     for path in discover_local_csv_files(LOL_DIR):
@@ -94,7 +123,8 @@ def load_player_champ_rows(years: list[str]) -> pd.DataFrame:
         df = pd.read_csv(path, usecols=lambda c: c in {
             "gameid", "date", "league", "patch", "position", "teamname", "result",
             "champion", "playername", "name", "datacompleteness",
-            "golddiffat15", "damageshare", "dpm", "killparticipation",
+            "golddiffat15", "csdiffat15", "damageshare", "dpm", "killparticipation",
+            "gamelength",
         }, low_memory=False)
         df.columns = [c.strip() for c in df.columns]
         df = df[df["league"].astype(str).str.strip().isin(ALL_ALLOWED_LEAGUE_CODES)]
@@ -108,16 +138,22 @@ def load_player_champ_rows(years: list[str]) -> pd.DataFrame:
             if not player or not champ:
                 continue
             gd15 = row.get("golddiffat15")
+            csd15 = row.get("csdiffat15")
+            gamelength = row.get("gamelength")
             rows.append({
                 "player": player,
                 "champion": champ,
                 "team": str(row.get("teamname", "")).strip(),
+                "role": _norm_pos(row.get("position", "")),
+                "date": str(row.get("date", ""))[:10],
                 "patch": patch_bucket(row.get("patch", "")),
                 "won": int(float(row.get("result", 0) or 0) == 1),
                 "gd15": float(gd15) if gd15 not in (None, "") else np.nan,
+                "csd15": float(csd15) if csd15 not in (None, "") else np.nan,
                 "dmg_share": float(row.get("damageshare", 0) or 0) * 100,
-                "dpm": float(row.get("dpm", 0) or 0),
+                "dpm": float(row.get("dpm", 0) or 0) if row.get("dpm") not in (None, "") else np.nan,
                 "kp": float(row.get("killparticipation", 0) or 0) * 100,
+                "gamelength": float(gamelength) if gamelength not in (None, "") else np.nan,
             })
     return pd.DataFrame(rows)
 
@@ -226,6 +262,163 @@ def build_player_champ_ratings(players: pd.DataFrame) -> dict:
     return out
 
 
+def _role_bucket_stats(grp: pd.DataFrame) -> dict[str, dict]:
+    out: dict[str, dict] = {}
+    total = len(grp)
+    if total == 0:
+        return out
+    for role, role_grp in grp.groupby("role"):
+        if not role or len(role_grp) < 1:
+            continue
+        out[role] = {
+            "games": int(len(role_grp)),
+            "share": round(len(role_grp) / total * 100, 1),
+            "winrate": round(float(role_grp["won"].mean() * 100), 1),
+        }
+    return out
+
+
+def build_champ_role_profile(players: pd.DataFrame) -> dict:
+    """Per-champion role/position distribution — season-wide AND recency-weighted.
+
+    Fixes a real hallucination class: without this, the LLM falls back to stale
+    training-era priors (e.g. "Camille is a top laner") even when the actual pro
+    meta has shifted (e.g. Camille support surpassing Camille top in recent games).
+    """
+    out: dict[str, dict] = {}
+    if players.empty:
+        return out
+    df = players.copy()
+    df["date"] = pd.to_datetime(df["date"], errors="coerce", utc=True)
+    max_date = df["date"].max()
+    recent_cutoff = max_date - pd.Timedelta(days=RECENT_WINDOW_DAYS) if pd.notna(max_date) else None
+
+    for champ, grp in df.groupby("champion"):
+        grp = grp[grp["role"] != ""]
+        total_games = len(grp)
+        if total_games < MIN_ROLE_GAMES:
+            continue
+        roles = _role_bucket_stats(grp)
+        if not roles:
+            continue
+        primary_role = max(roles.items(), key=lambda kv: kv[1]["games"])[0]
+
+        recent_roles: dict[str, dict] = {}
+        recent_primary_role = primary_role
+        role_shift = False
+        if recent_cutoff is not None:
+            recent_grp = grp[grp["date"] >= recent_cutoff]
+            if len(recent_grp) >= MIN_ROLE_GAMES:
+                recent_roles = _role_bucket_stats(recent_grp)
+                if recent_roles:
+                    recent_primary_role = max(recent_roles.items(), key=lambda kv: kv[1]["games"])[0]
+                    role_shift = recent_primary_role != primary_role
+
+        out[champ] = {
+            "totalGames": int(total_games),
+            "roles": roles,
+            "recentRoles": recent_roles,
+            "recentWindowDays": RECENT_WINDOW_DAYS,
+            "primaryRole": primary_role,
+            "recentPrimaryRole": recent_primary_role,
+            "roleShift": role_shift,
+        }
+    return out
+
+
+def build_champ_scaling(players: pd.DataFrame) -> dict:
+    """Per-champion empirical lane-strength + late-game scaling signal.
+
+    Derived purely from OE stats (no hand-curation): early lane strength via
+    GD@15 vs role peers (a clean, low-confound signal), late-game scaling via
+    DPM trend across game-duration buckets, ranked *relative to role peers*
+    (raw DPM naturally rises with game length for every champion, so an
+    absolute cutoff would flag almost the whole role — only the top/bottom
+    tercile within a role gets flagged as a real outlier). Lets nuckyAI say
+    e.g. "Caitlyn wins lane" or "Sivir scales harder than most ADCs" from data
+    instead of guessing from stale training-era priors.
+    """
+    out: dict[str, dict] = {}
+    if players.empty:
+        return out
+    df = players.copy()
+    role_gd_median = df.groupby("role")["gd15"].median()
+
+    prelim: dict[str, dict] = {}
+    for champ, grp in df.groupby("champion"):
+        games = len(grp)
+        if games < MIN_SCALING_GAMES:
+            continue
+        role = grp["role"].mode().iloc[0] if not grp["role"].mode().empty else ""
+
+        gd_valid = grp["gd15"].dropna()
+        csd_valid = grp["csd15"].dropna()
+        avg_gd15 = float(gd_valid.mean()) if not gd_valid.empty else None
+        avg_csd15 = float(csd_valid.mean()) if not csd_valid.empty else None
+        gd_role_med = float(role_gd_median.get(role, np.nan)) if role else None
+        vs_role_gd15 = (
+            round(avg_gd15 - gd_role_med, 1)
+            if avg_gd15 is not None and gd_role_med is not None and np.isfinite(gd_role_med)
+            else None
+        )
+
+        dpm_by_duration: dict[str, float] = {}
+        dur_valid = grp.dropna(subset=["dpm", "gamelength"])
+        for label, lo, hi in DURATION_BUCKETS:
+            bucket = dur_valid[(dur_valid["gamelength"] >= lo) & (dur_valid["gamelength"] < hi)]
+            if len(bucket) >= 4:
+                dpm_by_duration[label] = round(float(bucket["dpm"].mean()), 1)
+
+        scaling_index = None
+        if "lt25" in dpm_by_duration and "gt35" in dpm_by_duration and dpm_by_duration["lt25"] > 0:
+            scaling_index = round(
+                (dpm_by_duration["gt35"] - dpm_by_duration["lt25"]) / dpm_by_duration["lt25"], 3
+            )
+
+        avg_dpm = float(grp["dpm"].dropna().mean()) if grp["dpm"].notna().any() else None
+
+        prelim[champ] = {
+            "role": role,
+            "games": int(games),
+            "avgGd15": round(avg_gd15, 1) if avg_gd15 is not None else None,
+            "avgCsd15": round(avg_csd15, 1) if avg_csd15 is not None else None,
+            "vsRoleMedianGd15": vs_role_gd15,
+            "laneBully": bool(vs_role_gd15 is not None and vs_role_gd15 >= 150),
+            "weakSide": bool(vs_role_gd15 is not None and vs_role_gd15 <= -150),
+            "avgDpm": round(avg_dpm, 1) if avg_dpm is not None else None,
+            "dpmByDuration": dpm_by_duration,
+            "scalingIndex": scaling_index,
+        }
+
+    # Role-relative scaling percentile: top/bottom ~30% of champs with a valid
+    # scalingIndex, within the same role, are flagged as real outliers.
+    by_role: dict[str, list[str]] = defaultdict(list)
+    for champ, entry in prelim.items():
+        if entry["scalingIndex"] is not None:
+            by_role[entry["role"]].append(champ)
+
+    for role, champs in by_role.items():
+        if len(champs) < 5:
+            continue
+        ranked = sorted(champs, key=lambda c: prelim[c]["scalingIndex"])
+        n = len(ranked)
+        cutoff = max(1, round(n * 0.3))
+        late_scalers = set(ranked[-cutoff:])
+        front_loaded = set(ranked[:cutoff])
+        for c in champs:
+            prelim[c]["lateGameScaler"] = c in late_scalers
+            prelim[c]["frontLoaded"] = c in front_loaded
+            prelim[c]["scalingPercentileInRole"] = round(
+                (ranked.index(c) + 1) / n * 100, 1
+            )
+
+    for champ, entry in prelim.items():
+        entry.setdefault("lateGameScaler", False)
+        entry.setdefault("frontLoaded", False)
+        out[champ] = entry
+    return out
+
+
 def score_comp(
     picks: list[str],
     patch: str,
@@ -269,16 +462,21 @@ def main() -> None:
 
     synergy = build_synergy(games)
     player_champ = build_player_champ_ratings(players)
+    role_profile = build_champ_role_profile(players)
+    scaling = build_champ_scaling(players)
+    print(f"  {len(role_profile)} champs with role profiles, {len(scaling)} with scaling stats")
 
     OUT_DIR.mkdir(parents=True, exist_ok=True)
     for name, payload in (
         ("champ_meta.json", champ_meta),
         ("draft_synergy.json", synergy),
         ("player_champ_ratings.json", player_champ),
+        ("champ_role_profile.json", role_profile),
+        ("champ_scaling.json", scaling),
     ):
         path = OUT_DIR / name
         with path.open("w", encoding="utf-8") as f:
-            json.dump(payload, f, separators=(",", ":"))
+            json.dump(_sanitize_nan(payload), f, separators=(",", ":"), allow_nan=False)
         print(f"  Wrote {path} ({path.stat().st_size / 1024:.1f} KB)")
 
 

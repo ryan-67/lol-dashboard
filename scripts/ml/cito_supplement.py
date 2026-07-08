@@ -21,6 +21,8 @@ to an empty result so the pipeline still runs OE-only.
 
 from __future__ import annotations
 
+import json
+import math
 import os
 import sys
 from pathlib import Path
@@ -28,6 +30,12 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 import requests
+
+SCRIPTS_DIR = Path(__file__).resolve().parent
+if str(SCRIPTS_DIR) not in sys.path:
+    sys.path.insert(0, str(SCRIPTS_DIR))
+
+from team_identity import canonical_team  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -154,6 +162,122 @@ def fetch_current_power_ranks() -> dict[str, int]:
         except requests.RequestException:
             continue
     return ranks
+
+
+def _sanitize_nan(obj):
+    """Recursively replace NaN/Infinity with None (Deno's JSON.parse rejects bare NaN)."""
+    if isinstance(obj, float):
+        return obj if math.isfinite(obj) else None
+    if isinstance(obj, dict):
+        return {k: _sanitize_nan(v) for k, v in obj.items()}
+    if isinstance(obj, (list, tuple)):
+        return [_sanitize_nan(v) for v in obj]
+    return obj
+
+
+def fetch_gpr_rankings_raw(api_key: str) -> list[dict]:
+    """Full CitoAPI GPR rows (mirrors lolesports.com/en-GB/gpr) — rank, score, elo, opponent strength."""
+    for path in ("/lol/rankings/teams", "/lol/rankings"):
+        try:
+            resp = requests.get(
+                f"{CITO_BASE}{path}",
+                headers={"Accept": "application/json", "x-api-key": api_key},
+                timeout=TIMEOUT_S,
+            )
+            if resp.status_code != 200:
+                continue
+            payload = resp.json()
+            rows = payload.get("rankings", payload.get("data", payload)) if isinstance(payload, dict) else payload
+            if isinstance(rows, list) and rows:
+                return rows
+        except (requests.RequestException, ValueError):
+            continue
+    return []
+
+
+def build_gpr_snapshot() -> dict:
+    """Official lolesports Global Power Rankings snapshot, via CitoAPI (direct mirror).
+
+    This is the authoritative team-strength / strength-of-schedule signal for live
+    inference (predictionPacket.ts). Unlike our own walk-forward region Elo, it already
+    encodes Riot's own methodology (context of play, recent performance, in-game
+    execution, strength of opponent) — see `averageOpponentGpr` per team.
+
+    Snapshot-only (current standings), matching the existing project decision that
+    live power-rank data is never attached to historical training rows.
+    """
+    _load_env()
+    api_key = os.environ.get("CITO_API_KEY", "").strip()
+    if not api_key:
+        print("  GPR snapshot skipped (no CITO_API_KEY)", file=sys.stderr)
+        return {}
+
+    raw = fetch_gpr_rankings_raw(api_key)
+    if not raw:
+        print("  GPR snapshot skipped (CitoAPI rankings unavailable)", file=sys.stderr)
+        return {}
+
+    teams: dict[str, dict] = {}
+    league_scores: dict[str, list[float]] = {}
+    for row in raw:
+        if not isinstance(row, dict):
+            continue
+        team_obj = row.get("team") or {}
+        league_obj = row.get("league") or {}
+        raw_name = str(team_obj.get("name") or team_obj.get("code") or "").strip()
+        if not raw_name:
+            continue
+        name = canonical_team(raw_name)
+        league_code = str(league_obj.get("name") or league_obj.get("slug") or "").strip().upper()
+        gpr_score = row.get("gprScore")
+        elo = row.get("elo")
+        rank = row.get("rank")
+        if gpr_score is None or rank is None:
+            continue
+        entry = {
+            "rank": int(rank),
+            "previousRank": row.get("previousRank"),
+            "rankChange": row.get("rankChange"),
+            "gprScore": float(gpr_score),
+            "elo": float(elo) if elo is not None else float(gpr_score),
+            "avgOpponentGpr": float(row["averageOpponentGpr"]) if row.get("averageOpponentGpr") is not None else None,
+            "league": league_code or None,
+            "matchRecord": row.get("matchRecord"),
+            "gameRecord": row.get("gameRecord"),
+        }
+        teams[name] = entry
+        if league_code:
+            league_scores.setdefault(league_code, []).append(float(gpr_score))
+
+    if not teams:
+        return {}
+
+    leagues = {
+        code: {
+            "avgGprScore": round(float(np.mean(scores)), 1),
+            "teams": len(scores),
+            "maxGprScore": round(float(np.max(scores)), 1),
+        }
+        for code, scores in league_scores.items()
+    }
+
+    return _sanitize_nan({
+        "generatedAt": pd.Timestamp.utcnow().isoformat(),
+        "source": "citoapi:/lol/rankings/teams (lolesports.com GPR mirror)",
+        "teams": teams,
+        "leagues": leagues,
+    })
+
+
+def write_gpr_snapshot(out_path: Path) -> dict:
+    payload = build_gpr_snapshot()
+    if not payload:
+        return {}
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    with out_path.open("w", encoding="utf-8") as f:
+        json.dump(payload, f, separators=(",", ":"), allow_nan=False)
+    print(f"  Wrote {out_path} ({len(payload.get('teams', {}))} teams, {len(payload.get('leagues', {}))} leagues)")
+    return payload
 
 
 def merge_gold_throw_features(team_games: pd.DataFrame) -> pd.DataFrame:

@@ -46,6 +46,9 @@ MIN_TEAM_PATTERN_GAMES = 18
 MIN_LIFT_PP = 12
 MIN_DEVIATION_INSIGHT_PP = 15
 MIN_REGION_GD_DEVIATION = 55
+CLUTCH_GD15_THRESHOLD = 1000.0
+MIN_CLUTCH_SAMPLE = 8
+MIN_CLUTCH_DEVIATION_PP = 10
 
 # Eye-test overrides when stats are borderline (Inspired / LYON jungler-centric).
 JG_CENTRIC_TEAMS = frozenset({"Lyon Gaming", "LYON"})
@@ -649,6 +652,102 @@ def build_team_patterns(team_games: pd.DataFrame, team: str) -> tuple[list[dict]
     return win_p[:4], loss_p[:3]
 
 
+def compute_league_clutch_baseline(team_games: pd.DataFrame) -> dict:
+    """League-wide blown-lead / comeback rates — the reference point for a team's clutch factor."""
+    valid = team_games.dropna(subset=["gd15"])
+    ahead = valid[valid["gd15"] >= CLUTCH_GD15_THRESHOLD]
+    behind = valid[valid["gd15"] <= -CLUTCH_GD15_THRESHOLD]
+    return {
+        "blownLeadRate": round(float((1 - ahead["won"]).mean()) * 100, 1) if len(ahead) else None,
+        "comebackRate": round(float(behind["won"].mean()) * 100, 1) if len(behind) else None,
+    }
+
+
+def build_clutch_factor(team_games: pd.DataFrame, team: str, league_baseline: dict) -> dict | None:
+    """Single-game 'should have won but choked' / 'stole one back' detection.
+
+    Complements build_recent_form (series-level momentum) with a per-game signal:
+    teams that build a big gold lead at 15 and still lose it (a real "choke", not
+    just "losing while ahead once"), and the mirror case — teams that steal wins
+    from a big deficit. Both are compared against the league baseline so the
+    narrative only fires when a team is a real outlier, not just unlucky once.
+    """
+    sub = team_games[team_games["team"] == team].dropna(subset=["gd15"])
+    if len(sub) < MIN_TEAM_PATTERN_GAMES:
+        return None
+
+    ahead = sub[sub["gd15"] >= CLUTCH_GD15_THRESHOLD]
+    behind = sub[sub["gd15"] <= -CLUTCH_GD15_THRESHOLD]
+
+    out: dict = {"gd15Threshold": CLUTCH_GD15_THRESHOLD}
+    notes: list[str] = []
+
+    if len(ahead) >= MIN_CLUTCH_SAMPLE:
+        blown = ahead[ahead["won"] == 0]
+        blown_rate = float(len(blown) / len(ahead) * 100)
+        league_rate = league_baseline.get("blownLeadRate")
+        out["leadGames"] = int(len(ahead))
+        out["blownLeadGames"] = int(len(blown))
+        out["blownLeadRate"] = round(blown_rate, 1)
+        if league_rate is not None:
+            dev = blown_rate - league_rate
+            out["blownLeadVsLeague"] = round(dev, 1)
+            if dev >= MIN_CLUTCH_DEVIATION_PP:
+                notes.append({
+                    "kind": "blown_lead",
+                    "favorable": False,
+                    "label": (
+                        f"{team} blow winnable games: {len(blown)}/{len(ahead)} losses "
+                        f"({blown_rate:.0f}%) when up {CLUTCH_GD15_THRESHOLD:.0f}+ gold at 15, "
+                        f"vs {league_rate:.0f}% league-wide"
+                    ),
+                })
+            elif dev <= -MIN_CLUTCH_DEVIATION_PP:
+                notes.append({
+                    "kind": "closes_leads",
+                    "favorable": True,
+                    "label": (
+                        f"{team} close out leads well: only {blown_rate:.0f}% losses "
+                        f"when up {CLUTCH_GD15_THRESHOLD:.0f}+ gold at 15, vs {league_rate:.0f}% league-wide"
+                    ),
+                })
+
+    if len(behind) >= MIN_CLUTCH_SAMPLE:
+        comeback = behind[behind["won"] == 1]
+        comeback_rate = float(len(comeback) / len(behind) * 100)
+        league_rate = league_baseline.get("comebackRate")
+        out["deficitGames"] = int(len(behind))
+        out["comebackGames"] = int(len(comeback))
+        out["comebackRate"] = round(comeback_rate, 1)
+        if league_rate is not None:
+            dev = comeback_rate - league_rate
+            out["comebackVsLeague"] = round(dev, 1)
+            if dev >= MIN_CLUTCH_DEVIATION_PP:
+                notes.append({
+                    "kind": "comeback",
+                    "favorable": True,
+                    "label": (
+                        f"{team} can steal games back: {len(comeback)}/{len(behind)} wins "
+                        f"({comeback_rate:.0f}%) when down {CLUTCH_GD15_THRESHOLD:.0f}+ gold at 15, "
+                        f"vs {league_rate:.0f}% league-wide"
+                    ),
+                })
+            elif dev <= -MIN_CLUTCH_DEVIATION_PP:
+                notes.append({
+                    "kind": "cant_comeback",
+                    "favorable": False,
+                    "label": (
+                        f"{team} rarely come back from behind: only {comeback_rate:.0f}% wins "
+                        f"when down {CLUTCH_GD15_THRESHOLD:.0f}+ gold at 15, vs {league_rate:.0f}% league-wide"
+                    ),
+                })
+
+    if not notes:
+        return out or None
+    out["notes"] = notes
+    return out
+
+
 def derive_strengths_weaknesses(
     playstyle: dict,
     win_patterns: list[dict],
@@ -656,6 +755,7 @@ def derive_strengths_weaknesses(
     player_conditions: list[dict],
     stat_deviations: list[dict],
     recent_form: dict | None = None,
+    clutch_factor: dict | None = None,
 ) -> tuple[list[str], list[str]]:
     strengths: list[str] = []
     weaknesses: list[str] = []
@@ -665,6 +765,12 @@ def derive_strengths_weaknesses(
             strengths.append(dev["label"])
         else:
             weaknesses.append(dev["label"])
+
+    for note in (clutch_factor or {}).get("notes", []):
+        if note.get("favorable"):
+            strengths.append(note["label"])
+        else:
+            weaknesses.append(note["label"])
 
     strengths.append(playstyle["summary"])
     if playstyle.get("skirmishNote"):
@@ -705,6 +811,7 @@ def build_profiles(
     home_map = build_home_region_map(player_df, teams)
     baselines = build_region_stat_baselines_from_players(player_df, home_map)
     role_medians = build_region_role_medians(player_df, home_map)
+    league_clutch_baseline = compute_league_clutch_baseline(team_games)
     out: dict[str, dict] = {}
     as_of = player_df["date"].max() if not player_df.empty else ""
 
@@ -723,8 +830,10 @@ def build_profiles(
         stat_deviations = build_stat_deviations(team_games, team, home_region, baselines)
         win_patterns, loss_patterns = build_team_patterns(team_games, team)
         recent_form = build_recent_form(chrono_games, team)
+        clutch_factor = build_clutch_factor(team_games, team, league_clutch_baseline)
         strengths, weaknesses = derive_strengths_weaknesses(
             playstyle, win_patterns, loss_patterns, player_conditions, stat_deviations, recent_form,
+            clutch_factor,
         )
         league_rows = team_player.sort_values("date")
         out[team] = {
@@ -739,6 +848,7 @@ def build_profiles(
             "playerWinConditions": player_conditions,
             "winPatterns": win_patterns,
             "lossPatterns": loss_patterns,
+            "clutchFactor": clutch_factor,
             "strengths": strengths,
             "weaknesses": weaknesses,
         }

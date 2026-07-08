@@ -155,8 +155,12 @@ export function estimateConfidence(
 
   const statCountA = Object.keys(a.stats ?? {}).length;
   const statCountB = Object.keys(b.stats ?? {}).length;
-  const coverage = Math.min(statCountA, statCountB) / 120;
-  const decisiveness = Math.abs(winProb - 0.5) * 2;
-  const raw = 0.45 + coverage * 0.35 + decisiveness * 0.2;
-  return Math.min(0.92, Math.max(0.35, raw));
+  // Both clamped to [0,1] — previously uncapped `coverage` regularly exceeded 1.0
+  // (most teams have >120 tracked stats), which combined with the additive
+  // formula meant nearly every matchup — blowout or coin-flip alike — saturated
+  // at the 0.92 ceiling. Every test prompt showing "92% confidence" was this bug.
+  const coverage = Math.min(1, Math.min(statCountA, statCountB) / 150);
+  const decisiveness = Math.min(1, Math.abs(winProb - 0.5) * 2);
+  const raw = 0.5 + coverage * 0.15 + decisiveness * 0.25;
+  return Math.min(0.85, Math.max(0.35, raw));
 }

@@ -44,12 +44,14 @@ for p in (SCRIPTS_DIR, SCRIPTS_ROOT):
 from team_identity import load_team_rebrand_map  # noqa: E402
 from region_elo import write_strength_snapshot  # noqa: E402
 from oe_loader import build_team_game_rows, LOL_DIR  # noqa: E402
+from cito_supplement import write_gpr_snapshot  # noqa: E402
 
 MODEL_DIR = ROOT / "data" / "ml" / "models"
 MART_PATH = ROOT / "data" / "ml" / "feature_mart.parquet"
 SNAPSHOT_PATH = ROOT / "data" / "ml" / "team_form_snapshot.parquet"
 ARTIFACTS_DIR = ROOT / "data" / "ml" / "artifacts"
 DEPLOY_DIR = ROOT / "supabase" / "functions" / "agent-chat" / "ml"
+STATIC_DIR = SCRIPTS_DIR / "static"
 
 CATEGORICAL_COLS = ["league", "region", "patch", "split", "oe_year"]
 SERIES_STATE_COLS = [
@@ -212,6 +214,10 @@ def deploy_artifacts() -> None:
         "trend_insights.json",
         "team_profiles.json",
         "region_strength.json",
+        "gpr_snapshot.json",
+        "champ_role_profile.json",
+        "champ_scaling.json",
+        "champion_archetypes.json",
         "model_metadata.json",
     ]
     for name in names:
@@ -296,6 +302,22 @@ def main() -> None:
             print(f"  Built region_strength.json ({len(json.loads(strength_path.read_text())['teams'])} teams)")
         except Exception as exc:
             print(f"WARNING: could not build region_strength.json: {exc}", file=sys.stderr)
+
+    gpr_path = ARTIFACTS_DIR / "gpr_snapshot.json"
+    try:
+        payload = write_gpr_snapshot(gpr_path)
+        if not payload and not gpr_path.exists():
+            print("WARNING: gpr_snapshot.json unavailable (no CITO_API_KEY or Cito unreachable) "
+                  "— live inference will fall back to region_strength.json", file=sys.stderr)
+    except Exception as exc:
+        print(f"WARNING: could not build gpr_snapshot.json: {exc}", file=sys.stderr)
+
+    archetypes_src = STATIC_DIR / "champion_archetypes.json"
+    if archetypes_src.exists():
+        shutil.copyfile(archetypes_src, ARTIFACTS_DIR / "champion_archetypes.json")
+        print(f"  Copied {archetypes_src.name} (hand-curated, static)")
+    else:
+        print(f"WARNING: {archetypes_src} not found; skipping champion_archetypes.json", file=sys.stderr)
 
     deploy_artifacts()
 

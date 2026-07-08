@@ -11,6 +11,9 @@ import type { DraftExtraction } from "./draftTypes.ts";
 import type { KalshiMarketQuote } from "./kalshi.ts";
 import { pickMatchupKalshiEdge } from "./kalshi.ts";
 import {
+  archetypeFor,
+  champRoleFor,
+  champScalingFor,
   currentPatchBucket,
   getChampMeta,
   getDraftSynergy,
@@ -19,7 +22,9 @@ import {
   getTeamAliases,
   getTeamFormSnapshot,
   getTeamProfile,
+  gprForTeam,
   teamStrengthRating,
+  teamStrengthSource,
   type TeamProfile,
 } from "./mlArtifacts.ts";
 import { estimateConfidence, scorePrematch } from "./linearScorer.ts";
@@ -52,6 +57,20 @@ export interface DraftEdge {
   edge: number;
   winrate?: number;
   side?: "A" | "B";
+  /** Grounded role/meta-shift fact, e.g. "recently played SUPPORT (69% of last 45d), not TOP". */
+  roleNote?: string;
+  /** Grounded empirical lane-strength / scaling fact from champ_scaling.json. */
+  styleNote?: string;
+  /** Hand-curated archetype tags (engage, poke, dive, scaling_carry, ...). */
+  archetypeTags?: string[];
+}
+
+export interface CompStyleSummary {
+  side: "A" | "B";
+  team: string;
+  topTags: string[];
+  compArchetypes: string[];
+  identityLabel: string;
 }
 
 export interface KalshiEdgeInfo {
@@ -75,6 +94,7 @@ export interface PredictionPacket {
   trends: Array<{ label: string; favorable: boolean; lift?: number }>;
   teamProfiles?: { teamA: TeamProfileSummary; teamB?: TeamProfileSummary };
   draftEdges?: DraftEdge[];
+  compStyles?: CompStyleSummary[];
   kalshiEdge?: KalshiEdgeInfo;
   playerChampionNotes?: Array<{ player: string; champion: string; note: string }>;
   modelAsOf?: string;
@@ -111,6 +131,21 @@ const TEAM_ALIASES: Record<string, string> = {
 
 function normTeam(value: string): string {
   return value.toLowerCase().replace(/[^a-z0-9]/g, "");
+}
+
+function escapeRegex(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+/**
+ * Whole-word substring check. Plain `.includes()` on short aliases/tokens (e.g. "kt", "dk")
+ * false-positives inside unrelated words — "viktor" contains "kt", which previously caused
+ * a pasted LYON/TSW draft mentioning Viktor to hallucinate a "KT Rolster" matchup.
+ */
+function hasWholeWord(haystack: string, needle: string): boolean {
+  if (!needle.trim()) return false;
+  const re = new RegExp(`(?<![a-z0-9])${escapeRegex(needle.toLowerCase())}(?![a-z0-9])`, "i");
+  return re.test(haystack);
 }
 
 export function isPredictionQuestion(message: string): boolean {
@@ -187,11 +222,10 @@ export function resolveCanonicalTeam(raw: string): string | null {
 }
 
 export function extractTeamsFromMessage(message: string): [string, string] | null {
-  const lower = message.toLowerCase();
   const found = new Map<string, string>();
 
   for (const [alias, canonical] of Object.entries(TEAM_ALIASES)) {
-    if (lower.includes(alias)) {
+    if (hasWholeWord(message, alias)) {
       const resolved = resolveCanonicalTeam(canonical);
       if (resolved) found.set(resolved, resolved);
     }
@@ -204,7 +238,7 @@ export function extractTeamsFromMessage(message: string): [string, string] | nul
 
   const snapshot = getTeamFormSnapshot();
   for (const team of Object.keys(snapshot)) {
-    if (lower.includes(team.toLowerCase())) {
+    if (hasWholeWord(message, team)) {
       found.set(team, team);
     }
   }
@@ -224,9 +258,8 @@ export function extractTeamsFromMessage(message: string): [string, string] | nul
 export function extractSingleTeamFromMessage(message: string): string | null {
   const pair = extractTeamsFromMessage(message);
   if (pair) return pair[0];
-  const lower = message.toLowerCase();
   for (const [alias, canonical] of Object.entries(TEAM_ALIASES)) {
-    if (lower.includes(alias)) {
+    if (hasWholeWord(message, alias)) {
       const resolved = resolveCanonicalTeam(canonical);
       if (resolved) return resolved;
     }
@@ -237,7 +270,7 @@ export function extractSingleTeamFromMessage(message: string): string | null {
   }
   const snapshot = getTeamFormSnapshot();
   for (const team of Object.keys(snapshot)) {
-    if (lower.includes(team.toLowerCase())) return team;
+    if (hasWholeWord(message, team)) return team;
   }
   return null;
 }
@@ -335,9 +368,18 @@ function blendWithRegionStrength(
   const wForm = crossRegion ? 0.05 : 0.15;
   const probA = wStruct * structuralProbA + wForm * formProbA + wStrength * strengthProbA;
 
+  const sourceA = teamStrengthSource(teamA);
+  const gprA = gprForTeam(teamA);
+  const gprB = gprForTeam(teamB);
+  const strengthLabel =
+    sourceA === "gpr" && gprA && gprB
+      ? `Official GPR${crossRegion ? " (cross-region)" : ""}: ${teamA} #${gprA.rank} (${gprA.gprScore} pts, ${gprA.league ?? homeA ?? "?"}) vs ` +
+        `${teamB} #${gprB.rank} (${gprB.gprScore} pts, ${gprB.league ?? homeB ?? "?"}) → ${Math.round(strengthProbA * 100)}% ${teamA}`
+      : `Region/SOS Elo${crossRegion ? " (cross-region)" : ""}: ${teamA} (${homeA ?? "?"}) ${ratingA.toFixed(0)} vs ${teamB} (${homeB ?? "?"}) ${ratingB.toFixed(0)} → ${Math.round(strengthProbA * 100)}% ${teamA}`;
+
   const notes = [
-    `Region/SOS Elo${crossRegion ? " (cross-region)" : ""}: ${teamA} (${homeA ?? "?"}) ${ratingA.toFixed(0)} vs ${teamB} (${homeB ?? "?"}) ${ratingB.toFixed(0)} → ${Math.round(strengthProbA * 100)}% ${teamA}`,
-    `Final blend (${Math.round(wStruct * 100)}% structural / ${Math.round(wForm * 100)}% form / ${Math.round(wStrength * 100)}% SOS): ${Math.round(probA * 100)}% ${teamA}`,
+    strengthLabel,
+    `Final blend (${Math.round(wStruct * 100)}% structural / ${Math.round(wForm * 100)}% form / ${Math.round(wStrength * 100)}% SOS/GPR): ${Math.round(probA * 100)}% ${teamA}`,
   ];
   return { probA, notes };
 }
@@ -372,6 +414,41 @@ function relevantTrends(
   return out.slice(0, 5);
 }
 
+/** Grounded role/scaling/archetype facts for one champion — prevents the LLM from
+ * guessing a stale training-era role or scaling take when we have real data/curation. */
+function championGroundingFacts(champ: string): {
+  roleNote?: string;
+  styleNote?: string;
+  archetypeTags?: string[];
+} {
+  const out: { roleNote?: string; styleNote?: string; archetypeTags?: string[] } = {};
+
+  const roleProfile = champRoleFor(champ);
+  if (roleProfile?.roleShift) {
+    const recentRole = roleProfile.recentPrimaryRole.toUpperCase();
+    const recentShare = roleProfile.recentRoles?.[roleProfile.recentPrimaryRole]?.share;
+    const seasonRole = roleProfile.primaryRole.toUpperCase();
+    out.roleNote =
+      `${champ} recent role shift: ${recentRole}${recentShare != null ? ` (${recentShare}% of last ${roleProfile.recentWindowDays}d)` : ""} ` +
+      `— season-long primary role was ${seasonRole}. Use the recent role, not the traditional one.`;
+  }
+
+  const scaling = champScalingFor(champ);
+  if (scaling) {
+    const notes: string[] = [];
+    if (scaling.laneBully) notes.push(`wins lane (GD@15 ${scaling.vsRoleMedianGd15! > 0 ? "+" : ""}${scaling.vsRoleMedianGd15} vs ${scaling.role} median)`);
+    if (scaling.weakSide) notes.push(`typically weak-side/low-resource (GD@15 ${scaling.vsRoleMedianGd15} vs ${scaling.role} median)`);
+    if (scaling.lateGameScaler) notes.push(`DPM climbs in long games (top scaling tercile among ${scaling.role}s)`);
+    if (scaling.frontLoaded) notes.push(`front-loaded — DPM doesn't climb late (bottom scaling tercile among ${scaling.role}s)`);
+    if (notes.length) out.styleNote = `${champ}: ${notes.join("; ")}`;
+  }
+
+  const archetype = archetypeFor(champ);
+  if (archetype?.tags?.length) out.archetypeTags = archetype.tags;
+
+  return out;
+}
+
 function scoreDraftPicks(picks: string[], patch: string): { strength: number; edges: DraftEdge[] } {
   const meta = getChampMeta();
   const synergy = getDraftSynergy();
@@ -381,10 +458,20 @@ function scoreDraftPicks(picks: string[], patch: string): { strength: number; ed
 
   for (const champ of picks) {
     const m = bucket[champ];
+    const grounding = championGroundingFacts(champ);
     if (m) {
       const wr = m.winrate / 100;
       wrs.push(wr);
-      edges.push({ champion: champ, edge: Math.round((wr - 0.5) * 1000) / 1000, winrate: m.winrate });
+      edges.push({
+        champion: champ,
+        edge: Math.round((wr - 0.5) * 1000) / 1000,
+        winrate: m.winrate,
+        ...grounding,
+      });
+    } else if (grounding.roleNote || grounding.styleNote || grounding.archetypeTags) {
+      // No meta pick/win-rate coverage on this patch, but still surface role/style
+      // grounding so the LLM doesn't fall back to guessing from training memory.
+      edges.push({ champion: champ, edge: 0, ...grounding });
     }
   }
 
@@ -398,6 +485,42 @@ function scoreDraftPicks(picks: string[], patch: string): { strength: number; ed
   }
   strength = Math.min(0.95, Math.max(0.05, strength));
   return { strength, edges };
+}
+
+const COMP_ARCHETYPE_LABELS: Record<string, string> = {
+  engage_dive: "engage/dive",
+  poke_siege: "poke/siege",
+  protect_the_carry: "protect-the-carry",
+  pick_comp: "pick",
+  split_push: "split-push",
+  scaling_teamfight: "scaling teamfight",
+  wombo_combo: "wombo-combo teamfight",
+};
+
+function buildCompStyleSummary(side: "A" | "B", team: string, picks: string[]): CompStyleSummary | null {
+  const tagCounts = new Map<string, number>();
+  const archetypeCounts = new Map<string, number>();
+  let tagged = 0;
+  for (const champ of picks) {
+    const arch = archetypeFor(champ);
+    if (!arch) continue;
+    tagged++;
+    for (const tag of arch.tags ?? []) tagCounts.set(tag, (tagCounts.get(tag) ?? 0) + 1);
+    for (const ca of arch.compArchetypes ?? []) archetypeCounts.set(ca, (archetypeCounts.get(ca) ?? 0) + 1);
+  }
+  if (!tagged) return null;
+
+  const topTags = [...tagCounts.entries()].sort((a, b) => b[1] - a[1]).slice(0, 5).map(([t]) => t);
+  const compArchetypes = [...archetypeCounts.entries()]
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 2)
+    .map(([ca]) => COMP_ARCHETYPE_LABELS[ca] ?? ca);
+
+  const identityLabel = compArchetypes.length
+    ? `${compArchetypes.join(" / ")} comp`
+    : "mixed-identity comp";
+
+  return { side, team, topTags, compArchetypes, identityLabel };
 }
 
 function playerChampionNotes(
@@ -502,6 +625,10 @@ export function buildPredictionPacket(opts: BuildPredictionOptions): {
         ...scoreA.edges.map((e) => ({ ...e, side: "A" as const })),
         ...scoreB.edges.map((e) => ({ ...e, side: "B" as const })),
       ],
+      compStyles: [
+        buildCompStyleSummary("A", left.team || "Blue comp", picksA),
+        buildCompStyleSummary("B", right.team || "Red comp", picksB),
+      ].filter((s): s is CompStyleSummary => s != null),
     };
     return { packet, block: formatPredictionBlock(packet) };
   }
@@ -557,6 +684,7 @@ export function buildPredictionPacket(opts: BuildPredictionOptions): {
   drivers = [...regionBlend.notes, ...formBlend.formNotes.slice(0, 1), ...drivers].slice(0, 6);
 
   let draftEdges: DraftEdge[] | undefined;
+  let compStyles: CompStyleSummary[] | undefined;
   let playerNotes: PredictionPacket["playerChampionNotes"];
 
   if (mode === "full" && opts.draft?.teams?.length === 2) {
@@ -571,6 +699,10 @@ export function buildPredictionPacket(opts: BuildPredictionOptions): {
       ...scoreA.edges.map((e) => ({ ...e, side: "A" as const })),
       ...scoreB.edges.map((e) => ({ ...e, side: "B" as const })),
     ];
+    compStyles = [
+      buildCompStyleSummary("A", teamA, picksA),
+      buildCompStyleSummary("B", teamB, picksB),
+    ].filter((s): s is CompStyleSummary => s != null);
     playerNotes = [
       ...playerChampionNotes(teamA, picksA, patch),
       ...playerChampionNotes(teamB, picksB, patch),
@@ -596,6 +728,7 @@ export function buildPredictionPacket(opts: BuildPredictionOptions): {
     ].slice(0, 6),
     teamProfiles,
     draftEdges,
+    compStyles,
     playerChampionNotes: playerNotes,
     kalshiEdge: opts.kalshiMarkets?.length
       ? matchKalshiEdge(teamA, teamB, opts.kalshiMarkets, winProbA)
@@ -643,10 +776,20 @@ export function formatPredictionBlock(packet: PredictionPacket): string {
   if (packet.teamProfiles?.teamB) {
     lines.push(formatTeamProfileBlock("team_b_profile", packet.teamProfiles.teamB));
   }
+  if (packet.compStyles?.length) {
+    lines.push("comp_style:");
+    for (const s of packet.compStyles) {
+      lines.push(`  - ${s.side}: ${s.team} — ${s.identityLabel} (tags: ${s.topTags.join(", ")})`);
+    }
+  }
   if (packet.draftEdges?.length) {
     lines.push("draft_edges:");
-    for (const e of packet.draftEdges.slice(0, 8)) {
-      lines.push(`  - ${e.side ? `${e.side}: ` : ""}${e.champion} edge ${e.edge}${e.winrate != null ? ` (${e.winrate}% WR)` : ""}`);
+    for (const e of packet.draftEdges.slice(0, 10)) {
+      const parts = [`${e.side ? `${e.side}: ` : ""}${e.champion} edge ${e.edge}${e.winrate != null ? ` (${e.winrate}% WR)` : ""}`];
+      if (e.archetypeTags?.length) parts.push(`[${e.archetypeTags.join(", ")}]`);
+      lines.push(`  - ${parts.join(" ")}`);
+      if (e.roleNote) lines.push(`      role_fact: ${e.roleNote}`);
+      if (e.styleNote) lines.push(`      style_fact: ${e.styleNote}`);
     }
   }
   if (packet.playerChampionNotes?.length) {

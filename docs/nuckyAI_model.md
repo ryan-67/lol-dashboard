@@ -1,8 +1,8 @@
 # nuckyAI Prediction Model — Scope Document
 
-**Status:** Phase 1–2 shipped (offline training); **Phase 3 shipped** (nuckyAI chat integration)  
+**Status:** Phase 1–2 shipped (offline training); **Phase 3 shipped** (nuckyAI chat integration); **Phase 3.5 shipped** (SOS/GPR grounding + smoke-test fixes)  
 **Owner:** nucky.gg / lol-dashboard  
-**Last updated:** 2026-07-06
+**Last updated:** 2026-07-08
 
 ---
 
@@ -91,11 +91,32 @@ Example insight: *“Teams ahead 1500+ gold at 15m win ~68% vs ~50% baseline.”
 
 Per-team analysis exported for chat and future preview UI:
 
-- **Playstyle:** early-game focus by role (K+A@15), tempo (aggressive/scaling/balanced)
-- **Player win conditions:** e.g. “T1 wins more when Peyz is ahead at 15m”
+- **Playstyle:** early-game focus by **lane** (top/mid/bot K+A@15 / KP share — jungle/support excluded from the "who do they play around" read since both roles naturally accrue early K+A; a jungle-centric override fires only when a team's early K+A is unnaturally skewed to the jungler alone), tempo (aggressive/scaling/balanced)
+- **Stat deviations:** team stat vs **region median** and **global tier-1 median** (not raw value) — surfaces only when a team is a real outlier, not generic "ahead = win more" copy
+- **Player win conditions:** vs role-region median GD@15 (not a flat global threshold)
 - **Team win/loss patterns:** team-specific GD@15 and objective correlations
-- **Strengths / weaknesses** narrative bullets
+- **Clutch factor:** single-game "should've won but choked" / "stole one back" detection — blown-lead rate (losses when up 1000+g@15) and comeback rate (wins when down 1000+g@15), each compared to the league-wide baseline so it only narrates real outliers
+- **Strengths / weaknesses** narrative bullets, ranked stat-deviation → clutch factor → playstyle → recent form → player conditions → patterns
 - **Artifact:** `team_profiles.json`
+
+### 4.7 Team strength / strength-of-schedule (SOS)
+
+Cross-region comparisons (e.g. LCK vs LEC) are not apples-to-apples on raw rolling stats — a weaker domestic league inflates a team's own numbers. Two layers:
+
+- **Official GPR (primary):** `gpr_snapshot.json`, mirrored live from lolesports' own Global Power Rankings via CitoAPI (`cito_supplement.write_gpr_snapshot`) — already encodes Riot's own context-of-play / recent-performance / in-game-execution / strength-of-opponent methodology, refreshed on every pipeline run. Used as the primary team-strength signal wherever both teams are covered (~50 tracked orgs).
+- **Home-grown region Elo (fallback):** `region_elo.py` walk-forward Elo (domestic + international results) in `region_strength.json`. Used only for teams GPR doesn't cover (wildcard/academy squads at MSI/Worlds).
+
+`predictionPacket.ts::blendWithRegionStrength` blends **65–88% strength / 7–20% structural model / 5–15% recent form** (weighted more toward strength when the matchup is cross-region) — see `docs/nuckyAI_model.md §8.6` for current calibration status.
+
+### 4.8 Champion archetype / role / scaling grounding
+
+Draft analysis previously relied on the LLM's training-era priors (e.g. treating Camille as a "flex" top laner after the meta already shifted her to support). Three artifacts ground this in actual recent data:
+
+- **`champion_archetypes.json`** (hand-curated, static) — primary roles, damage type, range, playstyle tags (engage, poke, dive, disengage, split_push, scaling_carry, etc.), comp archetypes, scaling curve for 172 champions. Source of truth for kit-level style reasoning (dive vs disengage, poke-when-ahead, low-DPS-vs-tank, etc.).
+- **`champ_role_profile.json`** (empirical, `train_draft_model.py`) — season-long **and** last-45-day role distribution per champion, flags `roleShift` when the recent primary role differs from the season-long one. `predictionPacket.ts::championGroundingFacts` always prefers the recent role.
+- **`champ_scaling.json`** (empirical, `train_draft_model.py`) — GD@15/CSD@15 vs role median (lane-bully / weak-side flags) and DPM-by-duration (role-relative percentile lateGameScaler / frontLoaded flags), supplementary evidence alongside the hand-curated `scalingCurve`.
+
+Draft edges (`DraftEdge.roleNote` / `styleNote` / `archetypeTags`) and per-side `compStyles` (aggregate archetype identity, e.g. "engage/dive comp") are injected into `[PREDICTION_PACKET]`; `draftTextSynthesisBlock()` / `PREDICTION_RULES` in `prompts.ts` instruct the LLM to reason about **style-matchup interactions** (dive vs disengage, poke vs gold state, low-DPS vs frontline tank) rather than just individual champion power level.
 
 ---
 
@@ -121,6 +142,9 @@ Per-team analysis exported for chat and future preview UI:
 │    team_inference_state.json, h2h_lookup.json               │
 │    champ_meta.json, draft_synergy.json                      │
 │    player_champ_ratings.json, trend_insights.json           │
+│    champ_role_profile.json, champ_scaling.json               │
+│    champion_archetypes.json (hand-curated, static)           │
+│    region_strength.json (fallback), gpr_snapshot.json (primary)│
 │    feature_schema.json, model_metadata.json                   │
 └───────────────────────────┬─────────────────────────────────┘
                             │
@@ -188,7 +212,8 @@ interface PredictionPacket {
   drivers: string[];      // top model features in plain language
   risks: string[];      // failure modes
   trends: Array<{ label: string; favorable: boolean; lift?: number }>;
-  draftEdges?: { champion: string; edge: number; side?: "A" | "B" }[];
+  draftEdges?: { champion: string; edge: number; side?: "A" | "B"; roleNote?: string; styleNote?: string; archetypeTags?: string[] }[];
+  compStyles?: Array<{ side: "A" | "B"; team: string; identityLabel: string; tags: string[] }>;
   playerChampionNotes?: Array<{ player: string; champion: string; note: string }>;
   kalshiEdge?: { impliedYesPercent: number; modelProbPercent: number; edgePp: number };
 }
@@ -215,6 +240,24 @@ The packet fields `trends`, `drivers`, `draftEdges`, and `kalshiEdge` map direct
 
 Same `buildPredictionPacket()` call; UI renders JSON instead of LLM synthesis.
 
+### 8.6 Phase 3.5 — SOS/GPR grounding + smoke-test fixes (2026-07-07/08)
+
+Fixes from two rounds of live smoke-testing against MSI 2026 matchups:
+
+| Issue found | Fix |
+|---|---|
+| Model conflated T1's 21% **tournament-outright** Kalshi odds with its ~86% **series** odds vs G2 | `kalshi.ts` now filters to head-to-head series markets only; `PREDICTION_RULES` forbids citing outright lines as series odds |
+| Generic "wins more when ahead at GD@15" insights | `build_team_profiles.py::build_stat_deviations` — insights now require a meaningful deviation vs region/global median, not just directional correlation |
+| Early-game focus wrongly inferred from jungle/support's naturally-high K+A | `build_playstyle` now reads top/mid/bot K+A/KP share to find the **lane** a team plays around; jungle-centric override only fires when K+A is unnaturally skewed to the jungler alone |
+| Cross-region prediction (T1 vs G2) backwards — weaker-region (LEC) stats read as equal to stronger-region (LCK) stats, so G2 was favored | `region_elo.py` walk-forward Elo → **now superseded by** `gpr_snapshot.json` (official lolesports GPR via CitoAPI) as the primary strength signal, blended 65–88% into cross-region matchups |
+| Team-name substring hallucination — "viktor" in a pasted draft matched alias "kt" → hallucinated a KT Rolster matchup | `hasWholeWord()` word-boundary matching replaces `.includes()` in `extractTeamsFromMessage` / `extractSingleTeamFromMessage` |
+| Champion role read from stale training-era priors (Camille called an "interesting flex" top pick when meta had shifted her to support) | `champ_role_profile.json` (season vs last-45-day role distribution) — draft edges always cite the **recent** role when it differs from the season-long one |
+| Draft analysis stat-dumped GD@15/winrate without explaining *why* two comps interact | `champion_archetypes.json` + `champ_scaling.json` feed archetype tags / lane-strength / scaling notes into `DraftEdge` and aggregate `compStyles`; `prompts.ts` adds explicit style-matchup reasoning rules (dive vs disengage, poke-when-ahead, low-DPS vs tank frontline, scaling-carry vs forced fights, split-push vs grouped 5v5s) |
+| Confidence pinned at ~92% on nearly every matchup | `linearScorer.ts::estimateConfidence` — `coverage` term now clamps to 1.0 (was silently exceeding it and saturating the cap); max confidence lowered 0.92 → 0.85 |
+| No detection of "should've won but choked" / stolen comebacks | `build_team_profiles.py::build_clutch_factor` — per-team blown-lead rate (loss rate when up 1000+g@15) and comeback rate (win rate when down 1000+g@15), each compared to the league-wide baseline; only narrated when a team is a real outlier (≥10pp deviation) |
+
+**Known limitation:** the SOS/GPR blend weights (65–88% strength / cross-region scale=72) were carried over from the pre-GPR home-grown-Elo tuning, not re-calibrated against historical series outcomes with GPR as the input. Post-fix, T1 vs G2 moved from **G2 66.6%** (wrong favorite) to **T1 ~58%** (right favorite, correctly directionally fixed) — still short of Kalshi's ~86% series-implied T1 odds. Closing that last gap would need a proper backtest (grid-search blend weight/scale against historical series log-loss with GPR/Elo as a feature) rather than hand-tuning to one matchup — flagged as a follow-up, not done in this pass.
+
 ---
 
 ## 9. Continuous Learning (Phase 4)
@@ -238,6 +281,7 @@ Same `buildPredictionPacket()` call; UI renders JSON instead of LLM synthesis.
 | **M2** | Series outcome model (offline) | Shipped 2026-07-06 |
 | **M2.5** | `predictionPacket.ts` + Deno scorer | **Shipped 2026-07-06** |
 | **M3** | Draft leverage + trend insights | **Shipped 2026-07-06** |
+| **M3.5** | SOS/GPR grounding, champion archetype/role/scaling, clutch factor | **Shipped 2026-07-08** |
 | **M4** | Automated retrain pipeline | Not started |
 | **M5** | Pre-match analysis UI | Not started (packet-ready) |
 
