@@ -10,6 +10,7 @@
 import type { DraftExtraction } from "./draftTypes.ts";
 import type { KalshiMarketQuote } from "./kalshi.ts";
 import { pickMatchupKalshiEdge } from "./kalshi.ts";
+import { fetchLiveGprForTeams, type LiveGprEntry } from "./liveGpr.ts";
 import {
   archetypeFor,
   champRoleFor,
@@ -133,6 +134,32 @@ const TEAM_ALIASES: Record<string, string> = {
 
 function normTeam(value: string): string {
   return value.toLowerCase().replace(/[^a-z0-9]/g, "");
+}
+
+let reverseAliasCache: Map<string, string[]> | null = null;
+
+/** Real-world market titles (Kalshi, etc.) almost always use a team's short/common name
+ * ("BLG", "HLE") rather than the full canonical org name ("Bilibili Gaming",
+ * "Hanwha Life Esports") we resolve internally — matching on the canonical name alone
+ * silently fails for most two-word teams. Builds canonical -> [known aliases] from the
+ * same team_aliases.json used to resolve canonical names in the first place. */
+function aliasesForCanonical(canonical: string): string[] {
+  if (!reverseAliasCache) {
+    reverseAliasCache = new Map();
+    for (const [alias, canon] of Object.entries(getTeamAliases())) {
+      const list = reverseAliasCache.get(canon) ?? [];
+      list.push(alias);
+      reverseAliasCache.set(canon, list);
+    }
+  }
+  return reverseAliasCache.get(canonical) ?? [];
+}
+
+/** [canonical name, ...known short aliases] — pass to kalshi.ts matchers so live market
+ * titles written in shorthand ("BLG vs HLE") still resolve to our resolved teams. */
+function teamMarketVariants(team: string): string[] {
+  const aliasHits = aliasesForCanonical(team);
+  return [team, ...aliasHits];
 }
 
 function escapeRegex(value: string): string {
@@ -348,9 +375,23 @@ function sigmoid(x: number): number {
   return z / (1 + z);
 }
 
-function strengthWinProb(teamA: string, teamB: string, scale = 130): number | null {
-  const ratingA = teamStrengthRating(teamA);
-  const ratingB = teamStrengthRating(teamB);
+/** Prefer a freshly-fetched live GPR rating for this team (see liveGpr.ts) over the
+ * deploy-time gpr_snapshot.json / region_strength.json bundle, which only updates when
+ * the ML pipeline is re-run and agent-chat redeployed. */
+function strengthRatingFor(team: string, liveGpr?: Record<string, LiveGprEntry>): number | null {
+  const live = liveGpr?.[team];
+  if (live) return live.elo;
+  return teamStrengthRating(team);
+}
+
+function strengthWinProb(
+  teamA: string,
+  teamB: string,
+  scale = 130,
+  liveGpr?: Record<string, LiveGprEntry>,
+): number | null {
+  const ratingA = strengthRatingFor(teamA, liveGpr);
+  const ratingB = strengthRatingFor(teamB, liveGpr);
   if (ratingA == null || ratingB == null) return null;
   return sigmoid((ratingA - ratingB) / scale);
 }
@@ -381,6 +422,7 @@ function blendWithRegionStrength(
   teamB: string,
   structuralProbA: number,
   formProbA: number,
+  liveGpr?: Record<string, LiveGprEntry>,
 ): { probA: number; notes: string[] } {
   const profA = getTeamProfile(teamA);
   const profB = getTeamProfile(teamB);
@@ -389,31 +431,40 @@ function blendWithRegionStrength(
   const crossRegion = Boolean(homeA && homeB && homeA !== homeB);
 
   const scale = crossRegion ? 72 : 130;
-  const strengthProbA = strengthWinProb(teamA, teamB, scale);
+  const strengthProbA = strengthWinProb(teamA, teamB, scale, liveGpr);
   if (strengthProbA == null) {
     return { probA: 0.65 * structuralProbA + 0.35 * formProbA, notes: [] };
   }
 
-  const ratingA = teamStrengthRating(teamA)!;
-  const ratingB = teamStrengthRating(teamB)!;
+  const ratingA = strengthRatingFor(teamA, liveGpr)!;
+  const ratingB = strengthRatingFor(teamB, liveGpr)!;
 
-  const wStrength = crossRegion ? 0.88 : 0.65;
-  const wStruct = crossRegion ? 0.07 : 0.20;
-  const wForm = crossRegion ? 0.05 : 0.15;
+  // GPR/region-Elo is a single point-in-time snapshot — it can be skewed by an event months
+  // old (e.g. First Stand) or by a region's overall stat inflation, and it doesn't know how
+  // *convincingly* a team has looked lately. It's still the best single cross-region signal
+  // we have, so it stays the largest weight, but recent form (now opponent-strength/dominance
+  // quality-adjusted — see build_recent_form) and the trained structural model both get a real
+  // vote instead of being rounding errors.
+  const wStrength = crossRegion ? 0.55 : 0.50;
+  const wStruct = crossRegion ? 0.20 : 0.25;
+  const wForm = crossRegion ? 0.25 : 0.25;
   const probA = wStruct * structuralProbA + wForm * formProbA + wStrength * strengthProbA;
 
-  const sourceA = teamStrengthSource(teamA);
-  const gprA = gprForTeam(teamA);
-  const gprB = gprForTeam(teamB);
+  const liveA = liveGpr?.[teamA];
+  const liveB = liveGpr?.[teamB];
+  const sourceA = liveA ? "live_gpr" : teamStrengthSource(teamA);
+  const gprA = liveA ?? gprForTeam(teamA);
+  const gprB = liveB ?? gprForTeam(teamB);
+  const gprLabelPrefix = liveA || liveB ? "Live official GPR" : "Official GPR";
   const strengthLabel =
-    sourceA === "gpr" && gprA && gprB
-      ? `Official GPR${crossRegion ? " (cross-region)" : ""}: ${teamA} #${gprA.rank} (${gprA.gprScore} pts, ${gprA.league ?? homeA ?? "?"}) vs ` +
+    (sourceA === "gpr" || sourceA === "live_gpr") && gprA && gprB
+      ? `${gprLabelPrefix}${crossRegion ? " (cross-region)" : ""}: ${teamA} #${gprA.rank} (${gprA.gprScore} pts, ${gprA.league ?? homeA ?? "?"}) vs ` +
         `${teamB} #${gprB.rank} (${gprB.gprScore} pts, ${gprB.league ?? homeB ?? "?"}) → ${Math.round(strengthProbA * 100)}% ${teamA}`
       : `Region/SOS Elo${crossRegion ? " (cross-region)" : ""}: ${teamA} (${homeA ?? "?"}) ${ratingA.toFixed(0)} vs ${teamB} (${homeB ?? "?"}) ${ratingB.toFixed(0)} → ${Math.round(strengthProbA * 100)}% ${teamA}`;
 
   const notes = [
     strengthLabel,
-    `Final blend (${Math.round(wStruct * 100)}% structural / ${Math.round(wForm * 100)}% form / ${Math.round(wStrength * 100)}% SOS/GPR): ${Math.round(probA * 100)}% ${teamA}`,
+    `Final blend (${Math.round(wStruct * 100)}% structural / ${Math.round(wForm * 100)}% quality-adjusted recent form / ${Math.round(wStrength * 100)}% SOS/GPR): ${Math.round(probA * 100)}% ${teamA}`,
   ];
   return { probA, notes };
 }
@@ -590,7 +641,7 @@ function matchKalshiEdge(
   markets: KalshiMarketQuote[],
   modelProbA: number,
 ): KalshiEdgeInfo | undefined {
-  const hit = pickMatchupKalshiEdge(teamA, teamB, markets, modelProbA);
+  const hit = pickMatchupKalshiEdge(teamMarketVariants(teamA), teamMarketVariants(teamB), markets, modelProbA);
   if (!hit) return undefined;
   return {
     ticker: hit.ticker,
@@ -619,7 +670,7 @@ function kalshiImpliedProbA(
   if (!markets?.length) return null;
   // modelProbA arg only affects the returned edge/modelProbPercent fields, which we ignore —
   // yesTeam attribution and impliedYesPercent are independent of it.
-  const hit = pickMatchupKalshiEdge(teamA, teamB, markets, 0.5);
+  const hit = pickMatchupKalshiEdge(teamMarketVariants(teamA), teamMarketVariants(teamB), markets, 0.5);
   if (!hit) return null;
   const impliedForYesTeam = hit.impliedYesPercent / 100;
   const yesIsTeamB = hit.yesTeam != null && normTeam(hit.yesTeam) === normTeam(teamB);
@@ -658,12 +709,15 @@ export interface BuildPredictionOptions {
   league?: string;
   draft?: DraftExtraction | null;
   kalshiMarkets?: KalshiMarketQuote[];
+  /** Enables a live official-GPR fetch (CitoAPI) for the two teams in this matchup, so the
+   * SOS/strength blend uses current standings instead of the deploy-time snapshot. */
+  citoApiKey?: string;
 }
 
-export function buildPredictionPacket(opts: BuildPredictionOptions): {
+export async function buildPredictionPacket(opts: BuildPredictionOptions): Promise<{
   packet: PredictionPacket | null;
   block: string;
-} {
+}> {
   const patch = patchBucket(opts.patch);
   const teams = extractTeamsFromMessage(opts.message);
   const mode = detectMode(opts.message, opts.draft ?? null, teams);
@@ -755,7 +809,20 @@ export function buildPredictionPacket(opts: BuildPredictionOptions): {
   let drivers = buildDrivers(score.featureContributions);
   const structuralProbA = winProbA;
   const formBlend = blendWithRecentForm(teamA, teamB, winProbA);
-  const regionBlend = blendWithRegionStrength(teamA, teamB, structuralProbA, formBlend.formProbA);
+
+  let liveGpr: Record<string, LiveGprEntry> | undefined;
+  if (opts.citoApiKey) {
+    try {
+      liveGpr = await fetchLiveGprForTeams(opts.citoApiKey, [
+        { canonical: teamA, variants: teamMarketVariants(teamA) },
+        { canonical: teamB, variants: teamMarketVariants(teamB) },
+      ]);
+    } catch {
+      liveGpr = undefined;
+    }
+  }
+
+  const regionBlend = blendWithRegionStrength(teamA, teamB, structuralProbA, formBlend.formProbA, liveGpr);
   winProbA = regionBlend.notes.length ? regionBlend.probA : formBlend.probA;
   drivers = [...regionBlend.notes, ...formBlend.formNotes.slice(0, 1), ...drivers].slice(0, 6);
 

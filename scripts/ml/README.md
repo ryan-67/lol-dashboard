@@ -58,6 +58,10 @@ Quick sanity check before deploy:
 
 ```bash
 python scripts/ml/score_matchup.py --team-a T1 --team-b "G2 Esports"
+
+# Eyeball the model's implied power ranking (GPR + region Elo + quality-adjusted recent
+# form, sorted) against your own read of the scene — plus current holdout accuracy/log-loss.
+python scripts/ml/print_power_rankings.py --league LCK
 ```
 
 Outputs land in `data/ml/` (gitignored — regenerate locally or in CI) and

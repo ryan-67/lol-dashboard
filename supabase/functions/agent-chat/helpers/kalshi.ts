@@ -158,74 +158,136 @@ function isOutrightMarket(title: string, subtitle: string): boolean {
   return outrightHints.test(hay) && !matchupHints.test(hay);
 }
 
+function normKalshiTeam(value: string): string {
+  return value.toLowerCase().replace(/[^a-z0-9]/g, "");
+}
+
+/** A team may be passed as its full canonical name ("Bilibili Gaming") or as a list of
+ * name variants (canonical + known abbreviations, e.g. ["Bilibili Gaming", "BLG", "Bilibili"]).
+ * Real Kalshi market titles/tickers almost always use the short/common form, not full org
+ * names, so matching on the canonical name alone silently fails for most two-word teams —
+ * always prefer passing variants when a canonical->alias lookup is available. */
+type TeamMatch = string | string[];
+
+function teamVariants(team: TeamMatch): string[] {
+  return Array.isArray(team) ? team.filter(Boolean) : [team];
+}
+
+function canonicalOf(team: TeamMatch): string {
+  return Array.isArray(team) ? team[0] ?? "" : team;
+}
+
+function matchesTeamToken(hay: string, variant: string): boolean {
+  const lower = variant.toLowerCase();
+  const norm = normKalshiTeam(variant);
+  return (lower.length >= 2 && hay.includes(lower)) || (norm.length >= 2 && hay.includes(norm));
+}
+
 /** Both teams must appear — excludes tournament-outright markets (e.g. "T1 wins MSI"). */
 export function isHeadToHeadMarket(
   m: { title?: string; subtitle?: string },
-  teamA: string,
-  teamB: string,
+  teamA: TeamMatch,
+  teamB: TeamMatch,
 ): boolean {
   const title = m.title ?? "";
   const subtitle = m.subtitle ?? "";
   if (isOutrightMarket(title, subtitle)) return false;
   const hay = `${title} ${subtitle}`.toLowerCase();
-  const tokensA = [teamA.toLowerCase(), normKalshiTeam(teamA)];
-  const tokensB = [teamB.toLowerCase(), normKalshiTeam(teamB)];
-  const hasA = tokensA.some((t) => t.length >= 2 && hay.includes(t));
-  const hasB = tokensB.some((t) => t.length >= 2 && hay.includes(t));
+  const hasA = teamVariants(teamA).some((t) => matchesTeamToken(hay, t));
+  const hasB = teamVariants(teamB).some((t) => matchesTeamToken(hay, t));
   return hasA && hasB;
 }
 
-function normKalshiTeam(value: string): string {
-  return value.toLowerCase().replace(/[^a-z0-9]/g, "");
-}
+const WIN_VERB_RE = /\b(win|beat|defeat|advance|qualify)\b/gi;
+/** Max characters between a team mention and the win-verb that attributes YES to it — keeps
+ * "Will Bilibili Gaming win?" from misfiring on an unrelated team name mentioned earlier in
+ * the same title (e.g. "BLG vs. HLE — Will Bilibili Gaming win?" must attribute to Bilibili,
+ * not HLE, even though "HLE" also appears somewhere before the word "win"). */
+const WIN_VERB_PROXIMITY = 40;
 
-/** Which team does YES on this market refer to? Returns canonical-ish token or null. */
+/** Which team does YES on this market refer to? Returns the CANONICAL team name (first
+ * entry of whichever variant list matched) or null. Picks whichever team's name variant is
+ * CLOSEST to a win-verb, since with alias variants (short codes like "HLE") a naive
+ * "team appears anywhere before win" check false-positives on team names that are only
+ * listed as part of a "X vs Y" pairing earlier in the title. */
 export function inferYesTeamFromMarket(
   m: { title?: string; subtitle?: string },
-  teamA: string,
-  teamB: string,
+  teamA: TeamMatch,
+  teamB: TeamMatch,
 ): string | null {
   const hay = `${m.title ?? ""} ${m.subtitle ?? ""}`.toLowerCase();
-  for (const team of [teamA, teamB]) {
-    const t = team.toLowerCase();
-    const n = normKalshiTeam(team);
-    if (
-      new RegExp(`\\b${t.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b.*\\b(win|beat|defeat|advance|qualify)`, "i").test(hay) ||
-      new RegExp(`(will|does)\\s+.*\\b${t.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`, "i").test(hay)
-    ) {
-      return team;
+  const verbMatches = [...hay.matchAll(WIN_VERB_RE)];
+
+  if (verbMatches.length) {
+    let best: { canonical: string; dist: number } | null = null;
+    for (const team of [teamA, teamB]) {
+      const canonical = canonicalOf(team);
+      for (const variant of teamVariants(team)) {
+        const t = variant.toLowerCase();
+        if (t.length < 2) continue;
+        let searchFrom = 0;
+        let idx: number;
+        while ((idx = hay.indexOf(t, searchFrom)) !== -1) {
+          searchFrom = idx + 1;
+          for (const vm of verbMatches) {
+            if (vm.index == null || vm.index < idx) continue;
+            const dist = vm.index - (idx + t.length);
+            if (dist >= 0 && dist <= WIN_VERB_PROXIMITY && (best == null || dist < best.dist)) {
+              best = { canonical, dist };
+            }
+          }
+        }
+      }
     }
-    if (n.length >= 2 && hay.includes(n) && /\bwin\b/.test(hay)) return team;
+    if (best) return best.canonical;
+  }
+
+  // Fallback for phrasing without a nearby verb match, e.g. "Does <team> advance to finals".
+  for (const team of [teamA, teamB]) {
+    const canonical = canonicalOf(team);
+    for (const variant of teamVariants(team)) {
+      const t = variant.toLowerCase();
+      if (t.length < 2) continue;
+      if (new RegExp(`(will|does)\\s+(?:\\S+\\s+){0,2}${escapeKalshiRegex(t)}\\b`, "i").test(hay)) {
+        return canonical;
+      }
+    }
   }
   // "Team A vs Team B" with no winner named — cannot infer side
   return null;
 }
 
+function escapeKalshiRegex(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
 export function filterHeadToHeadMarkets(
   markets: KalshiMarketQuote[],
-  teamA: string,
-  teamB: string,
+  teamA: TeamMatch,
+  teamB: TeamMatch,
 ): KalshiMarketQuote[] {
   return markets.filter((m) => isHeadToHeadMarket(m, teamA, teamB));
 }
 
 export function pickMatchupKalshiEdge(
-  teamA: string,
-  teamB: string,
+  teamA: TeamMatch,
+  teamB: TeamMatch,
   markets: KalshiMarketQuote[],
   modelProbA: number,
 ): MatchupKalshiEdge | null {
   const h2h = filterHeadToHeadMarkets(markets, teamA, teamB);
   if (!h2h.length) return null;
+  const canonicalA = canonicalOf(teamA);
+  const canonicalB = canonicalOf(teamB);
 
   for (const m of h2h) {
     if (m.yesPercent == null) continue;
     const yesTeam = inferYesTeamFromMarket(m, teamA, teamB);
     const implied = m.yesPercent / 100;
     let modelForYes = modelProbA;
-    if (yesTeam && normKalshiTeam(yesTeam) === normKalshiTeam(teamB)) {
+    if (yesTeam && normKalshiTeam(yesTeam) === normKalshiTeam(canonicalB)) {
       modelForYes = 1 - modelProbA;
-    } else if (yesTeam && normKalshiTeam(yesTeam) !== normKalshiTeam(teamA)) {
+    } else if (yesTeam && normKalshiTeam(yesTeam) !== normKalshiTeam(canonicalA)) {
       continue;
     }
     return {
@@ -235,7 +297,7 @@ export function pickMatchupKalshiEdge(
       modelProbPercent: Math.round(modelForYes * 1000) / 10,
       edgePp: Math.round((modelForYes - implied) * 1000) / 10,
       marketKind: "head_to_head",
-      yesTeam: yesTeam ?? teamA,
+      yesTeam: yesTeam ?? canonicalA,
     };
   }
   return null;

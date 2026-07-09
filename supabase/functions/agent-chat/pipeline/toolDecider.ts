@@ -458,12 +458,13 @@ export async function decideAndFetch(deps: DecideDeps): Promise<Evidence> {
   let predictionPacket: import("../helpers/predictionPacket.ts").PredictionPacket | null = null;
   let predictionMode: import("../helpers/predictionPacket.ts").PredictionMode | null = null;
   if (isMlAnalysisQuestion(message) || draftAnalysisIntent) {
-    const pred = buildPredictionPacket({
+    const pred = await buildPredictionPacket({
       message,
       split: resolvedSplit,
       league: filters.league,
       draft: draftExtracted,
       kalshiMarkets,
+      citoApiKey,
     });
     predictionPacketBlock = pred.block;
     predictionPacket = pred.packet;

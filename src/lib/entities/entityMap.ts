@@ -24,7 +24,7 @@ export interface ChampionEntityDef {
 export const TEAM_ENTITIES: TeamEntityDef[] = [
   {
     canonicalName: 'Gen.G',
-    oeNames: ['Gen.G', 'Gen G', 'GEN'],
+    oeNames: ['Gen.G', 'Gen G', 'GEN', 'Gen.G Esports'],
     abbreviations: ['GEN', 'GENG'],
     slug: 'gen-g',
     esportsSlug: 'geng',
@@ -80,7 +80,7 @@ export const TEAM_ENTITIES: TeamEntityDef[] = [
   },
   {
     canonicalName: 'JD Gaming',
-    oeNames: ['JD Gaming', 'JDG'],
+    oeNames: ['JD Gaming', 'JDG', 'Beijing JDG Esports'],
     abbreviations: ['JDG'],
     slug: 'jd-gaming',
   },
@@ -148,7 +148,7 @@ export const TEAM_ENTITIES: TeamEntityDef[] = [
   },
   {
     canonicalName: 'LNG Esports',
-    oeNames: ['LNG Esports', 'LNG'],
+    oeNames: ['LNG Esports', 'LNG', 'Suzhou LNG Esports'],
     abbreviations: ['LNG'],
     slug: 'lng-esports',
     esportsSlug: 'lng-esports',

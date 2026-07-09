@@ -369,8 +369,30 @@ def build_stat_deviations(
     return out[:4]
 
 
-def build_recent_form(chrono_games: list[ChronoGame], team: str, limit: int = 3) -> dict:
-    """Last N completed series — competitive score weights narrow losses vs sweeps."""
+# Same 400-point logistic scale as region_elo.py's walk-forward Elo, so a strength gap
+# read from region_strength.json maps onto a comparable "how much did beating/losing to
+# this opponent matter" adjustment.
+FORM_ELO_SCALE = 400.0
+# How much an opponent's relative strength can shift a series' quality score. A ~140-elo
+# gap (STRONG_OPPONENT_GAP) shifts qualityScore by ~0.35*0.4=0.14 — enough to matter, not
+# enough for one series to flip a team's whole recent-form read.
+STRENGTH_ADJ_WEIGHT = 0.4
+STRONG_OPPONENT_GAP = 0.35
+
+
+def build_recent_form(
+    chrono_games: list[ChronoGame],
+    team: str,
+    team_strength: dict[str, float] | None = None,
+    limit: int = 3,
+) -> dict:
+    """Last N completed series — quality score = competitiveness (sweep vs narrow win/loss)
+    adjusted for opponent strength, so a convincing win over a top-tier opponent counts for
+    more than an equally convincing win over a weak one (and a loss to a stronger team is
+    less damning than an upset loss to a weaker one). Opponent strength comes from the
+    walk-forward region/team Elo (region_strength.json) — the same signal used for the
+    live SOS blend, so "recent form" and "strength of schedule" stay consistent with
+    each other instead of recent form being pure win/loss record."""
     buckets = group_games_into_series(chrono_games)
     series_rows: list[dict] = []
     for bkt in buckets:
@@ -385,14 +407,32 @@ def build_recent_form(chrono_games: list[ChronoGame], team: str, limit: int = 3)
         competitive = w_team / (w_team + w_opp)
         won_series = w_team > w_opp
         end_date = bkt.games[-1].game_date.isoformat()
+
+        strength_gap = None
+        quality = competitive
+        own_rating = (team_strength or {}).get(team)
+        opp_rating = (team_strength or {}).get(opponent)
+        if own_rating is not None and opp_rating is not None:
+            strength_gap = (opp_rating - own_rating) / FORM_ELO_SCALE
+            quality = min(1.0, max(0.0, competitive + STRENGTH_ADJ_WEIGHT * strength_gap))
+
+        quality_tag = ""
+        if strength_gap is not None:
+            if strength_gap >= STRONG_OPPONENT_GAP:
+                quality_tag = " [strong opponent]"
+            elif strength_gap <= -STRONG_OPPONENT_GAP:
+                quality_tag = " [lower-rated opponent]"
+
         series_rows.append({
             "date": end_date,
             "opponent": opponent,
             "score": f"{w_team}-{w_opp}",
             "won": won_series,
             "competitiveScore": round(competitive, 3),
+            "qualityScore": round(quality, 3),
+            "opponentStrengthGap": round(strength_gap, 2) if strength_gap is not None else None,
             "label": (
-                f"{'W' if won_series else 'L'} {w_team}-{w_opp} vs {opponent} ({end_date})"
+                f"{'W' if won_series else 'L'} {w_team}-{w_opp} vs {opponent}{quality_tag} ({end_date})"
             ),
         })
 
@@ -406,14 +446,14 @@ def build_recent_form(chrono_games: list[ChronoGame], team: str, limit: int = 3)
     w_sum = 0.0
     for i, s in enumerate(recent):
         w = weights[i] if i < len(weights) else 0.1
-        score += w * s["competitiveScore"]
+        score += w * s["qualityScore"]
         w_sum += w
     form_score = score / w_sum if w_sum else 0.5
 
     last = recent[0]
-    if last["competitiveScore"] >= 0.6:
+    if last["qualityScore"] >= 0.6:
         momentum = "hot"
-    elif last["competitiveScore"] <= 0.25:
+    elif last["qualityScore"] <= 0.25:
         momentum = "cold"
     else:
         momentum = "mixed"
@@ -428,6 +468,26 @@ def build_recent_form(chrono_games: list[ChronoGame], team: str, limit: int = 3)
         "series": recent,
         "summary": summary,
     }
+
+
+def load_team_strength_ratings() -> dict[str, float]:
+    """Walk-forward team Elo from region_strength.json (written earlier in the pipeline
+    by build_feature_mart.py) — used only to quality-weight recent-form narrative/blend
+    inputs, never re-attached to historical training rows."""
+    path = OUT_DIR / "region_strength.json"
+    if not path.exists():
+        return {}
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return {}
+    teams = data.get("teams", {})
+    out: dict[str, float] = {}
+    for team, entry in teams.items():
+        rating = entry.get("rating") if isinstance(entry, dict) else None
+        if rating is not None:
+            out[team] = float(rating)
+    return out
 
 
 def infer_roster(player_df: pd.DataFrame, team: str) -> dict[str, str]:
@@ -891,6 +951,7 @@ def build_profiles(
     baselines = build_region_stat_baselines_from_players(player_df, home_map)
     role_medians = build_region_role_medians(player_df, home_map)
     league_clutch_baseline = compute_league_clutch_baseline(team_games)
+    team_strength = load_team_strength_ratings()
     out: dict[str, dict] = {}
     as_of = player_df["date"].max() if not player_df.empty else ""
 
@@ -908,7 +969,7 @@ def build_profiles(
         )
         stat_deviations = build_stat_deviations(team_games, team, home_region, baselines)
         win_patterns, loss_patterns = build_team_patterns(team_games, team)
-        recent_form = build_recent_form(chrono_games, team)
+        recent_form = build_recent_form(chrono_games, team, team_strength)
         clutch_factor = build_clutch_factor(team_games, team, league_clutch_baseline)
         strengths, weaknesses = derive_strengths_weaknesses(
             playstyle, win_patterns, loss_patterns, player_conditions, stat_deviations, recent_form,
