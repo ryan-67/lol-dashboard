@@ -100,6 +100,6 @@ def download_file(service, file_id: str, dest: Path) -> None:
         downloader = MediaIoBaseDownload(fh, request, chunksize=50 * 1024 * 1024)
         done = False
         while not done:
-            _, done = downloader.next_chunk()
-            if not done:
-                print(f"  {dest.name}: {int(downloader.progress() * 100)}%", file=sys.stderr)
+            status, done = downloader.next_chunk()
+            if status:
+                print(f"  {dest.name}: {int(status.progress() * 100)}%", file=sys.stderr)
