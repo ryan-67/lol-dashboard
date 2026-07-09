@@ -219,8 +219,7 @@ jobs:
           git add supabase/functions/agent-chat/ml/
           if ! git diff --staged --quiet; then
             git commit -m "chore(ml): refresh nuckyAI model artifacts"
-            git pull --rebase
-            git push
+            git push || (git fetch origin main && git rebase origin/main && git push)
           else
             echo "ML artifacts unchanged — skip commit."
           fi

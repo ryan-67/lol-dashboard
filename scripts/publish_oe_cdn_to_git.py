@@ -34,9 +34,51 @@ if str(SCRIPTS_DIR) not in sys.path:
 from oe_csv_io import parse_download_years  # noqa: E402
 
 
-def run(cmd: list[str]) -> None:
+def run(cmd: list[str], *, check: bool = True) -> subprocess.CompletedProcess:
     print("+", " ".join(cmd))
-    subprocess.run(cmd, check=True, cwd=ROOT)
+    return subprocess.run(cmd, check=check, cwd=ROOT)
+
+
+def tracked_shard_paths() -> list[Path]:
+    result = subprocess.run(
+        ["git", "ls-files", "public/data/oe_slices_*.json"],
+        cwd=ROOT,
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+    return [ROOT / line.strip() for line in result.stdout.splitlines() if line.strip()]
+
+
+def restore_unpublished_shards(publish_years: set[str] | None) -> None:
+    """Drop accidental on-disk regenerations of historical shards we are not publishing.
+
+    Ingest may run with download_scope=all (manual dispatch) while CDN publish stays
+    current-only. Those regenerated multi-hundred-MB files remain tracked in git from
+    older commits — leaving them modified but unstaged breaks `git pull --rebase`.
+    """
+    for path in tracked_shard_paths():
+        year = path.stem.replace("oe_slices_", "")
+        if publish_years is not None and year in publish_years:
+            continue
+        rel = path.relative_to(ROOT)
+        if path.exists():
+            run(["git", "restore", "--staged", "--worktree", str(rel)], check=False)
+        else:
+            run(["git", "restore", "--staged", "--worktree", str(rel)], check=False)
+
+
+def remove_unpublished_shards_from_git(publish_years: set[str] | None) -> None:
+    """Stop tracking historical CDN shards — Supabase is the multi-year source of truth."""
+    if publish_years is None:
+        return
+    for path in tracked_shard_paths():
+        year = path.stem.replace("oe_slices_", "")
+        if year in publish_years:
+            continue
+        rel = path.relative_to(ROOT)
+        run(["git", "rm", "-f", "--cached", str(rel)], check=False)
+        path.unlink(missing_ok=True)
 
 
 def main() -> None:
@@ -78,6 +120,9 @@ def main() -> None:
         print("No CDN shard files eligible to publish — skipping git commit.")
         return
 
+    restore_unpublished_shards(publish_years)
+    remove_unpublished_shards_from_git(publish_years)
+
     payload["year_files"] = year_files
     MANIFEST_PATH.write_text(json.dumps(payload, separators=(",", ":")), encoding="utf-8")
 
@@ -97,8 +142,13 @@ def main() -> None:
 
     years_label = ", ".join(sorted(year_files))
     run(["git", "commit", "-m", f"chore(data): update OE CDN shards ({years_label})"])
-    run(["git", "pull", "--rebase"])
-    run(["git", "push"])
+    push = run(["git", "push"], check=False)
+    if push.returncode != 0:
+        # Retry once after a fetch — avoid pull --rebase, which refuses to run with a
+        # dirty tree (common when ingest regenerated tracked historical shards).
+        run(["git", "fetch", "origin", "main"])
+        run(["git", "rebase", "origin/main"])
+        run(["git", "push"])
 
 
 if __name__ == "__main__":
