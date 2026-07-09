@@ -139,7 +139,7 @@ jobs:
         env:
           GOOGLE_SERVICE_ACCOUNT_KEY: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_KEY }}
           OE_DRIVE_FOLDER_ID: ${{ secrets.OE_DRIVE_FOLDER_ID }}
-        run: python scripts/ensure_oe_history.py --min-years 3
+        run: python scripts/ensure_oe_history.py --min-years 4
 
       - name: Ingest CSVs into slice JSON shards
         run: python scripts/ingest_csv.py

@@ -15,7 +15,14 @@ around) — it only triggers a one-time full-history download (OE_DOWNLOAD_YEARS
 a genuine cache miss, so the common case stays cheap.
 
 Usage:
-    python scripts/ensure_oe_history.py [--min-years 3]
+    python scripts/ensure_oe_history.py [--min-years 4]
+
+--min-years defaults to 4 to match build_feature_mart.py's defaults (--months 24
+--warmup-years 1 needs ~4 distinct calendar years covered near a year boundary,
+e.g. 2023-2026 as of mid-2026) — loading fewer years than that just means a shorter
+cold-start warmup for the earliest few weeks of the training window (oe_loader.py logs
+a warning per missing year rather than failing), so this is a soft floor, not a hard
+requirement.
 
 Environment (only read if a full-history download is actually triggered):
     GOOGLE_SERVICE_ACCOUNT_KEY, OE_DRIVE_FOLDER_ID — same as download_oe_csv.py
@@ -42,8 +49,8 @@ def main() -> None:
     parser.add_argument(
         "--min-years",
         type=int,
-        default=3,
-        help="Minimum distinct OE CSV years required locally before skipping the full download (default 3)",
+        default=4,
+        help="Minimum distinct OE CSV years required locally before skipping the full download (default 4)",
     )
     args = parser.parse_args()
 
