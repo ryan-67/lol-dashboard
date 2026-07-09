@@ -11,8 +11,19 @@ pip install -r scripts/requirements-ml.txt
 ```
 
 Requires the Oracle's Elixir CSVs in `lol/*.csv` (same files `scripts/ingest_csv.py`
-uses). Optional: `SUPABASE_URL` / `SUPABASE_SERVICE_ROLE_KEY` in `.env` to pull the
-Cito gold-timeline supplement (best-effort — the pipeline runs fine without it).
+uses, from the same Google Drive folder). Optional: `SUPABASE_URL` /
+`SUPABASE_SERVICE_ROLE_KEY` in `.env` to pull the Cito gold-timeline supplement
+(best-effort — the pipeline runs fine without it).
+
+**As of 2026-07-09 this pipeline is no longer a manual, separately-maintained data
+source.** `.github/workflows/refresh-data.yml` — the same Action that keeps the live
+nucky.gg dashboard current every 2 hours — now runs this entire pipeline and commits
+the regenerated `supabase/functions/agent-chat/ml/*.json` artifacts automatically
+whenever new OE data lands on Drive (see `docs/nuckyAI_model.md` §8.9). `lol/` on a CI
+runner is backed by `scripts/ensure_oe_history.py`, which backfills full multi-year OE
+history on a cache miss since the dashboard refresh's scheduled runs only fetch the
+current year. Running the steps below manually is still fully supported for local
+iteration/debugging — you just don't *need* to anymore to keep the model current.
 
 ## Pipeline
 
@@ -36,9 +47,11 @@ python scripts/ml/build_team_profiles.py
 python scripts/ml/export_artifacts.py
 ```
 
-### After new OE games ingest (keep predictions current)
+### Running it locally (CI does this automatically now, see §8.9)
 
-When Oracle's Elixir CSVs in `lol/` are updated (GitHub Actions **Refresh Dashboard Data**, or manual `python scripts/ingest_csv.py`), re-run the **full ML pipeline** so rolling form, recent series, and region Elo include the latest games:
+If you want to iterate on the model locally (test a fix, inspect features, etc.) rather
+than wait for the next automated CI retrain, re-run the **full ML pipeline** so rolling
+form, recent series, and region Elo include the latest games:
 
 ```bash
 cd D:/Projects/lol-dashboard

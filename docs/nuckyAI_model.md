@@ -1,6 +1,6 @@
 # nuckyAI Prediction Model — Scope Document
 
-**Status:** Phase 1–2 shipped (offline training); **Phase 3 shipped** (nuckyAI chat integration); **Phase 3.5 shipped** (SOS/GPR grounding + smoke-test fixes); **Phase 3.6 shipped** (market-anchored predictions, jungle-farm signal, matchup-preview format); **Phase 3.7 shipped** (live GPR, quality-adjusted recent form, GPR overweight fix, Kalshi alias matching, team-identity canonicalization fixes)  
+**Status:** Phase 1–2 shipped (offline training); **Phase 3 shipped** (nuckyAI chat integration); **Phase 3.5 shipped** (SOS/GPR grounding + smoke-test fixes); **Phase 3.6 shipped** (market-anchored predictions, jungle-farm signal, matchup-preview format); **Phase 3.7 shipped** (live GPR, quality-adjusted recent form, GPR overweight fix, Kalshi alias matching, team-identity canonicalization fixes); **Phase 4a shipped** (ML pipeline retrains inside the shared dashboard data-refresh Action — no more manually-refreshed local CSV data source)  
 **Owner:** nucky.gg / lol-dashboard  
 **Last updated:** 2026-07-09
 
@@ -299,16 +299,32 @@ Fourth round of smoke-testing (BLG vs HLE re-test) surfaced that even with the �
 
 **Result (BLG vs HLE re-test, local smoke test):** structural+form+SOS blend alone moved from **BLG 64% / HLE 36%** to **BLG 51.2% / HLE 48.8%** — no live Kalshi h2h market exists for this series at time of testing (Kalshi currently only lists tournament-outright "will X win MSI" markets for these two teams, which are correctly excluded as non-h2h), so this is the blend fix alone; a live h2h market would anchor it further toward the market price via the already-existing §8.7 logic, now able to actually engage thanks to the alias-matching fix.
 
-**Known limitation:** recent-form / SOS signals are only as current as the local Oracle's Elixir CSVs used by the ML pipeline (`lol/*.csv`) — these are a separate, manually-refreshed copy from what powers the live nucky.gg dashboard (see §7 data-flow notes) and do **not** auto-update from the "Refresh Dashboard Data" GitHub Action. If a team's most recent series (e.g. the actual live MSI bracket) isn't in the local CSVs yet, recent-form will lag behind what's actually happened; rerun `python scripts/download_oe_csv.py` (requires `GOOGLE_SERVICE_ACCOUNT_KEY`) before the ML pipeline to pick up the latest results. The home-grown region Elo fallback (`region_strength.json`) also remains poorly calibrated across leagues for teams GPR doesn't cover (wildcard/lower-division orgs can out-rank tier-1 GPR-covered teams in the raw Elo) — not a live-prediction risk today since major teams are all GPR-covered, but worth a proper cross-league SOS recalibration if wildcard-team predictions become common.
+**Known limitation (resolved by §8.9):** recent-form / SOS signals used to only be as current as whatever `lol/*.csv` copy a human had manually downloaded before running the ML pipeline — a separate copy from what powers the live nucky.gg dashboard, which did **not** auto-update from the "Refresh Dashboard Data" GitHub Action. §8.9 closes this by running the ML pipeline as part of that same Action. The home-grown region Elo fallback (`region_strength.json`) still remains poorly calibrated across leagues for teams GPR doesn't cover (wildcard/lower-division orgs can out-rank tier-1 GPR-covered teams in the raw Elo) — not a live-prediction risk today since major teams are all GPR-covered, but worth a proper cross-league SOS recalibration if wildcard-team predictions become common.
+
+### 8.9 Phase 4a — ML pipeline runs inside the dashboard data-refresh pipeline, no manual CSV step (2026-07-09)
+
+The model's only data source was a human-maintained local `lol/*.csv` folder — someone had to remember to run `download_oe_csv.py` and the full ML pipeline before the model would see new games, and that folder was entirely disconnected from the "Refresh Dashboard Data" GitHub Action that keeps nucky.gg's live dashboard current every 2 hours. This was the root cause of the "data isn't current" class of issues (e.g. recent-form missing the actual live MSI bracket games).
+
+| Issue found | Fix |
+|---|---|
+| ML training data required a human to manually download OE CSVs and re-run the pipeline locally — no automatic path from "new games exist on Drive" to "the model has seen them" | `.github/workflows/refresh-data.yml`'s `refresh` job — the same job that already downloads OE CSVs from Drive and seeds the live dashboard's `oe_slices` Supabase table — now also runs the full ML pipeline (`build_feature_mart.py` → `train_series_model.py` → `train_draft_model.py` → `build_trend_insights.py` → `build_team_profiles.py` → `export_artifacts.py`) and commits the regenerated `supabase/functions/agent-chat/ml/*.json` artifacts back to the repo, every time it runs (i.e. every time the current-year OE CSV actually changes on Drive — same change-detection gate the dashboard refresh already uses, so this doesn't retrain on a fixed clock, only on new data). |
+| The scheduled dashboard refresh only downloads the **current year's** CSV (by design, to stay fast) — not enough history for ML's rolling/team-form features, walk-forward validation, or region Elo, which need multiple years | New `scripts/ensure_oe_history.py`, run right after the existing current-year download step. It's a no-op once ≥3 distinct year CSVs exist locally (the common case); on a genuine cache miss it downloads full OE history (`OE_DOWNLOAD_YEARS=all`) once. A new `actions/cache` step (keyed `oe-csv-history-v1-<run id>`, `restore-keys: oe-csv-history-v1-`) persists the downloaded `lol/` history across workflow runs so this full download only actually happens once, not on every 2-hourly run. |
+| — | `pip install -r scripts/requirements-ml.txt` + the whole ML retrain block are wrapped in `continue-on-error: true` (gated behind `if: steps.<prev>.outcome == 'success'`), so a bug or transient failure in the ML pipeline never blocks the live dashboard refresh (CDN shards / Supabase seed / weekly recaps still complete normally) — it just skips that run's model refresh and retries on the next Drive change. |
+
+**Deploying the retrained model to the live edge function remains a deliberate manual step** (`npx supabase functions deploy agent-chat --use-api`, or via CI if you want that automated too — see below) — this Action only regenerates and commits the artifact JSON, it does not push to Supabase's edge runtime. That's intentional: this session alone found and fixed several real accuracy bugs (GPR overweighting, opponent-blind recent form, wrong jungle-centric detection) purely from smoke-testing outputs before they went live, and auto-deploying a freshly retrained model straight to production chat on every Drive update would remove that human checkpoint. Deploying is a 10-second command whenever you're ready to ship a retrain — happy to also automate that step (needs a `SUPABASE_ACCESS_TOKEN` repo secret) if you'd rather not do it manually.
+
+**Result:** the model's data source is now the exact same pipeline as the live dashboard (same Drive folder, same `download_oe_csv.py`, same change-detection gate) — no separate manually-refreshed CSV copy exists anymore. `docs/nuckyAI_model.md`/`scripts/ml/README.md`'s "manually-refreshed copy" caveat is resolved.
 
 ---
 
 ## 9. Continuous Learning (Phase 4)
 
-**Trigger:** OE ingest completes → rebuild feature mart → retrain → validate → `export_artifacts.py` → commit updated `agent-chat/ml/` JSON.
+**Trigger (shipped 2026-07-09, §8.9):** "Refresh Dashboard Data" GitHub Action detects an OE CSV change on Drive → downloads it (+ backfills full history on cache miss) → ingests dashboard shards/Supabase as before → rebuilds feature mart → retrains → `export_artifacts.py` → commits updated `agent-chat/ml/` JSON. Runs on the same 2-hourly change-detection schedule as the dashboard refresh, non-blocking (`continue-on-error`) so an ML pipeline failure never breaks dashboard data freshness.
 
-**Monitoring:**
+**Not yet automated:**
 
+- Deploying the retrained artifacts to the live `agent-chat` edge function (currently a manual `supabase functions deploy` — see §8.9)
+- Walk-forward metric **validation gate** before committing (today it always commits `export_artifacts.py`'s output; a future version could diff `metrics.json` against the previous commit and skip/flag a regression)
 - `ml_prediction_log` table (future): predicted vs actual series outcomes
 - Weekly drift report: accuracy by league, patch, confidence bucket
 - Rollback if holdout log-loss regresses &gt; X% vs prior version
@@ -327,7 +343,7 @@ Fourth round of smoke-testing (BLG vs HLE re-test) surfaced that even with the �
 | **M3.5** | SOS/GPR grounding, champion archetype/role/scaling, clutch factor | **Shipped 2026-07-08** |
 | **M3.6** | Market-anchored win %, jungle-farm signal (CS@15 vs K+A), priority champs, matchup-preview table format | **Shipped 2026-07-08** |
 | **M3.7** | GPR-overweight rebalance, live GPR fetch, opponent-strength-quality-adjusted recent form, Kalshi alias matching, team-identity canonicalization fixes, bullet-point matchup-preview format | **Shipped 2026-07-09** |
-| **M4** | Automated retrain pipeline | Not started |
+| **M4** | Automated retrain pipeline (data source shared with dashboard refresh; deploy-to-edge still manual) | **Shipped 2026-07-09 (§8.9)** |
 | **M5** | Pre-match analysis UI | Not started (packet-ready) |
 
 **Known follow-up:** `scripts/ingest_csv.py` drops 2025 NA (`LTA`/`LTA N` tags). ML pipeline handles via `oe_leagues.py`; dashboard ingest still needs fix.

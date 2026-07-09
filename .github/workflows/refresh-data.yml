@@ -1,16 +1,24 @@
-# Refresh Oracle's Elixir data: Drive → ingest → Supabase.
+# Refresh Oracle's Elixir data: Drive → ingest → Supabase → nuckyAI ML retrain.
 #
 # Scheduled: every 2 hours, check OE Drive metadata first. Full download/ingest/seed
 # runs only when the current-year CSV changed (modifiedTime, size, or md5Checksum).
 #
 # Manual workflow_dispatch always runs the full refresh.
 #
+# This is also nuckyAI's ONLY data source — the ML pipeline (scripts/ml/) reads the same
+# lol/*.csv this job downloads and re-trains/re-exports its artifacts every time this job
+# runs, so the model never depends on a manually-refreshed local CSV copy. Since the
+# scheduled download only fetches the *current* year's CSV (to stay fast), a cached lol/
+# history (restored below) + scripts/ensure_oe_history.py back it with the multi-year
+# history the ML pipeline needs for rolling/team-form features and walk-forward validation.
+# See docs/nuckyAI_model.md §8.9 and scripts/ml/README.md.
+#
 # Requires oe_sync_state table — see supabase/migrations/oe_sync_state.sql
 # If check logs "permission denied for table oe_sync_state", re-run that migration's GRANT block
 # in the Supabase SQL editor (service_role needs SELECT/INSERT/UPDATE/DELETE).
 #
 # Secrets: SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, GOOGLE_SERVICE_ACCOUNT_KEY
-# Optional: OE_DRIVE_FOLDER_ID, OPENROUTER_API_KEY (weekly recap generation)
+# Optional: OE_DRIVE_FOLDER_ID, OPENROUTER_API_KEY (weekly recap generation), CITO_API_KEY (GPR + gold-throw supplement)
 
 name: Refresh Dashboard Data
 
@@ -112,12 +120,26 @@ jobs:
       - name: Install Python dependencies
         run: pip install -r scripts/requirements-ingest.txt
 
+      - name: Restore cached OE CSV history (for ML retrain)
+        uses: actions/cache@v4
+        with:
+          path: lol
+          key: oe-csv-history-v1-${{ github.run_id }}
+          restore-keys: |
+            oe-csv-history-v1-
+
       - name: Download Oracle's Elixir CSVs from Google Drive
         env:
           GOOGLE_SERVICE_ACCOUNT_KEY: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_KEY }}
           OE_DRIVE_FOLDER_ID: ${{ secrets.OE_DRIVE_FOLDER_ID }}
           OE_DOWNLOAD_YEARS: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.download_scope || 'current' }}
         run: python scripts/download_oe_csv.py
+
+      - name: Backfill full OE history for ML training (cache miss only)
+        env:
+          GOOGLE_SERVICE_ACCOUNT_KEY: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_KEY }}
+          OE_DRIVE_FOLDER_ID: ${{ secrets.OE_DRIVE_FOLDER_ID }}
+        run: python scripts/ensure_oe_history.py --min-years 3
 
       - name: Ingest CSVs into slice JSON shards
         run: python scripts/ingest_csv.py
@@ -172,6 +194,41 @@ jobs:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
         run: npm run sync:cito-postgame -- --max-matches 20
+
+      - name: Install ML pipeline dependencies
+        continue-on-error: true
+        id: ml_deps
+        run: pip install -r scripts/requirements-ml.txt
+
+      - name: Retrain nuckyAI ML pipeline
+        if: steps.ml_deps.outcome == 'success'
+        continue-on-error: true
+        id: ml_retrain
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          CITO_API_KEY: ${{ secrets.CITO_API_KEY }}
+        run: |
+          python scripts/ml/build_feature_mart.py
+          python scripts/ml/train_series_model.py
+          python scripts/ml/train_draft_model.py
+          python scripts/ml/build_trend_insights.py
+          python scripts/ml/build_team_profiles.py
+          python scripts/ml/export_artifacts.py
+
+      - name: Commit updated nuckyAI ML artifacts
+        if: steps.ml_retrain.outcome == 'success'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add supabase/functions/agent-chat/ml/
+          if ! git diff --staged --quiet; then
+            git commit -m "chore(ml): refresh nuckyAI model artifacts"
+            git pull --rebase
+            git push
+          else
+            echo "ML artifacts unchanged — skip commit."
+          fi
 
       - name: Save OE Drive sync state
         continue-on-error: true
