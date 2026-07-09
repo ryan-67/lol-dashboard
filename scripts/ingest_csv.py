@@ -12,12 +12,18 @@ Reads:
 Writes:
     public/data/oe_slices.json (manifest with year_files; not read by the frontend)
     public/data/oe_slices_YYYY.json (year shards — source for scripts/seed_supabase.py)
+
+Environment:
+    OE_DOWNLOAD_YEARS — optional scope for which CSV years to ingest into dashboard
+    shards (default: all local CSVs). CI sets this to `current` so ML's full lol/
+    history backfill does not regenerate every historical year shard for git.
 """
 
 from __future__ import annotations
 
 import json
 import csv
+import os
 import re
 import sys
 from collections import defaultdict
@@ -33,7 +39,9 @@ from oe_csv_io import (  # noqa: E402
     REGIONAL_SPLIT_MARKERS,
     TIER1_LEAGUES,
     discover_local_csv_files,
+    extract_csv_year,
     normalize_oe_row,
+    parse_download_years,
     parse_playoffs_flag,
     resolve_playoffs_from_row,
 )
@@ -1345,8 +1353,43 @@ def process_row(row, buckets: dict, team_to_league: dict[str, str], guest_teams:
             tc["wins"] += 1
 
 
+def filter_csv_files_by_years(csv_files: list[Path], years: set[str] | None) -> list[Path]:
+    """When years is set, only ingest those calendar years (dashboard/CDN scope)."""
+    if years is None:
+        return csv_files
+    scoped = [p for p in csv_files if extract_csv_year(p.name) in years]
+    if not scoped:
+        print(
+            f"WARNING: no OE CSV files in lol/ match OE_DOWNLOAD_YEARS={sorted(years)!r}; "
+            f"available years: {sorted({extract_csv_year(p.name) for p in csv_files if extract_csv_year(p.name)})}",
+            file=sys.stderr,
+        )
+    return scoped
+
+
+def load_existing_manifest() -> tuple[dict[str, str], list[str]]:
+    if not OUT_PATH.exists():
+        return {}, []
+    try:
+        payload = json.loads(OUT_PATH.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return {}, []
+    year_files = payload.get("year_files") if isinstance(payload.get("year_files"), dict) else {}
+    meta = payload.get("meta") if isinstance(payload.get("meta"), dict) else {}
+    splits = meta.get("splits") if isinstance(meta.get("splits"), list) else []
+    return dict(year_files), list(splits)
+
+
 def ingest():
     csv_files = discover_local_csv_files(LOL_DIR)
+    ingest_scope = os.environ.get("OE_DOWNLOAD_YEARS", "").strip()
+    scoped_years = parse_download_years(ingest_scope) if ingest_scope else None
+    if scoped_years is not None:
+        csv_files = filter_csv_files_by_years(csv_files, scoped_years)
+        print(
+            f"Ingest scope OE_DOWNLOAD_YEARS={ingest_scope!r} "
+            f"-> {len(csv_files)} CSV file(s): {[p.name for p in csv_files]}"
+        )
     if not csv_files:
         if OUT_PATH.exists():
             print("WARNING: No OE CSV files found in lol/; keeping existing data store.", file=sys.stderr)
@@ -1443,13 +1486,24 @@ def ingest():
         shard_files[year] = shard_name
         print(f"  Wrote shard {shard_name} ({shard_path.stat().st_size / 1024:.1f} KB)")
 
-    # Remove old shard files no longer present.
-    keep = {"oe_slices.json", *shard_files.values()}
-    for existing in OUT_DIR.glob("oe_slices_*.json"):
-        if existing.name not in keep:
-            existing.unlink(missing_ok=True)
+    existing_year_files, existing_splits = load_existing_manifest()
+    merged_year_files = {**existing_year_files, **shard_files}
+    merged_splits = sorted(set(existing_splits) | split_set, key=split_sort_key)
 
-    payload = {"meta": meta, "year_files": shard_files}
+    # Only remove shard files for years we just re-ingested; leave other CDN years alone.
+    if scoped_years is not None:
+        removable_years = scoped_years
+    else:
+        removable_years = set(shard_files.keys())
+    keep = {"oe_slices.json", *merged_year_files.values()}
+    for existing in OUT_DIR.glob("oe_slices_*.json"):
+        year = existing.stem.replace("oe_slices_", "")
+        if year in removable_years and existing.name not in keep:
+            existing.unlink(missing_ok=True)
+            merged_year_files.pop(year, None)
+
+    meta["splits"] = merged_splits
+    payload = {"meta": meta, "year_files": merged_year_files}
     with OUT_PATH.open("w", encoding="utf-8") as f:
         json.dump(payload, f, separators=(",", ":"))
 
