@@ -7,7 +7,14 @@ already uses (gpr_snapshot.json, region_strength.json, team_profiles.json) and p
 together. Re-run after `export_artifacts.py` to see the latest snapshot.
 
 Usage:
-    python scripts/ml/print_power_rankings.py [--league LCK] [--top 30]
+    python scripts/ml/print_power_rankings.py [--league LCK] [--top 30] [--include-non-gpr]
+
+By default this only prints GPR-covered teams (the ~50 tracked tier-1/tier-2 orgs) — this
+is what actually drives predictions for real matchups. Pass --include-non-gpr to also see
+the home-grown region-Elo fallback ratings for wildcard/academy squads GPR doesn't track;
+that fallback is NOT well-calibrated across leagues (a lower-division team's Elo, built from
+walk-forward results entirely within a weaker pool, can outrank a GPR-covered top-tier team)
+and is only ever used live for the small number of teams GPR has no entry for at all.
 """
 
 from __future__ import annotations
@@ -31,11 +38,22 @@ def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--league", help="Filter to one region, e.g. LCK/LPL/LEC/LCS")
     parser.add_argument("--top", type=int, default=40, help="Max rows to print (default 40)")
+    parser.add_argument(
+        "--include-non-gpr",
+        action="store_true",
+        help="Also include the home-grown region-Elo fallback for teams GPR doesn't cover "
+        "(noisy/uncalibrated across leagues — off by default, see module docstring)",
+    )
     args = parser.parse_args()
 
     gpr = load("gpr_snapshot.json")
     strength = load("region_strength.json")
     profiles = load("team_profiles.json").get("teams", {})
+    if gpr.get("generatedAt"):
+        print(
+            f"(static gpr_snapshot.json from {gpr['generatedAt']} - the live prediction path "
+            "re-fetches current GPR from CitoAPI at request time and can differ slightly)\n"
+        )
 
     gpr_teams: dict = gpr.get("teams", {})
     strength_teams: dict = strength.get("teams", {})
@@ -48,6 +66,8 @@ def main() -> None:
         profile = profiles.get(team, {})
         home_region = (strength_entry or {}).get("homeRegion") or (gpr_entry or {}).get("league") or "?"
         if args.league and home_region.upper() != args.league.upper():
+            continue
+        if not gpr_entry and not args.include_non_gpr:
             continue
 
         # Same "prefer GPR elo, fall back to region elo" rule the live blend uses.
