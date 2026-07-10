@@ -67,6 +67,42 @@ export async function fetchExistingRecapMeta(
   return new Map((data ?? []).map((r) => [r.series_id as string, (r.model as string | null) ?? null]))
 }
 
+/** Cached score strings so we can regenerate when Cito corrects an OE mid-series score. */
+export async function fetchExistingRecapScores(
+  client: SupabaseClient,
+  ids: string[],
+): Promise<Map<string, string>> {
+  if (!ids.length) return new Map()
+  const { data, error } = await client
+    .from('weekly_recap_lines')
+    .select('series_id, score')
+    .in('series_id', ids)
+  if (error) throw new Error(`Failed to check existing recap scores: ${error.message}`)
+  return new Map(
+    (data ?? [])
+      .filter((r) => r.series_id && r.score)
+      .map((r) => [r.series_id as string, String(r.score)]),
+  )
+}
+
+/** Cached plain_text for detecting stale elimination language. */
+export async function fetchExistingRecapPlainText(
+  client: SupabaseClient,
+  ids: string[],
+): Promise<Map<string, string>> {
+  if (!ids.length) return new Map()
+  const { data, error } = await client
+    .from('weekly_recap_lines')
+    .select('series_id, plain_text')
+    .in('series_id', ids)
+  if (error) throw new Error(`Failed to check existing recap text: ${error.message}`)
+  return new Map(
+    (data ?? [])
+      .filter((r) => r.series_id && r.plain_text)
+      .map((r) => [r.series_id as string, String(r.plain_text)]),
+  )
+}
+
 /** @deprecated use fetchExistingRecapMeta */
 export async function fetchExistingSeriesIds(client: SupabaseClient, ids: string[]): Promise<Set<string>> {
   const meta = await fetchExistingRecapMeta(client, ids)

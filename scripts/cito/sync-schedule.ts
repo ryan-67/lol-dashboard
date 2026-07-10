@@ -78,6 +78,12 @@ async function main() {
           else if (typeof scoreA === 'number' && typeof scoreB === 'number' && scoreA !== scoreB) {
             winnerTeam = scoreA > scoreB ? teamA : teamB
           }
+          const strategy = event.strategy
+          let bestOf: number | null = null
+          if (typeof strategy === 'number') bestOf = strategy
+          else if (strategy && typeof strategy === 'object' && typeof strategy.count === 'number') {
+            bestOf = strategy.count
+          }
           return {
             match_id: normalizeMatchId(event.matchId),
             league: league.name,
@@ -91,6 +97,7 @@ async function main() {
             team_a_score: typeof scoreA === 'number' ? scoreA : null,
             team_b_score: typeof scoreB === 'number' ? scoreB : null,
             winner_team: winnerTeam,
+            best_of: bestOf,
             fetched_at: fetchedAt,
           }
         })
@@ -102,7 +109,16 @@ async function main() {
       }
 
       const { error } = await supabase.from('cito_schedules').upsert(rows, { onConflict: 'match_id' })
-      if (error) throw new Error(error.message)
+      if (error) {
+        // best_of may not exist yet on older schemas — retry without it.
+        if (/best_of/i.test(error.message)) {
+          const stripped = rows.map(({ best_of: _b, ...rest }) => rest)
+          const retry = await supabase.from('cito_schedules').upsert(stripped, { onConflict: 'match_id' })
+          if (retry.error) throw new Error(retry.error.message)
+        } else {
+          throw new Error(error.message)
+        }
+      }
       total += rows.length
       console.log(`  ${league.name}: upserted ${rows.length} events`)
     } catch (err) {

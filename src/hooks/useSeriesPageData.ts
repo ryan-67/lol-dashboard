@@ -4,13 +4,21 @@ import { buildStoreFromSliceRows, fetchOESlices } from '../lib/loadOEStore'
 import type { OEStore } from '../lib/mergeSlices'
 import { mergeDataForFilters } from '../lib/entities/resolvers'
 import { leagueLabelToLeagues } from './useDashboardData'
-import { findSeriesById, parseSeriesId, resolveSeriesCohortContext } from '../lib/seriesAnalytics'
+import {
+  findSeriesById,
+  parseSeriesId,
+  resolveSeriesCohortContext,
+  type ResolvedSeries,
+} from '../lib/seriesAnalytics'
+import { fetchCitoSeriesResults } from '../lib/citoSeriesVerify'
+import { applyCitoScoreToSeries } from '../lib/applyCitoSeriesScore'
 
 /** Load series across all splits in the series year (ignores global split filter). */
 export function useSeriesPageData(seriesId: string) {
   const { catalog } = useDashboard()
   const [store, setStore] = useState<OEStore | null>(null)
   const [loading, setLoading] = useState(true)
+  const [citoSeries, setCitoSeries] = useState<ResolvedSeries | null | undefined>(undefined)
 
   const parsed = useMemo(() => parseSeriesId(seriesId), [seriesId])
   const year = parsed?.date.slice(0, 4) ?? '2026'
@@ -47,10 +55,27 @@ export function useSeriesPageData(seriesId: string) {
     })
   }, [store, year])
 
-  const series = useMemo(
+  const oeSeries = useMemo(
     () => (data ? findSeriesById(data, seriesId) : null),
     [data, seriesId],
   )
+
+  useEffect(() => {
+    if (!oeSeries) {
+      setCitoSeries(undefined)
+      return
+    }
+    let cancelled = false
+    void fetchCitoSeriesResults({ sinceDays: 60 }).then((results) => {
+      if (cancelled) return
+      setCitoSeries(applyCitoScoreToSeries(oeSeries, results) ?? oeSeries)
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [oeSeries])
+
+  const series = citoSeries === undefined ? oeSeries : citoSeries
 
   const cohortData = useMemo(() => {
     if (!store || !series) return null

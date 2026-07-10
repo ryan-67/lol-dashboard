@@ -169,6 +169,16 @@ export function isValidSeriesScore(wA: number, wB: number): boolean {
 }
 
 /**
+ * 2-0 / 2-1 can be a finished Bo3 OR an incomplete Bo5 when OE is mid-series.
+ * Prefer Cito schedule confirmation before treating these as final (see citoSeriesVerify).
+ */
+export function isProvisionalSeriesScore(wA: number, wB: number): boolean {
+  const max = Math.max(wA, wB)
+  const min = Math.min(wA, wB)
+  return max === 2 && min <= 1
+}
+
+/**
  * True when cumulative wins match a completed Bo3 or Bo5.
  * Pass `nextGame` for lookahead — a 2-1 after 3 games is still in progress if another
  * game between the same teams follows within SERIES_GAP_DAYS (Bo5 games 4–5).

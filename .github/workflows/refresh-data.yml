@@ -173,6 +173,14 @@ jobs:
       - name: Install Node dependencies
         run: npm ci
 
+      - name: Sync Cito league schedules (series scores + bracket blocks)
+        continue-on-error: true
+        env:
+          CITO_API_KEY: ${{ secrets.CITO_API_KEY }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: npm run sync:cito-schedule
+
       - name: Generate weekly recap summaries
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}

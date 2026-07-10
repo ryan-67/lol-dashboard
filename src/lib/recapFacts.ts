@@ -792,6 +792,15 @@ function seriesTournamentLabel(bucket: SeriesBucket, fallbackLeague: string): st
   return year ? `${year} ${league}` : league
 }
 
+export type BracketContext = {
+  blockName?: string | null
+  bracket?: 'upper' | 'lower' | 'play-in' | 'grand-final' | 'final' | 'unknown'
+  /** Loser has a later fixture in this tournament (OE peers or Cito schedule). */
+  loserContinues?: boolean
+  /** Winner has a later fixture in this tournament. */
+  winnerContinues?: boolean
+}
+
 function buildTournamentImplicationHints(
   winner: string,
   loser: string,
@@ -799,6 +808,7 @@ function buildTournamentImplicationHints(
   tournamentLabel: string,
   league: string,
   peers: TournamentSeriesRef[],
+  bracketCtx?: BracketContext,
 ): string[] {
   const hints: string[] = []
   const intl = ['MSI', 'WLDS', 'WORLDS', 'FST', 'FIRST STAND'].includes(league.toUpperCase())
@@ -832,6 +842,11 @@ function buildTournamentImplicationHints(
       (teamMatchesCanonical(p.winner, loser) || teamMatchesCanonical(p.loser, loser)),
   )
 
+  const loserContinues = Boolean(bracketCtx?.loserContinues) || laterLoser.length > 0
+  const winnerContinues = Boolean(bracketCtx?.winnerContinues) || laterWinner.length > 0
+  const bracket = bracketCtx?.bracket ?? 'unknown'
+  const block = (bracketCtx?.blockName ?? '').trim()
+
   // Play-in / qualification final: same matchup earlier in the event, loser has no further games.
   const priorMeeting = sameEvent.find(
     (p) =>
@@ -839,19 +854,42 @@ function buildTournamentImplicationHints(
       ((teamMatchesCanonical(p.winner, winner) && teamMatchesCanonical(p.loser, loser)) ||
         (teamMatchesCanonical(p.winner, loser) && teamMatchesCanonical(p.loser, winner))),
   )
-  if (priorMeeting && !laterLoser.length && intl) {
+
+  // Upper-bracket loss → lower bracket, NOT elimination. Prefer explicit block_name.
+  if (bracket === 'upper' && !loserContinues) {
+    hints.push(
+      `${tournamentLabel} upper bracket — ${recapTeamTag(winner)} advances in winners, ${recapTeamTag(loser)} drops to the lower bracket (not eliminated / not going home)`,
+    )
+  } else if (loserContinues) {
+    // Handled below with next-opponent detail when available.
+  } else if (
+    (bracket === 'play-in' || /play[\s-]?in/i.test(block)) &&
+    priorMeeting &&
+    !loserContinues &&
+    intl
+  ) {
     hints.push(
       `${tournamentLabel} play-in finals stakes — ${recapTeamTag(winner)} advances to the main bracket, ${recapTeamTag(loser)} is eliminated and sent home`,
     )
   } else if (
+    (bracket === 'lower' || bracket === 'grand-final' || bracket === 'final') &&
+    !loserContinues &&
     intl &&
-    !laterLoser.length &&
-    !laterWinner.length &&
-    priorWinner.length >= 1 &&
     priorLoser.length >= 1
   ) {
-    // Both teams already played in this event; this looks like a stage-deciding series
-    // (e.g. play-in final) even if the prior meeting was against other opponents.
+    hints.push(
+      `${tournamentLabel} elimination stakes — ${recapTeamTag(loser)} is eliminated from ${tournamentLabel}`,
+    )
+  } else if (
+    intl &&
+    !loserContinues &&
+    !winnerContinues &&
+    priorWinner.length >= 1 &&
+    priorLoser.length >= 1 &&
+    bracket !== 'upper' &&
+    bracket !== 'unknown'
+  ) {
+    // Both teams already played; only claim elimination when bracket context supports it.
     const latestEventDate = sameEvent.reduce(
       (max, p) => (p.date > max ? p.date : max),
       date,
@@ -861,6 +899,9 @@ function buildTournamentImplicationHints(
         `${tournamentLabel} stage stakes — ${recapTeamTag(winner)} advances toward the main bracket, ${recapTeamTag(loser)} is eliminated from ${tournamentLabel}`,
       )
     }
+  } else if (intl && !loserContinues && bracket === 'unknown' && !priorMeeting) {
+    // Incomplete OE peer history (e.g. upper-bracket loss before lower-bracket games land):
+    // do NOT invent "going home" / elimination — leave stakes to winner-advances hints only.
   }
 
   if (laterWinner.length) {
@@ -869,19 +910,19 @@ function buildTournamentImplicationHints(
     hints.push(
       `${recapTeamTag(winner)} advances and next faces ${recapTeamTag(opp)} in ${tournamentLabel}`,
     )
-    if (laterLoser.length) {
-      const nextL = laterLoser.sort((a, b) => a.date.localeCompare(b.date))[0]!
-      const oppL = teamMatchesCanonical(nextL.winner, loser) ? nextL.loser : nextL.winner
-      hints.push(
-        `${recapTeamTag(loser)} continues in ${tournamentLabel} (next: ${recapTeamTag(oppL)}) — not eliminated`,
-      )
-    }
-  } else if (laterLoser.length && !laterWinner.length && intl) {
-    // Winner done for now (bracket TBD), loser still playing — don't claim winner eliminated anyone else.
+  } else if (winnerContinues && bracket === 'upper') {
+    hints.push(`${recapTeamTag(winner)} continues in the ${tournamentLabel} upper bracket`)
+  }
+
+  if (laterLoser.length) {
     const nextL = laterLoser.sort((a, b) => a.date.localeCompare(b.date))[0]!
     const oppL = teamMatchesCanonical(nextL.winner, loser) ? nextL.loser : nextL.winner
     hints.push(
-      `${recapTeamTag(loser)} continues in ${tournamentLabel} (next: ${recapTeamTag(oppL)})`,
+      `${recapTeamTag(loser)} continues in ${tournamentLabel} (next: ${recapTeamTag(oppL)}) — not eliminated`,
+    )
+  } else if (loserContinues || bracket === 'upper') {
+    hints.push(
+      `${recapTeamTag(loser)} continues in ${tournamentLabel}${bracket === 'upper' ? ' via the lower bracket' : ''} — not eliminated / not going home`,
     )
   }
 
@@ -900,6 +941,8 @@ export function buildSeriesFacts(
     playerChampGames?: Map<string, Map<string, number>>
     /** Other series in the same event window (for advancement / elimination). */
     tournamentPeers?: TournamentSeriesRef[]
+    /** Cito / bracket context so we don't invent "going home" on upper-bracket losses. */
+    bracketContext?: BracketContext
     /** Split-level champion meta for rare/off-role pocket picks. */
     champions?: Champion[]
     /** Global power ranks (1 = best) for favorite/underdog fraud gating. */
@@ -1007,6 +1050,7 @@ export function buildSeriesFacts(
       tournamentLabel,
       league,
       opts.tournamentPeers ?? [],
+      opts.bracketContext,
     ),
   ]
 

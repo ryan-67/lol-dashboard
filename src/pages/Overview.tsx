@@ -31,6 +31,7 @@ import OverviewHubToggle from '../components/overview/OverviewHubToggle'
 import { buildWeeklyRecapLines } from '../lib/weeklyRecap'
 import { mergeWeeklyRecapLines } from '../lib/recapMerge'
 import { fetchCachedWeeklyRecapLines } from '../lib/loadWeeklyRecap'
+import { fetchCitoSeriesResults, type CitoSeriesResult } from '../lib/citoSeriesVerify'
 import { resolveGameOpponent } from '../lib/gameOpponent'
 import {
   getHubWindow,
@@ -566,6 +567,18 @@ export default function Overview() {
     return computeChampionOfWeekScores(stats)
   }, [weeklyPlayers, weeklyHubChampions, hubWindow])
 
+  const [citoResults, setCitoResults] = useState<CitoSeriesResult[]>([])
+
+  useEffect(() => {
+    let cancelled = false
+    void fetchCitoSeriesResults({ sinceDays: 45 }).then((rows) => {
+      if (!cancelled) setCitoResults(rows)
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
   const templateRecapLines = useMemo(() => {
     if (!hubWindow) return []
     return buildWeeklyRecapLines(
@@ -574,8 +587,9 @@ export default function Overview() {
       hubWindow,
       league,
       weeklyHubGameCatalog,
+      citoResults,
     ).slice(0, copy.recapLimit)
-  }, [weeklyHubPlayers, weeklyHubTeams, hubWindow, league, copy.recapLimit, weeklyHubGameCatalog])
+  }, [weeklyHubPlayers, weeklyHubTeams, hubWindow, league, copy.recapLimit, weeklyHubGameCatalog, citoResults])
 
   const [cachedRecapLines, setCachedRecapLines] = useState<typeof templateRecapLines>([])
 

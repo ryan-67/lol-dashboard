@@ -25,6 +25,12 @@ import {
 import { analyzeSeriesMomentum } from './seriesMomentum'
 import { resolveTournamentDisplay, buildTournamentIdentity } from './tournamentCatalog'
 import { resolveGameOpponent } from './gameOpponent'
+import {
+  type CitoSeriesResult,
+  isInternationalLeague,
+  resolveSeriesScoreWithCito,
+  teamHasUpcomingInTournament,
+} from './citoSeriesVerify'
 
 export type { SeriesFacts }
 
@@ -1430,6 +1436,7 @@ export function buildWeeklyRecapLines(
   window: WeeklyRecapWindow | null,
   _league: string,
   gameCatalog?: Record<string, GameCatalogEntry>,
+  citoResults?: CitoSeriesResult[],
 ): WeeklyRecapLine[] {
   if (!window) return []
   const games = collectWeeklyGames(players, window, gameCatalog)
@@ -1441,6 +1448,7 @@ export function buildWeeklyRecapLines(
   const series = groupSeries(games)
   const ledger = new RecapLedger()
   const lines: WeeklyRecapLine[] = []
+  const cito = citoResults ?? []
 
   for (let i = 0; i < series.length; i++) {
     const bucket = series[i]!
@@ -1449,6 +1457,20 @@ export function buildWeeklyRecapLines(
     const winsA = bucket.games.filter((g) => g.winner === bucket.teamA).length
     const winsB = bucket.games.length - winsA
     if (!isValidSeriesScore(winsA, winsB)) continue
+
+    const ordered = [...bucket.games].sort(compareSeriesGames)
+    const latestDate = ordered[ordered.length - 1]?.date ?? bucket.games[0]!.date
+    const firstGame = bucket.games[0]!
+    const resolved = resolveSeriesScoreWithCito(
+      bucket.teamA,
+      bucket.teamB,
+      winsA,
+      winsB,
+      latestDate,
+      cito,
+      { international: isInternationalLeague(firstGame.league) },
+    )
+    if (resolved.skipCompleted) continue
 
     const line = summarizeSeries(
       bucket,
@@ -1462,14 +1484,6 @@ export function buildWeeklyRecapLines(
     )
     if (!line) continue
 
-    const dominant = winsA >= winsB ? bucket.teamA : bucket.teamB
-    const victim = dominant === bucket.teamA ? bucket.teamB : bucket.teamA
-    const domWins = Math.max(winsA, winsB)
-    const vicWins = Math.min(winsA, winsB)
-
-    const firstGame = bucket.games[0]!
-    const ordered = [...bucket.games].sort(compareSeriesGames)
-    const latestDate = ordered[ordered.length - 1]?.date ?? firstGame.date
     const tournamentLabel = resolveTournamentDisplay(
       firstGame.league,
       firstGame.split,
@@ -1487,11 +1501,11 @@ export function buildWeeklyRecapLines(
       ...line,
       seriesId: stableSeriesId(bucket.teamA, bucket.teamB, latestDate, bucket.sessionIndex),
       score: {
-        winner: resolveTeamCanonicalName(dominant),
-        loser: resolveTeamCanonicalName(victim),
-        winnerAbbr: recapTeamTag(dominant),
-        loserAbbr: recapTeamTag(victim),
-        score: `${domWins}-${vicWins}`,
+        winner: resolved.winner,
+        loser: resolved.loser,
+        winnerAbbr: recapTeamTag(resolved.winner),
+        loserAbbr: recapTeamTag(resolved.loser),
+        score: resolved.score,
         tournamentLabel,
         tournamentLeague,
       },
@@ -1577,10 +1591,12 @@ export function collectSeriesBriefs(
     gameFilter?: (g: PlayerGameLog) => boolean
     gameCatalog?: Record<string, GameCatalogEntry>
     powerRanks?: PowerRankMap
+    citoResults?: CitoSeriesResult[]
   },
 ): SeriesBrief[] {
   if (!window && !options?.gameFilter) return []
   const gameCatalog = options?.gameCatalog
+  const cito = options?.citoResults ?? []
   const games = collectParsedGames(players, { window, gameFilter: options?.gameFilter, gameCatalog })
   if (!games.length) return []
 
@@ -1601,10 +1617,18 @@ export function collectSeriesBriefs(
     const winsA = bucket.games.filter((g) => g.winner === bucket.teamA).length
     const winsB = bucket.games.length - winsA
     if (!isValidSeriesScore(winsA, winsB)) continue
-    const winner = winsA >= winsB ? bucket.teamA : bucket.teamB
-    const loser = winner === bucket.teamA ? bucket.teamB : bucket.teamA
     const ordered = [...bucket.games].sort(compareSeriesGames)
     const latestDate = ordered[ordered.length - 1]?.date ?? bucket.games[0]!.date
+    const resolved = resolveSeriesScoreWithCito(
+      bucket.teamA,
+      bucket.teamB,
+      winsA,
+      winsB,
+      latestDate,
+      cito,
+      { international: isInternationalLeague(bucket.games[0]?.league) },
+    )
+    if (resolved.skipCompleted) continue
     const g0 = bucket.games[0]!
     const league = (g0.league ?? 'LCK').toUpperCase()
     const year = g0.oeYear ?? latestDate.slice(0, 4)
@@ -1613,8 +1637,8 @@ export function collectSeriesBriefs(
       : g0.split ?? `${year} ${league}`
     tournamentPeers.push({
       date: latestDate,
-      winner: resolveTeamCanonicalName(winner),
-      loser: resolveTeamCanonicalName(loser),
+      winner: resolved.winner,
+      loser: resolved.loser,
       league,
       tournamentLabel,
     })
@@ -1634,14 +1658,30 @@ export function collectSeriesBriefs(
       continue
     }
 
-    const dominant = winsA >= winsB ? bucket.teamA : bucket.teamB
-    const victim = dominant === bucket.teamA ? bucket.teamB : bucket.teamA
-    const domWins = Math.max(winsA, winsB)
-    const vicWins = Math.min(winsA, winsB)
-
     const ordered = [...bucket.games].sort(compareSeriesGames)
     const latestDate = ordered[ordered.length - 1]?.date ?? bucket.games[0]!.date
     const firstGameDate = ordered[0]!.date
+    const resolved = resolveSeriesScoreWithCito(
+      bucket.teamA,
+      bucket.teamB,
+      winsA,
+      winsB,
+      latestDate,
+      cito,
+      { international: isInternationalLeague(bucket.games[0]?.league) },
+    )
+    if (resolved.skipCompleted) {
+      console.warn(
+        `Skipping provisional/incomplete series ${bucket.teamA} vs ${bucket.teamB} ` +
+          `(OE ${Math.max(winsA, winsB)}-${Math.min(winsA, winsB)}; awaiting Cito confirmation)`,
+      )
+      continue
+    }
+
+    const dominant = resolved.winner
+    const victim = resolved.loser
+    const domWins = Math.max(resolved.winsA, resolved.winsB)
+    const vicWins = Math.min(resolved.winsA, resolved.winsB)
 
     const eventKey = eventKeyForGame(bucket.games[0] ?? {})
     const domHistory = groupTeamSeriesHistory(
@@ -1658,6 +1698,13 @@ export function collectSeriesBriefs(
       countSeriesWinStreak(domHistory, firstGameDate, victim) + (domWins > vicWins ? 1 : 0)
     const victimSlump = countSeriesLossStreak(vicHistory, firstGameDate)
 
+    const g0 = bucket.games[0]!
+    const league = (g0.league ?? 'LCK').toUpperCase()
+    const year = g0.oeYear ?? latestDate.slice(0, 4)
+    const tournamentLabel = ['MSI', 'WLDS', 'WORLDS', 'FST'].includes(league)
+      ? `${year} ${league === 'WLDS' || league === 'WORLDS' ? 'Worlds' : league === 'FST' ? 'First Stand' : 'MSI'}`
+      : g0.split ?? `${year} ${league}`
+
     const facts = buildSeriesFacts(bucket, teams, weekCounts, {
       blowout: domWins >= 2 && vicWins === 0,
       seriesStreak: domWins > vicWins ? seriesStreak : 0,
@@ -1666,7 +1713,23 @@ export function collectSeriesBriefs(
       tournamentPeers,
       champions: championMeta,
       powerRanks: options?.powerRanks,
+      bracketContext: {
+        blockName: resolved.blockName,
+        bracket: resolved.bracket,
+        loserContinues: teamHasUpcomingInTournament(victim, latestDate, tournamentLabel, cito),
+        winnerContinues: teamHasUpcomingInTournament(dominant, latestDate, tournamentLabel, cito),
+      },
     })
+
+    // Prefer Cito-verified score in facts (buildSeriesFacts used OE game counts).
+    facts.score = resolved.score
+    facts.domWins = domWins
+    facts.vicWins = vicWins
+    facts.winner = resolved.winner
+    facts.loser = resolved.loser
+    facts.winnerAbbr = recapTeamTag(resolved.winner)
+    facts.loserAbbr = recapTeamTag(resolved.loser)
+    facts.blowout = domWins >= 2 && vicWins === 0
 
     const templateBase = summarizeSeries(
       bucket,
@@ -1683,11 +1746,11 @@ export function collectSeriesBriefs(
     const templateLine: WeeklyRecapLine = {
       ...templateBase,
       score: {
-        winner: resolveTeamCanonicalName(dominant),
-        loser: resolveTeamCanonicalName(victim),
-        winnerAbbr: recapTeamTag(dominant),
-        loserAbbr: recapTeamTag(victim),
-        score: `${domWins}-${vicWins}`,
+        winner: resolved.winner,
+        loser: resolved.loser,
+        winnerAbbr: recapTeamTag(resolved.winner),
+        loserAbbr: recapTeamTag(resolved.loser),
+        score: resolved.score,
       },
     }
 

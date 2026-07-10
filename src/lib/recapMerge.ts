@@ -3,7 +3,7 @@ import { formatRecapDate, recapLineToText } from './weeklyRecap'
 import { resolveTeamCanonicalName } from './entities/slugs'
 import { seriesKey } from './seriesGrouping'
 
-/** Prefer seriesId when present; otherwise date + canonical matchup + score. */
+/** Prefer seriesId when present; otherwise date + canonical matchup (score may drift). */
 function recapLineKey(line: WeeklyRecapLine): string {
   if (line.seriesId) {
     // Normalize team names inside seriesId so TL vs Team Liquid collide.
@@ -17,17 +17,23 @@ function recapLineKey(line: WeeklyRecapLine): string {
   }
   const winner = resolveTeamCanonicalName(line.score.winner)
   const loser = resolveTeamCanonicalName(line.score.loser)
-  return `match:${line.date}|${seriesKey(winner, loser)}|${line.score.score}|${winner}`
+  return `match:${line.date}|${seriesKey(winner, loser)}`
 }
 
 /**
- * Same calendar day + same matchup + same score = one series.
+ * Same calendar day + same matchup = one series (score may drift as OE/Cito catch up).
  * Rematches on different days (T1 vs TL Jun 28 and Jul 1) stay separate.
  */
 function seriesOccurrenceKey(line: WeeklyRecapLine): string {
   const winner = resolveTeamCanonicalName(line.score.winner)
   const loser = resolveTeamCanonicalName(line.score.loser)
-  return `${line.date}|${seriesKey(winner, loser)}|${line.score.score}|${winner}`
+  return `${line.date}|${seriesKey(winner, loser)}`
+}
+
+function scoreMagnitude(score: string): number {
+  const m = score.match(/(\d+)\s*-\s*(\d+)/)
+  if (!m) return 0
+  return Number(m[1]) + Number(m[2])
 }
 
 function recapQualityScore(line: WeeklyRecapLine): number {
@@ -48,6 +54,10 @@ function recapQualityScore(line: WeeklyRecapLine): number {
   if (/\bstay ice cold against\b/i.test(text) && /\bagainst\s+([A-Za-z0-9.]+)\s+\1\b/i.test(text)) {
     score -= 200
   }
+  // Penalize false elimination language when the paired template says loser continues.
+  if (/\b(going home|sent home|eliminated from)\b/i.test(text)) {
+    score -= 80
+  }
   return score
 }
 
@@ -62,6 +72,9 @@ function mergeRecapPair(a: WeeklyRecapLine, b: WeeklyRecapLine): WeeklyRecapLine
     primary.seriesId ??
     secondary.seriesId
   const date = primary.date.localeCompare(secondary.date) >= 0 ? primary.date : secondary.date
+  // Prefer the more complete series score (e.g. Cito/OE 3-0 over a stale mid-series 2-0).
+  const preferScore =
+    scoreMagnitude(a.score.score) >= scoreMagnitude(b.score.score) ? a.score : b.score
   return {
     ...primary,
     id: seriesId ?? primary.id,
@@ -69,10 +82,11 @@ function mergeRecapPair(a: WeeklyRecapLine, b: WeeklyRecapLine): WeeklyRecapLine
     date,
     dateLabel: formatRecapDate(date),
     score: {
-      ...secondary.score,
-      ...primary.score,
-      tournamentLabel: secondary.score.tournamentLabel ?? primary.score.tournamentLabel,
-      tournamentLeague: secondary.score.tournamentLeague ?? primary.score.tournamentLeague,
+      ...preferScore,
+      tournamentLabel:
+        a.score.tournamentLabel ?? b.score.tournamentLabel ?? preferScore.tournamentLabel,
+      tournamentLeague:
+        a.score.tournamentLeague ?? b.score.tournamentLeague ?? preferScore.tournamentLeague,
     },
   }
 }
