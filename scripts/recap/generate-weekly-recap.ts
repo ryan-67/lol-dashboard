@@ -8,6 +8,7 @@
  *   RECAP_LLM_MODEL, RECAP_YEAR, RECAP_DRY_RUN=1, RECAP_REGENERATE=1
  *   RECAP_PLAYOFFS_2026_SPRING=1 — bulk backfill for 2026 Spring playoffs only (all leagues)
  */
+import './node-ws-polyfill.ts'
 import {
   collectSeriesBriefs,
   is2026SpringPlayoffGame,

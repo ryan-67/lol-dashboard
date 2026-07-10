@@ -7,7 +7,6 @@
  */
 
 import type { SupabaseClient } from '@supabase/supabase-js'
-import { supabase, isSupabaseConfigured } from './supabaseClient'
 import { teamsShareEsportsSlug } from './entities/assets'
 import { resolveTeamCanonicalName, teamMatchesCanonical } from './entities/slugs'
 import { daysBetween, isValidSeriesScore } from './seriesGrouping'
@@ -314,14 +313,21 @@ export function isInternationalLeague(league: string | null | undefined): boolea
 /**
  * Load recent Cito schedule rows (completed + live) for series score verification.
  * Pass `client` from Node/CI (service role) — browser callers omit it and use the anon client.
+ *
+ * The browser supabase client is loaded lazily so Node/CI scripts that pass `client`
+ * never import it (avoids Node 20 WebSocket / missing anon-key issues).
  */
 export async function fetchCitoSeriesResults(options?: {
   sinceDays?: number
   limit?: number
   client?: SupabaseClient
 }): Promise<CitoSeriesResult[]> {
-  const db = options?.client ?? (isSupabaseConfigured ? supabase : null)
-  if (!db) return []
+  let db: SupabaseClient | null = options?.client ?? null
+  if (!db) {
+    const { supabase, isSupabaseConfigured } = await import('./supabaseClient')
+    if (!isSupabaseConfigured) return []
+    db = supabase
+  }
 
   const sinceDays = options?.sinceDays ?? 45
   const limit = options?.limit ?? 500
