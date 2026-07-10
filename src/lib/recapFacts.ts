@@ -799,6 +799,9 @@ export type BracketContext = {
   loserContinues?: boolean
   /** Winner has a later fixture in this tournament. */
   winnerContinues?: boolean
+  formatId?: string | null
+  structure?: 'double_elim' | 'single_elim' | 'swiss' | 'groups' | 'round_robin' | 'unknown' | null
+  lossCanEliminateWithoutLower?: boolean | null
 }
 
 function buildTournamentImplicationHints(
@@ -846,6 +849,16 @@ function buildTournamentImplicationHints(
   const winnerContinues = Boolean(bracketCtx?.winnerContinues) || laterWinner.length > 0
   const bracket = bracketCtx?.bracket ?? 'unknown'
   const block = (bracketCtx?.blockName ?? '').trim()
+  const structure = bracketCtx?.structure ?? null
+  const doubleElim =
+    structure === 'double_elim' ||
+    bracket === 'upper' ||
+    bracket === 'lower' ||
+    /upper|lower/.test(block.toLowerCase())
+  const singleElimNoLower =
+    bracketCtx?.lossCanEliminateWithoutLower === true ||
+    structure === 'single_elim' ||
+    structure === 'swiss'
 
   // Play-in / qualification final: same matchup earlier in the event, loser has no further games.
   const priorMeeting = sameEvent.find(
@@ -855,11 +868,20 @@ function buildTournamentImplicationHints(
         (teamMatchesCanonical(p.winner, loser) && teamMatchesCanonical(p.loser, winner))),
   )
 
-  // Upper-bracket loss → lower bracket, NOT elimination. Prefer explicit block_name.
-  if (bracket === 'upper' && !loserContinues) {
+  if (bracketCtx?.formatId) {
     hints.push(
-      `${tournamentLabel} upper bracket — ${recapTeamTag(winner)} advances in winners, ${recapTeamTag(loser)} drops to the lower bracket (not eliminated / not going home)`,
+      `tournament format: ${bracketCtx.formatId}` +
+        (structure ? ` (${structure.replace('_', '-')})` : ''),
     )
+  }
+
+  // Upper-bracket loss → lower bracket, NOT elimination.
+  if ((bracket === 'upper' || (doubleElim && bracket === 'unknown' && !singleElimNoLower)) && !loserContinues) {
+    if (bracket === 'upper' || doubleElim) {
+      hints.push(
+        `${tournamentLabel} is double-elimination — ${recapTeamTag(winner)} advances in winners, ${recapTeamTag(loser)} drops to the lower bracket (not eliminated / not going home)`,
+      )
+    }
   } else if (loserContinues) {
     // Handled below with next-opponent detail when available.
   } else if (
@@ -872,13 +894,21 @@ function buildTournamentImplicationHints(
       `${tournamentLabel} play-in finals stakes — ${recapTeamTag(winner)} advances to the main bracket, ${recapTeamTag(loser)} is eliminated and sent home`,
     )
   } else if (
-    (bracket === 'lower' || bracket === 'grand-final' || bracket === 'final') &&
-    !loserContinues &&
-    intl &&
-    priorLoser.length >= 1
+    (bracket === 'lower' || bracket === 'grand-final') &&
+    !loserContinues
   ) {
     hints.push(
       `${tournamentLabel} elimination stakes — ${recapTeamTag(loser)} is eliminated from ${tournamentLabel}`,
+    )
+  } else if (
+    singleElimNoLower &&
+    !loserContinues &&
+    !doubleElim &&
+    (bracket === 'final' || bracket !== 'unknown' || priorLoser.length >= 1)
+  ) {
+    // Worlds knockout / First Stand / single-elim: a loss can send a team home.
+    hints.push(
+      `${tournamentLabel} is single-elim / no lower bracket — ${recapTeamTag(loser)} is eliminated from ${tournamentLabel}`,
     )
   } else if (
     intl &&
@@ -887,21 +917,25 @@ function buildTournamentImplicationHints(
     priorWinner.length >= 1 &&
     priorLoser.length >= 1 &&
     bracket !== 'upper' &&
+    !doubleElim &&
     bracket !== 'unknown'
   ) {
-    // Both teams already played; only claim elimination when bracket context supports it.
     const latestEventDate = sameEvent.reduce(
       (max, p) => (p.date > max ? p.date : max),
       date,
     )
     if (date >= latestEventDate) {
       hints.push(
-        `${tournamentLabel} stage stakes — ${recapTeamTag(winner)} advances toward the main bracket, ${recapTeamTag(loser)} is eliminated from ${tournamentLabel}`,
+        `${tournamentLabel} stage stakes — ${recapTeamTag(winner)} advances, ${recapTeamTag(loser)} is eliminated from ${tournamentLabel}`,
       )
     }
-  } else if (intl && !loserContinues && bracket === 'unknown' && !priorMeeting) {
-    // Incomplete OE peer history (e.g. upper-bracket loss before lower-bracket games land):
-    // do NOT invent "going home" / elimination — leave stakes to winner-advances hints only.
+  } else if (intl && !loserContinues && (bracket === 'unknown' || doubleElim) && !priorMeeting) {
+    // Incomplete peer history in a double-elim event: do NOT invent "going home".
+    if (doubleElim) {
+      hints.push(
+        `${tournamentLabel} uses a double-elimination bracket — do not assume ${recapTeamTag(loser)} is eliminated without lower-bracket / upcoming-match confirmation`,
+      )
+    }
   }
 
   if (laterWinner.length) {
@@ -920,10 +954,12 @@ function buildTournamentImplicationHints(
     hints.push(
       `${recapTeamTag(loser)} continues in ${tournamentLabel} (next: ${recapTeamTag(oppL)}) — not eliminated`,
     )
-  } else if (loserContinues || bracket === 'upper') {
-    hints.push(
-      `${recapTeamTag(loser)} continues in ${tournamentLabel}${bracket === 'upper' ? ' via the lower bracket' : ''} — not eliminated / not going home`,
-    )
+  } else if (loserContinues || bracket === 'upper' || (doubleElim && !singleElimNoLower && !loserContinues && bracket === 'unknown')) {
+    if (loserContinues || bracket === 'upper') {
+      hints.push(
+        `${recapTeamTag(loser)} continues in ${tournamentLabel}${bracket === 'upper' || doubleElim ? ' via the lower bracket' : ''} — not eliminated / not going home`,
+      )
+    }
   }
 
   return hints

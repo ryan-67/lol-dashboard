@@ -44,6 +44,9 @@ const TIER1 = [
   { leagueId: 'lol-lpl', name: 'LPL' },
   { leagueId: 'lol-lec', name: 'LEC' },
   { leagueId: 'lol-lcs', name: 'LCS' },
+  { leagueId: 'lol-msi', name: 'MSI' },
+  { leagueId: 'lol-worlds', name: 'Worlds' },
+  { leagueId: 'lol-first-stand', name: 'First Stand' },
 ]
 
 function parseArgs(argv: string[]) {

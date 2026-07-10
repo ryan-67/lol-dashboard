@@ -198,6 +198,25 @@ jobs:
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
         run: npm run sync:cito-postgame -- --max-matches 20
 
+      - name: Backfill gol.gg gold timelines (Cito fallback)
+        continue-on-error: true
+        id: gol_gold
+        run: python scripts/backfill_gol_gold_timelines.py --year 2026 --max-fetch 50 --missing-only
+
+      - name: Commit gol.gg gold cache
+        if: steps.gol_gold.outcome == 'success'
+        continue-on-error: true
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add public/data/gol_game_cache.json
+          if ! git diff --staged --quiet; then
+            git commit -m "chore(data): backfill gol.gg gold timelines"
+            git push || (git fetch origin main && git rebase origin/main && git push)
+          else
+            echo "gol gold cache unchanged — skip commit."
+          fi
+
       - name: Install ML pipeline dependencies
         continue-on-error: true
         id: ml_deps

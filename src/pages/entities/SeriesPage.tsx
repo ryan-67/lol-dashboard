@@ -14,7 +14,7 @@ import { fetchCitoGoldForSeries } from '../../lib/loadCitoGold'
 import type { CitoGameGoldRecord } from '../../lib/citoGoldMatch'
 import { fetchGolGoldCache } from '../../lib/loadGolGold'
 import type { GolGameGoldRecord } from '../../lib/golGoldMatch'
-import { recapLineToText, type WeeklyRecapLine } from '../../lib/weeklyRecap'
+import { type WeeklyRecapLine } from '../../lib/weeklyRecap'
 import { recapTeamTag } from '../../lib/recapTeamTag'
 import { formatGameDate } from '../../lib/format'
 import { scrollEntranceStagger } from '../../theme/animations'
@@ -111,6 +111,16 @@ export default function SeriesPage() {
     if (!series) return
     let cancelled = false
     setRecapLoading(true)
+
+    // Mid-series: never invent a "beat" summary — wait for series conclusion.
+    if (series.inProgress) {
+      setRecapLine(null)
+      setRecapLoading(false)
+      return () => {
+        cancelled = true
+      }
+    }
+
     void fetchSeriesRecapById(series.seriesId).then((line) => {
       if (cancelled) return
       if (line) {
@@ -118,6 +128,7 @@ export default function SeriesPage() {
       } else {
         const domWins = Math.max(series.winsA, series.winsB)
         const vicWins = Math.min(series.winsA, series.winsB)
+        const bo = series.bestOf ? ` (Bo${series.bestOf})` : ''
         setRecapLine({
           id: series.seriesId,
           date: series.lastDate,
@@ -128,7 +139,7 @@ export default function SeriesPage() {
             { kind: 'team', canonicalName: series.loser, label: recapTeamTag(series.loser) },
             {
               kind: 'text',
-              value: ` ${domWins}-${vicWins} in ${tournamentLabel}.`,
+              value: ` ${domWins}-${vicWins} in ${tournamentLabel}${bo}.`,
             },
           ],
           score: {
@@ -218,7 +229,13 @@ export default function SeriesPage() {
         <>
           <section className="card series-card">
             <h2 className="card-title">Series Recap</h2>
-            {recapLoading ? (
+            {series.inProgress ? (
+              <p className="text-secondary">
+                Series in progress
+                {series.bestOf ? ` (Bo${series.bestOf})` : ''} — recap will appear when the series
+                concludes.
+              </p>
+            ) : recapLoading ? (
               <p className="text-secondary">Loading recap…</p>
             ) : recapLines.length ? (
               <WeeklyRecap
@@ -229,7 +246,7 @@ export default function SeriesPage() {
                 showSeriesLink={false}
               />
             ) : (
-              <p className="text-secondary">{recapLineToText(recapLines[0]!)}</p>
+              <p className="text-secondary">No recap available yet.</p>
             )}
           </section>
 

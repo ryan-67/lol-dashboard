@@ -10,7 +10,6 @@ import { gameMatchesTournament } from './tournamentAnalytics'
 import { teamMatchesCanonical, resolveTeamCanonicalName } from './entities/slugs'
 import { isDisplayablePlayer } from './playerRadar'
 import { isDisplayableTeam } from './teamAnalytics'
-import { recapTeamTag } from './recapTeamTag'
 import {
   collectParsedGames,
   stableSeriesId,
@@ -20,11 +19,13 @@ import {
   compareSeriesGames,
   countSeriesWins,
   groupGamesIntoSeries,
+  isProvisionalSeriesScore,
   isValidSeriesScore,
   orderSeriesGames,
 } from './seriesGrouping'
 import { formatPatch } from './format'
-import { formatDurationMinSec } from './tournamentFormat'
+import { formatDurationMinSec, resolveTournamentFormat } from './tournamentFormat'
+import { formatSeriesScoreLabel, isInternationalLeague } from './citoSeriesVerify'
 import {
   countObjectivesForSide,
   matchCitoGoldToOeGame,
@@ -72,6 +73,10 @@ export interface ResolvedSeries {
   split: string
   playoffs: boolean
   tournament: TournamentIdentity | null
+  /** Present when Cito/OE resolution marks the series unfinished. */
+  inProgress?: boolean
+  bestOf?: number | null
+  complete?: boolean
 }
 
 export interface SeriesGameRosterPlayer {
@@ -87,12 +92,21 @@ export interface SeriesGameRosterPlayer {
   won: boolean
 }
 
-function dominantScore(teamA: string, teamB: string, winsA: number, winsB: number): string {
-  const winner = winsA >= winsB ? teamA : teamB
-  const loser = winner === teamA ? teamB : teamA
-  const wWins = Math.max(winsA, winsB)
-  const lWins = Math.min(winsA, winsB)
-  return `${recapTeamTag(winner)} ${wWins}-${lWins} ${recapTeamTag(loser)}`
+function dominantScore(
+  teamA: string,
+  teamB: string,
+  winsA: number,
+  winsB: number,
+  opts?: { inProgress?: boolean; bestOf?: number | null },
+): string {
+  return formatSeriesScoreLabel({
+    teamA,
+    teamB,
+    winsA,
+    winsB,
+    inProgress: Boolean(opts?.inProgress),
+    bestOf: opts?.bestOf ?? null,
+  })
 }
 
 function patchForGame(gameId: string, catalog: Record<string, GameCatalogEntry>): string {
@@ -133,6 +147,19 @@ function enrichBucket(
     '—'
 
   const sample = ordered[0]
+  const format = resolveTournamentFormat({
+    league: sample?.league,
+    split: sample?.split,
+    playoffs: Boolean(sample?.playoffs),
+  })
+  const bestOf = format?.defaultBestOf ?? null
+  // 2-x is provisional for Bo5 / internationals / playoffs until Cito confirms.
+  // Regular-season Bo3 (no format match) is treated as complete at 2-x.
+  const inProgress =
+    isProvisionalSeriesScore(winsA, winsB) &&
+    (bestOf === 5 ||
+      isInternationalLeague(sample?.league) ||
+      (Boolean(sample?.playoffs) && bestOf !== 3))
   return {
     seriesId,
     teamA,
@@ -142,7 +169,7 @@ function enrichBucket(
     winsB,
     winner,
     loser,
-    scoreLabel: dominantScore(teamA, teamB, winsA, winsB),
+    scoreLabel: dominantScore(teamA, teamB, winsA, winsB, { inProgress, bestOf }),
     lastDate,
     firstDate: ordered[0]?.date ?? lastDate,
     patch: patch || '—',
@@ -150,6 +177,9 @@ function enrichBucket(
     split: sample?.split ?? '',
     playoffs: Boolean(sample?.playoffs),
     tournament: null,
+    inProgress,
+    bestOf,
+    complete: !inProgress && Math.max(winsA, winsB) >= 2,
   }
 }
 

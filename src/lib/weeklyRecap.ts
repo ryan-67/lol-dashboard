@@ -28,11 +28,21 @@ import { resolveGameOpponent } from './gameOpponent'
 import {
   type CitoSeriesResult,
   isInternationalLeague,
+  isSeriesReadyForRecap,
   resolveSeriesScoreWithCito,
   teamHasUpcomingInTournament,
 } from './citoSeriesVerify'
+import { resolveTournamentFormat } from './tournamentFormat'
 
 export type { SeriesFacts }
+
+function seriesResolveOpts(league: string | null | undefined, split?: string | null, playoffs?: boolean) {
+  const format = resolveTournamentFormat({ league, split, playoffs })
+  return {
+    international: isInternationalLeague(league),
+    defaultBestOf: format?.defaultBestOf ?? null,
+  }
+}
 
 export interface WeeklyRecapWindow {
   start: Date
@@ -1468,9 +1478,10 @@ export function buildWeeklyRecapLines(
       winsB,
       latestDate,
       cito,
-      { international: isInternationalLeague(firstGame.league) },
+      seriesResolveOpts(firstGame.league, firstGame.split, firstGame.playoffs),
     )
-    if (resolved.skipCompleted) continue
+    // Weekly hub + recaps only show concluded series.
+    if (!isSeriesReadyForRecap(resolved)) continue
 
     const line = summarizeSeries(
       bucket,
@@ -1626,9 +1637,9 @@ export function collectSeriesBriefs(
       winsB,
       latestDate,
       cito,
-      { international: isInternationalLeague(bucket.games[0]?.league) },
+      seriesResolveOpts(bucket.games[0]?.league, bucket.games[0]?.split, bucket.games[0]?.playoffs),
     )
-    if (resolved.skipCompleted) continue
+    if (!isSeriesReadyForRecap(resolved)) continue
     const g0 = bucket.games[0]!
     const league = (g0.league ?? 'LCK').toUpperCase()
     const year = g0.oeYear ?? latestDate.slice(0, 4)
@@ -1668,12 +1679,12 @@ export function collectSeriesBriefs(
       winsB,
       latestDate,
       cito,
-      { international: isInternationalLeague(bucket.games[0]?.league) },
+      seriesResolveOpts(bucket.games[0]?.league, bucket.games[0]?.split, bucket.games[0]?.playoffs),
     )
-    if (resolved.skipCompleted) {
+    if (!isSeriesReadyForRecap(resolved)) {
       console.warn(
-        `Skipping provisional/incomplete series ${bucket.teamA} vs ${bucket.teamB} ` +
-          `(OE ${Math.max(winsA, winsB)}-${Math.min(winsA, winsB)}; awaiting Cito confirmation)`,
+        `Skipping incomplete series for recap ${bucket.teamA} vs ${bucket.teamB} ` +
+          `(OE ${Math.max(winsA, winsB)}-${Math.min(winsA, winsB)}; waiting for series conclusion)`,
       )
       continue
     }
@@ -1705,6 +1716,16 @@ export function collectSeriesBriefs(
       ? `${year} ${league === 'WLDS' || league === 'WORLDS' ? 'Worlds' : league === 'FST' ? 'First Stand' : 'MSI'}`
       : g0.split ?? `${year} ${league}`
 
+    const format = resolveTournamentFormat({
+      league: g0.league,
+      tournamentLabel,
+      split: g0.split,
+      playoffs: g0.playoffs,
+      blockName: resolved.blockName,
+    })
+    const loserContinues = teamHasUpcomingInTournament(victim, latestDate, tournamentLabel, cito)
+    const winnerContinues = teamHasUpcomingInTournament(dominant, latestDate, tournamentLabel, cito)
+
     const facts = buildSeriesFacts(bucket, teams, weekCounts, {
       blowout: domWins >= 2 && vicWins === 0,
       seriesStreak: domWins > vicWins ? seriesStreak : 0,
@@ -1716,8 +1737,11 @@ export function collectSeriesBriefs(
       bracketContext: {
         blockName: resolved.blockName,
         bracket: resolved.bracket,
-        loserContinues: teamHasUpcomingInTournament(victim, latestDate, tournamentLabel, cito),
-        winnerContinues: teamHasUpcomingInTournament(dominant, latestDate, tournamentLabel, cito),
+        loserContinues,
+        winnerContinues,
+        formatId: format?.id ?? null,
+        structure: format?.structure ?? null,
+        lossCanEliminateWithoutLower: format?.lossCanEliminateWithoutLower ?? null,
       },
     })
 

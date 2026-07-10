@@ -10,6 +10,7 @@ import { supabase, isSupabaseConfigured } from './supabaseClient'
 import { teamsShareEsportsSlug } from './entities/assets'
 import { resolveTeamCanonicalName, teamMatchesCanonical } from './entities/slugs'
 import { daysBetween, isValidSeriesScore } from './seriesGrouping'
+import { recapTeamTag } from './recapTeamTag'
 
 export interface CitoSeriesResult {
   matchId: string
@@ -38,6 +39,7 @@ export interface ResolvedSeriesScore {
   source: 'oe' | 'cito'
   blockName: string | null
   bracket: BracketKind
+  bestOf: number | null
   /** True when OE looked finished but Cito says the series is still live / incomplete. */
   provisional: boolean
   /** Skip from "completed series" surfaces (weekly recap, series lists). */
@@ -144,12 +146,13 @@ export function resolveSeriesScoreWithCito(
   oeWinsB: number,
   seriesDate: string,
   results: CitoSeriesResult[],
-  opts?: { international?: boolean },
+  opts?: { international?: boolean; defaultBestOf?: number | null },
 ): ResolvedSeriesScore {
   const provisionalOe = isProvisionalSeriesScore(oeWinsA, oeWinsB)
   const cito = matchCitoSeriesResult(teamA, teamB, seriesDate, results)
   const bracket = inferBracketKind(cito?.blockName)
   const status = cito ? normalizeStatus(cito.status) : ''
+  const bestOf = cito?.bestOf ?? opts?.defaultBestOf ?? null
 
   const pickWinner = (wA: number, wB: number) => {
     const winner = wA >= wB ? teamA : teamB
@@ -163,6 +166,13 @@ export function resolveSeriesScoreWithCito(
     }
   }
 
+  const base = {
+    blockName: cito?.blockName ?? null,
+    bracket,
+    bestOf,
+    cito,
+  }
+
   if (cito) {
     const mapped = scoresFromCito(cito, teamA)
     const inProgress = IN_PROGRESS_STATUS.has(status)
@@ -172,70 +182,127 @@ export function resolveSeriesScoreWithCito(
       const live = mapped ?? { winsA: oeWinsA, winsB: oeWinsB }
       return {
         ...pickWinner(live.winsA, live.winsB),
+        ...base,
         complete: false,
         source: 'cito',
-        blockName: cito.blockName,
-        bracket,
         provisional: true,
         skipCompleted: true,
-        cito,
       }
     }
 
     if (completed && mapped && isValidSeriesScore(mapped.winsA, mapped.winsB)) {
-      // Prefer Cito completed score even when OE is ahead/behind (e.g. OE 2-0 vs Cito 3-0).
+      const max = Math.max(mapped.winsA, mapped.winsB)
+      // Cito "completed" with only 2 wins on a Bo5 is still not a finished series.
+      if (bestOf === 5 && max < 3) {
+        return {
+          ...pickWinner(mapped.winsA, mapped.winsB),
+          ...base,
+          complete: false,
+          source: 'cito',
+          provisional: true,
+          skipCompleted: true,
+        }
+      }
       return {
         ...pickWinner(mapped.winsA, mapped.winsB),
+        ...base,
         complete: true,
         source: 'cito',
-        blockName: cito.blockName,
-        bracket,
         provisional: false,
         skipCompleted: false,
-        cito,
       }
     }
 
     // Cito row exists but scores missing — if OE is provisional and best-of is 5, wait.
-    if (provisionalOe && (cito.bestOf === 5 || opts?.international)) {
+    if (provisionalOe && (bestOf === 5 || opts?.international)) {
       return {
         ...pickWinner(oeWinsA, oeWinsB),
+        ...base,
         complete: false,
         source: 'oe',
-        blockName: cito.blockName,
-        bracket,
         provisional: true,
         skipCompleted: true,
-        cito,
       }
     }
   }
 
-  // No usable Cito match: international provisional scores are treated as incomplete
-  // so we don't publish a fake Bo3 2-0 for a mid-Bo5 MSI series.
-  if (provisionalOe && opts?.international) {
+  const oeMax = Math.max(oeWinsA, oeWinsB)
+
+  // Definitive Bo5 finish from OE alone.
+  if (oeMax === 3 && isValidSeriesScore(oeWinsA, oeWinsB)) {
     return {
       ...pickWinner(oeWinsA, oeWinsB),
-      complete: false,
+      ...base,
+      complete: true,
       source: 'oe',
-      blockName: null,
-      bracket: 'unknown',
-      provisional: true,
-      skipCompleted: true,
-      cito: null,
+      provisional: false,
+      skipCompleted: false,
+    }
+  }
+
+  // Provisional 2-x: never treat as complete for recaps without Cito Bo3 confirmation.
+  if (provisionalOe) {
+    const confirmedBo3 =
+      bestOf === 3 ||
+      (bestOf == null && !opts?.international && opts?.defaultBestOf === 3)
+    if (!confirmedBo3) {
+      return {
+        ...pickWinner(oeWinsA, oeWinsB),
+        ...base,
+        complete: false,
+        source: 'oe',
+        provisional: true,
+        skipCompleted: true,
+      }
     }
   }
 
   return {
     ...pickWinner(oeWinsA, oeWinsB),
+    ...base,
     complete: isValidSeriesScore(oeWinsA, oeWinsB),
     source: 'oe',
-    blockName: cito?.blockName ?? null,
-    bracket,
     provisional: false,
     skipCompleted: !isValidSeriesScore(oeWinsA, oeWinsB),
-    cito,
   }
+}
+
+/**
+ * Recap blurbs must wait for series conclusion — never generate mid-series.
+ * Requires a non-provisional, complete resolution (Cito completed and/or OE 3-x).
+ */
+export function isSeriesReadyForRecap(resolved: ResolvedSeriesScore): boolean {
+  if (resolved.skipCompleted || resolved.provisional || !resolved.complete) return false
+  const max = Math.max(resolved.winsA, resolved.winsB)
+  const min = Math.min(resolved.winsA, resolved.winsB)
+  if (max === 3 && min <= 2) return true
+  if (max === 2 && min <= 1) {
+    // Bo3 terminal only when best-of is known to be 3 (or Cito completed without Bo5).
+    if (resolved.bestOf === 5) return false
+    if (resolved.source === 'cito' && resolved.cito) {
+      const st = normalizeStatus(resolved.cito.status)
+      return COMPLETED_STATUS.has(st) && resolved.bestOf !== 5
+    }
+    return resolved.bestOf === 3
+  }
+  return false
+}
+
+/** Live score label for series pages (never implies a false final when in progress). */
+export function formatSeriesScoreLabel(opts: {
+  teamA: string
+  teamB: string
+  winsA: number
+  winsB: number
+  inProgress: boolean
+  bestOf: number | null
+}): string {
+  const live = `${recapTeamTag(opts.teamA)} ${opts.winsA}-${opts.winsB} ${recapTeamTag(opts.teamB)}`
+  const bo = opts.bestOf ? `Bo${opts.bestOf}` : null
+  if (opts.inProgress) {
+    return bo ? `${live} · in progress (${bo})` : `${live} · in progress`
+  }
+  return bo ? `${live} (${bo})` : live
 }
 
 export function isInternationalLeague(league: string | null | undefined): boolean {
