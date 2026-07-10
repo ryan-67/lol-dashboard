@@ -53,7 +53,11 @@ async function main(): Promise<void> {
   const powerRanks = citoKey ? await fetchGlobalPowerRanks(citoKey) : new Map()
 
   console.log('Loading Cito schedule results for series score verification...')
-  const citoResults = await fetchCitoSeriesResults({ sinceDays: 60 })
+  const citoResults = await fetchCitoSeriesResults({
+    sinceDays: 60,
+    // CI / Node only has the service-role key — do not use the browser anon client.
+    client: client ?? undefined,
+  })
   console.log(`  ${citoResults.length} Cito schedule row(s) for cross-check`)
 
   let briefs: SeriesBrief[] = []

@@ -1,4 +1,4 @@
-import { createClient } from '@supabase/supabase-js'
+import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 
 function readEnv(key: string): string {
   if (typeof import.meta !== 'undefined' && import.meta.env) {
@@ -24,9 +24,20 @@ if (!isSupabaseConfigured) {
   )
 }
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-  auth: {
-    flowType: 'pkce',
-    detectSessionInUrl: true,
+/**
+ * Browser/anon client. When env is missing (e.g. Node CI scripts that only have
+ * the service-role key), we still construct a placeholder so importing this module
+ * does not throw — callers must check `isSupabaseConfigured` or pass their own client.
+ */
+export const supabase: SupabaseClient = createClient(
+  supabaseUrl || 'https://placeholder.supabase.co',
+  supabaseAnonKey || 'public-anon-key',
+  {
+    auth: {
+      flowType: 'pkce',
+      detectSessionInUrl: true,
+      persistSession: isSupabaseConfigured,
+      autoRefreshToken: isSupabaseConfigured,
+    },
   },
-})
+)

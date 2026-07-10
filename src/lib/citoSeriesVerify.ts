@@ -6,6 +6,7 @@
  * status are the authoritative live source for completed series results.
  */
 
+import type { SupabaseClient } from '@supabase/supabase-js'
 import { supabase, isSupabaseConfigured } from './supabaseClient'
 import { teamsShareEsportsSlug } from './entities/assets'
 import { resolveTeamCanonicalName, teamMatchesCanonical } from './entities/slugs'
@@ -312,19 +313,22 @@ export function isInternationalLeague(league: string | null | undefined): boolea
 
 /**
  * Load recent Cito schedule rows (completed + live) for series score verification.
+ * Pass `client` from Node/CI (service role) — browser callers omit it and use the anon client.
  */
 export async function fetchCitoSeriesResults(options?: {
   sinceDays?: number
   limit?: number
+  client?: SupabaseClient
 }): Promise<CitoSeriesResult[]> {
-  if (!isSupabaseConfigured) return []
+  const db = options?.client ?? (isSupabaseConfigured ? supabase : null)
+  if (!db) return []
 
   const sinceDays = options?.sinceDays ?? 45
   const limit = options?.limit ?? 500
   const since = new Date()
   since.setUTCDate(since.getUTCDate() - sinceDays)
 
-  const { data, error } = await supabase
+  const { data, error } = await db
     .from('cito_schedules')
     .select(
       'match_id, league, tournament_name, team_a, team_b, scheduled_at, status, block_name, team_a_score, team_b_score, winner_team, best_of',
@@ -336,7 +340,7 @@ export async function fetchCitoSeriesResults(options?: {
   if (error) {
     // best_of column may not exist yet — retry without it.
     if (/best_of/i.test(error.message)) {
-      const retry = await supabase
+      const retry = await db
         .from('cito_schedules')
         .select(
           'match_id, league, tournament_name, team_a, team_b, scheduled_at, status, block_name, team_a_score, team_b_score, winner_team',
