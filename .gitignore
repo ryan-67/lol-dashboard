@@ -49,6 +49,7 @@ supabase/migrations/**
 !supabase/migrations/weekly_recap_lines.sql
 !supabase/migrations/billing_profiles_grants.sql
 !supabase/migrations/agent_usage_tokens.sql
+!supabase/migrations/cito_schedules_best_of.sql
 
 scripts/rag-indexer/src/
 scripts/rag-indexer/tsconfig.json
