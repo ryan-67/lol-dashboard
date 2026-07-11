@@ -48,6 +48,7 @@ import PlayerMetricsTableCard from '../../components/players/PlayerMetricsTableC
 import TeamMetricsTableCard from '../../components/teams/TeamMetricsTableCard'
 import { fetchTournamentCompletedSchedule, fetchTournamentPlacementHints } from '../../lib/loadCitoSchedule'
 import type { CitoScheduleRow } from '../../lib/loadCitoSchedule'
+import { fetchCitoSeriesResults, type CitoSeriesResult } from '../../lib/citoSeriesVerify'
 import type { TournamentRankContext } from '../../lib/tournamentRank'
 import { buildTournamentResultsStandings } from '../../lib/tournamentStandings'
 import { buildChampionRoleContext } from '../../lib/championRoleContext'
@@ -127,6 +128,7 @@ export default function TournamentPage() {
     () => new Map(),
   )
   const [citoSchedule, setCitoSchedule] = useState<CitoScheduleRow[]>([])
+  const [citoResults, setCitoResults] = useState<CitoSeriesResult[]>([])
 
   useEffect(() => {
     if (!tournament) return
@@ -136,6 +138,9 @@ export default function TournamentPage() {
     })
     void fetchTournamentPlacementHints(tournament.displayName, tournament.league).then((map) => {
       if (!cancelled) setCitoPlacements(map)
+    })
+    void fetchCitoSeriesResults({ sinceDays: 60 }).then((rows) => {
+      if (!cancelled) setCitoResults(rows)
     })
     return () => {
       cancelled = true
@@ -147,10 +152,17 @@ export default function TournamentPage() {
     return { citoPlacements }
   }, [citoPlacements])
 
+  const seriesList = useMemo(
+    () => (tournament && data ? buildTournamentSeriesList(data, tournament, citoResults) : []),
+    [data, tournament, citoResults],
+  )
+
   const standings = useMemo(
     () =>
-      data && tournament ? buildTournamentSeriesStandings(data, tournament, rankContext) : [],
-    [data, tournament, rankContext],
+      data && tournament
+        ? buildTournamentSeriesStandings(data, tournament, rankContext, citoResults)
+        : [],
+    [data, tournament, rankContext, citoResults],
   )
 
   const champRoleCtx = useMemo(
@@ -173,11 +185,6 @@ export default function TournamentPage() {
   const championRows = useMemo(
     () => buildTournamentChampionRows(scopedChampions, champRoleFilter, champRoleCtx),
     [scopedChampions, champRoleFilter, champRoleCtx],
-  )
-
-  const seriesList = useMemo(
-    () => (tournament && data ? buildTournamentSeriesList(data, tournament) : []),
-    [data, tournament],
   )
 
   const resultsStandings = useMemo(() => {
@@ -592,7 +599,7 @@ export default function TournamentPage() {
       {activeTab === 'matches' && (
         <section className="card tournament-card">
           <h2 className="card-title">Match List</h2>
-          <p className="card-subtitle">Completed series in this tournament, newest first</p>
+          <p className="card-subtitle">Series in this tournament, newest first</p>
           <TournamentMatchList rows={seriesList} />
         </section>
       )}

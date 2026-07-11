@@ -19,13 +19,17 @@ import {
   compareSeriesGames,
   countSeriesWins,
   groupGamesIntoSeries,
-  isProvisionalSeriesScore,
-  isValidSeriesScore,
+  isListableSeriesScore,
   orderSeriesGames,
 } from './seriesGrouping'
 import { formatPatch } from './format'
 import { formatDurationMinSec, resolveTournamentFormat } from './tournamentFormat'
-import { formatSeriesScoreLabel, isInternationalContext } from './citoSeriesVerify'
+import {
+  formatSeriesScoreLabel,
+  isInternationalContext,
+  type CitoSeriesResult,
+} from './citoSeriesVerify'
+import { applyCitoScoreToSeries } from './applyCitoSeriesScore'
 import {
   countObjectivesForSide,
   matchCitoGoldToOeGame,
@@ -47,6 +51,8 @@ export interface TournamentSeriesRow {
   patch: string
   date: string
   gameCount: number
+  /** True while OE/Cito still treat the series as unfinished (e.g. mid-Bo5). */
+  inProgress?: boolean
 }
 
 export interface EnrichedSeriesGame extends ParsedGame {
@@ -121,9 +127,26 @@ function enrichBucket(
   catalog: Record<string, GameCatalogEntry>,
 ): ResolvedSeries | null {
   const ordered = orderSeriesGames(games, teamA, teamB)
+  if (!ordered.length) return null
+
   const winsA = countSeriesWins(ordered, teamA)
   const winsB = countSeriesWins(ordered, teamB)
-  if (!isValidSeriesScore(winsA, winsB)) return null
+  const sample = ordered[0]
+  const format = resolveTournamentFormat({
+    league: sample?.league,
+    split: sample?.split,
+    playoffs: Boolean(sample?.playoffs),
+  })
+  const bestOf = format?.defaultBestOf ?? null
+  const international = isInternationalContext({
+    league: sample?.league,
+    split: sample?.split,
+  })
+  // Bo5 / internationals / playoffs: keep mid-series buckets (incl. 2-2) so Cito can
+  // overlay final scores when OE CSV still lags a finished series.
+  const expectsBo5 =
+    bestOf === 5 || international || (Boolean(sample?.playoffs) && bestOf !== 3)
+  if (!isListableSeriesScore(winsA, winsB, { allowInProgress: expectsBo5 })) return null
 
   const lastDate = ordered[ordered.length - 1]?.date ?? ''
   const seriesId = stableSeriesId(teamA, teamB, lastDate, sessionIndex)
@@ -146,22 +169,9 @@ function enrichBucket(
     patchForGame(ordered[0]!.id, catalog) ??
     '—'
 
-  const sample = ordered[0]
-  const format = resolveTournamentFormat({
-    league: sample?.league,
-    split: sample?.split,
-    playoffs: Boolean(sample?.playoffs),
-  })
-  const bestOf = format?.defaultBestOf ?? null
-  const international = isInternationalContext({
-    league: sample?.league,
-    split: sample?.split,
-  })
-  // 2-x is provisional for Bo5 / internationals / playoffs until Cito confirms.
-  // Regular-season Bo3 (no format match) is treated as complete at 2-x.
-  const inProgress =
-    isProvisionalSeriesScore(winsA, winsB) &&
-    (bestOf === 5 || international || (Boolean(sample?.playoffs) && bestOf !== 3))
+  // Until someone reaches 3 wins, Bo5/international series stay "in progress" in OE-only view.
+  // Regular-season Bo3 is complete once isValidSeriesScore passes (2-x).
+  const inProgress = expectsBo5 ? Math.max(winsA, winsB) < 3 : false
   return {
     seriesId,
     teamA,
@@ -221,18 +231,8 @@ export function buildGameToSeriesMap(data: DashboardData): Map<string, string> {
   return map
 }
 
-export function buildTournamentSeriesList(
-  data: DashboardData,
-  tournament: TournamentIdentity,
-): TournamentSeriesRow[] {
-  const players = data.players.filter(isDisplayablePlayer)
-  const catalog = data.gameCatalog ?? {}
-  const games = collectParsedGames(players, {
-    gameFilter: (g) => gameMatchesTournament(g, tournament),
-    gameCatalog: catalog,
-  })
-
-  return collectSeriesFromGames(games, catalog).map((s) => ({
+function toTournamentSeriesRow(s: ResolvedSeries): TournamentSeriesRow {
+  return {
     seriesId: s.seriesId,
     teamA: s.teamA,
     teamB: s.teamB,
@@ -244,7 +244,27 @@ export function buildTournamentSeriesList(
     patch: s.patch,
     date: s.lastDate,
     gameCount: s.games.length,
-  }))
+    inProgress: Boolean(s.inProgress),
+  }
+}
+
+export function buildTournamentSeriesList(
+  data: DashboardData,
+  tournament: TournamentIdentity,
+  citoResults?: CitoSeriesResult[],
+): TournamentSeriesRow[] {
+  const players = data.players.filter(isDisplayablePlayer)
+  const catalog = data.gameCatalog ?? {}
+  const games = collectParsedGames(players, {
+    gameFilter: (g) => gameMatchesTournament(g, tournament),
+    gameCatalog: catalog,
+  })
+
+  return collectSeriesFromGames(games, catalog).map((s) => {
+    if (!citoResults?.length) return toTournamentSeriesRow(s)
+    const { series } = applyCitoScoreToSeries(s, citoResults)
+    return toTournamentSeriesRow(series)
+  })
 }
 
 export function parseSeriesId(seriesId: string): {

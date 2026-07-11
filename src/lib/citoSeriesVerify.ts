@@ -268,6 +268,18 @@ export function resolveSeriesScoreWithCito(
     }
   }
 
+  // Mid-Bo5 OE stubs (1-1, 2-2, 0-1, …) — wait for Cito / remaining games.
+  if (!isValidSeriesScore(oeWinsA, oeWinsB) || ((bestOf === 5 || international) && oeMax < 3)) {
+    return {
+      ...pickWinner(oeWinsA, oeWinsB),
+      ...base,
+      complete: false,
+      source: 'oe',
+      provisional: true,
+      skipCompleted: true,
+    }
+  }
+
   return {
     ...pickWinner(oeWinsA, oeWinsB),
     ...base,

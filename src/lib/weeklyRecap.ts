@@ -1467,8 +1467,6 @@ export function buildWeeklyRecapLines(
 
     const winsA = bucket.games.filter((g) => g.winner === bucket.teamA).length
     const winsB = bucket.games.length - winsA
-    if (!isValidSeriesScore(winsA, winsB)) continue
-
     const ordered = [...bucket.games].sort(compareSeriesGames)
     const latestDate = ordered[ordered.length - 1]?.date ?? bucket.games[0]!.date
     const firstGame = bucket.games[0]!
@@ -1481,8 +1479,10 @@ export function buildWeeklyRecapLines(
       cito,
       seriesResolveOpts(firstGame.league, firstGame.split, firstGame.playoffs),
     )
+    // Allow OE mid-Bo5 stubs (e.g. 2-2) when Cito already has the final score.
     // Weekly hub + recaps only show concluded series.
     if (!isSeriesReadyForRecap(resolved)) continue
+    if (!isValidSeriesScore(resolved.winsA, resolved.winsB)) continue
 
     const line = summarizeSeries(
       bucket,
@@ -1628,7 +1628,6 @@ export function collectSeriesBriefs(
     if (!bucket.games.length) continue
     const winsA = bucket.games.filter((g) => g.winner === bucket.teamA).length
     const winsB = bucket.games.length - winsA
-    if (!isValidSeriesScore(winsA, winsB)) continue
     const ordered = [...bucket.games].sort(compareSeriesGames)
     const latestDate = ordered[ordered.length - 1]?.date ?? bucket.games[0]!.date
     const resolved = resolveSeriesScoreWithCito(
@@ -1641,6 +1640,7 @@ export function collectSeriesBriefs(
       seriesResolveOpts(bucket.games[0]?.league, bucket.games[0]?.split, bucket.games[0]?.playoffs),
     )
     if (!isSeriesReadyForRecap(resolved)) continue
+    if (!isValidSeriesScore(resolved.winsA, resolved.winsB)) continue
     const g0 = bucket.games[0]!
     const league = (g0.league ?? 'LCK').toUpperCase()
     const year = g0.oeYear ?? latestDate.slice(0, 4)
@@ -1662,14 +1662,6 @@ export function collectSeriesBriefs(
 
     const winsA = bucket.games.filter((g) => g.winner === bucket.teamA).length
     const winsB = bucket.games.length - winsA
-    if (!isValidSeriesScore(winsA, winsB)) {
-      console.warn(
-        `Skipping invalid series score ${Math.max(winsA, winsB)}-${Math.min(winsA, winsB)} ` +
-          `(${bucket.teamA} vs ${bucket.teamB}, ${bucket.games.length} games)`,
-      )
-      continue
-    }
-
     const ordered = [...bucket.games].sort(compareSeriesGames)
     const latestDate = ordered[ordered.length - 1]?.date ?? bucket.games[0]!.date
     const firstGameDate = ordered[0]!.date
@@ -1686,6 +1678,13 @@ export function collectSeriesBriefs(
       console.warn(
         `Skipping incomplete series for recap ${bucket.teamA} vs ${bucket.teamB} ` +
           `(OE ${Math.max(winsA, winsB)}-${Math.min(winsA, winsB)}; waiting for series conclusion)`,
+      )
+      continue
+    }
+    if (!isValidSeriesScore(resolved.winsA, resolved.winsB)) {
+      console.warn(
+        `Skipping invalid resolved score ${Math.max(resolved.winsA, resolved.winsB)}-${Math.min(resolved.winsA, resolved.winsB)} ` +
+          `(${bucket.teamA} vs ${bucket.teamB}, OE ${bucket.games.length} games)`,
       )
       continue
     }

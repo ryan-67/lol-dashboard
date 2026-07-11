@@ -179,6 +179,22 @@ export function isProvisionalSeriesScore(wA: number, wB: number): boolean {
 }
 
 /**
+ * Scores allowed on tournament/series lists: terminal Bo3/Bo5, OR mid-Bo5 shapes
+ * (including 2-2) when OE lags behind a live international series.
+ */
+export function isListableSeriesScore(
+  wA: number,
+  wB: number,
+  opts?: { allowInProgress?: boolean },
+): boolean {
+  if (isValidSeriesScore(wA, wB)) return true
+  if (!opts?.allowInProgress) return false
+  const max = Math.max(wA, wB)
+  const total = wA + wB
+  return total >= 1 && max < 3 && total <= 5
+}
+
+/**
  * True when cumulative wins match a completed Bo3 or Bo5.
  * Pass `nextGame` for lookahead — a 2-1 after 3 games is still in progress if another
  * game between the same teams follows within SERIES_GAP_DAYS (Bo5 games 4–5).

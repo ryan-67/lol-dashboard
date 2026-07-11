@@ -8,6 +8,10 @@
 # 5) sync Cito/gol gold timelines for series pages
 # 6) retrain nuckyAI ML artifacts
 #
+# When OE CSV is unchanged on cron, sync-scores still runs Cito schedule + recaps so
+# finished Bo5 scores surface without waiting for the next Drive CSV bump.
+# Cito schedule sync and weekly recap generation are hard failures (no continue-on-error).
+#
 # Scheduled: every 2 hours, check OE Drive metadata first. Full download/ingest/seed
 # runs only when the current-year CSV changed (modifiedTime, size, or md5Checksum).
 #
@@ -182,7 +186,6 @@ jobs:
         run: npm ci
 
       - name: Sync Cito league schedules (series scores + bracket blocks)
-        continue-on-error: true
         env:
           CITO_API_KEY: ${{ secrets.CITO_API_KEY }}
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
@@ -267,3 +270,39 @@ jobs:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
         run: python scripts/save_oe_drive_state.py
+
+  # When OE CSV is unchanged, still refresh Cito series scores + recaps so finished
+  # Bo5s (and mid-series progress) surface without waiting for the next Drive CSV bump.
+  sync-scores:
+    needs: check
+    if: needs.check.result == 'success' && needs.check.outputs.changed != 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+
+      - name: Install Node dependencies
+        run: npm ci
+
+      - name: Sync Cito league schedules (series scores + bracket blocks)
+        env:
+          CITO_API_KEY: ${{ secrets.CITO_API_KEY }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: npm run sync:cito-schedule
+
+      - name: Generate weekly recap summaries
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          CITO_API_KEY: ${{ secrets.CITO_API_KEY }}
+          RECAP_REGENERATE: '0'
+        run: npm run generate:weekly-recap

@@ -16,6 +16,7 @@ import { isDisplayableChampion, championHasRole, type RoleFilter } from './champ
 import type { ChampionRoleContext } from './championRoleContext'
 import { enrichChampionsFromPlayers } from './championRoleContext'
 import { buildTournamentSeriesList } from './seriesAnalytics'
+import type { CitoSeriesResult } from './citoSeriesVerify'
 import { resolveTeamCanonicalName, teamMatchesCanonical } from './entities/slugs'
 import { rankTournamentStandings, type TournamentRankContext } from './tournamentRank'
 
@@ -453,11 +454,14 @@ export function buildTournamentSeriesStandings(
   data: DashboardData,
   tournament: TournamentIdentity,
   rankContext?: TournamentRankContext,
+  citoResults?: CitoSeriesResult[],
 ): TournamentStandingsRow[] {
-  const seriesList = buildTournamentSeriesList(data, tournament)
+  const seriesList = buildTournamentSeriesList(data, tournament, citoResults)
   const records = new Map<string, { league: string; wins: number; losses: number }>()
 
   for (const series of seriesList) {
+    // Do not count mid-Bo5 OE stubs toward series W-L until Cito/OE mark them complete.
+    if (series.inProgress) continue
     for (const team of [series.teamA, series.teamB]) {
       const won = teamMatchesCanonical(series.winner, team)
       const key = resolveTeamCanonicalName(team)
