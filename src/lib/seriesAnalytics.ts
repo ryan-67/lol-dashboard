@@ -25,7 +25,7 @@ import {
 } from './seriesGrouping'
 import { formatPatch } from './format'
 import { formatDurationMinSec, resolveTournamentFormat } from './tournamentFormat'
-import { formatSeriesScoreLabel, isInternationalLeague } from './citoSeriesVerify'
+import { formatSeriesScoreLabel, isInternationalContext } from './citoSeriesVerify'
 import {
   countObjectivesForSide,
   matchCitoGoldToOeGame,
@@ -153,13 +153,15 @@ function enrichBucket(
     playoffs: Boolean(sample?.playoffs),
   })
   const bestOf = format?.defaultBestOf ?? null
+  const international = isInternationalContext({
+    league: sample?.league,
+    split: sample?.split,
+  })
   // 2-x is provisional for Bo5 / internationals / playoffs until Cito confirms.
   // Regular-season Bo3 (no format match) is treated as complete at 2-x.
   const inProgress =
     isProvisionalSeriesScore(winsA, winsB) &&
-    (bestOf === 5 ||
-      isInternationalLeague(sample?.league) ||
-      (Boolean(sample?.playoffs) && bestOf !== 3))
+    (bestOf === 5 || international || (Boolean(sample?.playoffs) && bestOf !== 3))
   return {
     seriesId,
     teamA,

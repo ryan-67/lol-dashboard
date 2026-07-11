@@ -239,3 +239,53 @@ export async function deleteConflictingRecapRows(
   }
   return orphanIds.length
 }
+
+/**
+ * Delete cached recap rows whose score is still a provisional 2-x (mid-Bo5 leftovers).
+ * Optionally restrict to a set of series_ids (e.g. known incomplete matchups).
+ */
+export async function deleteProvisionalScoreRecaps(
+  client: SupabaseClient,
+  options?: { sinceDate?: string; seriesIds?: string[] },
+): Promise<number> {
+  let query = client
+    .from('weekly_recap_lines')
+    .select('series_id, score, series_date, team_a, team_b, league')
+
+  if (options?.sinceDate) {
+    query = query.gte('series_date', options.sinceDate)
+  }
+  if (options?.seriesIds?.length) {
+    query = query.in('series_id', options.seriesIds)
+  }
+
+  const { data, error } = await query
+  if (error) {
+    console.warn(`  warn: could not list provisional recaps: ${error.message}`)
+    return 0
+  }
+
+  const provisionalIds = (data ?? [])
+    .filter((row) => {
+      const score = String(row.score ?? '')
+      const m = score.match(/(\d+)\s*-\s*(\d+)/)
+      if (!m) return false
+      const max = Math.max(Number(m[1]), Number(m[2]))
+      const min = Math.min(Number(m[1]), Number(m[2]))
+      return max === 2 && min <= 1
+    })
+    .map((row) => String(row.series_id))
+
+  if (!provisionalIds.length) return 0
+
+  const { error: delErr } = await client
+    .from('weekly_recap_lines')
+    .delete()
+    .in('series_id', provisionalIds)
+  if (delErr) {
+    console.warn(`  warn: failed to delete provisional recaps: ${delErr.message}`)
+    return 0
+  }
+  console.log(`  removed ${provisionalIds.length} provisional 2-x recap row(s): ${provisionalIds.join(', ')}`)
+  return provisionalIds.length
+}

@@ -98,6 +98,8 @@ export function mergeWeeklyRecapLines(
   limit: number,
 ): WeeklyRecapLine[] {
   const byKey = new Map<string, WeeklyRecapLine>()
+  const templateKeys = new Set(template.map(recapLineKey))
+  const templateOccurrences = new Set(template.map(seriesOccurrenceKey))
 
   for (const line of template) {
     const key = recapLineKey(line)
@@ -106,6 +108,16 @@ export function mergeWeeklyRecapLines(
 
   for (const line of cached) {
     const key = recapLineKey(line)
+    const occurrence = seriesOccurrenceKey(line)
+    const matchesTemplate =
+      templateKeys.has(key) || templateOccurrences.has(occurrence)
+    // Template is the allowlist of concluded series. Cached-only 2-x rows are mid-series
+    // leftovers (e.g. MSI Bo5 at 2-0) and must not reappear on the hub.
+    if (!matchesTemplate) {
+      const m = line.score.score.match(/(\d+)\s*-\s*(\d+)/)
+      const max = m ? Math.max(Number(m[1]), Number(m[2])) : 0
+      if (max < 3) continue
+    }
     byKey.set(key, mergeRecapPair(byKey.get(key) ?? line, line))
   }
 

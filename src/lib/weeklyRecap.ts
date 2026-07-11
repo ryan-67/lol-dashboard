@@ -27,7 +27,7 @@ import { resolveTournamentDisplay, buildTournamentIdentity } from './tournamentC
 import { resolveGameOpponent } from './gameOpponent'
 import {
   type CitoSeriesResult,
-  isInternationalLeague,
+  isInternationalContext,
   isSeriesReadyForRecap,
   resolveSeriesScoreWithCito,
   teamHasUpcomingInTournament,
@@ -38,9 +38,10 @@ export type { SeriesFacts }
 
 function seriesResolveOpts(league: string | null | undefined, split?: string | null, playoffs?: boolean) {
   const format = resolveTournamentFormat({ league, split, playoffs })
+  const international = isInternationalContext({ league, split })
   return {
-    international: isInternationalLeague(league),
-    defaultBestOf: format?.defaultBestOf ?? null,
+    international,
+    defaultBestOf: format?.defaultBestOf ?? (international ? 5 : null),
   }
 }
 

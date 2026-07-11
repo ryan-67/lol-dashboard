@@ -152,7 +152,18 @@ export function resolveSeriesScoreWithCito(
   const cito = matchCitoSeriesResult(teamA, teamB, seriesDate, results)
   const bracket = inferBracketKind(cito?.blockName)
   const status = cito ? normalizeStatus(cito.status) : ''
-  const bestOf = cito?.bestOf ?? opts?.defaultBestOf ?? null
+  const international =
+    Boolean(opts?.international) ||
+    isInternationalContext({
+      league: cito?.league,
+      tournamentLabel: cito?.tournamentName,
+      blockName: cito?.blockName,
+    })
+  const bestOf = effectiveBestOf({
+    citoBestOf: cito?.bestOf,
+    defaultBestOf: opts?.defaultBestOf,
+    international,
+  })
 
   const pickWinner = (wA: number, wB: number) => {
     const winner = wA >= wB ? teamA : teamB
@@ -192,11 +203,12 @@ export function resolveSeriesScoreWithCito(
 
     if (completed && mapped && isValidSeriesScore(mapped.winsA, mapped.winsB)) {
       const max = Math.max(mapped.winsA, mapped.winsB)
-      // Cito "completed" with only 2 wins on a Bo5 is still not a finished series.
-      if (bestOf === 5 && max < 3) {
+      // Bo5 / international: Cito often marks "completed" after each game day — require 3 wins.
+      if ((bestOf === 5 || international) && max < 3) {
         return {
           ...pickWinner(mapped.winsA, mapped.winsB),
           ...base,
+          bestOf: bestOf ?? 5,
           complete: false,
           source: 'cito',
           provisional: true,
@@ -214,10 +226,11 @@ export function resolveSeriesScoreWithCito(
     }
 
     // Cito row exists but scores missing — if OE is provisional and best-of is 5, wait.
-    if (provisionalOe && (bestOf === 5 || opts?.international)) {
+    if (provisionalOe && (bestOf === 5 || international)) {
       return {
         ...pickWinner(oeWinsA, oeWinsB),
         ...base,
+        bestOf: bestOf ?? 5,
         complete: false,
         source: 'oe',
         provisional: true,
@@ -240,11 +253,9 @@ export function resolveSeriesScoreWithCito(
     }
   }
 
-  // Provisional 2-x: never treat as complete for recaps without Cito Bo3 confirmation.
+  // Provisional 2-x: never treat as complete for recaps without confirmed Bo3.
   if (provisionalOe) {
-    const confirmedBo3 =
-      bestOf === 3 ||
-      (bestOf == null && !opts?.international && opts?.defaultBestOf === 3)
+    const confirmedBo3 = bestOf === 3 && !international
     if (!confirmedBo3) {
       return {
         ...pickWinner(oeWinsA, oeWinsB),
@@ -269,7 +280,7 @@ export function resolveSeriesScoreWithCito(
 
 /**
  * Recap blurbs must wait for series conclusion — never generate mid-series.
- * Requires a non-provisional, complete resolution (Cito completed and/or OE 3-x).
+ * 2-x is only valid when best-of is explicitly 3 (never for Bo5 / internationals).
  */
 export function isSeriesReadyForRecap(resolved: ResolvedSeriesScore): boolean {
   if (resolved.skipCompleted || resolved.provisional || !resolved.complete) return false
@@ -277,12 +288,6 @@ export function isSeriesReadyForRecap(resolved: ResolvedSeriesScore): boolean {
   const min = Math.min(resolved.winsA, resolved.winsB)
   if (max === 3 && min <= 2) return true
   if (max === 2 && min <= 1) {
-    // Bo3 terminal only when best-of is known to be 3 (or Cito completed without Bo5).
-    if (resolved.bestOf === 5) return false
-    if (resolved.source === 'cito' && resolved.cito) {
-      const st = normalizeStatus(resolved.cito.status)
-      return COMPLETED_STATUS.has(st) && resolved.bestOf !== 5
-    }
     return resolved.bestOf === 3
   }
   return false
@@ -307,7 +312,38 @@ export function formatSeriesScoreLabel(opts: {
 
 export function isInternationalLeague(league: string | null | undefined): boolean {
   const u = (league ?? '').toUpperCase()
-  return ['MSI', 'WLDS', 'WORLDS', 'FST', 'FIRST STAND'].includes(u)
+  return ['MSI', 'WLDS', 'WORLDS', 'FST', 'FIRST STAND', 'INT'].includes(u)
+}
+
+/** True when league/split/block context is an international event (MSI games are often tagged LCK/LEC/…). */
+export function isInternationalContext(opts: {
+  league?: string | null
+  split?: string | null
+  tournamentLabel?: string | null
+  blockName?: string | null
+}): boolean {
+  if (isInternationalLeague(opts.league)) return true
+  const hay = [opts.league, opts.split, opts.tournamentLabel, opts.blockName]
+    .filter(Boolean)
+    .join(' ')
+    .toLowerCase()
+  return /\bmsi\b|\bworlds\b|\bwlds\b|first\s*stand|\bfst\b/.test(hay)
+}
+
+/**
+ * Resolve effective best-of. Catalog Bo5 (MSI/Worlds/playoffs) must not be overridden by a
+ * stale Cito `best_of=3` — that is what let mid-series 2-0 MSI recaps through.
+ */
+export function effectiveBestOf(opts: {
+  citoBestOf?: number | null
+  defaultBestOf?: number | null
+  international?: boolean
+}): number | null {
+  const catalog = opts.defaultBestOf ?? null
+  const cito = opts.citoBestOf ?? null
+  if (catalog === 5) return 5
+  if (opts.international && (cito == null || cito < 5)) return 5
+  return cito ?? catalog
 }
 
 /**

@@ -7,7 +7,7 @@ import type { ResolvedSeries } from './seriesAnalytics'
 import {
   type CitoSeriesResult,
   formatSeriesScoreLabel,
-  isInternationalLeague,
+  isInternationalContext,
   resolveSeriesScoreWithCito,
 } from './citoSeriesVerify'
 import { resolveTournamentFormat } from './tournamentFormat'
@@ -29,6 +29,10 @@ export function applyCitoScoreToSeries(
     playoffs: series.playoffs,
     tournamentLabel: series.split,
   })
+  const international = isInternationalContext({
+    league: series.league,
+    split: series.split,
+  })
   const resolved = resolveSeriesScoreWithCito(
     series.teamA,
     series.teamB,
@@ -37,8 +41,8 @@ export function applyCitoScoreToSeries(
     series.lastDate,
     citoResults,
     {
-      international: isInternationalLeague(series.league),
-      defaultBestOf: format?.defaultBestOf ?? null,
+      international,
+      defaultBestOf: format?.defaultBestOf ?? (international ? 5 : null),
     },
   )
 

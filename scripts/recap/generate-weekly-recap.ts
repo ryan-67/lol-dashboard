@@ -20,6 +20,7 @@ import {
   createServiceClient,
   currentYear,
   deleteConflictingRecapRows,
+  deleteProvisionalScoreRecaps,
   fetchExistingRecapMeta,
   fetchExistingRecapScores,
   fetchExistingRecapPlainText,
@@ -99,7 +100,21 @@ async function main(): Promise<void> {
     console.log(`Monthly window ${window.label}: ${briefs.length} series (incl. recent completions)`)
   }
 
-  if (!briefs.length) return
+  if (!briefs.length) {
+    if (client) {
+      const since = new Date()
+      since.setUTCDate(since.getUTCDate() - 45)
+      await deleteProvisionalScoreRecaps(client, { sinceDate: since.toISOString().slice(0, 10) })
+    }
+    return
+  }
+
+  // Drop mid-series 2-x blurbs left over from earlier OE lag / wrong Cito best_of.
+  if (client) {
+    const since = new Date()
+    since.setUTCDate(since.getUTCDate() - 45)
+    await deleteProvisionalScoreRecaps(client, { sinceDate: since.toISOString().slice(0, 10) })
+  }
 
   const ids = briefs.map((b) => b.seriesId)
   const existingMeta = client ? await fetchExistingRecapMeta(client, ids) : new Map<string, string | null>()
