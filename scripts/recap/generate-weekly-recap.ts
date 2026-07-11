@@ -104,7 +104,10 @@ async function main(): Promise<void> {
     if (client) {
       const since = new Date()
       since.setUTCDate(since.getUTCDate() - 45)
-      await deleteProvisionalScoreRecaps(client, { sinceDate: since.toISOString().slice(0, 10) })
+      await deleteProvisionalScoreRecaps(client, {
+        sinceDate: since.toISOString().slice(0, 10),
+        citoResults,
+      })
     }
     return
   }
@@ -113,7 +116,10 @@ async function main(): Promise<void> {
   if (client) {
     const since = new Date()
     since.setUTCDate(since.getUTCDate() - 45)
-    await deleteProvisionalScoreRecaps(client, { sinceDate: since.toISOString().slice(0, 10) })
+    await deleteProvisionalScoreRecaps(client, {
+      sinceDate: since.toISOString().slice(0, 10),
+      citoResults,
+    })
   }
 
   const ids = briefs.map((b) => b.seriesId)

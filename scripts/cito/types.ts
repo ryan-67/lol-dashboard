@@ -12,6 +12,7 @@ export interface CitoScheduleTeam {
   slug?: string
   score?: number
   outcome?: string
+  imageUrl?: string
 }
 
 export interface CitoScheduleEvent {

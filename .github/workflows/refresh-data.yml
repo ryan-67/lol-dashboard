@@ -1,4 +1,12 @@
-# Refresh Oracle's Elixir data: Drive → ingest → Supabase → nuckyAI ML retrain.
+# Refresh Oracle's Elixir data: Drive → ingest → Supabase → schedule sync → recaps → gold → nuckyAI ML.
+#
+# Autonomous flow (every 2h + manual dispatch):
+# 1) check: compare current-year OE Drive CSV metadata to last sync (old years are stable)
+# 2) if changed (or manual): download OE CSV → backfill history → ingest shards → publish CDN → seed oe_slices
+# 3) sync Cito schedules + completed results (best-of / series scores; enrich bad team labels from match games)
+# 4) generate weekly recap summaries only for concluded series (skip mid-Bo5)
+# 5) sync Cito/gol gold timelines for series pages
+# 6) retrain nuckyAI ML artifacts
 #
 # Scheduled: every 2 hours, check OE Drive metadata first. Full download/ingest/seed
 # runs only when the current-year CSV changed (modifiedTime, size, or md5Checksum).
@@ -18,7 +26,7 @@
 # in the Supabase SQL editor (service_role needs SELECT/INSERT/UPDATE/DELETE).
 #
 # Secrets: SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, GOOGLE_SERVICE_ACCOUNT_KEY
-# Optional: OE_DRIVE_FOLDER_ID, OPENROUTER_API_KEY (weekly recap generation), CITO_API_KEY (GPR + gold-throw supplement)
+# Optional: OE_DRIVE_FOLDER_ID, OPENROUTER_API_KEY (weekly recap generation), CITO_API_KEY (schedule + gold)
 
 name: Refresh Dashboard Data
 

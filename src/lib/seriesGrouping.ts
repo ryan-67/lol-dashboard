@@ -205,7 +205,9 @@ export function isSeriesComplete(
 
   if (!bo5InProgress) return true
 
-  if (!nextGame) return true
+  // Critical: when OE has not yet published the next game, do NOT close the series.
+  // Closing early caused game 3 of a Bo5 to start a new 1-0 bucket instead of extending 2-0.
+  if (!nextGame) return false
 
   if (daysBetween(games[games.length - 1]!.date, nextGame.date) > SERIES_GAP_DAYS) {
     return true

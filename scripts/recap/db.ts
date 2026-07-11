@@ -241,16 +241,27 @@ export async function deleteConflictingRecapRows(
 }
 
 /**
- * Delete cached recap rows whose score is still a provisional 2-x (mid-Bo5 leftovers).
- * Optionally restrict to a set of series_ids (e.g. known incomplete matchups).
+ * Delete cached recap rows that are mid-series leftovers (provisional 2-x), not finished Bo3s.
+ * Prefer international / playoff context; also drop any 2-x whose matchup now has a Cito 3-x.
  */
 export async function deleteProvisionalScoreRecaps(
   client: SupabaseClient,
-  options?: { sinceDate?: string; seriesIds?: string[] },
+  options?: {
+    sinceDate?: string
+    seriesIds?: string[]
+    /** Completed Cito series with a 3-x score — used to purge stale 2-x blurbs for the same matchup. */
+    citoResults?: Array<{
+      teamA: string
+      teamB: string
+      scoreA: number | null
+      scoreB: number | null
+      status: string
+    }>
+  },
 ): Promise<number> {
   let query = client
     .from('weekly_recap_lines')
-    .select('series_id, score, series_date, team_a, team_b, league')
+    .select('series_id, score, series_date, team_a, team_b, league, plain_text')
 
   if (options?.sinceDate) {
     query = query.gte('series_date', options.sinceDate)
@@ -265,6 +276,20 @@ export async function deleteProvisionalScoreRecaps(
     return 0
   }
 
+  const concludedBo5Keys = new Set(
+    (options?.citoResults ?? [])
+      .filter((r) => {
+        const max = Math.max(r.scoreA ?? 0, r.scoreB ?? 0)
+        return max >= 3 && /completed|finished|done/i.test(r.status)
+      })
+      .map((r) =>
+        [resolveTeamCanonicalName(r.teamA), resolveTeamCanonicalName(r.teamB)]
+          .map((t) => t.toLowerCase())
+          .sort()
+          .join('|'),
+      ),
+  )
+
   const provisionalIds = (data ?? [])
     .filter((row) => {
       const score = String(row.score ?? '')
@@ -272,7 +297,20 @@ export async function deleteProvisionalScoreRecaps(
       if (!m) return false
       const max = Math.max(Number(m[1]), Number(m[2]))
       const min = Math.min(Number(m[1]), Number(m[2]))
-      return max === 2 && min <= 1
+      if (!(max === 2 && min <= 1)) return false
+
+      const league = String(row.league ?? '')
+      const text = String(row.plain_text ?? '')
+      const hay = `${league} ${text}`.toLowerCase()
+      const international = /\b(msi|worlds|wlds|first\s*stand|fst)\b/.test(hay)
+      const key = [
+        resolveTeamCanonicalName(String(row.team_a ?? '')),
+        resolveTeamCanonicalName(String(row.team_b ?? '')),
+      ]
+        .map((t) => t.toLowerCase())
+        .sort()
+        .join('|')
+      return international || concludedBo5Keys.has(key)
     })
     .map((row) => String(row.series_id))
 
