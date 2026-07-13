@@ -40,6 +40,9 @@ supabase/functions/stripe-webhook/**
 !supabase/functions/stripe-webhook/README.md
 supabase/functions/stripe-portal/**
 !supabase/functions/stripe-portal/README.md
+supabase/functions/stripe-sync/**
+!supabase/functions/stripe-sync/README.md
+supabase/functions/_shared/billingSync.ts
 
 supabase/functions/analyst-chat/
 
