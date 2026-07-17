@@ -1,0 +1,299 @@
+{
+  "generatedAt": "2026-07-17T07:02:08.535837+00:00",
+  "algo": "xgboost",
+  "featureCount": 804,
+  "holdoutRows": 718,
+  "holdoutSeries": 359,
+  "dateRange": [
+    "2026-02-09",
+    "2026-07-11"
+  ],
+  "aggregate": {
+    "model": {
+      "log_loss": 0.5648,
+      "brier": 0.1907,
+      "accuracy": 0.7145
+    },
+    "baseline": {
+      "log_loss": 0.7031,
+      "brier": 0.244,
+      "accuracy": 0.6209
+    },
+    "beatsBaseline": true
+  },
+  "byLeague": [
+    {
+      "key": "LPL",
+      "n": 216,
+      "model": {
+        "log_loss": 0.6702,
+        "brier": 0.237,
+        "accuracy": 0.6214
+      },
+      "baseline": {
+        "log_loss": 0.7431,
+        "brier": 0.2599,
+        "accuracy": 0.5873
+      },
+      "beatsBaseline": true
+    },
+    {
+      "key": "LCK",
+      "n": 210,
+      "model": {
+        "log_loss": 0.4931,
+        "brier": 0.1606,
+        "accuracy": 0.7856
+      },
+      "baseline": {
+        "log_loss": 0.6609,
+        "brier": 0.2223,
+        "accuracy": 0.6545
+      },
+      "beatsBaseline": true
+    },
+    {
+      "key": "LEC",
+      "n": 134,
+      "model": {
+        "log_loss": 0.5266,
+        "brier": 0.1767,
+        "accuracy": 0.7263
+      },
+      "baseline": {
+        "log_loss": 0.6959,
+        "brier": 0.2466,
+        "accuracy": 0.5778
+      },
+      "beatsBaseline": true
+    },
+    {
+      "key": "LCS",
+      "n": 94,
+      "model": {
+        "log_loss": 0.5296,
+        "brier": 0.1796,
+        "accuracy": 0.7074
+      },
+      "baseline": {
+        "log_loss": 0.6791,
+        "brier": 0.2419,
+        "accuracy": 0.6367
+      },
+      "beatsBaseline": true
+    }
+  ],
+  "byPatchBucket": [
+    {
+      "key": "16.07",
+      "n": 134,
+      "model": {
+        "log_loss": 0.6821,
+        "brier": 0.2353,
+        "accuracy": 0.6326
+      },
+      "baseline": {
+        "log_loss": 0.7205,
+        "brier": 0.2494,
+        "accuracy": 0.6058
+      },
+      "beatsBaseline": true
+    },
+    {
+      "key": "16.09",
+      "n": 128,
+      "model": {
+        "log_loss": 0.5916,
+        "brier": 0.2035,
+        "accuracy": 0.6902
+      },
+      "baseline": {
+        "log_loss": 0.6774,
+        "brier": 0.2322,
+        "accuracy": 0.6279
+      },
+      "beatsBaseline": true
+    },
+    {
+      "key": "16.08",
+      "n": 122,
+      "model": {
+        "log_loss": 0.447,
+        "brier": 0.1391,
+        "accuracy": 0.8106
+      },
+      "baseline": {
+        "log_loss": 0.6006,
+        "brier": 0.2034,
+        "accuracy": 0.6868
+      },
+      "beatsBaseline": true
+    },
+    {
+      "key": "16.1",
+      "n": 104,
+      "model": {
+        "log_loss": 0.4878,
+        "brier": 0.1631,
+        "accuracy": 0.7651
+      },
+      "baseline": {
+        "log_loss": 0.7072,
+        "brier": 0.2473,
+        "accuracy": 0.617
+      },
+      "beatsBaseline": true
+    },
+    {
+      "key": "16.03",
+      "n": 82,
+      "model": {
+        "log_loss": 0.6436,
+        "brier": 0.2272,
+        "accuracy": 0.6637
+      },
+      "baseline": {
+        "log_loss": 0.7647,
+        "brier": 0.2697,
+        "accuracy": 0.5457
+      },
+      "beatsBaseline": true
+    }
+  ],
+  "byConfidenceBucket": [
+    {
+      "key": "strong_>=25pp",
+      "n": 368,
+      "model": {
+        "log_loss": 0.4812,
+        "brier": 0.153,
+        "accuracy": 0.8069
+      },
+      "baseline": {
+        "log_loss": 0.6162,
+        "brier": 0.2066,
+        "accuracy": 0.6947
+      },
+      "beatsBaseline": true
+    },
+    {
+      "key": "clear_15_25pp",
+      "n": 127,
+      "model": {
+        "log_loss": 0.6771,
+        "brier": 0.241,
+        "accuracy": 0.6255
+      },
+      "baseline": {
+        "log_loss": 0.8456,
+        "brier": 0.3014,
+        "accuracy": 0.5164
+      },
+      "beatsBaseline": true
+    },
+    {
+      "key": "lean_8_15pp",
+      "n": 112,
+      "model": {
+        "log_loss": 0.6419,
+        "brier": 0.2247,
+        "accuracy": 0.6693
+      },
+      "baseline": {
+        "log_loss": 0.8053,
+        "brier": 0.2953,
+        "accuracy": 0.4724
+      },
+      "beatsBaseline": true
+    },
+    {
+      "key": "coin_flip_<8pp",
+      "n": 111,
+      "model": {
+        "log_loss": 0.7004,
+        "brier": 0.2536,
+        "accuracy": 0.483
+      },
+      "baseline": {
+        "log_loss": 0.7915,
+        "brier": 0.2805,
+        "accuracy": 0.5793
+      },
+      "beatsBaseline": true
+    }
+  ],
+  "calibration": [
+    {
+      "bin": "0.0-0.1",
+      "n": 70,
+      "predicted_mean": 0.06325613707304001,
+      "actual_rate": 0.1
+    },
+    {
+      "bin": "0.1-0.2",
+      "n": 74,
+      "predicted_mean": 0.1517142355442047,
+      "actual_rate": 0.20270270270270271
+    },
+    {
+      "bin": "0.2-0.3",
+      "n": 74,
+      "predicted_mean": 0.24762728810310364,
+      "actual_rate": 0.33783783783783783
+    },
+    {
+      "bin": "0.3-0.4",
+      "n": 70,
+      "predicted_mean": 0.35159432888031006,
+      "actual_rate": 0.37142857142857144
+    },
+    {
+      "bin": "0.4-0.5",
+      "n": 62,
+      "predicted_mean": 0.4450071454048157,
+      "actual_rate": 0.45161290322580644
+    },
+    {
+      "bin": "0.5-0.6",
+      "n": 77,
+      "predicted_mean": 0.5481007099151611,
+      "actual_rate": 0.5844155844155844
+    },
+    {
+      "bin": "0.6-0.7",
+      "n": 82,
+      "predicted_mean": 0.6450375914573669,
+      "actual_rate": 0.5853658536585366
+    },
+    {
+      "bin": "0.7-0.8",
+      "n": 60,
+      "predicted_mean": 0.7530236840248108,
+      "actual_rate": 0.65
+    },
+    {
+      "bin": "0.8-0.9",
+      "n": 82,
+      "predicted_mean": 0.8484334945678711,
+      "actual_rate": 0.7682926829268293
+    },
+    {
+      "bin": "0.9-1.0",
+      "n": 67,
+      "predicted_mean": 0.9356419444084167,
+      "actual_rate": 0.9104477611940298
+    }
+  ],
+  "gprBenchmark": {
+    "status": "ok",
+    "sharedTeams": 36,
+    "spearmanRho": 0.645,
+    "top10Overlap": 9,
+    "note": "Comparison benchmark only \u2014 GPR has 0% weight in live scoring."
+  },
+  "kalshiClosingLineBenchmark": {
+    "status": "blocked_no_historical_archive",
+    "note": "No settled Kalshi closing-line archive is stored yet. Live markets remain comparison-only (0% model weight). Revisit once enough settled series markets are archived for offline CLV."
+  },
+  "methodology": "Strict expanding-window walk-forward by ISO week on feature_mart.parquet. Uses the production pruned feature schema when available. Metrics are sample-weight decayed. GPR/Kalshi sections are offline comparison only."
+}

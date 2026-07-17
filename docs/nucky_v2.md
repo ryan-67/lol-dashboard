@@ -1,7 +1,7 @@
 # nucky.gg v2 — Reconstruction Scope
 
-> Status: Phase 1 (model quality) implementation in progress — self-contained rating system build-out, sequenced component-by-component. Phases 2-4 still planning-only.
-> Last updated: 2026-07-15 (roadmap) / 2026-07-16 (Phase 1 build log, Components 1-3 + data-quality fixes + player rating v0.6 + pipeline/CI integration + Deno artifact consumption + Component 5 external-signal demotion)
+> Status: Phase 1 (model quality) **substantially complete** — proprietary ratings, live-input removal, Deno consumption, scorecard, and archetype validation shipped. Remaining deferred: player outcome-regression layer; Kalshi closing-line archive. Phases 2-4 still planning-only.
+> Last updated: 2026-07-16 (Phase 1 build log through Components 1–5 + Deno consumption + scorecard + Component 4 archetype validation)
 
 ## Phase 1 build log — self-contained rating system
 
@@ -16,8 +16,8 @@ ships. Building in sequenced, independently-testable components; checking in aft
 | 1 | Team Power Rating + Region/League Strength (self-contained series-grain Elo) | **Shipped 2026-07-16** |
 | 2 | Champion matchup matrix (same-role + cross-role) + draft-order counter-pick features | **Shipped 2026-07-16** — exported as inference artifact (`champ_matchups.json`); pre-series feature-mart wiring intentionally deferred (draft unknown pre-series) |
 | 3 | Role-normalized Player Rating (box-score prior → outcome-regression layer) | v0.6; **wired into pipeline 2026-07-16** — walk-forward roster-strength feature in the mart + `player_ratings.json` artifact + CI |
-| 4 | Champion archetype data-validation | Not started |
-| 5 | Rip out live GPR/Kalshi from production blend; formal offline backtest/eval script | **Live blend removed 2026-07-16**; formal offline scorecard remains |
+| 4 | Champion archetype data-validation | **Shipped 2026-07-16** — `validate_champion_archetypes.py` (roles 88% agree; scaling tags reported as weak empirical proxies; cross-role lifts validated) |
+| 5 | Rip out live GPR/Kalshi from production blend; formal offline backtest/eval script | **Live blend removed 2026-07-16**; **scorecard shipped** (`build_accuracy_scorecard.py` / `docs/nucky_accuracy_scorecard.md`). Kalshi CLV still blocked on historical archive |
 | — | Deno consumption of `champ_matchups.json` / `player_ratings.json` in `predictionPacket.ts` / nuckyAI | **Shipped 2026-07-16** |
 
 ### Component 1 — Team Power Rating (2026-07-16)
@@ -533,9 +533,42 @@ Component 5's live blend is removed:
 Focused Deno regression tests cover internal-Elo priority, player-power packet context,
 direct matchup evidence, and probability invariance with/without a Kalshi quote.
 
-**Remaining Phase 1 work:** formal rolling scorecard/backtest by league, patch, and
-confidence bucket (plus GPR/Kalshi benchmark comparisons); Component 4 empirical
-champion-archetype validation; the deferred player outcome-regression layer.
+**Remaining Phase 1 work:** deferred player outcome-regression layer (eye-test
+impact signal was tested and rejected earlier); Kalshi closing-line archive once
+enough settled markets are stored. Formal scorecard + Component 4 archetype
+validation shipped 2026-07-16 — see `docs/nucky_accuracy_scorecard.md` and
+`docs/nucky_archetype_validation.md`.
+
+### Component 4 — champion archetype data-validation (2026-07-16)
+
+`scripts/ml/validate_champion_archetypes.py` compares the hand-curated
+`champion_archetypes.json` against OE-derived artifacts:
+
+- **Primary roles:** 88.1% agreement with empirical recent/season primary role
+  (min 15 games). Mismatches are mostly real flex/meta shifts (Corki ADC, Camille
+  support, Ziggs ADC) — nucky already prefers `champ_role_profile` recent role
+  facts in draft grounding.
+- **Scaling / lane tags vs `champ_scaling.json`:** low agreement (lane_bully
+  ~13%, late scaler ~7%). Finding: DPM-tercile / GD@15 flags are too noisy to
+  validate kit tags. Curated `scalingCurve`/tags stay authoritative; empirical
+  scaling stays supporting evidence only (matches existing Deno prompt guidance).
+- **Cross-role interaction lifts:** all 6 curated attacker→defender rules have
+  sufficient sample; 3 show positive lift (e.g. mobility_high vs engage +6.1pp).
+
+Ship gate = primary-role usability + cross-role rules present → **PASS**.
+
+### Accuracy scorecard (Component 5 remainder) — 2026-07-16
+
+`scripts/ml/build_accuracy_scorecard.py` runs leakage-free walk-forward OOF
+predictions on the production pruned feature set and writes
+`docs/nucky_accuracy_scorecard.md` + `accuracy_scorecard.json`:
+
+- Aggregate: **log-loss 0.565 / acc 0.715** vs naive baseline 0.703 / 0.621 — **PASS**
+- Slices: by league, patch bucket, confidence bucket
+- Offline GPR rank Spearman included as comparison-only benchmark
+- Kalshi closing-line section explicitly **blocked** until a historical market archive exists
+
+Both builders are in the CI retrain block (after player ratings, before export).
 
 ---
 
@@ -594,13 +627,13 @@ Entity pages get contextual **Ask nucky about X** chips (match \tab’s Explore�
 
 Do this before major user-facing rebuild.
 
-- Benchmark nucky probability vs Kalshi closing lines without feeding the market into the model.
-- Benchmark nucky team/region Elo vs GPR and realized cross-region outcomes.
-- Fix no-live-market fallback so wrong-favorite misfires (e.g. BLG vs HLE-class failures) do not silently ship.
-- Rolling **accuracy scorecard** (log-loss, accuracy, calibration by league / patch / confidence bucket vs naive baseline) — internal gate + public trust asset.
+- Benchmark nucky probability vs Kalshi closing lines without feeding the market into the model. **Blocked** on historical Kalshi archive (scorecard documents this explicitly).
+- Benchmark nucky team/region Elo vs GPR and realized cross-region outcomes. **Done** offline via scorecard GPR section + `compare_power_rating_vs_gpr.py`.
+- Fix no-live-market fallback so wrong-favorite misfires (e.g. BLG vs HLE-class failures) do not silently ship. **Addressed** by removing Kalshi from the probability blend (nucky-only scoring); remaining calibration tracked via scorecard confidence buckets.
+- Rolling **accuracy scorecard** (log-loss, accuracy, calibration by league / patch / confidence bucket vs naive baseline) — **Shipped** (`docs/nucky_accuracy_scorecard.md`).
 - Retrain + deploy discipline remains intentional (human checkpoint before edge deploy).
 
-**Exit criteria:** documented holdout metrics; public or near-public scorecard; known fallback bugs closed.
+**Exit criteria:** documented holdout metrics ✅; near-public scorecard ✅; known fallback bugs closed for live market bleed ✅. Deferred: outcome-regression layer; Kalshi CLV archive.
 
 ### Phase 2 — IA / nav / nucky-as-spine
 

@@ -49,7 +49,13 @@ python scripts/ml/build_champion_matchups.py
 # 7. Role-normalized player power ratings -> player_ratings.json (+ md preview)
 python scripts/ml/build_player_ratings.py
 
-# 8. Export + deploy JSON to supabase/functions/agent-chat/ml/
+# 8. Component 4: empirical archetype validation -> archetype_validation.json
+python scripts/ml/validate_champion_archetypes.py
+
+# 9. Formal walk-forward accuracy scorecard -> accuracy_scorecard.json
+python scripts/ml/build_accuracy_scorecard.py
+
+# 10. Export + deploy JSON to supabase/functions/agent-chat/ml/
 python scripts/ml/export_artifacts.py
 ```
 
@@ -76,6 +82,8 @@ python scripts/ml/train_draft_model.py     # if draft artifacts needed
 python scripts/ml/build_trend_insights.py  # optional trend buckets
 python scripts/ml/build_champion_matchups.py  # champ_matchups.json (inference artifact)
 python scripts/ml/build_player_ratings.py     # player_ratings.json + md preview
+python scripts/ml/validate_champion_archetypes.py  # Component 4 validation report
+python scripts/ml/build_accuracy_scorecard.py      # Phase 1 walk-forward scorecard
 python scripts/ml/export_artifacts.py      # deploy to supabase/functions/agent-chat/ml/
 
 npx supabase functions deploy agent-chat     # push new JSON to edge

@@ -223,6 +223,8 @@ def deploy_artifacts() -> None:
         # (build_champion_matchups.py / build_player_ratings.py) haven't run.
         "champ_matchups.json",
         "player_ratings.json",
+        "accuracy_scorecard.json",
+        "archetype_validation.json",
         "model_metadata.json",
     ]
     for name in names:
