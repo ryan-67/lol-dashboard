@@ -1,4 +1,10 @@
-import { selectSliceKeysFromFilters, splitSortKey, type OEStore } from './mergeSlices'
+import {
+  selectSliceKeysFromFilters,
+  sliceKey,
+  splitSortKey,
+  TIER1_LEAGUES,
+  type OEStore,
+} from './mergeSlices'
 import { DEFAULT_SPLIT, DEFAULT_YEAR } from './constants'
 import { resolveSplitLabelsForMerge } from './filterOptions'
 import { combinedFilterForCatalogSeason, normalizeToCombinedFilterValue } from './splitGroups'
@@ -51,15 +57,30 @@ export function defaultMainTabSplit(splits: string[], year = DEFAULT_YEAR, fallb
   )
 }
 
-/** True when a split filter (incl. combined groups) has player/team data in the store. */
+/** True when a split filter (incl. combined groups) has tier-1 player/team data.
+ * Guest/INT-only slices (e.g. a leftover "2026 Summer|INT" with FURIA) must not
+ * count — otherwise Summer becomes the default before domestic Summer starts. */
 export function splitHasGameData(store: OEStore, split: string, year = DEFAULT_YEAR): boolean {
   const labels = resolveSplitLabelsForMerge(store.meta.splits, year, split)
-  const keys = selectSliceKeysFromFilters(store, ['All Tier 1'], [year], labels.length ? labels : [split])
-  for (const key of keys) {
-    const slice = store.slices[key]
-    if (!slice) continue
-    if ((slice.players ?? []).some((p) => (p.gameLog?.length ?? 0) > 0)) return true
-    if ((slice.teams ?? []).some((t) => (t.games ?? 0) > 0)) return true
+  const splitLabels = labels.length ? labels : [split]
+  for (const label of splitLabels) {
+    for (const league of TIER1_LEAGUES) {
+      const slice = store.slices[sliceKey(label, league)]
+      if (!slice) continue
+      if ((slice.players ?? []).some((p) => (p.gameLog?.length ?? 0) > 0)) return true
+      if ((slice.teams ?? []).some((t) => (t.games ?? 0) > 0)) return true
+    }
+  }
+  // Fall back to the broader key selector only for non-year-prefixed filters.
+  if (!/^\d{4}\s/.test(split) && !splitLabels.some((l) => /^\d{4}\s/.test(l))) {
+    const keys = selectSliceKeysFromFilters(store, ['All Tier 1'], [year], splitLabels)
+    for (const key of keys) {
+      if (key.endsWith('|INT')) continue
+      const slice = store.slices[key]
+      if (!slice) continue
+      if ((slice.players ?? []).some((p) => (p.gameLog?.length ?? 0) > 0)) return true
+      if ((slice.teams ?? []).some((t) => (t.games ?? 0) > 0)) return true
+    }
   }
   return false
 }

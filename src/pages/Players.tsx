@@ -32,14 +32,11 @@ export default function Players() {
   const [showTable, setShowTable] = useState(false)
 
   const players = useMemo(
-    () => filteredPlayers.filter(isDisplayablePlayer),
+    () => filteredPlayers.filter(isDisplayablePlayer).filter((p) => (TIER1_LEAGUES as readonly string[]).includes(p.league)),
     [filteredPlayers],
   )
 
-  const tier1Players = useMemo(
-    () => players.filter((p) => (TIER1_LEAGUES as readonly string[]).includes(p.league)),
-    [players],
-  )
+  const tier1Players = players
 
   const roleFilteredPlayers = useMemo(() => {
     if (roleFilter === 'all') return players

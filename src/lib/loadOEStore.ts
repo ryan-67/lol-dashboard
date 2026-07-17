@@ -61,19 +61,38 @@ export function resolveTargetSplits(
 function buildMetaFromCatalogRows(
   rows: Array<{ split: string; league: string; updated_at: string | null }>,
 ): OEStoreMeta {
-  const splitSet = new Set<string>()
+  // Only splits that have at least one tier-1 league slice belong in the filter
+  // catalog. INT-only leftovers (e.g. a mis-bucketed guest "2026 Summer" with
+  // FURIA) must not surface as selectable seasons or become the default.
+  const tier1Splits = new Set<string>()
+  const intlSplits = new Set<string>()
   const leagueSet = new Set<string>()
   let latestUpdated: string | null = null
 
   for (const row of rows) {
-    if (row.split) splitSet.add(row.split)
     if (row.league) leagueSet.add(row.league)
     if (row.updated_at && (!latestUpdated || row.updated_at > latestUpdated)) {
       latestUpdated = row.updated_at
     }
+    if (!row.split) continue
+    if ((TIER1_LEAGUES as readonly string[]).includes(row.league)) {
+      tier1Splits.add(row.split)
+    } else if (row.league === GUEST_LEAGUE) {
+      intlSplits.add(row.split)
+    }
   }
 
-  const splits = [...splitSet].sort((a, b) => {
+  // Keep international event labels (MSI / Worlds / First Stand) even when a
+  // given year only has guest teams on that slice — still needed for Spring/
+  // Winter combined groups — but never promote an INT-only *regional* season
+  // (Summer/Spring/Winter) into the catalog.
+  const REGIONAL = new Set(['Winter', 'Spring', 'Summer'])
+  for (const split of intlSplits) {
+    const season = split.includes(' ') ? split.slice(split.indexOf(' ') + 1) : split
+    if (!REGIONAL.has(season)) tier1Splits.add(split)
+  }
+
+  const splits = [...tier1Splits].sort((a, b) => {
     const ka = splitSortKey(a)
     const kb = splitSortKey(b)
     return ka[0] - kb[0] || ka[1] - kb[1] || ka[2].localeCompare(kb[2])

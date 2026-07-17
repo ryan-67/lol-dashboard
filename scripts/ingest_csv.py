@@ -163,7 +163,10 @@ LEAGUE_OVERRIDES = {
     ],
     "LEC": [
         (re.compile(r"versus", re.I), "Winter"),
-        (re.compile(r"finals", re.I), "Summer"),
+        # NOTE: do NOT map bare "finals" → Summer. LEC Spring Finals historically
+        # used "Finals" in the split string and must stay under Spring; Summer
+        # Finals will match SUMMER_PATTERNS via "summer" / date once that split
+        # actually starts.
     ],
 }
 

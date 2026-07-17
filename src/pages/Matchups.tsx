@@ -9,6 +9,7 @@ import {
   HighestPriorityChamps,
 } from '../components/matchups'
 import { TeamLogo } from '../components/entities'
+import { isTier1Player, isTier1Team } from '../lib/mergeSlices'
 
 export default function Matchups() {
   const { data, loading, filteredTeams, filteredPlayers, filteredChampions } = useDashboard()
@@ -24,8 +25,12 @@ export default function Matchups() {
   }, [searchParams])
 
   const teams = useMemo(
-    () => [...filteredTeams].sort((a, b) => a.name.localeCompare(b.name)),
+    () => [...filteredTeams].filter(isTier1Team).sort((a, b) => a.name.localeCompare(b.name)),
     [filteredTeams],
+  )
+  const tier1Players = useMemo(
+    () => filteredPlayers.filter(isTier1Player),
+    [filteredPlayers],
   )
   const teamAData = useMemo(() => teams.find((t) => t.name === teamA), [teams, teamA])
   const teamBData = useMemo(() => teams.find((t) => t.name === teamB), [teams, teamB])
@@ -154,7 +159,7 @@ export default function Matchups() {
 
           <TeamRadarComparison teamA={teamAData} teamB={teamBData} cohort={filteredTeams} />
 
-          <PlayerMatchupGrid players={filteredPlayers} teamA={teamA} teamB={teamB} />
+          <PlayerMatchupGrid players={tier1Players} teamA={teamA} teamB={teamB} />
 
           <HighestPriorityChamps
             teamChampions={data?.teamChampions ?? []}

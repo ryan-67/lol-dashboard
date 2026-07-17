@@ -39,11 +39,6 @@ function splitSortKey(splitLabel: string): [number, number, string] {
   return [year, SEASON_ORDER[season] ?? 99, season.toLowerCase()];
 }
 
-function isRegionalSplit(split: string): boolean {
-  const season = split.includes(" ") ? split.slice(split.indexOf(" ") + 1).replace(/ Playoffs$/, "") : split;
-  return REGIONAL_ONLY.has(season);
-}
-
 export interface MergedPlayer {
   name: string;
   team: string;
@@ -156,9 +151,20 @@ export async function resolveSplit(
     return `${year} ${trimmed}`;
   }
 
-  const { data } = await service.from("oe_slices").select("split").limit(500);
-  const splits = [...new Set((data ?? []).map((r) => String((r as { split?: string }).split ?? "")))]
-    .filter(Boolean)
+  // Prefer newest split that has at least one tier-1 league row. INT-only
+  // leftovers (e.g. "2026 Summer" with only FURIA) must not become the default.
+  const { data } = await service.from("oe_slices").select("split,league").limit(3000);
+  const rows = (data ?? []) as Array<{ split?: string; league?: string }>;
+  const tier1BySplit = new Map<string, boolean>();
+  for (const row of rows) {
+    const s = String(row.split ?? "");
+    if (!s) continue;
+    const isTier1 = (TIER1 as readonly string[]).includes(String(row.league ?? ""));
+    tier1BySplit.set(s, Boolean(tier1BySplit.get(s)) || isTier1);
+  }
+
+  const splits = [...tier1BySplit.keys()]
+    .filter((s) => tier1BySplit.get(s))
     .sort((a, b) => {
       const ka = splitSortKey(a);
       const kb = splitSortKey(b);
@@ -167,16 +173,41 @@ export async function resolveSplit(
       return ka[2].localeCompare(kb[2]);
     });
 
+  const year = new Date().getUTCFullYear();
+
+  // Map international events to their combined regional leader (MSI → Spring).
+  const toRegionalLeader = (s: string): string | null => {
+    const space = s.indexOf(" ");
+    if (space < 0) return null;
+    const y = s.slice(0, space);
+    const season = s.slice(space + 1).replace(/ Playoffs$/, "");
+    if (REGIONAL_ONLY.has(season)) return `${y} ${season}`;
+    if (season === "MSI") return `${y} Spring`;
+    if (season === "First Stand") return `${y} Winter`;
+    if (season === "Worlds") return `${y} Summer`;
+    return null;
+  };
+
   if (widenForSeries) {
-    const year = new Date().getUTCFullYear();
-    const regional = splits.filter((s) => s.startsWith(`${year} `) && isRegionalSplit(s));
+    const regional = splits
+      .filter((s) => s.startsWith(`${year} `))
+      .map(toRegionalLeader)
+      .filter((s): s is string => Boolean(s));
     if (regional.length) return regional[0]!;
   }
 
-  const regional = splits.filter(isRegionalSplit);
-  if (regional.length) return regional[0]!;
+  const yearSplits = splits.filter((s) => s.startsWith(`${year} `));
+  for (const s of yearSplits) {
+    const leader = toRegionalLeader(s);
+    if (leader) return leader;
+  }
 
-  return splits[0] ?? "2026 Spring";
+  for (const s of splits) {
+    const leader = toRegionalLeader(s);
+    if (leader) return leader;
+  }
+
+  return `${year} Spring`;
 }
 
 export function resolveSplitFromFilters(filters: DashboardFilters): string | undefined {

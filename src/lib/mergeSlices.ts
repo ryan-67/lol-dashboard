@@ -45,6 +45,19 @@ export const TIER1_LEAGUES = ['LCK', 'LPL', 'LEC', 'LCS'] as const
 /** Minor-region / international guest teams (MSI, Worlds participants outside tier-1). */
 export const GUEST_LEAGUE = 'INT' as const
 
+export function isTier1League(league: string | null | undefined): boolean {
+  return Boolean(league && (TIER1_LEAGUES as readonly string[]).includes(league))
+}
+
+/** Teams/players tabs: tier-1 only. Guest orgs keep identity pages via entity routes. */
+export function isTier1Team(t: { league?: string | null }): boolean {
+  return isTier1League(t.league)
+}
+
+export function isTier1Player(p: { league?: string | null }): boolean {
+  return isTier1League(p.league)
+}
+
 function sliceLeaguesForMerge(leagues: string[]): string[] {
   const tier1 =
     !leagues.length || leagues.includes('All Tier 1')

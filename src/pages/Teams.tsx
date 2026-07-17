@@ -5,6 +5,7 @@ import {
   isDisplayableTeam,
   type TeamScope,
 } from '../lib/teamAnalytics'
+import { isTier1Team } from '../lib/mergeSlices'
 import {
   TeamFilterBar,
   TeamRadarGrid,
@@ -21,7 +22,7 @@ export default function Teams() {
   const [showTable, setShowTable] = useState(false)
 
   const teams = useMemo(
-    () => filteredTeams.filter(isDisplayableTeam),
+    () => filteredTeams.filter(isDisplayableTeam).filter(isTier1Team),
     [filteredTeams],
   )
 
