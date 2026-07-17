@@ -46,7 +46,7 @@ export default function NuckyAiPaywall({
         <p className="nuckyai-paywall-beta-note">
           nuckyAI is under active development. Beta access helps us improve response quality, tool coverage,
           and accuracy — try it out and send feedback to{' '}
-          <a href="mailto:nuckyaigg@gmail.com">nuckyaigg@gmail.com</a>.
+          <a href="mailto:geonbu@nucky.gg">geonbu@nucky.gg</a>.
         </p>
         {footnote ? <p className="nuckyai-paywall-footnote">{footnote}</p> : null}
       </div>

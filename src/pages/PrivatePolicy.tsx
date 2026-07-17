@@ -25,7 +25,7 @@ const POLICY_POINTS = [
   },
   {
     title: 'deletion',
-    body: 'you can request data deletion or account removal by emailing nuckyaigg@gmail.com.',
+    body: 'you can request data deletion or account removal by emailing geonbu@nucky.gg.',
   },
 ]
 
@@ -57,7 +57,7 @@ export default function PrivatePolicy() {
       </div>
 
       <p className="landing-model-note" style={{ marginTop: '2rem' }}>
-        questions: nuckyaigg@gmail.com
+        questions: geonbu@nucky.gg
       </p>
     </div>
   )

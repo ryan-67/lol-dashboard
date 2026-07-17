@@ -1,20 +1,20 @@
 import { useEffect, useState, type ReactNode } from 'react'
-import { Link, NavLink, useLocation } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 import AuthModal from '../AuthModal'
 import { useAuth } from '../../context/AuthContext'
 
 type AuthView = 'signin' | 'signup'
 
 const MARKETING_NAV = [
-  { to: '/features', label: 'features' },
-  { to: '/faq', label: 'faq' },
-  { to: '/pricing', label: 'pricing' },
+  { to: '/#features', label: 'features' },
+  { to: '/#faq', label: 'faq' },
+  { to: '/#pricing', label: 'pricing' },
 ]
 
 const FOOTER_PRODUCT = [
-  { to: '/features', label: 'features' },
-  { to: '/faq', label: 'faq' },
-  { to: '/pricing', label: 'pricing' },
+  { to: '/#features', label: 'features' },
+  { to: '/#faq', label: 'faq' },
+  { to: '/#pricing', label: 'pricing' },
   { to: '/dashboard', label: 'dashboard' },
 ]
 
@@ -51,13 +51,9 @@ export default function LandingLayout({ children }: LandingLayoutProps) {
 
           <nav className="landing-nav" aria-label="Product">
             {MARKETING_NAV.map((item) => (
-              <NavLink
-                key={item.to}
-                to={item.to}
-                className={({ isActive }) => `landing-nav-link${isActive ? ' is-active' : ''}`}
-              >
+              <Link key={item.to} to={item.to} className="landing-nav-link">
                 {item.label}
-              </NavLink>
+              </Link>
             ))}
           </nav>
 
@@ -109,9 +105,9 @@ export default function LandingLayout({ children }: LandingLayoutProps) {
         {menuOpen ? (
           <nav className="landing-mobile-nav" aria-label="Mobile">
             {MARKETING_NAV.map((item) => (
-              <NavLink key={item.to} to={item.to} className="landing-mobile-link">
+              <Link key={item.to} to={item.to} className="landing-mobile-link">
                 {item.label}
-              </NavLink>
+              </Link>
             ))}
             <Link to="/dashboard" className="landing-mobile-link">
               dashboard
@@ -142,10 +138,10 @@ export default function LandingLayout({ children }: LandingLayoutProps) {
               <span className="landing-brand-name">nucky</span>
             </Link>
             <p className="landing-footer-blurb">
-              tier-1 LoL esports analytics with a proprietary rating engine and an AI analyst grounded in
-              real match data.
+              statistics-backed LoL esports analytics, proprietary ratings, and a conversational
+              analyst grounded in historical match data.
             </p>
-            <p className="landing-footer-meta">© 2026 nucky · nuckyaigg@gmail.com</p>
+            <p className="landing-footer-meta">© 2026 nucky · geonbu@nucky.gg</p>
           </div>
 
           <div className="landing-footer-col">
@@ -181,7 +177,7 @@ export default function LandingLayout({ children }: LandingLayoutProps) {
                 </li>
               )}
               <li>
-                <Link to="/nuckyai">nuckyAI</Link>
+                <Link to="/nuckyai">nucky</Link>
               </li>
             </ul>
           </div>

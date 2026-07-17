@@ -9,7 +9,7 @@ const TERMS = [
   },
   {
     title: 'the service',
-    body: 'nucky.gg provides LoL esports analytics and an optional subscription AI analyst (nuckyAI). features, availability, and beta limits may change as the product develops.',
+    body: 'nucky.gg provides LoL esports analytics and an optional subscription analyst called nucky. features, availability, and beta limits may change as the product develops.',
   },
   {
     title: 'accounts',
@@ -41,7 +41,7 @@ const TERMS = [
   },
   {
     title: 'contact',
-    body: 'questions about these terms: nuckyaigg@gmail.com.',
+    body: 'questions about these terms: geonbu@nucky.gg.',
   },
 ]
 
@@ -58,7 +58,7 @@ export default function Terms() {
       <div className="landing-section-head">
         <p className="landing-section-label">legal</p>
         <h1>terms of use</h1>
-        <p className="landing-section-lead">effective 2026. basic terms for using nucky.gg and nuckyAI.</p>
+        <p className="landing-section-lead">effective 2026. basic terms for using nucky.gg and nucky.</p>
       </div>
 
       <div className="landing-legal-list">

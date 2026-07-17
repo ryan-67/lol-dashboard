@@ -6,7 +6,7 @@
 
 ## Design read
 
-Terminal Editorial SaaS landing for LoL esports fans and analysts. Matte black + matte gold, Noto Sans Mono (existing brand), folk.com-style ghost wordmark, data-forward accuracy motifs. Not broadcast-cinematic, not generic Framer-clean.
+Terminal Editorial SaaS landing for LoL esports fans and analysts. Matte black + matte turquoise, Noto Sans Mono (existing brand), folk.com-style ghost wordmark, data-forward accuracy motifs. Not broadcast-cinematic, not generic Framer-clean.
 
 **Dials:** VARIANCE 7 / MOTION 6 / DENSITY 4
 
@@ -15,9 +15,9 @@ Terminal Editorial SaaS landing for LoL esports fans and analysts. Matte black +
 | Path | Surface |
 |------|---------|
 | `/` | Marketing landing |
-| `/features` | Features |
-| `/pricing` | Pricing |
-| `/faq` | FAQ (marketing shell) |
+| `/#features` | Features section |
+| `/#pricing` | Pricing section |
+| `/#faq` | FAQ section |
 | `/private-policy` | Privacy (footer only) |
 | `/terms` | Terms (footer only) |
 | `/dashboard` | Former Overview (app shell) |
@@ -28,7 +28,7 @@ App shell logo/nav Overview → `/dashboard`. Marketing logo → `/`.
 
 ## Marketing chrome
 
-**Header (top + mirrors in footer nav):** Features, FAQ, Pricing + Sign in / Create account. Signed-in users also get Open dashboard.
+**Header (top + mirrors in footer nav):** Features, FAQ, Pricing anchor into the main landing page + Sign in / Create account. Signed-in users also get Open dashboard.
 
 **Footer only:** Privacy, Terms, copyright, contact. Giant faint `nucky` ghost wordmark (folk.com).
 
@@ -43,7 +43,7 @@ App shell logo/nav Overview → `/dashboard`. Marketing logo → `/`.
 
 ## Motion
 
-Lenis + GSAP ScrollTrigger: section reveals, counter count-ups, staggered rows. Hover: link underline/gold shift, CTA press scale, feature row highlight. Respect `prefers-reduced-motion`.
+Lenis + GSAP ScrollTrigger: section reveals, counter count-ups, staggered rows. Hover: link underline/turquoise shift, CTA press scale, feature row highlight. Respect `prefers-reduced-motion`.
 
 ## Auth
 
@@ -52,5 +52,5 @@ Reuse `AuthModal` with `initialView: 'signin' | 'signup'`. Session already persi
 ## Pricing (current truth)
 
 - Dashboard analytics: free
-- nuckyAI beta: $3.99/mo (Stripe); planned full launch $5/mo
+- nucky beta: $3.99/mo (Stripe); planned full launch $5/mo
 - Usage caps during beta

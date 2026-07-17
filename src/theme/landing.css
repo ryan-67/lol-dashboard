@@ -1,12 +1,15 @@
-/* Terminal Editorial marketing surface — matte black / matte gold */
+/* Terminal Editorial marketing surface: matte black / matte turquoise */
 
 .landing-shell {
+  --accent: oklch(0.72 0.105 195);
+  --accent-dim: oklch(0.57 0.075 195);
+  --accent-bg: oklch(0.72 0.105 195 / 0.09);
   min-height: 100dvh;
   display: flex;
   flex-direction: column;
   background:
-    radial-gradient(ellipse 80% 50% at 10% -10%, rgba(197, 160, 89, 0.07), transparent 55%),
-    radial-gradient(ellipse 60% 40% at 90% 10%, rgba(122, 140, 90, 0.04), transparent 50%),
+    radial-gradient(ellipse 80% 50% at 10% -10%, oklch(0.72 0.105 195 / 0.08), transparent 55%),
+    radial-gradient(ellipse 60% 40% at 90% 10%, oklch(0.54 0.07 205 / 0.05), transparent 50%),
     var(--bg-base);
   color: var(--text-primary);
   overflow-x: clip;
@@ -125,13 +128,13 @@
 .landing-btn-primary {
   border-color: var(--accent);
   background: var(--accent);
-  color: #14110c;
+  color: oklch(0.18 0.012 195);
 }
 
 .landing-btn-primary:hover {
-  background: color-mix(in srgb, var(--accent) 88%, white);
-  border-color: color-mix(in srgb, var(--accent) 88%, white);
-  color: #14110c;
+  background: oklch(0.77 0.095 195);
+  border-color: oklch(0.77 0.095 195);
+  color: oklch(0.18 0.012 195);
 }
 
 .landing-btn-ghost {
@@ -273,6 +276,7 @@
 .landing-section {
   padding: 5.5rem 0 1rem;
   border-top: 1px solid var(--border-subtle);
+  scroll-margin-top: 80px;
 }
 
 .landing-section-label {
@@ -683,7 +687,8 @@
   padding-left: 0.75rem;
 }
 
-.landing-feature-row h2 {
+.landing-feature-row h2,
+.landing-feature-row h3 {
   font-size: 1.1rem;
   font-weight: 700;
   letter-spacing: -0.02em;
@@ -789,11 +794,27 @@
   border-bottom: 1px solid var(--border-subtle);
 }
 
-.landing-faq-item h2 {
+.landing-price-card > .landing-btn {
+  margin-top: auto;
+}
+
+.landing-checkout-error {
+  margin: 0;
+  color: oklch(0.68 0.13 25);
+  font-size: 0.78rem;
+}
+
+.landing-faq-item h2,
+.landing-faq-item h3 {
   font-size: 0.95rem;
   font-weight: 700;
   color: var(--accent);
   margin: 0 0 0.55rem;
+}
+
+.landing-section-lead a {
+  color: var(--accent);
+  text-underline-offset: 0.2em;
 }
 
 .landing-faq-item p {

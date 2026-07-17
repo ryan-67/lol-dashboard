@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react'
-import { Routes, Route, useLocation } from 'react-router-dom'
+import { Navigate, Routes, Route, useLocation } from 'react-router-dom'
 import Lenis from 'lenis'
 import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
@@ -9,8 +9,6 @@ import { TimezoneProvider } from './context/TimezoneContext'
 import Layout from './components/Layout'
 import LandingLayout from './components/landing/LandingLayout'
 import Landing from './pages/Landing'
-import FeaturesPage from './pages/marketing/FeaturesPage'
-import PricingPage from './pages/marketing/PricingPage'
 import Overview from './pages/Overview'
 import Players from './pages/Players'
 import Teams from './pages/Teams'
@@ -25,7 +23,6 @@ import SeriesPage from './pages/entities/SeriesPage'
 import NuckyAI from './pages/NuckyAI'
 import Live from './pages/Live'
 import LiveMatchRoom from './pages/LiveMatchRoom'
-import FAQ from './pages/FAQ'
 import PrivatePolicy from './pages/PrivatePolicy'
 import Terms from './pages/Terms'
 import UserProfile from './pages/UserProfile'
@@ -108,9 +105,9 @@ function MarketingRoutes() {
     <LandingLayout>
       <Routes>
         <Route path="/" element={<Landing />} />
-        <Route path="/features" element={<FeaturesPage />} />
-        <Route path="/pricing" element={<PricingPage />} />
-        <Route path="/faq" element={<FAQ />} />
+        <Route path="/features" element={<Navigate to="/#features" replace />} />
+        <Route path="/pricing" element={<Navigate to="/#pricing" replace />} />
+        <Route path="/faq" element={<Navigate to="/#faq" replace />} />
         <Route path="/private-policy" element={<PrivatePolicy />} />
         <Route path="/terms" element={<Terms />} />
       </Routes>

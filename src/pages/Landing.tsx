@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 import { useGSAP } from '@gsap/react'
 import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
@@ -10,6 +10,7 @@ import {
   formatPct,
   type AccuracyScorecard,
 } from '../lib/accuracyScorecard'
+import { startStripeCheckout } from '../lib/billing'
 import { animateCounter, scrollEntrance, scrollEntranceStagger } from '../theme/animations'
 import { useAuth } from '../context/AuthContext'
 
@@ -17,12 +18,75 @@ gsap.registerPlugin(ScrollTrigger)
 
 type AuthView = 'signin' | 'signup'
 
+const FEATURES = [
+  {
+    title: 'statistics-backed dashboard',
+    body: 'Explore teams, players, champions, tournaments, and head-to-head matchups through radars, form charts, role comparisons, and patch-aware trends.',
+  },
+  {
+    title: 'thousands of matches, scored',
+    body: 'Historical match records train proprietary rating systems that score and rank teams and players while accounting for role, opposition, form, and strength of schedule.',
+  },
+  {
+    title: 'patterns beyond the box score',
+    body: 'nucky recognizes player, team, and champion trends, then maps recurring styles such as tempo, scaling, objective control, champion comfort, and lane pressure.',
+  },
+  {
+    title: '12-year LoL esports knowledge base',
+    body: 'A retrieval-augmented knowledge layer spans twelve years of historical match data and indexed esports context, giving nucky a domain memory normal chatbots do not have.',
+  },
+  {
+    title: 'grounded analysis and predictions',
+    body: 'The conversational analyst combines retrieved evidence with structured model packets, so answers can explain the statistics and drivers behind a matchup instead of improvising a confident guess.',
+  },
+  {
+    title: 'auditable model performance',
+    body: 'Walk-forward accuracy, log-loss, calibration, and league slices are published from out-of-fold evaluation. The model must beat a naive baseline before it passes its ship gate.',
+  },
+]
+
+const FAQ_ITEMS = [
+  {
+    question: 'what is nucky?',
+    answer:
+      'nucky is a statistics-backed LoL esports analytics product: a free dashboard, proprietary rating and prediction systems, and an optional conversational analyst grounded in the same data.',
+  },
+  {
+    question: 'what data does nucky know?',
+    answer:
+      'The analytics pipeline ingests tier-1 professional match data, while the retrieval-augmented knowledge base reaches across twelve years of historical match records and indexed esports context. Current dashboard coverage focuses on LCK, LPL, LEC, LCS, MSI, Worlds, and First Stand.',
+  },
+  {
+    question: 'how is nucky different from a normal AI chatbot?',
+    answer:
+      'General chatbots primarily answer from broad training memory. nucky retrieves LoL esports-specific evidence, queries structured match statistics, and receives model-generated rating and prediction packets. It can ground an answer in the relevant numbers and say when the evidence is not there.',
+  },
+  {
+    question: 'how is nucky different from a raw stat site?',
+    answer:
+      'Raw-stat sites are useful sources of box scores. nucky adds interpretation: team and player ratings, form, strength of schedule, champion matchup evidence, style profiles, trend detection, and a conversational layer that can connect those signals.',
+  },
+  {
+    question: 'does nucky watch every series live?',
+    answer:
+      'No. nucky ingests match data and indexed context, then builds ratings, trends, analyses, and predictions from those artifacts. It does not claim to watch broadcasts or consume every live frame.',
+  },
+  {
+    question: 'why is the conversational analyst subscription gated?',
+    answer:
+      'The beta is $3.99 per month because retrieval, model inference, and tool calls have real operating costs. The statistics dashboard remains free to browse, and full launch pricing is planned at $5 per month.',
+  },
+]
+
 export default function Landing() {
   const { user } = useAuth()
+  const location = useLocation()
   const rootRef = useRef<HTMLDivElement>(null)
   const [scorecard, setScorecard] = useState<AccuracyScorecard | null>(null)
   const [showAuth, setShowAuth] = useState(false)
   const [authView, setAuthView] = useState<AuthView>('signin')
+  const [checkoutError, setCheckoutError] = useState<string | null>(null)
+  const [checkoutLoading, setCheckoutLoading] = useState(false)
 
   useEffect(() => {
     let alive = true
@@ -34,6 +98,18 @@ export default function Landing() {
     }
   }, [])
 
+  useEffect(() => {
+    if (!location.hash) return
+    const id = location.hash.slice(1)
+    const frame = window.requestAnimationFrame(() => {
+      document.getElementById(id)?.scrollIntoView({
+        behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth',
+        block: 'start',
+      })
+    })
+    return () => window.cancelAnimationFrame(frame)
+  }, [location.hash])
+
   useGSAP(
     () => {
       const root = rootRef.current
@@ -41,9 +117,7 @@ export default function Landing() {
       const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches
 
       scrollEntrance(root.querySelector('.landing-hero-copy'))
-      if (!reduce) {
-        scrollEntrance(root.querySelector('.landing-hero-badge'))
-      }
+      if (!reduce) scrollEntrance(root.querySelector('.landing-hero-badge'))
 
       root.querySelectorAll<HTMLElement>('.landing-section').forEach((section) => {
         scrollEntrance(section.querySelector('.landing-section-head'))
@@ -51,29 +125,20 @@ export default function Landing() {
       })
 
       if (!reduce && scorecard) {
-        const accEl = root.querySelector<HTMLElement>('[data-counter="accuracy"]')
-        const llEl = root.querySelector<HTMLElement>('[data-counter="logloss"]')
-        const baseEl = root.querySelector<HTMLElement>('[data-counter="baseline"]')
-        if (accEl) {
-          animateCounter(accEl, scorecard.aggregate.model.accuracy * 100, {
-            duration: 1.4,
-            decimals: 1,
-            suffix: '%',
-          })
-        }
-        if (llEl) {
-          animateCounter(llEl, scorecard.aggregate.model.log_loss, {
-            duration: 1.4,
-            decimals: 3,
-          })
-        }
-        if (baseEl) {
-          animateCounter(baseEl, scorecard.aggregate.baseline.accuracy * 100, {
-            duration: 1.4,
-            decimals: 1,
-            suffix: '%',
-          })
-        }
+        animateCounter(root.querySelector('[data-counter="accuracy"]'), scorecard.aggregate.model.accuracy * 100, {
+          duration: 1.4,
+          decimals: 1,
+          suffix: '%',
+        })
+        animateCounter(root.querySelector('[data-counter="logloss"]'), scorecard.aggregate.model.log_loss, {
+          duration: 1.4,
+          decimals: 3,
+        })
+        animateCounter(root.querySelector('[data-counter="baseline"]'), scorecard.aggregate.baseline.accuracy * 100, {
+          duration: 1.4,
+          decimals: 1,
+          suffix: '%',
+        })
       }
     },
     { scope: rootRef, dependencies: [scorecard] },
@@ -82,6 +147,22 @@ export default function Landing() {
   const openAuth = (view: AuthView) => {
     setAuthView(view)
     setShowAuth(true)
+  }
+
+  const handleSubscribe = async () => {
+    setCheckoutError(null)
+    if (!user) {
+      openAuth('signup')
+      return
+    }
+    setCheckoutLoading(true)
+    try {
+      const url = await startStripeCheckout()
+      window.location.assign(url)
+    } catch (error) {
+      setCheckoutError(error instanceof Error ? error.message : 'checkout failed')
+      setCheckoutLoading(false)
+    }
   }
 
   const acc = scorecard?.aggregate.model.accuracy ?? 0.7145
@@ -94,13 +175,12 @@ export default function Landing() {
     <div className="landing-page" ref={rootRef}>
       <section className="landing-hero">
         <div className="landing-hero-copy">
-          <p className="landing-eyebrow">tier-1 LoL esports · nucky.gg</p>
+          <p className="landing-eyebrow">statistics-backed LoL esports intelligence</p>
           <h1 className="landing-hero-title">
             ratings, trends, and <em>predictions</em> grounded in match data.
           </h1>
           <p className="landing-hero-sub">
-            nucky ingests pro series, rates players and teams with proprietary signals, and explains
-            matchups with an AI analyst that stays on the numbers.
+            nucky turns thousands of pro matches into ratings, patterns, and evidence-backed analysis.
           </p>
           <div className="landing-hero-actions">
             {user ? (
@@ -116,14 +196,14 @@ export default function Landing() {
                 create account
               </button>
             )}
-            <Link className="landing-btn landing-btn-ghost" to="/features">
+            <a className="landing-btn landing-btn-ghost" href="#features">
               see features
-            </Link>
+            </a>
           </div>
         </div>
 
         <aside className="landing-hero-badge" aria-label="Model accuracy">
-          <div className="landing-hero-badge-label">walk-forward acc</div>
+          <div className="landing-hero-badge-label">walk-forward accuracy</div>
           <div className="landing-hero-badge-value">{formatPct(acc)}</div>
           <div className="landing-hero-badge-meta">vs {formatPct(baseAcc)} baseline</div>
         </aside>
@@ -132,42 +212,51 @@ export default function Landing() {
       <section className="landing-section" id="what">
         <div className="landing-section-head">
           <p className="landing-section-label">what nucky is</p>
-          <h2 className="landing-section-title">an analytics spine with a real model behind it</h2>
+          <h2 className="landing-section-title">a statistics product with an analyst built in</h2>
           <p className="landing-section-lead">
-            Not a chatbot bolted onto box scores. A dashboard and AI surface that share the same
-            proprietary ratings, champion matchups, and walk-forward prediction stack.
+            The dashboard, knowledge base, ratings, and conversational experience all share the same
+            LoL esports-specific data foundation.
           </p>
         </div>
         <div className="landing-steps">
           <article className="landing-step landing-reveal">
             <div className="landing-step-num">01</div>
             <div>
-              <h3>ingest</h3>
+              <h3>ingest twelve years of context</h3>
               <p>
-                New tier-1 games land from Oracle&apos;s Elixir and related sources. Series, drafts,
-                patches, and form signals refresh on a disciplined pipeline — not a frozen scrape.
+                Historical match records and indexed esports sources form a retrieval-augmented
+                knowledge base. New tier-1 results, drafts, patches, and form signals keep the active
+                analytics layer current.
               </p>
             </div>
           </article>
           <article className="landing-step landing-reveal">
             <div className="landing-step-num">02</div>
             <div>
-              <h3>rate</h3>
+              <h3>score players, teams, and champions</h3>
               <p>
-                Region Elo, role-based player power, and empirical champion matchups become the scoring
-                inputs. Live GPR and Kalshi odds stay comparison-only — never blended into the model
-                probability.
+                Proprietary team strength, role-based player power, and champion matchup systems learn
+                from thousands of historical match records to rank performance in context.
               </p>
             </div>
           </article>
           <article className="landing-step landing-reveal">
             <div className="landing-step-num">03</div>
             <div>
-              <h3>explain &amp; predict</h3>
+              <h3>recognize patterns and styles</h3>
               <p>
-                nuckyAI reads structured prediction packets and dashboard stats so analyses cite real
-                numbers. Predictions come with drivers, confidence, and a public walk-forward
-                scorecard.
+                nucky surfaces player form, champion comfort, team tempo, scaling, objective control,
+                lane pressure, and matchup-specific tendencies that raw totals can hide.
+              </p>
+            </div>
+          </article>
+          <article className="landing-step landing-reveal">
+            <div className="landing-step-num">04</div>
+            <div>
+              <h3>explain and predict</h3>
+              <p>
+                Structured model packets give the conversational analyst probabilities, drivers,
+                trends, and uncertainty. The prose explains the evidence; it does not invent the score.
               </p>
             </div>
           </article>
@@ -176,69 +265,87 @@ export default function Landing() {
 
       <section className="landing-section" id="difference">
         <div className="landing-section-head">
-          <p className="landing-section-label">why not another stat site</p>
-          <h2 className="landing-section-title">raw tables are not the product</h2>
+          <p className="landing-section-label">why nucky is different</p>
+          <h2 className="landing-section-title">not a raw table. not a general chatbot.</h2>
           <p className="landing-section-lead">
-            Classic LoL esports sites mirror OE box scores. nucky builds interpretive layers on top —
-            so you can ask better questions before the draft locks.
+            nucky connects structured statistics, proprietary models, and domain retrieval so every
+            surface can answer the same question with the same evidence.
           </p>
         </div>
         <div className="landing-compare">
           <div className="landing-compare-col landing-reveal">
-            <h3>typical raw-stat sites</h3>
+            <h3>raw stat sites / general AI</h3>
             <ul>
-              <li>sortable tables of KDA, DPM, GD@15</li>
-              <li>manual digging across players / teams / patches</li>
-              <li>no proprietary strength of schedule or role ratings</li>
-              <li>no audited prediction track record</li>
-              <li>generic AI (if any) guesses from training memory</li>
+              <li>box scores without interpretation</li>
+              <li>manual digging across players, teams, and patches</li>
+              <li>broad training memory with limited current LoL esports context</li>
+              <li>confident prose without a transparent prediction system</li>
+              <li>no shared analytics layer between dashboard and chat</li>
             </ul>
           </div>
           <div className="landing-compare-col is-nucky landing-reveal">
             <h3>nucky</h3>
             <ul>
-              <li>dashboard + entity pages with radar, form, and meta context</li>
-              <li>ask-nucky analyst grounded in the same database</li>
-              <li>home-grown Elo, player ratings, champ matchup matrix</li>
-              <li>walk-forward accuracy scorecard you can inspect</li>
-              <li>prediction packets: numbers first, prose second</li>
+              <li>statistics-backed dashboard with form, radar, and matchup context</li>
+              <li>twelve-year historical knowledge base with retrieval</li>
+              <li>team, player, and champion ratings trained on thousands of matches</li>
+              <li>style and trend recognition across roles, patches, and opponents</li>
+              <li>auditable predictions with a published walk-forward scorecard</li>
             </ul>
           </div>
+        </div>
+      </section>
+
+      <section className="landing-section" id="features">
+        <div className="landing-section-head">
+          <p className="landing-section-label">features</p>
+          <h2 className="landing-section-title">one analytics spine, six ways in</h2>
+          <p className="landing-section-lead">
+            Explore the evidence visually, ask for an explanation, or inspect how the model performed.
+          </p>
+        </div>
+        <div className="landing-feature-list">
+          {FEATURES.map((feature) => (
+            <article key={feature.title} className="landing-feature-row landing-reveal">
+              <h3>{feature.title}</h3>
+              <p>{feature.body}</p>
+            </article>
+          ))}
         </div>
       </section>
 
       <section className="landing-section" id="use">
         <div className="landing-section-head">
           <p className="landing-section-label">how to use it</p>
-          <h2 className="landing-section-title">built for pre-series decisions</h2>
+          <h2 className="landing-section-title">move from stat to context</h2>
           <p className="landing-section-lead">
-            Three common paths. More surfaces (split chat + dashboard, prediction tab) land as the
-            product IA expands.
+            Start with the free dashboard, follow a player or team signal, then ask nucky to connect
+            the matchup evidence.
           </p>
         </div>
         <div className="landing-usecases">
           <article className="landing-usecase landing-reveal">
             <div className="landing-usecase-kicker">use case 01</div>
-            <h3>pre-series lookup</h3>
+            <h3>pre-series research</h3>
             <p>
-              Open a team or matchup page, scan form and lane profiles, then ask nucky what actually
-              drives the edge before you lock a lean.
+              Compare team form, lane profiles, opponent quality, and style clashes before deciding
+              what should matter in the series.
             </p>
           </article>
           <article className="landing-usecase landing-reveal">
             <div className="landing-usecase-kicker">use case 02</div>
-            <h3>player &amp; meta tracking</h3>
+            <h3>player and meta tracking</h3>
             <p>
-              Filter by league and split, watch rising champions and role standouts, and keep an eye
-              on patch-sensitive shifts without spreadsheet archaeology.
+              Follow role-adjusted player form, champion comfort, rising picks, patch shifts, and
+              opponent-specific matchup patterns.
             </p>
           </article>
           <article className="landing-usecase landing-reveal">
             <div className="landing-usecase-kicker">use case 03</div>
-            <h3>ask the model</h3>
+            <h3>grounded questions</h3>
             <p>
-              Chat with nuckyAI for structured analyses and series leans backed by the proprietary
-              stack — with usage gated while the beta stays honest about cost.
+              Ask nucky for a comparison or series lean. Retrieval supplies LoL esports context while
+              structured tools supply the current statistics.
             </p>
           </article>
         </div>
@@ -246,12 +353,12 @@ export default function Landing() {
 
       <section className="landing-section" id="model">
         <div className="landing-section-head">
-          <p className="landing-section-label">the model</p>
+          <p className="landing-section-label">the prediction model</p>
           <h2 className="landing-section-title">walk-forward track record</h2>
           <p className="landing-section-lead">
-            Out-of-fold series predictions on {holdout.toLocaleString()} holdout games ({dateRange[0]}{' '}
-            → {dateRange[1]}). Ship gate: beat a naive baseline on log-loss. Currently{' '}
-            {scorecard?.aggregate.beatsBaseline ? 'passing' : 'failing'}.
+            Out-of-fold predictions on {holdout.toLocaleString()} holdout games ({dateRange[0]} to{' '}
+            {dateRange[1]}). The ship gate requires lower log-loss than a naive baseline. It is
+            currently {(scorecard?.aggregate.beatsBaseline ?? true) ? ' passing' : ' failing'}.
           </p>
         </div>
 
@@ -261,7 +368,7 @@ export default function Landing() {
             <div className="landing-score-card-value is-accent" data-counter="accuracy">
               {formatPct(acc)}
             </div>
-            <div className="landing-score-card-meta">walk-forward OOF</div>
+            <div className="landing-score-card-meta">walk-forward out-of-fold</div>
           </div>
           <div className="landing-score-card landing-reveal">
             <div className="landing-score-card-label">model log-loss</div>
@@ -273,11 +380,11 @@ export default function Landing() {
             </div>
           </div>
           <div className="landing-score-card landing-reveal">
-            <div className="landing-score-card-label">naive baseline acc</div>
+            <div className="landing-score-card-label">naive baseline accuracy</div>
             <div className="landing-score-card-value" data-counter="baseline">
               {formatPct(baseAcc)}
             </div>
-            <div className="landing-score-card-meta">coin-flip / favorite prior</div>
+            <div className="landing-score-card-meta">comparison benchmark</div>
           </div>
         </div>
 
@@ -309,18 +416,105 @@ export default function Landing() {
         </div>
 
         <p className="landing-model-note">
-          GPR Spearman and live Kalshi markets are offline comparison benchmarks only — 0% weight in
-          live scoring. Kalshi closing-line value is blocked until a historical archive exists. Full
-          write-up lives in the accuracy scorecard docs shipped with each retrain.
+          Probabilities come from nucky&apos;s proprietary scoring stack. The scorecard refreshes with
+          the model pipeline so this page reports evaluated performance, not a hand-picked marketing
+          number.
         </p>
+      </section>
+
+      <section className="landing-section" id="pricing">
+        <div className="landing-section-head">
+          <p className="landing-section-label">pricing</p>
+          <h2 className="landing-section-title">free analytics. paid analyst.</h2>
+          <p className="landing-section-lead">
+            Browse the statistics dashboard without an account. Subscribe when you want retrieval,
+            model explanations, and conversational analysis.
+          </p>
+        </div>
+        <div className="landing-pricing-grid">
+          <article className="landing-price-card landing-reveal">
+            <div className="landing-price-name">dashboard</div>
+            <div className="landing-price-amount">
+              $0 <span>/ forever</span>
+            </div>
+            <p className="landing-price-desc">
+              Tier-1 analytics across players, teams, champions, matchups, and tournaments.
+            </p>
+            <ul className="landing-price-list">
+              <li>league, year, and split filters</li>
+              <li>radars, form charts, rankings, and trends</li>
+              <li>auto-refreshing professional match data</li>
+              <li>no account required to browse</li>
+            </ul>
+            <Link className="landing-btn landing-btn-ghost" to="/dashboard">
+              open dashboard
+            </Link>
+          </article>
+
+          <article className="landing-price-card is-featured landing-reveal">
+            <div className="landing-price-name">nucky beta</div>
+            <div className="landing-price-amount">
+              $3.99 <span>/ month</span>
+            </div>
+            <p className="landing-price-desc">
+              Retrieval-augmented conversation, grounded analyses, and structured series predictions.
+              Full launch pricing is planned at $5 per month.
+            </p>
+            <ul className="landing-price-list">
+              <li>LoL esports-specific retrieval and tools</li>
+              <li>prediction packets with model drivers</li>
+              <li>usage caps during active beta</li>
+              <li>cancel anytime through Stripe</li>
+            </ul>
+            <button
+              type="button"
+              className="landing-btn landing-btn-primary"
+              disabled={checkoutLoading}
+              onClick={() => void handleSubscribe()}
+            >
+              {checkoutLoading ? 'redirecting…' : user ? 'subscribe' : 'create account to subscribe'}
+            </button>
+            {checkoutError ? <p className="landing-checkout-error">{checkoutError}</p> : null}
+          </article>
+        </div>
+      </section>
+
+      <section className="landing-section" id="faq">
+        <div className="landing-section-head">
+          <p className="landing-section-label">faq</p>
+          <h2 className="landing-section-title">questions, answered</h2>
+        </div>
+        <div className="landing-faq-list">
+          {FAQ_ITEMS.map((item) => (
+            <article key={item.question} className="landing-faq-item landing-reveal">
+              <h3>{item.question}</h3>
+              <p>{item.answer}</p>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <section className="landing-section" id="about">
+        <div className="landing-section-head">
+          <p className="landing-section-label">about</p>
+          <h2 className="landing-section-title">built for better LoL esports questions</h2>
+          <p className="landing-section-lead">
+            Hi, I&apos;m geonbu, a LoL esports fan and solo developer. I built nucky because I wanted
+            cleaner, more visual access to statistics that matter in professional play, plus an
+            analyst with enough real context to surface useful insights, analyses, and predictions.
+          </p>
+          <p className="landing-section-lead">
+            Contact: <a href="mailto:geonbu@nucky.gg">geonbu@nucky.gg</a>
+          </p>
+        </div>
       </section>
 
       <section className="landing-cta">
         <div>
-          <h2>start with the free dashboard</h2>
+          <h2>start with the statistics</h2>
           <p>
-            Browse tier-1 analytics anytime. Create an account when you want nuckyAI and saved
-            preferences.
+            Browse the free dashboard. Create an account when you want nucky to retrieve, connect, and
+            explain the evidence.
           </p>
         </div>
         <div className="landing-cta-actions">
@@ -336,9 +530,9 @@ export default function Landing() {
               create account
             </button>
           ) : (
-            <Link className="landing-btn landing-btn-ghost" to="/pricing">
+            <a className="landing-btn landing-btn-ghost" href="#pricing">
               view pricing
-            </Link>
+            </a>
           )}
         </div>
       </section>
