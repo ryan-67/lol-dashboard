@@ -17,6 +17,8 @@ import gprSnapshot from "../ml/gpr_snapshot.json" with { type: "json" };
 import champRoleProfileRaw from "../ml/champ_role_profile.json" with { type: "json" };
 import champScalingRaw from "../ml/champ_scaling.json" with { type: "json" };
 import championArchetypesRaw from "../ml/champion_archetypes.json" with { type: "json" };
+import champMatchupsRaw from "../ml/champ_matchups.json" with { type: "json" };
+import playerRatingsRaw from "../ml/player_ratings.json" with { type: "json" };
 
 export type TeamFormEntry = {
   league: string;
@@ -128,6 +130,82 @@ export function getPlayerChampRatings(): Record<string, Record<string, PlayerCha
   return playerChampRatings as Record<string, Record<string, PlayerChampEntry>>;
 }
 
+export type PlayerPowerEntry = {
+  rank: number;
+  player: string;
+  team: string;
+  region: string;
+  games: number;
+  effGames: number;
+  boxScoreZ: number;
+  regionShift: number;
+  powerScore: number;
+};
+
+export type PlayerRatingsSnapshot = {
+  version: string;
+  generatedAt: string;
+  methodology: string;
+  roles: Record<string, PlayerPowerEntry[]>;
+};
+
+export type RolePlayerPowerEntry = PlayerPowerEntry & { role: string };
+
+export function getPlayerRatings(): PlayerRatingsSnapshot {
+  const raw = playerRatingsRaw as unknown as Partial<PlayerRatingsSnapshot>;
+  return {
+    version: typeof raw.version === "string" ? raw.version : "unknown",
+    generatedAt: typeof raw.generatedAt === "string" ? raw.generatedAt : "",
+    methodology: typeof raw.methodology === "string" ? raw.methodology : "",
+    roles: raw.roles && typeof raw.roles === "object" ? raw.roles : {},
+  };
+}
+
+export function playerPowerForTeam(team: string): RolePlayerPowerEntry[] {
+  const roleOrder = new Map(["top", "jungle", "mid", "adc", "support"].map((role, index) => [role, index]));
+  const entries = Object.entries(getPlayerRatings().roles).flatMap(([role, players]) =>
+    players.map((entry) => ({ ...entry, role }))
+  );
+  return entries
+    .filter((entry) => entry.team === team)
+    .sort((a, b) => (roleOrder.get(a.role) ?? 99) - (roleOrder.get(b.role) ?? 99));
+}
+
+export type DirectChampionMatchup = {
+  games: number;
+  winrate: number;
+  avgGd15Delta: number | null;
+};
+
+export type ChampionMatchupsArtifact = {
+  generatedAt: string;
+  methodology: string;
+  sameRoleMatchups: Record<string, Record<string, Record<string, DirectChampionMatchup>>>;
+  counterPickSignal?: Record<string, unknown>;
+  crossRoleArchetypeLift?: Array<Record<string, unknown>>;
+};
+
+export function getChampionMatchups(): ChampionMatchupsArtifact {
+  const raw = champMatchupsRaw as unknown as Partial<ChampionMatchupsArtifact>;
+  return {
+    generatedAt: typeof raw.generatedAt === "string" ? raw.generatedAt : "",
+    methodology: typeof raw.methodology === "string" ? raw.methodology : "",
+    sameRoleMatchups: raw.sameRoleMatchups && typeof raw.sameRoleMatchups === "object"
+      ? raw.sameRoleMatchups
+      : {},
+    counterPickSignal: raw.counterPickSignal,
+    crossRoleArchetypeLift: raw.crossRoleArchetypeLift,
+  };
+}
+
+export function directChampionMatchup(
+  role: string,
+  champion: string,
+  opponent: string,
+): DirectChampionMatchup | null {
+  return getChampionMatchups().sameRoleMatchups?.[role]?.[champion]?.[opponent] ?? null;
+}
+
 export function getTrendInsights(): {
   generatedAt?: string;
   teamTrends?: { global?: TrendInsight[]; byPatch?: Record<string, TrendInsight[]> };
@@ -235,11 +313,11 @@ export type RegionStrengthSnapshot = {
   eloScale?: number;
   regions?: Record<string, number>;
   teams?: Record<string, { homeRegion: string; rating: number; regionRating: number }>;
-  statBaselines?: Record<string, Record<string, number>>;
+  statBaselines?: Record<string, Record<string, number | null>>;
 };
 
 export function getRegionStrength(): RegionStrengthSnapshot {
-  return regionStrength as RegionStrengthSnapshot;
+  return regionStrength as unknown as RegionStrengthSnapshot;
 }
 
 export type GprTeamEntry = {
@@ -261,7 +339,7 @@ export type GprSnapshot = {
   leagues?: Record<string, { avgGprScore: number; teams: number; maxGprScore: number }>;
 };
 
-/** Official lolesports Global Power Rankings, mirrored live via CitoAPI. Primary team-strength signal. */
+/** Official lolesports Global Power Rankings, mirrored via CitoAPI for external comparison only. */
 export function getGprSnapshot(): GprSnapshot {
   return gprSnapshot as GprSnapshot;
 }
@@ -274,24 +352,16 @@ export function gprForLeague(league: string): { avgGprScore: number; teams: numb
   return getGprSnapshot().leagues?.[league.toUpperCase()] ?? null;
 }
 
-/**
- * Team-strength rating for the SOS/region blend. Prefers official lolesports GPR
- * (`elo` field — CitoAPI direct mirror, already encodes Riot's own context-of-play /
- * recent-performance / strength-of-opponent methodology). Falls back to our
- * walk-forward region Elo (`region_strength.json`) for teams GPR doesn't cover
- * (e.g. wildcard/academy squads outside the ~50 tracked orgs).
- */
+/** Nucky's own walk-forward team Elo. External GPR is deliberately excluded from
+ * scoring; callers may surface it separately as comparison context. */
 export function teamStrengthRating(team: string): number | null {
-  const gpr = gprForTeam(team);
-  if (gpr) return gpr.elo;
   const snap = getRegionStrength();
   const entry = snap.teams?.[team];
   return entry?.rating ?? null;
 }
 
-/** True when both teams' ratings came from the same source (avoids mixing GPR + home-grown Elo scales). */
-export function teamStrengthSource(team: string): "gpr" | "region_elo" | null {
-  if (gprForTeam(team)) return "gpr";
+/** Source of the score-driving team strength signal. */
+export function teamStrengthSource(team: string): "region_elo" | null {
   const snap = getRegionStrength();
   if (snap.teams?.[team]) return "region_elo";
   return null;

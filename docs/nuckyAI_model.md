@@ -1,8 +1,8 @@
 # nuckyAI Prediction Model — Scope Document
 
-**Status:** Phase 1–2 shipped (offline training); **Phase 3 shipped** (nuckyAI chat integration); **Phase 3.5 shipped** (SOS/GPR grounding + smoke-test fixes); **Phase 3.6 shipped** (market-anchored predictions, jungle-farm signal, matchup-preview format); **Phase 3.7 shipped** (live GPR, quality-adjusted recent form, GPR overweight fix, Kalshi alias matching, team-identity canonicalization fixes); **Phase 4a shipped** (ML pipeline retrains inside the shared dashboard data-refresh Action — no more manually-refreshed local CSV data source)  
+**Status:** Phase 1–2 shipped (offline training); **Phase 3 shipped** (nuckyAI chat integration); **Phase 4a shipped** (automated retraining); **nucky v2 Components 1–3 + Deno consumption shipped**; **external GPR/Kalshi removed from scoring** (comparison-only)  
 **Owner:** nucky.gg / lol-dashboard  
-**Last updated:** 2026-07-09
+**Last updated:** 2026-07-16
 
 ---
 
@@ -18,7 +18,7 @@ Train a machine-learning layer on ~2 years of tier-1 professional match data so 
 
 The LLM (nucky persona) remains the **explainer**; the model supplies a structured **prediction packet** with probabilities, drivers, trends, and failure modes. Numbers in chat must come from the packet — never from training memory.
 
-**Future UI (M5):** Pre-match preview sections on nucky.gg (`/match/:id/preview`) rendering the same packet as structured cards — high-impact trends, model lean, Kalshi edge. Backend packet shape is designed for this; UI is not built yet.
+**Future UI (M5):** Pre-match preview sections on nucky.gg (`/match/:id/preview`) rendering the same packet as structured cards — high-impact trends, nucky model lean, player power, direct champion matchups, and optional market comparison. Backend packet shape is designed for this; UI is not built yet.
 
 ---
 
@@ -103,21 +103,27 @@ Per-team analysis exported for chat and future preview UI:
 
 ### 4.7 Team strength / strength-of-schedule (SOS)
 
-Cross-region comparisons (e.g. LCK vs LEC) are not apples-to-apples on raw rolling stats — a weaker domestic league inflates a team's own numbers. Two layers:
+Cross-region comparisons (e.g. LCK vs LEC) are not apples-to-apples on raw rolling stats — a weaker domestic league inflates a team's own numbers.
 
-- **Official GPR (primary), live-fetched (§8.8):** `helpers/liveGpr.ts` fetches lolesports' own Global Power Rankings straight from CitoAPI **at request time** for the two teams in play (10-min cache), so the signal doesn't drift from live standings between ML pipeline runs/deploys. Falls back to the deploy-time `gpr_snapshot.json` bundle (same source, `cito_supplement.write_gpr_snapshot`, refreshed every pipeline run) when the live call fails, times out, or `CITO_API_KEY` isn't available on that request path. Already encodes Riot's own context-of-play / recent-performance / in-game-execution / strength-of-opponent methodology. Used as the primary team-strength signal wherever both teams are covered (~50 tracked orgs).
-- **Home-grown region Elo (fallback):** `region_elo.py` walk-forward Elo (domestic + international results) in `region_strength.json`. Used only for teams GPR doesn't cover (wildcard/academy squads at MSI/Worlds) — not well-calibrated across leagues at that tier (see §8.8 known limitation).
+- **Nucky team/region Elo (score-driving):** `region_elo.py` builds walk-forward,
+  series-grain team power and emergent region strength from OE results. `teamStrengthRating()`
+  reads only `region_strength.json`; the same internal rating drives Deno inference.
+- **Official GPR (comparison-only):** the deploy-time snapshot may be shown to explain
+  where nucky agrees/disagrees with Riot's public ranking, but has **0% model weight**.
+- **Kalshi (comparison-only):** a matching live market produces `kalshiEdge` against
+  nucky's already-final probability. It never anchors or modifies `winProbA`.
 
-`predictionPacket.ts::blendWithRegionStrength` blends **50–55% strength / 20–25% structural model / 25% quality-adjusted recent form** (weighted more toward strength when the matchup is cross-region) — rebalanced in §8.8 after GPR alone was found to dominate the prediction (88% weight previously) despite already being the single most important feature (`diff_strength_elo`) inside the structural model itself, effectively double-counting the same signal.
-
-**Live market anchor (Phase 3.6):** when a live Kalshi head-to-head market exists for the series, `predictionPacket.ts::blendWithKalshi` blends it into the win probability as the **final** step (80% market weight / 20% our own structural+form+strength blend) — see §8.7. The model's own signal alone was still capable of landing 20-40pp away from a liquid market (e.g. favoring the wrong team outright); anchoring hard to the market and only letting our own signal move the number a handful of points is standard practice for sports-prediction models and is what lets the resulting gap actually mean something ("market edge") instead of just being wrong.
+`predictionPacket.ts::blendWithRegionStrength` is fully proprietary: **45–50% nucky
+team/region Elo / 25–30% structural model / 25% quality-adjusted recent form**. The
+structural model itself also contains walk-forward strength features, so the formal
+scorecard must continue monitoring Elo double-counting/calibration.
 
 ### 4.8 Champion archetype / role / scaling grounding
 
 Draft analysis previously relied on the LLM's training-era priors (e.g. treating Camille as a "flex" top laner after the meta already shifted her to support). Three artifacts ground this in actual recent data:
 
 - **`champion_archetypes.json`** (hand-curated, static) — primary roles, damage type, range, playstyle tags (engage, poke, dive, disengage, split_push, scaling_carry, etc.), comp archetypes, scaling curve for 172 champions. Source of truth for kit-level style reasoning (dive vs disengage, poke-when-ahead, low-DPS-vs-tank, etc.).
-- **`champ_role_profile.json`** (empirical, `train_draft_model.py`) — season-long **and** last-45-day role distribution per champion, flags `roleShift` when the recent primary role differs from the season-long one. `predictionPacket.ts::championGroundingFacts` always prefers the recent role.
+- **`champ_role_profile.json`** (empirical, `train_draft_model.py`) — season-long **and** last-45-day role distribution per champion, flags `roleShift` when the recent primary role differs from the season-long one. Grounding notes prefer the recent role; direct-matchup lookup uses the pasted draft's standard top/jungle/mid/adc/support slot first and falls back to the profile only when slot data is unavailable.
 - **`champ_scaling.json`** (empirical, `train_draft_model.py`) — GD@15/CSD@15 vs role median (lane-bully / weak-side flags) and DPM-by-duration (role-relative percentile lateGameScaler / frontLoaded flags), supplementary evidence alongside the hand-curated `scalingCurve`.
 
 Draft edges (`DraftEdge.roleNote` / `styleNote` / `archetypeTags`) and per-side `compStyles` (aggregate archetype identity, e.g. "engage/dive comp") are injected into `[PREDICTION_PACKET]`; `draftTextSynthesisBlock()` / `PREDICTION_RULES` in `prompts.ts` instruct the LLM to reason about **style-matchup interactions** (dive vs disengage, poke vs gold state, low-DPS vs frontline tank) rather than just individual champion power level.
@@ -196,9 +202,9 @@ See [scripts/ml/README.md](../scripts/ml/README.md) for pipeline details.
 
 | Mode | Trigger | Inputs | Output |
 |------|---------|--------|--------|
-| **prematch** (3a) | “who wins T1 vs G2?” | Team form snapshots, H2H, series state, optional Kalshi | `P(A wins)`, drivers, trends, Kalshi edge |
-| **draft** (3b) | Draft-only / comp vs comp | Patch champ meta, synergy matrix | Comp strength scores, draft edges |
-| **full** (3c) | Team + draft context | Prematch score blended 65/35 with draft comp | Combined prob + player-champion notes |
+| **prematch** (3a) | “who wins T1 vs G2?” | Team form, H2H, series state, nucky Elo, player power | `P(A wins)`, drivers, trends, optional market comparison |
+| **draft** (3b) | Draft-only / comp vs comp | Patch champ meta, synergy, same-role matchup matrix | Comp strength, direct matchups, draft edges |
+| **full** (3c) | Team + draft context | Prematch score blended 65/35 with draft evidence | Combined prob + player/champion context |
 
 ### 8.2 Helper: `predictionPacket.ts`
 
@@ -217,20 +223,23 @@ interface PredictionPacket {
   risks: string[];      // failure modes
   trends: Array<{ label: string; favorable: boolean; lift?: number }>;
   draftEdges?: { champion: string; edge: number; side?: "A" | "B"; roleNote?: string; styleNote?: string; archetypeTags?: string[] }[];
+  directMatchups?: Array<{ role: string; championA: string; championB: string; games: number; winrateA: number; avgGd15DeltaA?: number; adjustedEdgePp: number }>;
   compStyles?: Array<{ side: "A" | "B"; team: string; identityLabel: string; tags: string[] }>;
   playerChampionNotes?: Array<{ player: string; champion: string; note: string }>;
+  playerPower?: { teamA: PlayerPowerSummary[]; teamB?: PlayerPowerSummary[] };
   kalshiEdge?: { impliedYesPercent: number; modelProbPercent: number; edgePp: number };
   teamProfiles?: { teamA: TeamProfileSummary; teamB?: TeamProfileSummary }; // includes priorityChampions per role
 }
 ```
 
-### 8.3 Kalshi edge (3a) + market-anchored win probability (3.6)
+### 8.3 External benchmark comparisons (GPR + Kalshi)
 
-When a live Kalshi head-to-head market is fetched for the same series, it does two things:
-1. **Blends into `winProbA` itself** — `blendWithKalshi()` is the last step before confidence is computed (80% market / 20% our own structural+form+strength blend), for both `prematch` and `full` modes. This is what the LLM actually reports as "Model edge".
-2. **`kalshiEdge`** is then computed against that already-market-anchored probability, so it reads as a genuine few-point edge rather than a raw (and usually much larger) gap between our own isolated signal and the market.
+When a live Kalshi head-to-head market is fetched, `kalshiEdge` compares its implied
+probability against nucky's already-final probability. Official GPR can likewise appear
+as an explicitly labeled comparison driver. Both have **zero scoring weight**.
 
-LLM cites both the win % and the `kalshi_edge` line from the packet only — never re-derives or second-guesses the blend.
+The LLM may cite both the nucky win % and external comparison, but must never imply the
+market or GPR changed the model result.
 
 ### 8.4 Confidence rules
 
@@ -250,6 +259,9 @@ The packet fields `trends`, `drivers`, `draftEdges`, and `kalshiEdge` map direct
 Same `buildPredictionPacket()` call; UI renders JSON instead of LLM synthesis.
 
 ### 8.6 Phase 3.5 — SOS/GPR grounding + smoke-test fixes (2026-07-07/08)
+
+> Historical implementation record. Sections 8.6–8.8 describe iterations that were
+> superseded on 2026-07-16: GPR and Kalshi are now comparison-only with 0% score weight.
 
 Fixes from two rounds of live smoke-testing against MSI 2026 matchups:
 

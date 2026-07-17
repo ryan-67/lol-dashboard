@@ -1,7 +1,7 @@
 # nucky.gg v2 — Reconstruction Scope
 
 > Status: Phase 1 (model quality) implementation in progress — self-contained rating system build-out, sequenced component-by-component. Phases 2-4 still planning-only.
-> Last updated: 2026-07-15 (roadmap) / 2026-07-16 (Phase 1 build log, Components 1-2 + data-quality fix + player rating v0.4 contextual scoring rework + v0.5 role-aligned weights/phase-transition/playstyle context + v0.6 support duo-partner credit / team-dependency signal tested & rejected + pipeline integration: roster-strength feature wired into mart, champ_matchups/player_ratings exported + CI + retrained)
+> Last updated: 2026-07-15 (roadmap) / 2026-07-16 (Phase 1 build log, Components 1-3 + data-quality fixes + player rating v0.6 + pipeline/CI integration + Deno artifact consumption + Component 5 external-signal demotion)
 
 ## Phase 1 build log — self-contained rating system
 
@@ -17,8 +17,8 @@ ships. Building in sequenced, independently-testable components; checking in aft
 | 2 | Champion matchup matrix (same-role + cross-role) + draft-order counter-pick features | **Shipped 2026-07-16** — exported as inference artifact (`champ_matchups.json`); pre-series feature-mart wiring intentionally deferred (draft unknown pre-series) |
 | 3 | Role-normalized Player Rating (box-score prior → outcome-regression layer) | v0.6; **wired into pipeline 2026-07-16** — walk-forward roster-strength feature in the mart + `player_ratings.json` artifact + CI |
 | 4 | Champion archetype data-validation | Not started |
-| 5 | Rip out live GPR/Kalshi from production blend; formal offline backtest/eval script | Not started |
-| — | Deno consumption of `champ_matchups.json` / `player_ratings.json` in `predictionPacket.ts` / nuckyAI | Not started (artifacts deployed + CI-refreshed, but not yet read by the edge function) |
+| 5 | Rip out live GPR/Kalshi from production blend; formal offline backtest/eval script | **Live blend removed 2026-07-16**; formal offline scorecard remains |
+| — | Deno consumption of `champ_matchups.json` / `player_ratings.json` in `predictionPacket.ts` / nuckyAI | **Shipped 2026-07-16** |
 
 ### Component 1 — Team Power Rating (2026-07-16)
 
@@ -58,13 +58,14 @@ external signal anywhere in the computation. Added Glicko-2-lite `ratingDeviatio
   the fix here should be evidence-driven (backtest against realized series outcomes)
   rather than tuned to match GPR on a handful of anecdotal cases.
 
-**Not yet done:** `predictionPacket.ts`'s live blend still calls GPR/Kalshi as primary
-(component 5, deliberately last in sequence). `region_strength.json`'s schema gained new
+**Update (2026-07-16):** `predictionPacket.ts` and `linearScorer.ts` now use nucky's
+walk-forward team/region Elo as the only strength-rating source. GPR is retained as a
+clearly labeled comparison with **0% model weight**, and Kalshi is display-only market
+comparison; neither can change the model probability. `region_strength.json`'s schema gained new
 fields (`teamEloOnly`, `ratingDeviation`, `daysSinceLastSeries`) alongside the existing
 `rating`/`regionRating`/`homeRegion` (no breaking changes to `RegionStrengthSnapshot`
 consumers) — `rating` now means the blended Team Power Score (was raw team-only Elo
-before this rewrite), a strict improvement for the ~14 wildcard/academy teams GPR doesn't
-cover, where `teamStrengthRating()` still falls back to it.
+before this rewrite).
 
 ### Data-quality fix — `LPLOL` league-code contamination (2026-07-16)
 
@@ -506,11 +507,35 @@ alongside the rest for the dashboard / nuckyAI to surface current player power r
 both refresh automatically on every OE-change-triggered retrain (still non-blocking via
 `continue-on-error`).
 
-**Not yet done (next):** the Deno edge function (`predictionPacket.ts` /
-`mlArtifacts.ts`) does not yet *import/consume* `champ_matchups.json` or
-`player_ratings.json` — they're deployed and CI-refreshed but inert until wired into the
-prediction packet. That consumption + Component 5 (demote live GPR/Kalshi) are the next
-logical steps.
+### Deno consumption + Component 5 live-input removal (2026-07-16)
+
+`mlArtifacts.ts` now imports typed `champ_matchups.json` and `player_ratings.json`
+accessors, and `predictionPacket.ts` exposes both to nuckyAI:
+
+- `player_power`: the current active roster's role-based rank, power score, and sample,
+  in top/jungle/mid/adc/support order. This is explanation context only; it does not
+  double-count the `roster_box_z` signal already learned by the structural model.
+- `direct_matchups`: same-role champion-vs-champion games, win rate, and GD@15. Draft
+  scoring gets a deliberately small adjustment: observed win-rate edge is shrunk toward
+  50% by `games / (games + 20)`, then only 35% of that shrunk edge is applied and averaged
+  across resolved roles. This keeps six-game matchups from overpowering team context.
+
+Component 5's live blend is removed:
+
+- `teamStrengthRating()` now reads nucky's `region_strength.json` first and exclusively.
+- Live/deploy-time GPR has **0% score weight** and appears only as an explicitly labeled
+  external comparison.
+- Kalshi no longer anchors or modifies the win probability. `kalshi_edge` compares the
+  market against the already-final nucky probability.
+- Synthesis instructions explicitly describe the probability as nucky-only and forbid
+  implying that GPR/Kalshi changed it.
+
+Focused Deno regression tests cover internal-Elo priority, player-power packet context,
+direct matchup evidence, and probability invariance with/without a Kalshi quote.
+
+**Remaining Phase 1 work:** formal rolling scorecard/backtest by league, patch, and
+confidence bucket (plus GPR/Kalshi benchmark comparisons); Component 4 empirical
+champion-archetype validation; the deferred player outcome-regression layer.
 
 ---
 
@@ -522,7 +547,7 @@ Differentiation stack:
 
 | Layer | What nucky owns | Vs. competitors |
 | --- | --- | --- |
-| Analyst intelligence | Calibrated series prediction + explainable pre-match breakdowns (XGBoost/LightGBM + GPR + Kalshi market anchor) | \tab looks up data; gol.gg has no model |
+| Analyst intelligence | Calibrated nucky-only series prediction + explainable pre-match/draft breakdowns; GPR/Kalshi are comparison benchmarks only | \tab looks up data; gol.gg has no model |
 | Analytics depth | Recency hub, identity pages, radars, series/tournament surfaces already ship | \tab Explore is thinner; gol.gg is tables-first |
 | Product spine | **nucky** (AI) as the front door + search, present on every data surface | \tab does this well for chat; nucky must match IA, not copy aesthetics |
 | Community | Series-page discussion + post-match player scoring | English LoL esports has no dedicated equivalent |
@@ -569,8 +594,8 @@ Entity pages get contextual **Ask nucky about X** chips (match \tab’s Explore�
 
 Do this before major user-facing rebuild.
 
-- Backtest / recalibrate Kalshi market-anchor blend vs realized outcomes / closing-line value.
-- Backtest / recalibrate GPR / SOS cross-region blend.
+- Benchmark nucky probability vs Kalshi closing lines without feeding the market into the model.
+- Benchmark nucky team/region Elo vs GPR and realized cross-region outcomes.
 - Fix no-live-market fallback so wrong-favorite misfires (e.g. BLG vs HLE-class failures) do not silently ship.
 - Rolling **accuracy scorecard** (log-loss, accuracy, calibration by league / patch / confidence bucket vs naive baseline) — internal gate + public trust asset.
 - Retrain + deploy discipline remains intentional (human checkpoint before edge deploy).
@@ -592,7 +617,7 @@ Do this before major user-facing rebuild.
 Depends on Phase 1 exit.
 
 - Upcoming series ranked by model edge vs market (Kalshi and/or books).
-- Pre-match breakdowns explaining the pick (form, GPR, draft/comp style, clutch factors, etc.).
+- Pre-match breakdowns explaining the pick (nucky Elo, form, player power, direct matchups, draft/comp style, clutch factors, etc.).
 - Track-record / scorecard surface adjacent to picks.
 - Subscription gate (costly surface).
 

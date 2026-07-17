@@ -2,20 +2,20 @@
  * Phase 3 — ML prediction packet builder for nuckyAI chat.
  *
  * Modes:
- *   prematch — team vs team, no draft (3a + Kalshi edge)
+ *   prematch — team vs team, no draft (optional Kalshi comparison)
  *   draft    — comp vs comp, no team names (3b)
  *   full     — team + draft combined (3c)
  */
 
-import type { DraftExtraction } from "./draftTypes.ts";
+import type { DraftChampionPick, DraftExtraction } from "./draftTypes.ts";
 import type { KalshiMarketQuote } from "./kalshi.ts";
 import { pickMatchupKalshiEdge } from "./kalshi.ts";
-import { fetchLiveGprForTeams, type LiveGprEntry } from "./liveGpr.ts";
 import {
   archetypeFor,
   champRoleFor,
   champScalingFor,
   currentPatchBucket,
+  directChampionMatchup,
   getChampMeta,
   getDraftSynergy,
   getInferenceBundle,
@@ -24,8 +24,8 @@ import {
   getTeamFormSnapshot,
   getTeamProfile,
   gprForTeam,
+  playerPowerForTeam,
   teamStrengthRating,
-  teamStrengthSource,
   type TeamProfile,
 } from "./mlArtifacts.ts";
 import { estimateConfidence, scorePrematch } from "./linearScorer.ts";
@@ -84,6 +84,25 @@ export interface KalshiEdgeInfo {
   edgePp: number;
 }
 
+export interface DirectMatchupEvidence {
+  role: string;
+  championA: string;
+  championB: string;
+  games: number;
+  winrateA: number;
+  avgGd15DeltaA?: number | null;
+  /** Reliability-shrunk edge used by draft scoring, in percentage points. */
+  adjustedEdgePp: number;
+}
+
+export interface PlayerPowerSummary {
+  role: string;
+  player: string;
+  rank: number;
+  powerScore: number;
+  games: number;
+}
+
 export interface PredictionPacket {
   mode: PredictionMode;
   teamA: string;
@@ -97,9 +116,11 @@ export interface PredictionPacket {
   trends: Array<{ label: string; favorable: boolean; lift?: number }>;
   teamProfiles?: { teamA: TeamProfileSummary; teamB?: TeamProfileSummary };
   draftEdges?: DraftEdge[];
+  directMatchups?: DirectMatchupEvidence[];
   compStyles?: CompStyleSummary[];
   kalshiEdge?: KalshiEdgeInfo;
   playerChampionNotes?: Array<{ player: string; champion: string; note: string }>;
+  playerPower?: { teamA: PlayerPowerSummary[]; teamB?: PlayerPowerSummary[] };
   modelAsOf?: string;
 }
 
@@ -375,12 +396,8 @@ function sigmoid(x: number): number {
   return z / (1 + z);
 }
 
-/** Prefer a freshly-fetched live GPR rating for this team (see liveGpr.ts) over the
- * deploy-time gpr_snapshot.json / region_strength.json bundle, which only updates when
- * the ML pipeline is re-run and agent-chat redeployed. */
-function strengthRatingFor(team: string, liveGpr?: Record<string, LiveGprEntry>): number | null {
-  const live = liveGpr?.[team];
-  if (live) return live.elo;
+/** Score-driving strength is always nucky's own walk-forward Elo. */
+function strengthRatingFor(team: string): number | null {
   return teamStrengthRating(team);
 }
 
@@ -388,10 +405,9 @@ function strengthWinProb(
   teamA: string,
   teamB: string,
   scale = 130,
-  liveGpr?: Record<string, LiveGprEntry>,
 ): number | null {
-  const ratingA = strengthRatingFor(teamA, liveGpr);
-  const ratingB = strengthRatingFor(teamB, liveGpr);
+  const ratingA = strengthRatingFor(teamA);
+  const ratingB = strengthRatingFor(teamB);
   if (ratingA == null || ratingB == null) return null;
   return sigmoid((ratingA - ratingB) / scale);
 }
@@ -412,7 +428,7 @@ function blendWithRecentForm(
   if (profA?.recentForm?.summary) formNotes.push(`${teamA}: ${profA.recentForm.summary}`);
   if (profB?.recentForm?.summary) formNotes.push(`${teamB}: ${profB.recentForm.summary}`);
   formNotes.push(
-    `Recent-form blend (${Math.round(weight * 100)}% weight): ${teamA} ${Math.round(formProbA * 100)}% vs structural ${Math.round(baseProbA * 100)}%`,
+    `Quality-adjusted recent-form signal: ${teamA} ${Math.round(formProbA * 100)}% vs structural ${Math.round(baseProbA * 100)}%`,
   );
   return { probA, formProbA, formNotes };
 }
@@ -422,7 +438,6 @@ function blendWithRegionStrength(
   teamB: string,
   structuralProbA: number,
   formProbA: number,
-  liveGpr?: Record<string, LiveGprEntry>,
 ): { probA: number; notes: string[] } {
   const profA = getTeamProfile(teamA);
   const profB = getTeamProfile(teamB);
@@ -431,41 +446,39 @@ function blendWithRegionStrength(
   const crossRegion = Boolean(homeA && homeB && homeA !== homeB);
 
   const scale = crossRegion ? 72 : 130;
-  const strengthProbA = strengthWinProb(teamA, teamB, scale, liveGpr);
+  const strengthProbA = strengthWinProb(teamA, teamB, scale);
   if (strengthProbA == null) {
     return { probA: 0.65 * structuralProbA + 0.35 * formProbA, notes: [] };
   }
 
-  const ratingA = strengthRatingFor(teamA, liveGpr)!;
-  const ratingB = strengthRatingFor(teamB, liveGpr)!;
+  const ratingA = strengthRatingFor(teamA)!;
+  const ratingB = strengthRatingFor(teamB)!;
 
-  // GPR/region-Elo is a single point-in-time snapshot — it can be skewed by an event months
-  // old (e.g. First Stand) or by a region's overall stat inflation, and it doesn't know how
-  // *convincingly* a team has looked lately. It's still the best single cross-region signal
-  // we have, so it stays the largest weight, but recent form (now opponent-strength/dominance
-  // quality-adjusted — see build_recent_form) and the trained structural model both get a real
-  // vote instead of being rounding errors.
-  const wStrength = crossRegion ? 0.55 : 0.50;
-  const wStruct = crossRegion ? 0.20 : 0.25;
-  const wForm = crossRegion ? 0.25 : 0.25;
+  // The blend is fully proprietary: walk-forward nucky Elo + trained structural model +
+  // opponent-adjusted recent form. Official GPR remains available below as a comparison
+  // note, but has zero weight in the probability.
+  const wStrength = crossRegion ? 0.50 : 0.45;
+  const wStruct = crossRegion ? 0.25 : 0.30;
+  const wForm = 0.25;
   const probA = wStruct * structuralProbA + wForm * formProbA + wStrength * strengthProbA;
 
-  const liveA = liveGpr?.[teamA];
-  const liveB = liveGpr?.[teamB];
-  const sourceA = liveA ? "live_gpr" : teamStrengthSource(teamA);
-  const gprA = liveA ?? gprForTeam(teamA);
-  const gprB = liveB ?? gprForTeam(teamB);
-  const gprLabelPrefix = liveA || liveB ? "Live official GPR" : "Official GPR";
   const strengthLabel =
-    (sourceA === "gpr" || sourceA === "live_gpr") && gprA && gprB
-      ? `${gprLabelPrefix}${crossRegion ? " (cross-region)" : ""}: ${teamA} #${gprA.rank} (${gprA.gprScore} pts, ${gprA.league ?? homeA ?? "?"}) vs ` +
-        `${teamB} #${gprB.rank} (${gprB.gprScore} pts, ${gprB.league ?? homeB ?? "?"}) → ${Math.round(strengthProbA * 100)}% ${teamA}`
-      : `Region/SOS Elo${crossRegion ? " (cross-region)" : ""}: ${teamA} (${homeA ?? "?"}) ${ratingA.toFixed(0)} vs ${teamB} (${homeB ?? "?"}) ${ratingB.toFixed(0)} → ${Math.round(strengthProbA * 100)}% ${teamA}`;
+    `Nucky team/region Elo${crossRegion ? " (cross-region)" : ""}: ` +
+    `${teamA} (${homeA ?? "?"}) ${ratingA.toFixed(0)} vs ${teamB} (${homeB ?? "?"}) ${ratingB.toFixed(0)} ` +
+    `→ ${Math.round(strengthProbA * 100)}% ${teamA}`;
 
   const notes = [
     strengthLabel,
-    `Final blend (${Math.round(wStruct * 100)}% structural / ${Math.round(wForm * 100)}% quality-adjusted recent form / ${Math.round(wStrength * 100)}% SOS/GPR): ${Math.round(probA * 100)}% ${teamA}`,
+    `Nucky-only final blend (${Math.round(wStruct * 100)}% structural / ${Math.round(wForm * 100)}% quality-adjusted recent form / ${Math.round(wStrength * 100)}% team/region Elo): ${Math.round(probA * 100)}% ${teamA}`,
   ];
+  const gprA = gprForTeam(teamA);
+  const gprB = gprForTeam(teamB);
+  if (gprA && gprB) {
+    notes.push(
+      `External GPR comparison only (0% model weight): ${teamA} #${gprA.rank} (${gprA.gprScore} pts) vs ` +
+      `${teamB} #${gprB.rank} (${gprB.gprScore} pts)`,
+    );
+  }
   return { probA, notes };
 }
 
@@ -532,6 +545,84 @@ function championGroundingFacts(champ: string): {
   if (archetype?.tags?.length) out.archetypeTags = archetype.tags;
 
   return out;
+}
+
+function summarizePlayerPower(team: string): PlayerPowerSummary[] {
+  return playerPowerForTeam(team).map((entry) => ({
+    role: entry.role,
+    player: entry.player,
+    rank: entry.rank,
+    powerScore: entry.powerScore,
+    games: entry.games,
+  }));
+}
+
+function attachPlayerPower(
+  teamA: string,
+  teamB?: string,
+): PredictionPacket["playerPower"] {
+  const powerA = summarizePlayerPower(teamA);
+  const powerB = teamB ? summarizePlayerPower(teamB) : [];
+  if (!powerA.length && !powerB.length) return undefined;
+  return {
+    teamA: powerA,
+    teamB: powerB.length ? powerB : undefined,
+  };
+}
+
+const DRAFT_SLOT_ROLES = ["top", "jungle", "mid", "adc", "support"] as const;
+
+function roleForDraftChampion(pick: DraftChampionPick): string | null {
+  const slotRole = DRAFT_SLOT_ROLES[pick.slot - 1];
+  if (slotRole) return slotRole;
+  const profile = champRoleFor(pick.name);
+  return profile?.recentPrimaryRole ?? profile?.primaryRole ?? null;
+}
+
+function buildDirectMatchups(
+  picksA: DraftChampionPick[],
+  picksB: DraftChampionPick[],
+): DirectMatchupEvidence[] {
+  const byRoleA = new Map<string, string>();
+  const byRoleB = new Map<string, string>();
+  for (const pick of picksA) {
+    const role = roleForDraftChampion(pick);
+    if (role && !byRoleA.has(role)) byRoleA.set(role, pick.name);
+  }
+  for (const pick of picksB) {
+    const role = roleForDraftChampion(pick);
+    if (role && !byRoleB.has(role)) byRoleB.set(role, pick.name);
+  }
+
+  const out: DirectMatchupEvidence[] = [];
+  for (const [role, championA] of byRoleA) {
+    const championB = byRoleB.get(role);
+    if (!championB) continue;
+    const matchup = directChampionMatchup(role, championA, championB);
+    if (!matchup) continue;
+    // Shrink small samples toward 50%, then use only 35% of that empirical edge
+    // in the draft probability. The artifact's minimum is six games; this keeps
+    // sparse matchups informative without allowing them to dominate team context.
+    const reliability = matchup.games / (matchup.games + 20);
+    const adjustedEdgePp = Math.round((matchup.winrate - 50) * reliability * 0.35 * 10) / 10;
+    out.push({
+      role,
+      championA,
+      championB,
+      games: matchup.games,
+      winrateA: matchup.winrate,
+      avgGd15DeltaA: matchup.avgGd15Delta,
+      adjustedEdgePp,
+    });
+  }
+  return out;
+}
+
+function applyDirectMatchups(baseProbA: number, matchups: DirectMatchupEvidence[]): number {
+  if (!matchups.length) return baseProbA;
+  const avgAdjustment = matchups.reduce((sum, entry) => sum + entry.adjustedEdgePp, 0) /
+    matchups.length / 100;
+  return Math.min(0.9, Math.max(0.1, baseProbA + avgAdjustment));
 }
 
 function scoreDraftPicks(picks: string[], patch: string): { strength: number; edges: DraftEdge[] } {
@@ -652,48 +743,6 @@ function matchKalshiEdge(
   };
 }
 
-/** Weight given to the live Kalshi market when blending it into our own win probability.
- * The market aggregates information we can't see (scouting reports, morale, roster news,
- * sharp bettor consensus) — treat it as a strong prior. Our own signal should only move the
- * final number a handful of points off market, which is what "finding an edge" should mean;
- * a model that routinely lands 20-40pp away from a liquid head-to-head market is more likely
- * wrong than the market. */
-const KALSHI_BLEND_WEIGHT = 0.8;
-
-/** Market-implied P(teamA wins) from a live head-to-head Kalshi market, independent of our
- * own model probability (unlike matchKalshiEdge's display-only "edge" framing). */
-function kalshiImpliedProbA(
-  teamA: string,
-  teamB: string,
-  markets: KalshiMarketQuote[] | undefined,
-): { probA: number; ticker: string; title: string } | null {
-  if (!markets?.length) return null;
-  // modelProbA arg only affects the returned edge/modelProbPercent fields, which we ignore —
-  // yesTeam attribution and impliedYesPercent are independent of it.
-  const hit = pickMatchupKalshiEdge(teamMarketVariants(teamA), teamMarketVariants(teamB), markets, 0.5);
-  if (!hit) return null;
-  const impliedForYesTeam = hit.impliedYesPercent / 100;
-  const yesIsTeamB = hit.yesTeam != null && normTeam(hit.yesTeam) === normTeam(teamB);
-  const probA = yesIsTeamB ? 1 - impliedForYesTeam : impliedForYesTeam;
-  return { probA, ticker: hit.ticker, title: hit.title };
-}
-
-function blendWithKalshi(
-  teamA: string,
-  teamB: string,
-  ownProbA: number,
-  markets: KalshiMarketQuote[] | undefined,
-): { probA: number; note?: string } {
-  const hit = kalshiImpliedProbA(teamA, teamB, markets);
-  if (!hit) return { probA: ownProbA };
-  const probA = KALSHI_BLEND_WEIGHT * hit.probA + (1 - KALSHI_BLEND_WEIGHT) * ownProbA;
-  const note =
-    `Live market blend (${Math.round(KALSHI_BLEND_WEIGHT * 100)}% weight): Kalshi implies ` +
-    `${Math.round(hit.probA * 100)}% ${teamA} vs our own signal ${Math.round(ownProbA * 100)}% ` +
-    `→ blended ${Math.round(probA * 100)}% ${teamA}`;
-  return { probA, note };
-}
-
 function detectMode(message: string, draft: DraftExtraction | null, teams: [string, string] | null): PredictionMode {
   if (draft?.teams?.length === 2 && teams) return "full";
   if (draft?.teams?.length === 2) return "draft";
@@ -709,8 +758,8 @@ export interface BuildPredictionOptions {
   league?: string;
   draft?: DraftExtraction | null;
   kalshiMarkets?: KalshiMarketQuote[];
-  /** Enables a live official-GPR fetch (CitoAPI) for the two teams in this matchup, so the
-   * SOS/strength blend uses current standings instead of the deploy-time snapshot. */
+  /** Retained for caller compatibility. GPR may be fetched elsewhere as external context,
+   * but it never changes nucky's model probability. */
   citoApiKey?: string;
 }
 
@@ -729,7 +778,9 @@ export async function buildPredictionPacket(opts: BuildPredictionOptions): Promi
     const scoreA = scoreDraftPicks(picksA, patch);
     const scoreB = scoreDraftPicks(picksB, patch);
     const total = scoreA.strength + scoreB.strength;
-    const winProbA = total > 0 ? scoreA.strength / total : 0.5;
+    const directMatchups = buildDirectMatchups(left.champions, right.champions);
+    const baseDraftProbA = total > 0 ? scoreA.strength / total : 0.5;
+    const winProbA = applyDirectMatchups(baseDraftProbA, directMatchups);
     const confidence = picksA.length >= 5 && picksB.length >= 5 ? 0.62 : 0.48;
 
     const leftTeam = resolveCanonicalTeam(left.team) ?? left.team;
@@ -746,15 +797,20 @@ export async function buildPredictionPacket(opts: BuildPredictionOptions): Promi
       confidence,
       drivers: [
         `Left comp meta strength ${Math.round(scoreA.strength * 100)}% vs right ${Math.round(scoreB.strength * 100)}%`,
+        ...directMatchups.slice(0, 2).map((m) =>
+          `${m.role}: ${m.championA} ${m.winrateA}% WR vs ${m.championB} (${m.games} games)`
+        ),
         ...scoreA.edges.slice(0, 2).map((e) => `${e.champion} ${e.winrate}% patch WR`),
-      ],
+      ].slice(0, 6),
       risks: buildRisks(winProbA, confidence, "draft"),
-    trends: relevantTrends(patch, leftTeam),
+      trends: relevantTrends(patch, leftTeam),
       teamProfiles,
+      playerPower: attachPlayerPower(leftTeam, rightTeam),
       draftEdges: [
         ...scoreA.edges.map((e) => ({ ...e, side: "A" as const })),
         ...scoreB.edges.map((e) => ({ ...e, side: "B" as const })),
       ],
+      directMatchups,
       compStyles: [
         buildCompStyleSummary("A", left.team || "Blue comp", picksA),
         buildCompStyleSummary("B", right.team || "Red comp", picksB),
@@ -784,6 +840,7 @@ export async function buildPredictionPacket(opts: BuildPredictionOptions): Promi
         risks: summary.weaknesses.slice(0, 2),
         trends,
         teamProfiles: { teamA: summary },
+        playerPower: attachPlayerPower(single),
       };
       return { packet, block: formatPredictionBlock(packet) };
     }
@@ -810,23 +867,12 @@ export async function buildPredictionPacket(opts: BuildPredictionOptions): Promi
   const structuralProbA = winProbA;
   const formBlend = blendWithRecentForm(teamA, teamB, winProbA);
 
-  let liveGpr: Record<string, LiveGprEntry> | undefined;
-  if (opts.citoApiKey) {
-    try {
-      liveGpr = await fetchLiveGprForTeams(opts.citoApiKey, [
-        { canonical: teamA, variants: teamMarketVariants(teamA) },
-        { canonical: teamB, variants: teamMarketVariants(teamB) },
-      ]);
-    } catch {
-      liveGpr = undefined;
-    }
-  }
-
-  const regionBlend = blendWithRegionStrength(teamA, teamB, structuralProbA, formBlend.formProbA, liveGpr);
+  const regionBlend = blendWithRegionStrength(teamA, teamB, structuralProbA, formBlend.formProbA);
   winProbA = regionBlend.notes.length ? regionBlend.probA : formBlend.probA;
   drivers = [...regionBlend.notes, ...formBlend.formNotes.slice(0, 1), ...drivers].slice(0, 6);
 
   let draftEdges: DraftEdge[] | undefined;
+  let directMatchups: DirectMatchupEvidence[] | undefined;
   let compStyles: CompStyleSummary[] | undefined;
   let playerNotes: PredictionPacket["playerChampionNotes"];
 
@@ -836,7 +882,9 @@ export async function buildPredictionPacket(opts: BuildPredictionOptions): Promi
     const picksB = right.champions.map((c) => c.name);
     const scoreA = scoreDraftPicks(picksA, patch);
     const scoreB = scoreDraftPicks(picksB, patch);
-    const draftProbA = scoreA.strength / (scoreA.strength + scoreB.strength);
+    directMatchups = buildDirectMatchups(left.champions, right.champions);
+    const baseDraftProbA = scoreA.strength / (scoreA.strength + scoreB.strength);
+    const draftProbA = applyDirectMatchups(baseDraftProbA, directMatchups);
     winProbA = 0.65 * winProbA + 0.35 * draftProbA;
     draftEdges = [
       ...scoreA.edges.map((e) => ({ ...e, side: "A" as const })),
@@ -851,13 +899,6 @@ export async function buildPredictionPacket(opts: BuildPredictionOptions): Promi
       ...playerChampionNotes(teamB, picksB, patch),
     ];
   }
-
-  // Final step: anchor to the live market when one exists for this series. Do this AFTER
-  // the draft blend (full mode) so it reflects our complete own-signal estimate, not just
-  // the structural/form/strength blend.
-  const kalshiBlend = blendWithKalshi(teamA, teamB, winProbA, opts.kalshiMarkets);
-  winProbA = kalshiBlend.probA;
-  if (kalshiBlend.note) drivers = [kalshiBlend.note, ...drivers].slice(0, 6);
 
   const confidence = estimateConfidence(teamA, teamB, winProbA);
   const teamProfiles = attachTeamProfiles(teamA, teamB);
@@ -877,7 +918,9 @@ export async function buildPredictionPacket(opts: BuildPredictionOptions): Promi
       ...relevantTrends(patch, teamB),
     ].slice(0, 6),
     teamProfiles,
+    playerPower: attachPlayerPower(teamA, teamB),
     draftEdges,
+    directMatchups,
     compStyles,
     playerChampionNotes: playerNotes,
     kalshiEdge: opts.kalshiMarkets?.length
@@ -926,6 +969,21 @@ export function formatPredictionBlock(packet: PredictionPacket): string {
   if (packet.teamProfiles?.teamB) {
     lines.push(formatTeamProfileBlock("team_b_profile", packet.teamProfiles.teamB));
   }
+  if (packet.playerPower?.teamA?.length || packet.playerPower?.teamB?.length) {
+    lines.push("player_power:");
+    for (const entry of packet.playerPower?.teamA ?? []) {
+      lines.push(
+        `  - A ${entry.role}: ${entry.player} #${entry.rank} ${entry.role} ` +
+        `(power ${entry.powerScore >= 0 ? "+" : ""}${entry.powerScore.toFixed(3)}, ${entry.games} games)`,
+      );
+    }
+    for (const entry of packet.playerPower?.teamB ?? []) {
+      lines.push(
+        `  - B ${entry.role}: ${entry.player} #${entry.rank} ${entry.role} ` +
+        `(power ${entry.powerScore >= 0 ? "+" : ""}${entry.powerScore.toFixed(3)}, ${entry.games} games)`,
+      );
+    }
+  }
   if (packet.compStyles?.length) {
     lines.push("comp_style:");
     for (const s of packet.compStyles) {
@@ -940,6 +998,19 @@ export function formatPredictionBlock(packet: PredictionPacket): string {
       lines.push(`  - ${parts.join(" ")}`);
       if (e.roleNote) lines.push(`      role_fact: ${e.roleNote}`);
       if (e.styleNote) lines.push(`      style_fact: ${e.styleNote}`);
+    }
+  }
+  if (packet.directMatchups?.length) {
+    lines.push("direct_matchups:");
+    for (const matchup of packet.directMatchups) {
+      const gd = matchup.avgGd15DeltaA == null
+        ? ""
+        : `, avg GD@15 ${matchup.avgGd15DeltaA >= 0 ? "+" : ""}${matchup.avgGd15DeltaA}`;
+      lines.push(
+        `  - ${matchup.role}: ${matchup.championA} vs ${matchup.championB} — ` +
+        `${matchup.winrateA}% WR over ${matchup.games} games${gd}; ` +
+        `reliability-adjusted draft edge ${matchup.adjustedEdgePp >= 0 ? "+" : ""}${matchup.adjustedEdgePp}pp for A`,
+      );
     }
   }
   if (packet.playerChampionNotes?.length) {
