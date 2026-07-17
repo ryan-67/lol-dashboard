@@ -1,0 +1,7 @@
+{
+  "_comment": "Curated force-excludes for the player-ratings pipeline (scripts/ml/build_player_ratings.py). Games-count-based activity detection (majority of a team's last N games) can't see a retirement/step-down that hasn't produced a newer OE game yet for the team. Mirrors the ROSTER_FACTS_2026 override pattern in supabase/functions/agent-chat/helpers/rosterContext.ts — update this list when a player's status changes and OE data hasn't caught up.",
+  "inactive": [
+    "369",
+    "Lehends"
+  ]
+}

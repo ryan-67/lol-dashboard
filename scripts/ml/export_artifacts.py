@@ -218,6 +218,11 @@ def deploy_artifacts() -> None:
         "champ_role_profile.json",
         "champ_scaling.json",
         "champion_archetypes.json",
+        # Component 2 (champ matchup matrix) + Component 3 (player ratings) —
+        # inference/nuckyAI artifacts; skipped silently if their builders
+        # (build_champion_matchups.py / build_player_ratings.py) haven't run.
+        "champ_matchups.json",
+        "player_ratings.json",
         "model_metadata.json",
     ]
     for name in names:

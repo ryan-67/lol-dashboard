@@ -19,7 +19,14 @@ from __future__ import annotations
 # Canonical region -> raw OE league codes seen across 2023-2026 CSVs.
 REGION_LEAGUE_CODES: dict[str, set[str]] = {
     "LCK": {"LCK"},
-    "LPL": {"LPL", "LPLOL"},
+    # NOTE: "LPLOL" looks like an OE alt-tag for China's LPL but is NOT — it's
+    # "Liga Portuguesa" (LPLOL), a Portuguese minor regional league entirely
+    # unrelated to LPL. Confirmed against oracleselixir.com/matches (team names
+    # are Portuguese orgs, e.g. "Otter Side", "Odivelas Sports Club", "Leões
+    # Porto Salvo Esports"). Merging it into LPL silently contaminated the LPL
+    # region's team/strength pool with amateur-tier teams — do not re-add
+    # without verifying the league is genuinely Chinese LPL.
+    "LPL": {"LPL"},
     "LEC": {"LEC"},
     # LTA N succeeded LCS for the 2025 season only; LTA S is the LLA/CBLOL
     # merger and is NOT continuous with historic LCS, so it's excluded.

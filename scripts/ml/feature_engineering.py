@@ -38,6 +38,10 @@ TEAM_ROLL_STATS = [
     "dragons", "elementaldrakes", "heralds", "void_grubs", "barons", "towers", "turretplates", "inhibitors",
     "firstblood", "firstdragon", "firstherald", "firstbaron", "firsttower", "firstmidtower", "firsttothreetowers",
     "gamelength", "max_dmg_share",
+    # Component 3: mean role-normalized player box-score z of the team's roster
+    # this game (from build_player_ratings.compute_player_game_box_z, label-free).
+    # Rolled via shift(1) like every other stat here → walk-forward safe.
+    "roster_box_z",
 ]
 
 ROLE_BASE_STATS = [

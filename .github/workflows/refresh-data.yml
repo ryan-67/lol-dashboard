@@ -247,6 +247,8 @@ jobs:
           python scripts/ml/train_draft_model.py
           python scripts/ml/build_trend_insights.py
           python scripts/ml/build_team_profiles.py
+          python scripts/ml/build_champion_matchups.py
+          python scripts/ml/build_player_ratings.py
           python scripts/ml/export_artifacts.py
 
       - name: Commit updated nuckyAI ML artifacts

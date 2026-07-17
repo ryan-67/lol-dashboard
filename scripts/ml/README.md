@@ -43,9 +43,21 @@ python scripts/ml/build_trend_insights.py
 # 5. Team playstyle + player win conditions + strengths/weaknesses
 python scripts/ml/build_team_profiles.py
 
-# 6. Export + deploy JSON to supabase/functions/agent-chat/ml/
+# 6. Champion matchup matrix (same-role + counter-pick) -> champ_matchups.json
+python scripts/ml/build_champion_matchups.py
+
+# 7. Role-normalized player power ratings -> player_ratings.json (+ md preview)
+python scripts/ml/build_player_ratings.py
+
+# 8. Export + deploy JSON to supabase/functions/agent-chat/ml/
 python scripts/ml/export_artifacts.py
 ```
+
+> Note: `build_feature_mart.py` (step 1) imports `build_player_ratings.build_roster_box_z`
+> to attach a walk-forward `roster_box_z` player-quality feature to the mart — that's the
+> Component 3 signal the trained series model actually consumes. `champ_matchups.json` and
+> `player_ratings.json` (steps 6–7) are inference/nuckyAI artifacts, not series-model
+> features (the matchup matrix needs a known draft, so it's not a pre-series feature).
 
 ### Running it locally (CI does this automatically now, see §8.9)
 
@@ -57,11 +69,13 @@ form, recent series, and region Elo include the latest games:
 cd D:/Projects/lol-dashboard
 pip install -r scripts/requirements-ml.txt   # once per venv
 
-python scripts/ml/build_feature_mart.py      # rebuild mart + region_strength.json
+python scripts/ml/build_feature_mart.py      # rebuild mart (+ roster_box_z) + region_strength.json
 python scripts/ml/train_series_model.py    # retrain + SHAP prune (optional but recommended)
 python scripts/ml/build_team_profiles.py   # playstyle, SOS-adjusted insights
 python scripts/ml/train_draft_model.py     # if draft artifacts needed
 python scripts/ml/build_trend_insights.py  # optional trend buckets
+python scripts/ml/build_champion_matchups.py  # champ_matchups.json (inference artifact)
+python scripts/ml/build_player_ratings.py     # player_ratings.json + md preview
 python scripts/ml/export_artifacts.py      # deploy to supabase/functions/agent-chat/ml/
 
 npx supabase functions deploy agent-chat     # push new JSON to edge

@@ -1,0 +1,5589 @@
+{
+  "generatedAt": "2026-06-26T16:58:03.065Z",
+  "label": "Round 2 random sample",
+  "gameCount": 8,
+  "samples": [
+    {
+      "league": "LCK",
+      "phase": "regular",
+      "matchId": "lol-match-115548128963037523",
+      "blockName": "Week 5",
+      "startTime": "2026-05-02T08:00:00.000Z",
+      "teams": "Dplus KIA vs Gen.G Esports",
+      "gameId": "lol-game-115548128963037526",
+      "gameNumber": 3
+    },
+    {
+      "league": "LCK",
+      "phase": "playoff",
+      "matchId": "lol-match-115548128963037575",
+      "blockName": "Knockouts",
+      "startTime": "2026-06-12T08:00:00.000Z",
+      "teams": "Hanwha Life Esports vs T1",
+      "gameId": "lol-game-115548128963037577",
+      "gameNumber": 2
+    },
+    {
+      "league": "LPL",
+      "phase": "regular",
+      "matchId": "lol-match-115615926677831079",
+      "blockName": "Week 5",
+      "startTime": "2026-05-01T09:00:00.000Z",
+      "teams": "TOP ESPORTS vs Anyone's Legend",
+      "gameId": "lol-game-115615926677831081",
+      "gameNumber": 2
+    },
+    {
+      "league": "LPL",
+      "phase": "playoff",
+      "matchId": "lol-match-115616219464541913",
+      "blockName": "Playoffs",
+      "startTime": "2026-05-29T09:00:00.000Z",
+      "teams": "TOP ESPORTS vs LGD GAMING",
+      "gameId": "lol-game-115616219464541916",
+      "gameNumber": 3
+    },
+    {
+      "league": "LEC",
+      "phase": "regular",
+      "matchId": "lol-match-115548668059523768",
+      "blockName": "Week 7",
+      "startTime": "2026-05-10T13:00:00.000Z",
+      "teams": "GIANTX vs Karmine Corp",
+      "gameId": "lol-game-115548668059523769",
+      "gameNumber": 1
+    },
+    {
+      "league": "LEC",
+      "phase": "playoff",
+      "matchId": "lol-match-115548668059589358",
+      "blockName": "Playoffs",
+      "startTime": "2026-05-23T15:00:00.000Z",
+      "teams": "G2 Esports vs Karmine Corp",
+      "gameId": "lol-game-115548668059589362",
+      "gameNumber": 4
+    },
+    {
+      "league": "LCS",
+      "phase": "regular",
+      "matchId": "lol-match-115564793879403676",
+      "blockName": "Week 6",
+      "startTime": "2026-05-10T20:00:00.000Z",
+      "teams": "FlyQuest vs Cloud9 Kia",
+      "gameId": "lol-game-115564793879403678",
+      "gameNumber": 2
+    },
+    {
+      "league": "LCS",
+      "phase": "playoff",
+      "matchId": "lol-match-115564689066973286",
+      "blockName": "Finals",
+      "startTime": "2026-03-01T21:00:00.000Z",
+      "teams": "LYON vs Cloud9 Kia",
+      "gameId": "lol-game-115564689066973287",
+      "gameNumber": 1
+    }
+  ],
+  "results": [
+    {
+      "sample": {
+        "league": "LCK",
+        "phase": "regular",
+        "matchId": "lol-match-115548128963037523",
+        "blockName": "Week 5",
+        "startTime": "2026-05-02T08:00:00.000Z",
+        "teams": "Dplus KIA vs Gen.G Esports",
+        "gameId": "lol-game-115548128963037526",
+        "gameNumber": 3
+      },
+      "endpoints": {
+        "postgame": {
+          "status": "empty",
+          "checks": [
+            {
+              "field": "postgame.goldGraph",
+              "status": "empty",
+              "detail": "10 points, all zero"
+            },
+            {
+              "field": "postgame.timeline",
+              "status": "empty",
+              "detail": "len=0"
+            },
+            {
+              "field": "postgame.plates",
+              "status": "empty",
+              "detail": "null"
+            },
+            {
+              "field": "postgame.goldDistribution",
+              "status": "empty",
+              "detail": "null"
+            },
+            {
+              "field": "postgame.damageDistribution",
+              "status": "empty",
+              "detail": "null"
+            },
+            {
+              "field": "postgame.vision",
+              "status": "empty",
+              "detail": "null"
+            },
+            {
+              "field": "postgame.jungleShare",
+              "status": "empty",
+              "detail": "null"
+            },
+            {
+              "field": "postgame.rawAdvancedStats",
+              "status": "empty",
+              "detail": "null"
+            }
+          ]
+        },
+        "gold": {
+          "status": "empty",
+          "checks": [
+            {
+              "field": "gold",
+              "status": "empty",
+              "detail": "10 points, all zero"
+            }
+          ]
+        },
+        "plates": {
+          "status": "empty",
+          "checks": [
+            {
+              "field": "plates",
+              "status": "empty",
+              "detail": "null"
+            }
+          ]
+        },
+        "distributions": {
+          "status": "empty",
+          "checks": [
+            {
+              "field": "distributions",
+              "status": "empty",
+              "detail": "{\"gold\":null,\"damage\":null}"
+            }
+          ]
+        },
+        "vision": {
+          "status": "empty",
+          "checks": [
+            {
+              "field": "vision",
+              "status": "empty",
+              "detail": "null"
+            }
+          ]
+        },
+        "jungle-share": {
+          "status": "empty",
+          "checks": [
+            {
+              "field": "jungle-share",
+              "status": "empty",
+              "detail": "null"
+            }
+          ]
+        },
+        "objectives": {
+          "status": "empty",
+          "checks": [
+            {
+              "field": "objectives",
+              "status": "empty",
+              "detail": "events=0"
+            }
+          ]
+        },
+        "timeline": {
+          "status": "empty",
+          "checks": [
+            {
+              "field": "timeline",
+              "status": "empty",
+              "detail": "events=0"
+            }
+          ]
+        },
+        "player-stats": {
+          "status": "partial",
+          "checks": [
+            {
+              "field": "players",
+              "status": "populated",
+              "detail": "10 rows"
+            },
+            {
+              "field": "kills",
+              "status": "populated",
+              "detail": "10/10"
+            },
+            {
+              "field": "deaths",
+              "status": "populated",
+              "detail": "10/10"
+            },
+            {
+              "field": "assists",
+              "status": "populated",
+              "detail": "10/10"
+            },
+            {
+              "field": "kda",
+              "status": "populated",
+              "detail": "10/10"
+            },
+            {
+              "field": "cs",
+              "status": "populated",
+              "detail": "10/10"
+            },
+            {
+              "field": "csPerMin",
+              "status": "populated",
+              "detail": "10/10"
+            },
+            {
+              "field": "gold",
+              "status": "populated",
+              "detail": "10/10"
+            },
+            {
+              "field": "goldPerMin",
+              "status": "populated",
+              "detail": "10/10"
+            },
+            {
+              "field": "damage",
+              "status": "empty"
+            },
+            {
+              "field": "damagePerMin",
+              "status": "populated",
+              "detail": "10/10"
+            },
+            {
+              "field": "damageShare",
+              "status": "populated",
+              "detail": "10/10"
+            },
+            {
+              "field": "goldShare",
+              "status": "populated",
+              "detail": "10/10"
+            },
+            {
+              "field": "visionScore",
+              "status": "populated",
+              "detail": "10/10"
+            },
+            {
+              "field": "wardsPlaced",
+              "status": "populated",
+              "detail": "10/10"
+            },
+            {
+              "field": "wardsDestroyed",
+              "status": "empty"
+            },
+            {
+              "field": "wardsKilled",
+              "status": "populated",
+              "detail": "10/10"
+            },
+            {
+              "field": "goldDiffAt15",
+              "status": "empty"
+            },
+            {
+              "field": "golddiffat15",
+              "status": "empty"
+            },
+            {
+              "field": "gd15",
+              "status": "empty"
+            },
+            {
+              "field": "csDiffAt15",
+              "status": "empty"
+            },
+            {
+              "field": "csdiffat15",
+              "status": "empty"
+            },
+            {
+              "field": "csd15",
+              "status": "empty"
+            },
+            {
+              "field": "xpDiffAt15",
+              "status": "empty"
+            },
+            {
+              "field": "xpdiffat15",
+              "status": "empty"
+            },
+            {
+              "field": "xpd15",
+              "status": "empty"
+            },
+            {
+              "field": "soloKills",
+              "status": "empty"
+            },
+            {
+              "field": "solo_kills",
+              "status": "empty"
+            },
+            {
+              "field": "turretPlates",
+              "status": "empty"
+            },
+            {
+              "field": "plates",
+              "status": "empty"
+            },
+            {
+              "field": "monsterKillsEnemyJungle",
+              "status": "empty"
+            },
+            {
+              "field": "campsStolen",
+              "status": "empty"
+            },
+            {
+              "field": "position",
+              "status": "empty"
+            },
+            {
+              "field": "champion",
+              "status": "empty"
+            },
+            {
+              "field": "role",
+              "status": "populated",
+              "detail": "10/10"
+            }
+          ]
+        },
+        "stats": {
+          "status": "partial",
+          "checks": [
+            {
+              "field": "players",
+              "status": "populated",
+              "detail": "10 rows"
+            },
+            {
+              "field": "kills",
+              "status": "populated",
+              "detail": "10/10"
+            },
+            {
+              "field": "deaths",
+              "status": "populated",
+              "detail": "10/10"
+            },
+            {
+              "field": "assists",
+              "status": "populated",
+              "detail": "10/10"
+            },
+            {
+              "field": "kda",
+              "status": "populated",
+              "detail": "10/10"
+            },
+            {
+              "field": "cs",
+              "status": "populated",
+              "detail": "10/10"
+            },
+            {
+              "field": "csPerMin",
+              "status": "populated",
+              "detail": "10/10"
+            },
+            {
+              "field": "gold",
+              "status": "populated",
+              "detail": "10/10"
+            },
+            {
+              "field": "goldPerMin",
+              "status": "populated",
+              "detail": "10/10"
+            },
+            {
+              "field": "damage",
+              "status": "empty"
+            },
+            {
+              "field": "damagePerMin",
+              "status": "populated",
+              "detail": "10/10"
+            },
+            {
+              "field": "damageShare",
+              "status": "populated",
+              "detail": "10/10"
+            },
+            {
+              "field": "goldShare",
+              "status": "populated",
+              "detail": "10/10"
+            },
+            {
+              "field": "visionScore",
+              "status": "populated",
+              "detail": "10/10"
+            },
+            {
+              "field": "wardsPlaced",
+              "status": "populated",
+              "detail": "10/10"
+            },
+            {
+              "field": "wardsDestroyed",
+              "status": "empty"
+            },
+            {
+              "field": "wardsKilled",
+              "status": "populated",
+              "detail": "10/10"
+            },
+            {
+              "field": "goldDiffAt15",
+              "status": "empty"
+            },
+            {
+              "field": "golddiffat15",
+              "status": "empty"
+            },
+            {
+              "field": "gd15",
+              "status": "empty"
+            },
+            {
+              "field": "csDiffAt15",
+              "status": "empty"
+            },
+            {
+              "field": "csdiffat15",
+              "status": "empty"
+            },
+            {
+              "field": "csd15",
+              "status": "empty"
+            },
+            {
+              "field": "xpDiffAt15",
+              "status": "empty"
+            },
+            {
+              "field": "xpdiffat15",
+              "status": "empty"
+            },
+            {
+              "field": "xpd15",
+              "status": "empty"
+            },
+            {
+              "field": "soloKills",
+              "status": "empty"
+            },
+            {
+              "field": "solo_kills",
+              "status": "empty"
+            },
+            {
+              "field": "turretPlates",
+              "status": "empty"
+            },
+            {
+              "field": "plates",
+              "status": "empty"
+            },
+            {
+              "field": "monsterKillsEnemyJungle",
+              "status": "empty"
+            },
+            {
+              "field": "campsStolen",
+              "status": "empty"
+            },
+            {
+              "field": "position",
+              "status": "empty"
+            },
+            {
+              "field": "champion",
+              "status": "empty"
+            },
+            {
+              "field": "role",
+              "status": "populated",
+              "detail": "10/10"
+            }
+          ]
+        },
+        "builds": {
+          "status": "populated",
+          "checks": [
+            {
+              "field": "builds",
+              "status": "populated",
+              "detail": "len=10"
+            }
+          ]
+        }
+      },
+      "matchLevel": {
+        "drafts": {
+          "status": "partial",
+          "checks": [
+            {
+              "field": "hasDraft",
+              "status": "populated",
+              "detail": "[object Object]"
+            }
+          ]
+        },
+        "match_player_stats": {
+          "status": "partial",
+          "checks": [
+            {
+              "field": "players",
+              "status": "populated",
+              "detail": "30 rows"
+            },
+            {
+              "field": "kills",
+              "status": "populated",
+              "detail": "30/30"
+            },
+            {
+              "field": "deaths",
+              "status": "populated",
+              "detail": "30/30"
+            },
+            {
+              "field": "assists",
+              "status": "populated",
+              "detail": "30/30"
+            },
+            {
+              "field": "kda",
+              "status": "populated",
+              "detail": "30/30"
+            },
+            {
+              "field": "cs",
+              "status": "populated",
+              "detail": "30/30"
+            },
+            {
+              "field": "csPerMin",
+              "status": "populated",
+              "detail": "30/30"
+            },
+            {
+              "field": "gold",
+              "status": "populated",
+              "detail": "30/30"
+            },
+            {
+              "field": "goldPerMin",
+              "status": "populated",
+              "detail": "30/30"
+            },
+            {
+              "field": "damage",
+              "status": "empty"
+            },
+            {
+              "field": "damagePerMin",
+              "status": "populated",
+              "detail": "30/30"
+            },
+            {
+              "field": "damageShare",
+              "status": "populated",
+              "detail": "30/30"
+            },
+            {
+              "field": "goldShare",
+              "status": "populated",
+              "detail": "30/30"
+            },
+            {
+              "field": "visionScore",
+              "status": "populated",
+              "detail": "30/30"
+            },
+            {
+              "field": "wardsPlaced",
+              "status": "populated",
+              "detail": "30/30"
+            },
+            {
+              "field": "wardsDestroyed",
+              "status": "empty"
+            },
+            {
+              "field": "wardsKilled",
+              "status": "populated",
+              "detail": "30/30"
+            },
+            {
+              "field": "goldDiffAt15",
+              "status": "empty"
+            },
+            {
+              "field": "golddiffat15",
+              "status": "empty"
+            },
+            {
+              "field": "gd15",
+              "status": "empty"
+            },
+            {
+              "field": "csDiffAt15",
+              "status": "empty"
+            },
+            {
+              "field": "csdiffat15",
+              "status": "empty"
+            },
+            {
+              "field": "csd15",
+              "status": "empty"
+            },
+            {
+              "field": "xpDiffAt15",
+              "status": "empty"
+            },
+            {
+              "field": "xpdiffat15",
+              "status": "empty"
+            },
+            {
+              "field": "xpd15",
+              "status": "empty"
+            },
+            {
+              "field": "soloKills",
+              "status": "empty"
+            },
+            {
+              "field": "solo_kills",
+              "status": "empty"
+            },
+            {
+              "field": "turretPlates",
+              "status": "empty"
+            },
+            {
+              "field": "plates",
+              "status": "empty"
+            },
+            {
+              "field": "monsterKillsEnemyJungle",
+              "status": "empty"
+            },
+            {
+              "field": "campsStolen",
+              "status": "empty"
+            },
+            {
+              "field": "position",
+              "status": "empty"
+            },
+            {
+              "field": "champion",
+              "status": "empty"
+            },
+            {
+              "field": "role",
+              "status": "populated",
+              "detail": "30/30"
+            }
+          ]
+        },
+        "match_timeline": {
+          "status": "empty",
+          "checks": [
+            {
+              "field": "timeline",
+              "status": "empty",
+              "detail": "events=0"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "sample": {
+        "league": "LCK",
+        "phase": "playoff",
+        "matchId": "lol-match-115548128963037575",
+        "blockName": "Knockouts",
+        "startTime": "2026-06-12T08:00:00.000Z",
+        "teams": "Hanwha Life Esports vs T1",
+        "gameId": "lol-game-115548128963037577",
+        "gameNumber": 2
+      },
+      "endpoints": {
+        "postgame": {
+          "status": "populated",
+          "checks": [
+            {
+              "field": "postgame.goldGraph",
+              "status": "populated",
+              "detail": "36/36 non-zero points"
+            },
+            {
+              "field": "postgame.timeline",
+              "status": "populated",
+              "detail": "len=115"
+            },
+            {
+              "field": "postgame.plates",
+              "status": "populated",
+              "detail": "object"
+            },
+            {
+              "field": "postgame.goldDistribution",
+              "status": "populated",
+              "detail": "object"
+            },
+            {
+              "field": "postgame.damageDistribution",
+              "status": "populated",
+              "detail": "object"
+            },
+            {
+              "field": "postgame.vision",
+              "status": "populated",
+              "detail": "object"
+            },
+            {
+              "field": "postgame.jungleShare",
+              "status": "populated",
+              "detail": "object"
+            },
+            {
+              "field": "postgame.rawAdvancedStats",
+              "status": "populated",
+              "detail": "object"
+            }
+          ]
+        },
+        "gold": {
+          "status": "populated",
+          "checks": [
+            {
+              "field": "gold",
+              "status": "populated",
+              "detail": "36/36 non-zero points"
+            }
+          ]
+        },
+        "plates": {
+          "status": "populated",
+          "checks": [
+            {
+              "field": "plates",
+              "status": "populated",
+              "detail": "{\"red\":{\"bot\":8,\"mid\":5,\"top\":7,\"voidgrubs\":3,\"towerPlates\":20},\"blue\":{\"bot\":13,\"mid\":15,\"top\":15,\"voidgrubs\":0,\"towerP"
+            }
+          ]
+        },
+        "distributions": {
+          "status": "populated",
+          "checks": [
+            {
+              "field": "distributions",
+              "status": "populated",
+              "detail": "{\"gold\":{\"ADC\":{\"red\":0.237,\"blue\":0.295},\"MID\":{\"red\":0.208,\"blue\":0.199},\"TOP\":{\"red\":0.231,\"blue\":0.198},\"JUNGLE\":{\"r"
+            }
+          ]
+        },
+        "vision": {
+          "status": "populated",
+          "checks": [
+            {
+              "field": "vision",
+              "status": "populated",
+              "detail": "{\"red\":{\"score\":422,\"wardsKilled\":68,\"wardsPlaced\":135,\"controlWardsBought\":68},\"blue\":{\"score\":367,\"wardsKilled\":56,\"wa"
+            }
+          ]
+        },
+        "jungle-share": {
+          "status": "populated",
+          "checks": [
+            {
+              "field": "jungle-share",
+              "status": "populated",
+              "detail": "{\"ADC\":{\"red\":21,\"blue\":31},\"MID\":{\"red\":0,\"blue\":3},\"TOP\":{\"red\":13,\"blue\":6},\"JUNGLE\":{\"red\":196,\"blue\":217},\"SUPPORT\""
+            }
+          ]
+        },
+        "objectives": {
+          "status": "populated",
+          "checks": [
+            {
+              "field": "objectives",
+              "status": "populated",
+              "detail": "events=22"
+            },
+            {
+              "field": "objectives[0].keys",
+              "status": "populated",
+              "detail": "timestamp, eventType, side, objectiveType, playerName"
+            }
+          ]
+        },
+        "timeline": {
+          "status": "populated",
+          "checks": [
+            {
+              "field": "timeline",
+              "status": "populated",
+              "detail": "events=115"
+            },
+            {
+              "field": "timeline[0].keys",
+              "status": "populated",
+              "detail": "id, timestamp, eventType, teamSlug, side, playerName, victimName, objectiveType, killType, position"
+            }
+          ]
+        },
+        "player-stats": {
+          "status": "partial",
+          "checks": [
+            {
+              "field": "players",
+              "status": "populated",
+              "detail": "10 rows"
+            },
+            {
+              "field": "kills",
+              "status": "populated",
+              "detail": "10/10"
+            },
+            {
+              "field": "deaths",
+              "status": "populated",
+              "detail": "10/10"
+            },
+            {
+              "field": "assists",
+              "status": "populated",
+              "detail": "10/10"
+            },
+            {
+              "field": "kda",
+              "status": "populated",
+              "detail": "10/10"
+            },
+            {
+              "field": "cs",
+              "status": "populated",
+              "detail": "10/10"
+            },
+            {
+              "field": "csPerMin",
+              "status": "populated",
+              "detail": "10/10"
+            },
+            {
+              "field": "gold",
+              "status": "populated",
+              "detail": "10/10"
+            },
+            {
+              "field": "goldPerMin",
+              "status": "populated",
+              "detail": "10/10"
+            },
+            {
+              "field": "damage",
+              "status": "empty"
+            },
+            {
+              "field": "damagePerMin",
+              "status": "populated",
+              "detail": "10/10"
+            },
+            {
+              "field": "damageShare",
+              "status": "populated",
+              "detail": "10/10"
+            },
+            {
+              "field": "goldShare",
+              "status": "populated",
+              "detail": "10/10"
+            },
+            {
+              "field": "visionScore",
+              "status": "populated",
+              "detail": "10/10"
+            },
+            {
+              "field": "wardsPlaced",
+              "status": "populated",
+              "detail": "10/10"
+            },
+            {
+              "field": "wardsDestroyed",
+              "status": "empty"
+            },
+            {
+              "field": "wardsKilled",
+              "status": "populated",
+              "detail": "10/10"
+            },
+            {
+              "field": "goldDiffAt15",
+              "status": "empty"
+            },
+            {
+              "field": "golddiffat15",
+              "status": "empty"
+            },
+            {
+              "field": "gd15",
+              "status": "empty"
+            },
+            {
+              "field": "csDiffAt15",
+              "status": "empty"
+            },
+            {
+              "field": "csdiffat15",
+              "status": "empty"
+            },
+            {
+              "field": "csd15",
+              "status": "empty"
+            },
+            {
+              "field": "xpDiffAt15",
+              "status": "empty"
+            },
+            {
+              "field": "xpdiffat15",
+              "status": "empty"
+            },
+            {
+              "field": "xpd15",
+              "status": "empty"
+            },
+            {
+              "field": "soloKills",
+              "status": "empty"
+            },
+            {
+              "field": "solo_kills",
+              "status": "empty"
+            },
+            {
+              "field": "turretPlates",
+              "status": "empty"
+            },
+            {
+              "field": "plates",
+              "status": "empty"
+            },
+            {
+              "field": "monsterKillsEnemyJungle",
+              "status": "empty"
+            },
+            {
+              "field": "campsStolen",
+              "status": "empty"
+            },
+            {
+              "field": "position",
+              "status": "empty"
+            },
+            {
+              "field": "champion",
+              "status": "empty"
+            },
+            {
+              "field": "role",
+              "status": "populated",
+              "detail": "10/10"
+            }
+          ]
+        },
+        "stats": {
+          "status": "partial",
+          "checks": [
+            {
+              "field": "players",
+              "status": "populated",
+              "detail": "10 rows"
+            },
+            {
+              "field": "kills",
+              "status": "populated",
+              "detail": "10/10"
+            },
+            {
+              "field": "deaths",
+              "status": "populated",
+              "detail": "10/10"
+            },
+            {
+              "field": "assists",
+              "status": "populated",
+              "detail": "10/10"
+            },
+            {
+              "field": "kda",
+              "status": "populated",
+              "detail": "10/10"
+            },
+            {
+              "field": "cs",
+              "status": "populated",
+              "detail": "10/10"
+            },
+            {
+              "field": "csPerMin",
+              "status": "populated",
+              "detail": "10/10"
+            },
+            {
+              "field": "gold",
+              "status": "populated",
+              "detail": "10/10"
+            },
+            {
+              "field": "goldPerMin",
+              "status": "populated",
+              "detail": "10/10"
+            },
+            {
+              "field": "damage",
+              "status": "empty"
+            },
+            {
+              "field": "damagePerMin",
+              "status": "populated",
+              "detail": "10/10"
+            },
+            {
+              "field": "damageShare",
+              "status": "populated",
+              "detail": "10/10"
+            },
+            {
+              "field": "goldShare",
+              "status": "populated",
+              "detail": "10/10"
+            },
+            {
+              "field": "visionScore",
+              "status": "populated",
+              "detail": "10/10"
+            },
+            {
+              "field": "wardsPlaced",
+              "status": "populated",
+              "detail": "10/10"
+            },
+            {
+              "field": "wardsDestroyed",
+              "status": "empty"
+            },
+            {
+              "field": "wardsKilled",
+              "status": "populated",
+              "detail": "10/10"
+            },
+            {
+              "field": "goldDiffAt15",
+              "status": "empty"
+            },
+            {
+              "field": "golddiffat15",
+              "status": "empty"
+            },
+            {
+              "field": "gd15",
+              "status": "empty"
+            },
+            {
+              "field": "csDiffAt15",
+              "status": "empty"
+            },
+            {
+              "field": "csdiffat15",
+              "status": "empty"
+            },
+            {
+              "field": "csd15",
+              "status": "empty"
+            },
+            {
+              "field": "xpDiffAt15",
+              "status": "empty"
+            },
+            {
+              "field": "xpdiffat15",
+              "status": "empty"
+            },
+            {
+              "field": "xpd15",
+              "status": "empty"
+            },
+            {
+              "field": "soloKills",
+              "status": "empty"
+            },
+            {
+              "field": "solo_kills",
+              "status": "empty"
+            },
+            {
+              "field": "turretPlates",
+              "status": "empty"
+            },
+            {
+              "field": "plates",
+              "status": "empty"
+            },
+            {
+              "field": "monsterKillsEnemyJungle",
+              "status": "empty"
+            },
+            {
+              "field": "campsStolen",
+              "status": "empty"
+            },
+            {
+              "field": "position",
+              "status": "empty"
+            },
+            {
+              "field": "champion",
+              "status": "empty"
+            },
+            {
+              "field": "role",
+              "status": "populated",
+              "detail": "10/10"
+            }
+          ]
+        },
+        "builds": {
+          "status": "populated",
+          "checks": [
+            {
+              "field": "builds",
+              "status": "populated",
+              "detail": "len=10"
+            }
+          ]
+        }
+      },
+      "matchLevel": {
+        "drafts": {
+          "status": "partial",
+          "checks": [
+            {
+              "field": "hasDraft",
+              "status": "populated",
+              "detail": "[object Object]"
+            }
+          ]
+        },
+        "match_player_stats": {
+          "status": "partial",
+          "checks": [
+            {
+              "field": "players",
+              "status": "populated",
+              "detail": "40 rows"
+            },
+            {
+              "field": "kills",
+              "status": "populated",
+              "detail": "40/40"
+            },
+            {
+              "field": "deaths",
+              "status": "populated",
+              "detail": "40/40"
+            },
+            {
+              "field": "assists",
+              "status": "populated",
+              "detail": "40/40"
+            },
+            {
+              "field": "kda",
+              "status": "populated",
+              "detail": "40/40"
+            },
+            {
+              "field": "cs",
+              "status": "populated",
+              "detail": "40/40"
+            },
+            {
+              "field": "csPerMin",
+              "status": "populated",
+              "detail": "40/40"
+            },
+            {
+              "field": "gold",
+              "status": "populated",
+              "detail": "40/40"
+            },
+            {
+              "field": "goldPerMin",
+              "status": "populated",
+              "detail": "40/40"
+            },
+            {
+              "field": "damage",
+              "status": "empty"
+            },
+            {
+              "field": "damagePerMin",
+              "status": "populated",
+              "detail": "40/40"
+            },
+            {
+              "field": "damageShare",
+              "status": "populated",
+              "detail": "40/40"
+            },
+            {
+              "field": "goldShare",
+              "status": "populated",
+              "detail": "40/40"
+            },
+            {
+              "field": "visionScore",
+              "status": "populated",
+              "detail": "40/40"
+            },
+            {
+              "field": "wardsPlaced",
+              "status": "populated",
+              "detail": "40/40"
+            },
+            {
+              "field": "wardsDestroyed",
+              "status": "empty"
+            },
+            {
+              "field": "wardsKilled",
+              "status": "populated",
+              "detail": "40/40"
+            },
+            {
+              "field": "goldDiffAt15",
+              "status": "empty"
+            },
+            {
+              "field": "golddiffat15",
+              "status": "empty"
+            },
+            {
+              "field": "gd15",
+              "status": "empty"
+            },
+            {
+              "field": "csDiffAt15",
+              "status": "empty"
+            },
+            {
+              "field": "csdiffat15",
+              "status": "empty"
+            },
+            {
+              "field": "csd15",
+              "status": "empty"
+            },
+            {
+              "field": "xpDiffAt15",
+              "status": "empty"
+            },
+            {
+              "field": "xpdiffat15",
+              "status": "empty"
+            },
+            {
+              "field": "xpd15",
+              "status": "empty"
+            },
+            {
+              "field": "soloKills",
+              "status": "empty"
+            },
+            {
+              "field": "solo_kills",
+              "status": "empty"
+            },
+            {
+              "field": "turretPlates",
+              "status": "empty"
+            },
+            {
+              "field": "plates",
+              "status": "empty"
+            },
+            {
+              "field": "monsterKillsEnemyJungle",
+              "status": "empty"
+            },
+            {
+              "field": "campsStolen",
+              "status": "empty"
+            },
+            {
+              "field": "position",
+              "status": "empty"
+            },
+            {
+              "field": "champion",
+              "status": "empty"
+            },
+            {
+              "field": "role",
+              "status": "populated",
+              "detail": "40/40"
+            }
+          ]
+        },
+        "match_timeline": {
+          "status": "partial",
+          "checks": [
+            {
+              "field": "timeline",
+              "status": "populated",
+              "detail": "events=91"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "sample": {
+        "league": "LPL",
+        "phase": "regular",
+        "matchId": "lol-match-115615926677831079",
+        "blockName": "Week 5",
+        "startTime": "2026-05-01T09:00:00.000Z",
+        "teams": "TOP ESPORTS vs Anyone's Legend",
+        "gameId": "lol-game-115615926677831081",
+        "gameNumber": 2
+      },
+      "endpoints": {
+        "postgame": {
+          "status": "partial",
+          "checks": [
+            {
+              "field": "postgame.goldGraph",
+              "status": "empty",
+              "detail": "10 points, all zero"
+            },
+            {
+              "field": "postgame.timeline",
+              "status": "empty",
+              "detail": "len=0"
+            },
+            {
+              "field": "postgame.plates",
+              "status": "empty",
+              "detail": "object"
+            },
+            {
+              "field": "postgame.goldDistribution",
+              "status": "populated",
+              "detail": "object"
+            },
+            {
+              "field": "postgame.damageDistribution",
+              "status": "populated",
+              "detail": "object"
+            },
+            {
+              "field": "postgame.vision",
+              "status": "populated",
+              "detail": "object"
+            },
+            {
+              "field": "postgame.jungleShare",
+              "status": "populated",
+              "detail": "object"
+            },
+            {
+              "field": "postgame.rawAdvancedStats",
+              "status": "populated",
+              "detail": "object"
+            }
+          ]
+        },
+        "gold": {
+          "status": "empty",
+          "checks": [
+            {
+              "field": "gold",
+              "status": "empty",
+              "detail": "10 points, all zero"
+            }
+          ]
+        },
+        "plates": {
+          "status": "empty",
+          "checks": [
+            {
+              "field": "plates",
+              "status": "empty",
+              "detail": "{\"red\":{\"bot\":null,\"mid\":null,\"top\":null,\"voidgrubs\":null,\"towerPlates\":null},\"blue\":{\"bot\":null,\"mid\":null,\"top\":null,\""
+            }
+          ]
+        },
+        "distributions": {
+          "status": "populated",
+          "checks": [
+            {
+              "field": "distributions",
+              "status": "populated",
+              "detail": "{\"gold\":{\"ADC\":{\"red\":0.259,\"blue\":0.236},\"MID\":{\"red\":0.197,\"blue\":0.234},\"TOP\":{\"red\":0.214,\"blue\":0.192},\"JUNGLE\":{\"r"
+            }
+          ]
+        },
+        "vision": {
+          "status": "populated",
+          "checks": [
+            {
+              "field": "vision",
+              "status": "populated",
+              "detail": "{\"red\":{\"score\":319,\"wardsKilled\":59,\"wardsPlaced\":113,\"controlWardsBought\":37},\"blue\":{\"score\":335,\"wardsKilled\":54,\"wa"
+            }
+          ]
+        },
+        "jungle-share": {
+          "status": "populated",
+          "checks": [
+            {
+              "field": "jungle-share",
+              "status": "populated",
+              "detail": "{\"ADC\":{\"red\":5,\"blue\":0},\"MID\":{\"red\":12,\"blue\":8},\"TOP\":{\"red\":0,\"blue\":16},\"JUNGLE\":{\"red\":185,\"blue\":228},\"SUPPORT\":"
+            }
+          ]
+        },
+        "objectives": {
+          "status": "empty",
+          "checks": [
+            {
+              "field": "objectives",
+              "status": "empty",
+              "detail": "events=0"
+            }
+          ]
+        },
+        "timeline": {
+          "status": "empty",
+          "checks": [
+            {
+              "field": "timeline",
+              "status": "empty",
+              "detail": "events=0"
+            }
+          ]
+        },
+        "player-stats": {
+          "status": "partial",
+          "checks": [
+            {
+              "field": "players",
+              "status": "populated",
+              "detail": "10 rows"
+            },
+            {
+              "field": "kills",
+              "status": "populated",
+              "detail": "10/10"
+            },
+            {
+              "field": "deaths",
+              "status": "populated",
+              "detail": "10/10"
+            },
+            {
+              "field": "assists",
+              "status": "populated",
+              "detail": "10/10"
+            },
+            {
+              "field": "kda",
+              "status": "populated",
+              "detail": "10/10"
+            },
+            {
+              "field": "cs",
+              "status": "populated",
+              "detail": "10/10"
+            },
+            {
+              "field": "csPerMin",
+              "status": "populated",
+              "detail": "10/10"
+            },
+            {
+              "field": "gold",
+              "status": "populated",
+              "detail": "10/10"
+            },
+            {
+              "field": "goldPerMin",
+              "status": "populated",
+              "detail": "10/10"
+            },
+            {
+              "field": "damage",
+              "status": "empty"
+            },
+            {
+              "field": "damagePerMin",
+              "status": "populated",
+              "detail": "10/10"
+            },
+            {
+              "field": "damageShare",
+              "status": "populated",
+              "detail": "10/10"
+            },
+            {
+              "field": "goldShare",
+              "status": "populated",
+              "detail": "10/10"
+            },
+            {
+              "field": "visionScore",
+              "status": "populated",
+              "detail": "10/10"
+            },
+            {
+              "field": "wardsPlaced",
+              "status": "populated",
+              "detail": "10/10"
+            },
+            {
+              "field": "wardsDestroyed",
+              "status": "empty"
+            },
+            {
+              "field": "wardsKilled",
+              "status": "populated",
+              "detail": "10/10"
+            },
+            {
+              "field": "goldDiffAt15",
+              "status": "empty"
+            },
+            {
+              "field": "golddiffat15",
+              "status": "empty"
+            },
+            {
+              "field": "gd15",
+              "status": "empty"
+            },
+            {
+              "field": "csDiffAt15",
+              "status": "empty"
+            },
+            {
+              "field": "csdiffat15",
+              "status": "empty"
+            },
+            {
+              "field": "csd15",
+              "status": "empty"
+            },
+            {
+              "field": "xpDiffAt15",
+              "status": "empty"
+            },
+            {
+              "field": "xpdiffat15",
+              "status": "empty"
+            },
+            {
+              "field": "xpd15",
+              "status": "empty"
+            },
+            {
+              "field": "soloKills",
+              "status": "empty"
+            },
+            {
+              "field": "solo_kills",
+              "status": "empty"
+            },
+            {
+              "field": "turretPlates",
+              "status": "empty"
+            },
+            {
+              "field": "plates",
+              "status": "empty"
+            },
+            {
+              "field": "monsterKillsEnemyJungle",
+              "status": "empty"
+            },
+            {
+              "field": "campsStolen",
+              "status": "empty"
+            },
+            {
+              "field": "position",
+              "status": "empty"
+            },
+            {
+              "field": "champion",
+              "status": "empty"
+            },
+            {
+              "field": "role",
+              "status": "populated",
+              "detail": "10/10"
+            }
+          ]
+        },
+        "stats": {
+          "status": "partial",
+          "checks": [
+            {
+              "field": "players",
+              "status": "populated",
+              "detail": "10 rows"
+            },
+            {
+              "field": "kills",
+              "status": "populated",
+              "detail": "10/10"
+            },
+            {
+              "field": "deaths",
+              "status": "populated",
+              "detail": "10/10"
+            },
+            {
+              "field": "assists",
+              "status": "populated",
+              "detail": "10/10"
+            },
+            {
+              "field": "kda",
+              "status": "populated",
+              "detail": "10/10"
+            },
+            {
+              "field": "cs",
+              "status": "populated",
+              "detail": "10/10"
+            },
+            {
+              "field": "csPerMin",
+              "status": "populated",
+              "detail": "10/10"
+            },
+            {
+              "field": "gold",
+              "status": "populated",
+              "detail": "10/10"
+            },
+            {
+              "field": "goldPerMin",
+              "status": "populated",
+              "detail": "10/10"
+            },
+            {
+              "field": "damage",
+              "status": "empty"
+            },
+            {
+              "field": "damagePerMin",
+              "status": "populated",
+              "detail": "10/10"
+            },
+            {
+              "field": "damageShare",
+              "status": "populated",
+              "detail": "10/10"
+            },
+            {
+              "field": "goldShare",
+              "status": "populated",
+              "detail": "10/10"
+            },
+            {
+              "field": "visionScore",
+              "status": "populated",
+              "detail": "10/10"
+            },
+            {
+              "field": "wardsPlaced",
+              "status": "populated",
+              "detail": "10/10"
+            },
+            {
+              "field": "wardsDestroyed",
+              "status": "empty"
+            },
+            {
+              "field": "wardsKilled",
+              "status": "populated",
+              "detail": "10/10"
+            },
+            {
+              "field": "goldDiffAt15",
+              "status": "empty"
+            },
+            {
+              "field": "golddiffat15",
+              "status": "empty"
+            },
+            {
+              "field": "gd15",
+              "status": "empty"
+            },
+            {
+              "field": "csDiffAt15",
+              "status": "empty"
+            },
+            {
+              "field": "csdiffat15",
+              "status": "empty"
+            },
+            {
+              "field": "csd15",
+              "status": "empty"
+            },
+            {
+              "field": "xpDiffAt15",
+              "status": "empty"
+            },
+            {
+              "field": "xpdiffat15",
+              "status": "empty"
+            },
+            {
+              "field": "xpd15",
+              "status": "empty"
+            },
+            {
+              "field": "soloKills",
+              "status": "empty"
+            },
+            {
+              "field": "solo_kills",
+              "status": "empty"
+            },
+            {
+              "field": "turretPlates",
+              "status": "empty"
+            },
+            {
+              "field": "plates",
+              "status": "empty"
+            },
+            {
+              "field": "monsterKillsEnemyJungle",
+              "status": "empty"
+            },
+            {
+              "field": "campsStolen",
+              "status": "empty"
+            },
+            {
+              "field": "position",
+              "status": "empty"
+            },
+            {
+              "field": "champion",
+              "status": "empty"
+            },
+            {
+              "field": "role",
+              "status": "populated",
+              "detail": "10/10"
+            }
+          ]
+        },
+        "builds": {
+          "status": "populated",
+          "checks": [
+            {
+              "field": "builds",
+              "status": "populated",
+              "detail": "len=18"
+            }
+          ]
+        }
+      },
+      "matchLevel": {
+        "drafts": {
+          "status": "partial",
+          "checks": [
+            {
+              "field": "hasDraft",
+              "status": "populated",
+              "detail": "[object Object]"
+            }
+          ]
+        },
+        "match_player_stats": {
+          "status": "partial",
+          "checks": [
+            {
+              "field": "players",
+              "status": "populated",
+              "detail": "20 rows"
+            },
+            {
+              "field": "kills",
+              "status": "populated",
+              "detail": "20/20"
+            },
+            {
+              "field": "deaths",
+              "status": "populated",
+              "detail": "20/20"
+            },
+            {
+              "field": "assists",
+              "status": "populated",
+              "detail": "20/20"
+            },
+            {
+              "field": "kda",
+              "status": "populated",
+              "detail": "20/20"
+            },
+            {
+              "field": "cs",
+              "status": "populated",
+              "detail": "20/20"
+            },
+            {
+              "field": "csPerMin",
+              "status": "populated",
+              "detail": "20/20"
+            },
+            {
+              "field": "gold",
+              "status": "populated",
+              "detail": "20/20"
+            },
+            {
+              "field": "goldPerMin",
+              "status": "populated",
+              "detail": "20/20"
+            },
+            {
+              "field": "damage",
+              "status": "empty"
+            },
+            {
+              "field": "damagePerMin",
+              "status": "populated",
+              "detail": "20/20"
+            },
+            {
+              "field": "damageShare",
+              "status": "populated",
+              "detail": "20/20"
+            },
+            {
+              "field": "goldShare",
+              "status": "populated",
+              "detail": "20/20"
+            },
+            {
+              "field": "visionScore",
+              "status": "populated",
+              "detail": "20/20"
+            },
+            {
+              "field": "wardsPlaced",
+              "status": "populated",
+              "detail": "20/20"
+            },
+            {
+              "field": "wardsDestroyed",
+              "status": "empty"
+            },
+            {
+              "field": "wardsKilled",
+              "status": "populated",
+              "detail": "20/20"
+            },
+            {
+              "field": "goldDiffAt15",
+              "status": "empty"
+            },
+            {
+              "field": "golddiffat15",
+              "status": "empty"
+            },
+            {
+              "field": "gd15",
+              "status": "empty"
+            },
+            {
+              "field": "csDiffAt15",
+              "status": "empty"
+            },
+            {
+              "field": "csdiffat15",
+              "status": "empty"
+            },
+            {
+              "field": "csd15",
+              "status": "empty"
+            },
+            {
+              "field": "xpDiffAt15",
+              "status": "empty"
+            },
+            {
+              "field": "xpdiffat15",
+              "status": "empty"
+            },
+            {
+              "field": "xpd15",
+              "status": "empty"
+            },
+            {
+              "field": "soloKills",
+              "status": "empty"
+            },
+            {
+              "field": "solo_kills",
+              "status": "empty"
+            },
+            {
+              "field": "turretPlates",
+              "status": "empty"
+            },
+            {
+              "field": "plates",
+              "status": "empty"
+            },
+            {
+              "field": "monsterKillsEnemyJungle",
+              "status": "empty"
+            },
+            {
+              "field": "campsStolen",
+              "status": "empty"
+            },
+            {
+              "field": "position",
+              "status": "empty"
+            },
+            {
+              "field": "champion",
+              "status": "empty"
+            },
+            {
+              "field": "role",
+              "status": "populated",
+              "detail": "20/20"
+            }
+          ]
+        },
+        "match_timeline": {
+          "status": "empty",
+          "checks": [
+            {
+              "field": "timeline",
+              "status": "empty",
+              "detail": "events=0"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "sample": {
+        "league": "LPL",
+        "phase": "playoff",
+        "matchId": "lol-match-115616219464541913",
+        "blockName": "Playoffs",
+        "startTime": "2026-05-29T09:00:00.000Z",
+        "teams": "TOP ESPORTS vs LGD GAMING",
+        "gameId": "lol-game-115616219464541916",
+        "gameNumber": 3
+      },
+      "endpoints": {
+        "postgame": {
+          "status": "partial",
+          "checks": [
+            {
+              "field": "postgame.goldGraph",
+              "status": "empty",
+              "detail": "10 points, all zero"
+            },
+            {
+              "field": "postgame.timeline",
+              "status": "empty",
+              "detail": "len=0"
+            },
+            {
+              "field": "postgame.plates",
+              "status": "empty",
+              "detail": "object"
+            },
+            {
+              "field": "postgame.goldDistribution",
+              "status": "populated",
+              "detail": "object"
+            },
+            {
+              "field": "postgame.damageDistribution",
+              "status": "populated",
+              "detail": "object"
+            },
+            {
+              "field": "postgame.vision",
+              "status": "populated",
+              "detail": "object"
+            },
+            {
+              "field": "postgame.jungleShare",
+              "status": "populated",
+              "detail": "object"
+            },
+            {
+              "field": "postgame.rawAdvancedStats",
+              "status": "populated",
+              "detail": "object"
+            }
+          ]
+        },
+        "gold": {
+          "status": "empty",
+          "checks": [
+            {
+              "field": "gold",
+              "status": "empty",
+              "detail": "10 points, all zero"
+            }
+          ]
+        },
+        "plates": {
+          "status": "empty",
+          "checks": [
+            {
+              "field": "plates",
+              "status": "empty",
+              "detail": "{\"red\":{\"bot\":null,\"mid\":null,\"top\":null,\"voidgrubs\":null,\"towerPlates\":null},\"blue\":{\"bot\":null,\"mid\":null,\"top\":null,\""
+            }
+          ]
+        },
+        "distributions": {
+          "status": "populated",
+          "checks": [
+            {
+              "field": "distributions",
+              "status": "populated",
+              "detail": "{\"gold\":{\"ADC\":{\"red\":0.23,\"blue\":0.227},\"MID\":{\"red\":0.203,\"blue\":0.194},\"TOP\":{\"red\":0.224,\"blue\":0.197},\"JUNGLE\":{\"re"
+            }
+          ]
+        },
+        "vision": {
+          "status": "populated",
+          "checks": [
+            {
+              "field": "vision",
+              "status": "populated",
+              "detail": "{\"red\":{\"score\":329,\"wardsKilled\":57,\"wardsPlaced\":121,\"controlWardsBought\":46},\"blue\":{\"score\":319,\"wardsKilled\":48,\"wa"
+            }
+          ]
+        },
+        "jungle-share": {
+          "status": "populated",
+          "checks": [
+            {
+              "field": "jungle-share",
+              "status": "populated",
+              "detail": "{\"ADC\":{\"red\":2,\"blue\":2},\"MID\":{\"red\":2,\"blue\":0},\"TOP\":{\"red\":0,\"blue\":4},\"JUNGLE\":{\"red\":216,\"blue\":245},\"SUPPORT\":{\""
+            }
+          ]
+        },
+        "objectives": {
+          "status": "empty",
+          "checks": [
+            {
+              "field": "objectives",
+              "status": "empty",
+              "detail": "events=0"
+            }
+          ]
+        },
+        "timeline": {
+          "status": "empty",
+          "checks": [
+            {
+              "field": "timeline",
+              "status": "empty",
+              "detail": "events=0"
+            }
+          ]
+        },
+        "player-stats": {
+          "status": "partial",
+          "checks": [
+            {
+              "field": "players",
+              "status": "populated",
+              "detail": "10 rows"
+            },
+            {
+              "field": "kills",
+              "status": "populated",
+              "detail": "10/10"
+            },
+            {
+              "field": "deaths",
+              "status": "populated",
+              "detail": "10/10"
+            },
+            {
+              "field": "assists",
+              "status": "populated",
+              "detail": "10/10"
+            },
+            {
+              "field": "kda",
+              "status": "populated",
+              "detail": "10/10"
+            },
+            {
+              "field": "cs",
+              "status": "populated",
+              "detail": "10/10"
+            },
+            {
+              "field": "csPerMin",
+              "status": "populated",
+              "detail": "10/10"
+            },
+            {
+              "field": "gold",
+              "status": "populated",
+              "detail": "10/10"
+            },
+            {
+              "field": "goldPerMin",
+              "status": "populated",
+              "detail": "10/10"
+            },
+            {
+              "field": "damage",
+              "status": "empty"
+            },
+            {
+              "field": "damagePerMin",
+              "status": "populated",
+              "detail": "10/10"
+            },
+            {
+              "field": "damageShare",
+              "status": "populated",
+              "detail": "10/10"
+            },
+            {
+              "field": "goldShare",
+              "status": "populated",
+              "detail": "10/10"
+            },
+            {
+              "field": "visionScore",
+              "status": "populated",
+              "detail": "10/10"
+            },
+            {
+              "field": "wardsPlaced",
+              "status": "populated",
+              "detail": "10/10"
+            },
+            {
+              "field": "wardsDestroyed",
+              "status": "empty"
+            },
+            {
+              "field": "wardsKilled",
+              "status": "populated",
+              "detail": "10/10"
+            },
+            {
+              "field": "goldDiffAt15",
+              "status": "empty"
+            },
+            {
+              "field": "golddiffat15",
+              "status": "empty"
+            },
+            {
+              "field": "gd15",
+              "status": "empty"
+            },
+            {
+              "field": "csDiffAt15",
+              "status": "empty"
+            },
+            {
+              "field": "csdiffat15",
+              "status": "empty"
+            },
+            {
+              "field": "csd15",
+              "status": "empty"
+            },
+            {
+              "field": "xpDiffAt15",
+              "status": "empty"
+            },
+            {
+              "field": "xpdiffat15",
+              "status": "empty"
+            },
+            {
+              "field": "xpd15",
+              "status": "empty"
+            },
+            {
+              "field": "soloKills",
+              "status": "empty"
+            },
+            {
+              "field": "solo_kills",
+              "status": "empty"
+            },
+            {
+              "field": "turretPlates",
+              "status": "empty"
+            },
+            {
+              "field": "plates",
+              "status": "empty"
+            },
+            {
+              "field": "monsterKillsEnemyJungle",
+              "status": "empty"
+            },
+            {
+              "field": "campsStolen",
+              "status": "empty"
+            },
+            {
+              "field": "position",
+              "status": "empty"
+            },
+            {
+              "field": "champion",
+              "status": "empty"
+            },
+            {
+              "field": "role",
+              "status": "populated",
+              "detail": "10/10"
+            }
+          ]
+        },
+        "stats": {
+          "status": "partial",
+          "checks": [
+            {
+              "field": "players",
+              "status": "populated",
+              "detail": "10 rows"
+            },
+            {
+              "field": "kills",
+              "status": "populated",
+              "detail": "10/10"
+            },
+            {
+              "field": "deaths",
+              "status": "populated",
+              "detail": "10/10"
+            },
+            {
+              "field": "assists",
+              "status": "populated",
+              "detail": "10/10"
+            },
+            {
+              "field": "kda",
+              "status": "populated",
+              "detail": "10/10"
+            },
+            {
+              "field": "cs",
+              "status": "populated",
+              "detail": "10/10"
+            },
+            {
+              "field": "csPerMin",
+              "status": "populated",
+              "detail": "10/10"
+            },
+            {
+              "field": "gold",
+              "status": "populated",
+              "detail": "10/10"
+            },
+            {
+              "field": "goldPerMin",
+              "status": "populated",
+              "detail": "10/10"
+            },
+            {
+              "field": "damage",
+              "status": "empty"
+            },
+            {
+              "field": "damagePerMin",
+              "status": "populated",
+              "detail": "10/10"
+            },
+            {
+              "field": "damageShare",
+              "status": "populated",
+              "detail": "10/10"
+            },
+            {
+              "field": "goldShare",
+              "status": "populated",
+              "detail": "10/10"
+            },
+            {
+              "field": "visionScore",
+              "status": "populated",
+              "detail": "10/10"
+            },
+            {
+              "field": "wardsPlaced",
+              "status": "populated",
+              "detail": "10/10"
+            },
+            {
+              "field": "wardsDestroyed",
+              "status": "empty"
+            },
+            {
+              "field": "wardsKilled",
+              "status": "populated",
+              "detail": "10/10"
+            },
+            {
+              "field": "goldDiffAt15",
+              "status": "empty"
+            },
+            {
+              "field": "golddiffat15",
+              "status": "empty"
+            },
+            {
+              "field": "gd15",
+              "status": "empty"
+            },
+            {
+              "field": "csDiffAt15",
+              "status": "empty"
+            },
+            {
+              "field": "csdiffat15",
+              "status": "empty"
+            },
+            {
+              "field": "csd15",
+              "status": "empty"
+            },
+            {
+              "field": "xpDiffAt15",
+              "status": "empty"
+            },
+            {
+              "field": "xpdiffat15",
+              "status": "empty"
+            },
+            {
+              "field": "xpd15",
+              "status": "empty"
+            },
+            {
+              "field": "soloKills",
+              "status": "empty"
+            },
+            {
+              "field": "solo_kills",
+              "status": "empty"
+            },
+            {
+              "field": "turretPlates",
+              "status": "empty"
+            },
+            {
+              "field": "plates",
+              "status": "empty"
+            },
+            {
+              "field": "monsterKillsEnemyJungle",
+              "status": "empty"
+            },
+            {
+              "field": "campsStolen",
+              "status": "empty"
+            },
+            {
+              "field": "position",
+              "status": "empty"
+            },
+            {
+              "field": "champion",
+              "status": "empty"
+            },
+            {
+              "field": "role",
+              "status": "populated",
+              "detail": "10/10"
+            }
+          ]
+        },
+        "builds": {
+          "status": "populated",
+          "checks": [
+            {
+              "field": "builds",
+              "status": "populated",
+              "detail": "len=10"
+            }
+          ]
+        }
+      },
+      "matchLevel": {
+        "drafts": {
+          "status": "partial",
+          "checks": [
+            {
+              "field": "hasDraft",
+              "status": "populated",
+              "detail": "[object Object]"
+            }
+          ]
+        },
+        "match_player_stats": {
+          "status": "partial",
+          "checks": [
+            {
+              "field": "players",
+              "status": "populated",
+              "detail": "30 rows"
+            },
+            {
+              "field": "kills",
+              "status": "populated",
+              "detail": "30/30"
+            },
+            {
+              "field": "deaths",
+              "status": "populated",
+              "detail": "30/30"
+            },
+            {
+              "field": "assists",
+              "status": "populated",
+              "detail": "30/30"
+            },
+            {
+              "field": "kda",
+              "status": "populated",
+              "detail": "30/30"
+            },
+            {
+              "field": "cs",
+              "status": "populated",
+              "detail": "30/30"
+            },
+            {
+              "field": "csPerMin",
+              "status": "populated",
+              "detail": "30/30"
+            },
+            {
+              "field": "gold",
+              "status": "populated",
+              "detail": "30/30"
+            },
+            {
+              "field": "goldPerMin",
+              "status": "populated",
+              "detail": "30/30"
+            },
+            {
+              "field": "damage",
+              "status": "empty"
+            },
+            {
+              "field": "damagePerMin",
+              "status": "populated",
+              "detail": "30/30"
+            },
+            {
+              "field": "damageShare",
+              "status": "populated",
+              "detail": "30/30"
+            },
+            {
+              "field": "goldShare",
+              "status": "populated",
+              "detail": "30/30"
+            },
+            {
+              "field": "visionScore",
+              "status": "populated",
+              "detail": "30/30"
+            },
+            {
+              "field": "wardsPlaced",
+              "status": "populated",
+              "detail": "30/30"
+            },
+            {
+              "field": "wardsDestroyed",
+              "status": "empty"
+            },
+            {
+              "field": "wardsKilled",
+              "status": "populated",
+              "detail": "30/30"
+            },
+            {
+              "field": "goldDiffAt15",
+              "status": "empty"
+            },
+            {
+              "field": "golddiffat15",
+              "status": "empty"
+            },
+            {
+              "field": "gd15",
+              "status": "empty"
+            },
+            {
+              "field": "csDiffAt15",
+              "status": "empty"
+            },
+            {
+              "field": "csdiffat15",
+              "status": "empty"
+            },
+            {
+              "field": "csd15",
+              "status": "empty"
+            },
+            {
+              "field": "xpDiffAt15",
+              "status": "empty"
+            },
+            {
+              "field": "xpdiffat15",
+              "status": "empty"
+            },
+            {
+              "field": "xpd15",
+              "status": "empty"
+            },
+            {
+              "field": "soloKills",
+              "status": "empty"
+            },
+            {
+              "field": "solo_kills",
+              "status": "empty"
+            },
+            {
+              "field": "turretPlates",
+              "status": "empty"
+            },
+            {
+              "field": "plates",
+              "status": "empty"
+            },
+            {
+              "field": "monsterKillsEnemyJungle",
+              "status": "empty"
+            },
+            {
+              "field": "campsStolen",
+              "status": "empty"
+            },
+            {
+              "field": "position",
+              "status": "empty"
+            },
+            {
+              "field": "champion",
+              "status": "empty"
+            },
+            {
+              "field": "role",
+              "status": "populated",
+              "detail": "30/30"
+            }
+          ]
+        },
+        "match_timeline": {
+          "status": "empty",
+          "checks": [
+            {
+              "field": "timeline",
+              "status": "empty",
+              "detail": "events=0"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "sample": {
+        "league": "LEC",
+        "phase": "regular",
+        "matchId": "lol-match-115548668059523768",
+        "blockName": "Week 7",
+        "startTime": "2026-05-10T13:00:00.000Z",
+        "teams": "GIANTX vs Karmine Corp",
+        "gameId": "lol-game-115548668059523769",
+        "gameNumber": 1
+      },
+      "endpoints": {
+        "postgame": {
+          "status": "empty",
+          "checks": [
+            {
+              "field": "postgame.goldGraph",
+              "status": "empty",
+              "detail": "10 points, all zero"
+            },
+            {
+              "field": "postgame.timeline",
+              "status": "empty",
+              "detail": "len=0"
+            },
+            {
+              "field": "postgame.plates",
+              "status": "empty",
+              "detail": "null"
+            },
+            {
+              "field": "postgame.goldDistribution",
+              "status": "empty",
+              "detail": "null"
+            },
+            {
+              "field": "postgame.damageDistribution",
+              "status": "empty",
+              "detail": "null"
+            },
+            {
+              "field": "postgame.vision",
+              "status": "empty",
+              "detail": "null"
+            },
+            {
+              "field": "postgame.jungleShare",
+              "status": "empty",
+              "detail": "null"
+            },
+            {
+              "field": "postgame.rawAdvancedStats",
+              "status": "empty",
+              "detail": "null"
+            }
+          ]
+        },
+        "gold": {
+          "status": "empty",
+          "checks": [
+            {
+              "field": "gold",
+              "status": "empty",
+              "detail": "10 points, all zero"
+            }
+          ]
+        },
+        "plates": {
+          "status": "empty",
+          "checks": [
+            {
+              "field": "plates",
+              "status": "empty",
+              "detail": "null"
+            }
+          ]
+        },
+        "distributions": {
+          "status": "empty",
+          "checks": [
+            {
+              "field": "distributions",
+              "status": "empty",
+              "detail": "{\"gold\":null,\"damage\":null}"
+            }
+          ]
+        },
+        "vision": {
+          "status": "empty",
+          "checks": [
+            {
+              "field": "vision",
+              "status": "empty",
+              "detail": "null"
+            }
+          ]
+        },
+        "jungle-share": {
+          "status": "empty",
+          "checks": [
+            {
+              "field": "jungle-share",
+              "status": "empty",
+              "detail": "null"
+            }
+          ]
+        },
+        "objectives": {
+          "status": "empty",
+          "checks": [
+            {
+              "field": "objectives",
+              "status": "empty",
+              "detail": "events=0"
+            }
+          ]
+        },
+        "timeline": {
+          "status": "empty",
+          "checks": [
+            {
+              "field": "timeline",
+              "status": "empty",
+              "detail": "events=0"
+            }
+          ]
+        },
+        "player-stats": {
+          "status": "partial",
+          "checks": [
+            {
+              "field": "players",
+              "status": "populated",
+              "detail": "10 rows"
+            },
+            {
+              "field": "kills",
+              "status": "populated",
+              "detail": "10/10"
+            },
+            {
+              "field": "deaths",
+              "status": "populated",
+              "detail": "10/10"
+            },
+            {
+              "field": "assists",
+              "status": "populated",
+              "detail": "10/10"
+            },
+            {
+              "field": "kda",
+              "status": "populated",
+              "detail": "10/10"
+            },
+            {
+              "field": "cs",
+              "status": "populated",
+              "detail": "10/10"
+            },
+            {
+              "field": "csPerMin",
+              "status": "populated",
+              "detail": "10/10"
+            },
+            {
+              "field": "gold",
+              "status": "populated",
+              "detail": "10/10"
+            },
+            {
+              "field": "goldPerMin",
+              "status": "populated",
+              "detail": "10/10"
+            },
+            {
+              "field": "damage",
+              "status": "empty"
+            },
+            {
+              "field": "damagePerMin",
+              "status": "populated",
+              "detail": "10/10"
+            },
+            {
+              "field": "damageShare",
+              "status": "populated",
+              "detail": "10/10"
+            },
+            {
+              "field": "goldShare",
+              "status": "populated",
+              "detail": "10/10"
+            },
+            {
+              "field": "visionScore",
+              "status": "populated",
+              "detail": "10/10"
+            },
+            {
+              "field": "wardsPlaced",
+              "status": "populated",
+              "detail": "10/10"
+            },
+            {
+              "field": "wardsDestroyed",
+              "status": "empty"
+            },
+            {
+              "field": "wardsKilled",
+              "status": "populated",
+              "detail": "10/10"
+            },
+            {
+              "field": "goldDiffAt15",
+              "status": "empty"
+            },
+            {
+              "field": "golddiffat15",
+              "status": "empty"
+            },
+            {
+              "field": "gd15",
+              "status": "empty"
+            },
+            {
+              "field": "csDiffAt15",
+              "status": "empty"
+            },
+            {
+              "field": "csdiffat15",
+              "status": "empty"
+            },
+            {
+              "field": "csd15",
+              "status": "empty"
+            },
+            {
+              "field": "xpDiffAt15",
+              "status": "empty"
+            },
+            {
+              "field": "xpdiffat15",
+              "status": "empty"
+            },
+            {
+              "field": "xpd15",
+              "status": "empty"
+            },
+            {
+              "field": "soloKills",
+              "status": "empty"
+            },
+            {
+              "field": "solo_kills",
+              "status": "empty"
+            },
+            {
+              "field": "turretPlates",
+              "status": "empty"
+            },
+            {
+              "field": "plates",
+              "status": "empty"
+            },
+            {
+              "field": "monsterKillsEnemyJungle",
+              "status": "empty"
+            },
+            {
+              "field": "campsStolen",
+              "status": "empty"
+            },
+            {
+              "field": "position",
+              "status": "empty"
+            },
+            {
+              "field": "champion",
+              "status": "empty"
+            },
+            {
+              "field": "role",
+              "status": "populated",
+              "detail": "10/10"
+            }
+          ]
+        },
+        "stats": {
+          "status": "partial",
+          "checks": [
+            {
+              "field": "players",
+              "status": "populated",
+              "detail": "10 rows"
+            },
+            {
+              "field": "kills",
+              "status": "populated",
+              "detail": "10/10"
+            },
+            {
+              "field": "deaths",
+              "status": "populated",
+              "detail": "10/10"
+            },
+            {
+              "field": "assists",
+              "status": "populated",
+              "detail": "10/10"
+            },
+            {
+              "field": "kda",
+              "status": "populated",
+              "detail": "10/10"
+            },
+            {
+              "field": "cs",
+              "status": "populated",
+              "detail": "10/10"
+            },
+            {
+              "field": "csPerMin",
+              "status": "populated",
+              "detail": "10/10"
+            },
+            {
+              "field": "gold",
+              "status": "populated",
+              "detail": "10/10"
+            },
+            {
+              "field": "goldPerMin",
+              "status": "populated",
+              "detail": "10/10"
+            },
+            {
+              "field": "damage",
+              "status": "empty"
+            },
+            {
+              "field": "damagePerMin",
+              "status": "populated",
+              "detail": "10/10"
+            },
+            {
+              "field": "damageShare",
+              "status": "populated",
+              "detail": "10/10"
+            },
+            {
+              "field": "goldShare",
+              "status": "populated",
+              "detail": "10/10"
+            },
+            {
+              "field": "visionScore",
+              "status": "populated",
+              "detail": "10/10"
+            },
+            {
+              "field": "wardsPlaced",
+              "status": "populated",
+              "detail": "10/10"
+            },
+            {
+              "field": "wardsDestroyed",
+              "status": "empty"
+            },
+            {
+              "field": "wardsKilled",
+              "status": "populated",
+              "detail": "10/10"
+            },
+            {
+              "field": "goldDiffAt15",
+              "status": "empty"
+            },
+            {
+              "field": "golddiffat15",
+              "status": "empty"
+            },
+            {
+              "field": "gd15",
+              "status": "empty"
+            },
+            {
+              "field": "csDiffAt15",
+              "status": "empty"
+            },
+            {
+              "field": "csdiffat15",
+              "status": "empty"
+            },
+            {
+              "field": "csd15",
+              "status": "empty"
+            },
+            {
+              "field": "xpDiffAt15",
+              "status": "empty"
+            },
+            {
+              "field": "xpdiffat15",
+              "status": "empty"
+            },
+            {
+              "field": "xpd15",
+              "status": "empty"
+            },
+            {
+              "field": "soloKills",
+              "status": "empty"
+            },
+            {
+              "field": "solo_kills",
+              "status": "empty"
+            },
+            {
+              "field": "turretPlates",
+              "status": "empty"
+            },
+            {
+              "field": "plates",
+              "status": "empty"
+            },
+            {
+              "field": "monsterKillsEnemyJungle",
+              "status": "empty"
+            },
+            {
+              "field": "campsStolen",
+              "status": "empty"
+            },
+            {
+              "field": "position",
+              "status": "empty"
+            },
+            {
+              "field": "champion",
+              "status": "empty"
+            },
+            {
+              "field": "role",
+              "status": "populated",
+              "detail": "10/10"
+            }
+          ]
+        },
+        "builds": {
+          "status": "populated",
+          "checks": [
+            {
+              "field": "builds",
+              "status": "populated",
+              "detail": "len=10"
+            }
+          ]
+        }
+      },
+      "matchLevel": {
+        "drafts": {
+          "status": "partial",
+          "checks": [
+            {
+              "field": "hasDraft",
+              "status": "populated",
+              "detail": "[object Object]"
+            }
+          ]
+        },
+        "match_player_stats": {
+          "status": "partial",
+          "checks": [
+            {
+              "field": "players",
+              "status": "populated",
+              "detail": "30 rows"
+            },
+            {
+              "field": "kills",
+              "status": "populated",
+              "detail": "30/30"
+            },
+            {
+              "field": "deaths",
+              "status": "populated",
+              "detail": "30/30"
+            },
+            {
+              "field": "assists",
+              "status": "populated",
+              "detail": "30/30"
+            },
+            {
+              "field": "kda",
+              "status": "populated",
+              "detail": "30/30"
+            },
+            {
+              "field": "cs",
+              "status": "populated",
+              "detail": "30/30"
+            },
+            {
+              "field": "csPerMin",
+              "status": "populated",
+              "detail": "30/30"
+            },
+            {
+              "field": "gold",
+              "status": "populated",
+              "detail": "30/30"
+            },
+            {
+              "field": "goldPerMin",
+              "status": "populated",
+              "detail": "30/30"
+            },
+            {
+              "field": "damage",
+              "status": "empty"
+            },
+            {
+              "field": "damagePerMin",
+              "status": "populated",
+              "detail": "30/30"
+            },
+            {
+              "field": "damageShare",
+              "status": "populated",
+              "detail": "30/30"
+            },
+            {
+              "field": "goldShare",
+              "status": "populated",
+              "detail": "30/30"
+            },
+            {
+              "field": "visionScore",
+              "status": "populated",
+              "detail": "30/30"
+            },
+            {
+              "field": "wardsPlaced",
+              "status": "populated",
+              "detail": "30/30"
+            },
+            {
+              "field": "wardsDestroyed",
+              "status": "empty"
+            },
+            {
+              "field": "wardsKilled",
+              "status": "populated",
+              "detail": "30/30"
+            },
+            {
+              "field": "goldDiffAt15",
+              "status": "empty"
+            },
+            {
+              "field": "golddiffat15",
+              "status": "empty"
+            },
+            {
+              "field": "gd15",
+              "status": "empty"
+            },
+            {
+              "field": "csDiffAt15",
+              "status": "empty"
+            },
+            {
+              "field": "csdiffat15",
+              "status": "empty"
+            },
+            {
+              "field": "csd15",
+              "status": "empty"
+            },
+            {
+              "field": "xpDiffAt15",
+              "status": "empty"
+            },
+            {
+              "field": "xpdiffat15",
+              "status": "empty"
+            },
+            {
+              "field": "xpd15",
+              "status": "empty"
+            },
+            {
+              "field": "soloKills",
+              "status": "empty"
+            },
+            {
+              "field": "solo_kills",
+              "status": "empty"
+            },
+            {
+              "field": "turretPlates",
+              "status": "empty"
+            },
+            {
+              "field": "plates",
+              "status": "empty"
+            },
+            {
+              "field": "monsterKillsEnemyJungle",
+              "status": "empty"
+            },
+            {
+              "field": "campsStolen",
+              "status": "empty"
+            },
+            {
+              "field": "position",
+              "status": "empty"
+            },
+            {
+              "field": "champion",
+              "status": "empty"
+            },
+            {
+              "field": "role",
+              "status": "populated",
+              "detail": "30/30"
+            }
+          ]
+        },
+        "match_timeline": {
+          "status": "empty",
+          "checks": [
+            {
+              "field": "timeline",
+              "status": "empty",
+              "detail": "events=0"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "sample": {
+        "league": "LEC",
+        "phase": "playoff",
+        "matchId": "lol-match-115548668059589358",
+        "blockName": "Playoffs",
+        "startTime": "2026-05-23T15:00:00.000Z",
+        "teams": "G2 Esports vs Karmine Corp",
+        "gameId": "lol-game-115548668059589362",
+        "gameNumber": 4
+      },
+      "endpoints": {
+        "postgame": {
+          "status": "populated",
+          "checks": [
+            {
+              "field": "postgame.goldGraph",
+              "status": "populated",
+              "detail": "28/28 non-zero points"
+            },
+            {
+              "field": "postgame.timeline",
+              "status": "populated",
+              "detail": "len=108"
+            },
+            {
+              "field": "postgame.plates",
+              "status": "populated",
+              "detail": "object"
+            },
+            {
+              "field": "postgame.goldDistribution",
+              "status": "populated",
+              "detail": "object"
+            },
+            {
+              "field": "postgame.damageDistribution",
+              "status": "populated",
+              "detail": "object"
+            },
+            {
+              "field": "postgame.vision",
+              "status": "populated",
+              "detail": "object"
+            },
+            {
+              "field": "postgame.jungleShare",
+              "status": "populated",
+              "detail": "object"
+            },
+            {
+              "field": "postgame.rawAdvancedStats",
+              "status": "populated",
+              "detail": "object"
+            }
+          ]
+        },
+        "gold": {
+          "status": "populated",
+          "checks": [
+            {
+              "field": "gold",
+              "status": "populated",
+              "detail": "28/28 non-zero points"
+            }
+          ]
+        },
+        "plates": {
+          "status": "populated",
+          "checks": [
+            {
+              "field": "plates",
+              "status": "populated",
+              "detail": "{\"red\":{\"bot\":5,\"mid\":1,\"top\":5,\"voidgrubs\":3,\"towerPlates\":11},\"blue\":{\"bot\":11,\"mid\":15,\"top\":15,\"voidgrubs\":0,\"towerP"
+            }
+          ]
+        },
+        "distributions": {
+          "status": "populated",
+          "checks": [
+            {
+              "field": "distributions",
+              "status": "populated",
+              "detail": "{\"gold\":{\"ADC\":{\"red\":0.244,\"blue\":0.242},\"MID\":{\"red\":0.19,\"blue\":0.235},\"TOP\":{\"red\":0.2,\"blue\":0.189},\"JUNGLE\":{\"red\""
+            }
+          ]
+        },
+        "vision": {
+          "status": "populated",
+          "checks": [
+            {
+              "field": "vision",
+              "status": "populated",
+              "detail": "{\"red\":{\"score\":207,\"wardsKilled\":28,\"wardsPlaced\":86,\"controlWardsBought\":18},\"blue\":{\"score\":262,\"wardsKilled\":32,\"war"
+            }
+          ]
+        },
+        "jungle-share": {
+          "status": "populated",
+          "checks": [
+            {
+              "field": "jungle-share",
+              "status": "populated",
+              "detail": "{\"ADC\":{\"red\":0,\"blue\":0},\"MID\":{\"red\":0,\"blue\":0},\"TOP\":{\"red\":0,\"blue\":2},\"JUNGLE\":{\"red\":126,\"blue\":183},\"SUPPORT\":{\""
+            }
+          ]
+        },
+        "objectives": {
+          "status": "populated",
+          "checks": [
+            {
+              "field": "objectives",
+              "status": "populated",
+              "detail": "events=20"
+            },
+            {
+              "field": "objectives[0].keys",
+              "status": "populated",
+              "detail": "timestamp, eventType, side, objectiveType, playerName"
+            }
+          ]
+        },
+        "timeline": {
+          "status": "populated",
+          "checks": [
+            {
+              "field": "timeline",
+              "status": "populated",
+              "detail": "events=108"
+            },
+            {
+              "field": "timeline[0].keys",
+              "status": "populated",
+              "detail": "id, timestamp, eventType, teamSlug, side, playerName, victimName, objectiveType, killType, position"
+            }
+          ]
+        },
+        "player-stats": {
+          "status": "partial",
+          "checks": [
+            {
+              "field": "players",
+              "status": "populated",
+              "detail": "10 rows"
+            },
+            {
+              "field": "kills",
+              "status": "populated",
+              "detail": "10/10"
+            },
+            {
+              "field": "deaths",
+              "status": "populated",
+              "detail": "10/10"
+            },
+            {
+              "field": "assists",
+              "status": "populated",
+              "detail": "10/10"
+            },
+            {
+              "field": "kda",
+              "status": "populated",
+              "detail": "10/10"
+            },
+            {
+              "field": "cs",
+              "status": "populated",
+              "detail": "10/10"
+            },
+            {
+              "field": "csPerMin",
+              "status": "populated",
+              "detail": "10/10"
+            },
+            {
+              "field": "gold",
+              "status": "populated",
+              "detail": "10/10"
+            },
+            {
+              "field": "goldPerMin",
+              "status": "populated",
+              "detail": "10/10"
+            },
+            {
+              "field": "damage",
+              "status": "empty"
+            },
+            {
+              "field": "damagePerMin",
+              "status": "populated",
+              "detail": "10/10"
+            },
+            {
+              "field": "damageShare",
+              "status": "populated",
+              "detail": "10/10"
+            },
+            {
+              "field": "goldShare",
+              "status": "populated",
+              "detail": "10/10"
+            },
+            {
+              "field": "visionScore",
+              "status": "populated",
+              "detail": "10/10"
+            },
+            {
+              "field": "wardsPlaced",
+              "status": "populated",
+              "detail": "10/10"
+            },
+            {
+              "field": "wardsDestroyed",
+              "status": "empty"
+            },
+            {
+              "field": "wardsKilled",
+              "status": "populated",
+              "detail": "10/10"
+            },
+            {
+              "field": "goldDiffAt15",
+              "status": "empty"
+            },
+            {
+              "field": "golddiffat15",
+              "status": "empty"
+            },
+            {
+              "field": "gd15",
+              "status": "empty"
+            },
+            {
+              "field": "csDiffAt15",
+              "status": "empty"
+            },
+            {
+              "field": "csdiffat15",
+              "status": "empty"
+            },
+            {
+              "field": "csd15",
+              "status": "empty"
+            },
+            {
+              "field": "xpDiffAt15",
+              "status": "empty"
+            },
+            {
+              "field": "xpdiffat15",
+              "status": "empty"
+            },
+            {
+              "field": "xpd15",
+              "status": "empty"
+            },
+            {
+              "field": "soloKills",
+              "status": "empty"
+            },
+            {
+              "field": "solo_kills",
+              "status": "empty"
+            },
+            {
+              "field": "turretPlates",
+              "status": "empty"
+            },
+            {
+              "field": "plates",
+              "status": "empty"
+            },
+            {
+              "field": "monsterKillsEnemyJungle",
+              "status": "empty"
+            },
+            {
+              "field": "campsStolen",
+              "status": "empty"
+            },
+            {
+              "field": "position",
+              "status": "empty"
+            },
+            {
+              "field": "champion",
+              "status": "empty"
+            },
+            {
+              "field": "role",
+              "status": "populated",
+              "detail": "10/10"
+            }
+          ]
+        },
+        "stats": {
+          "status": "partial",
+          "checks": [
+            {
+              "field": "players",
+              "status": "populated",
+              "detail": "10 rows"
+            },
+            {
+              "field": "kills",
+              "status": "populated",
+              "detail": "10/10"
+            },
+            {
+              "field": "deaths",
+              "status": "populated",
+              "detail": "10/10"
+            },
+            {
+              "field": "assists",
+              "status": "populated",
+              "detail": "10/10"
+            },
+            {
+              "field": "kda",
+              "status": "populated",
+              "detail": "10/10"
+            },
+            {
+              "field": "cs",
+              "status": "populated",
+              "detail": "10/10"
+            },
+            {
+              "field": "csPerMin",
+              "status": "populated",
+              "detail": "10/10"
+            },
+            {
+              "field": "gold",
+              "status": "populated",
+              "detail": "10/10"
+            },
+            {
+              "field": "goldPerMin",
+              "status": "populated",
+              "detail": "10/10"
+            },
+            {
+              "field": "damage",
+              "status": "empty"
+            },
+            {
+              "field": "damagePerMin",
+              "status": "populated",
+              "detail": "10/10"
+            },
+            {
+              "field": "damageShare",
+              "status": "populated",
+              "detail": "10/10"
+            },
+            {
+              "field": "goldShare",
+              "status": "populated",
+              "detail": "10/10"
+            },
+            {
+              "field": "visionScore",
+              "status": "populated",
+              "detail": "10/10"
+            },
+            {
+              "field": "wardsPlaced",
+              "status": "populated",
+              "detail": "10/10"
+            },
+            {
+              "field": "wardsDestroyed",
+              "status": "empty"
+            },
+            {
+              "field": "wardsKilled",
+              "status": "populated",
+              "detail": "10/10"
+            },
+            {
+              "field": "goldDiffAt15",
+              "status": "empty"
+            },
+            {
+              "field": "golddiffat15",
+              "status": "empty"
+            },
+            {
+              "field": "gd15",
+              "status": "empty"
+            },
+            {
+              "field": "csDiffAt15",
+              "status": "empty"
+            },
+            {
+              "field": "csdiffat15",
+              "status": "empty"
+            },
+            {
+              "field": "csd15",
+              "status": "empty"
+            },
+            {
+              "field": "xpDiffAt15",
+              "status": "empty"
+            },
+            {
+              "field": "xpdiffat15",
+              "status": "empty"
+            },
+            {
+              "field": "xpd15",
+              "status": "empty"
+            },
+            {
+              "field": "soloKills",
+              "status": "empty"
+            },
+            {
+              "field": "solo_kills",
+              "status": "empty"
+            },
+            {
+              "field": "turretPlates",
+              "status": "empty"
+            },
+            {
+              "field": "plates",
+              "status": "empty"
+            },
+            {
+              "field": "monsterKillsEnemyJungle",
+              "status": "empty"
+            },
+            {
+              "field": "campsStolen",
+              "status": "empty"
+            },
+            {
+              "field": "position",
+              "status": "empty"
+            },
+            {
+              "field": "champion",
+              "status": "empty"
+            },
+            {
+              "field": "role",
+              "status": "populated",
+              "detail": "10/10"
+            }
+          ]
+        },
+        "builds": {
+          "status": "populated",
+          "checks": [
+            {
+              "field": "builds",
+              "status": "populated",
+              "detail": "len=10"
+            }
+          ]
+        }
+      },
+      "matchLevel": {
+        "drafts": {
+          "status": "partial",
+          "checks": [
+            {
+              "field": "hasDraft",
+              "status": "populated",
+              "detail": "[object Object]"
+            }
+          ]
+        },
+        "match_player_stats": {
+          "status": "partial",
+          "checks": [
+            {
+              "field": "players",
+              "status": "populated",
+              "detail": "40 rows"
+            },
+            {
+              "field": "kills",
+              "status": "populated",
+              "detail": "40/40"
+            },
+            {
+              "field": "deaths",
+              "status": "populated",
+              "detail": "40/40"
+            },
+            {
+              "field": "assists",
+              "status": "populated",
+              "detail": "40/40"
+            },
+            {
+              "field": "kda",
+              "status": "populated",
+              "detail": "40/40"
+            },
+            {
+              "field": "cs",
+              "status": "populated",
+              "detail": "40/40"
+            },
+            {
+              "field": "csPerMin",
+              "status": "populated",
+              "detail": "40/40"
+            },
+            {
+              "field": "gold",
+              "status": "populated",
+              "detail": "40/40"
+            },
+            {
+              "field": "goldPerMin",
+              "status": "populated",
+              "detail": "40/40"
+            },
+            {
+              "field": "damage",
+              "status": "empty"
+            },
+            {
+              "field": "damagePerMin",
+              "status": "populated",
+              "detail": "40/40"
+            },
+            {
+              "field": "damageShare",
+              "status": "populated",
+              "detail": "40/40"
+            },
+            {
+              "field": "goldShare",
+              "status": "populated",
+              "detail": "40/40"
+            },
+            {
+              "field": "visionScore",
+              "status": "populated",
+              "detail": "40/40"
+            },
+            {
+              "field": "wardsPlaced",
+              "status": "populated",
+              "detail": "40/40"
+            },
+            {
+              "field": "wardsDestroyed",
+              "status": "empty"
+            },
+            {
+              "field": "wardsKilled",
+              "status": "populated",
+              "detail": "40/40"
+            },
+            {
+              "field": "goldDiffAt15",
+              "status": "empty"
+            },
+            {
+              "field": "golddiffat15",
+              "status": "empty"
+            },
+            {
+              "field": "gd15",
+              "status": "empty"
+            },
+            {
+              "field": "csDiffAt15",
+              "status": "empty"
+            },
+            {
+              "field": "csdiffat15",
+              "status": "empty"
+            },
+            {
+              "field": "csd15",
+              "status": "empty"
+            },
+            {
+              "field": "xpDiffAt15",
+              "status": "empty"
+            },
+            {
+              "field": "xpdiffat15",
+              "status": "empty"
+            },
+            {
+              "field": "xpd15",
+              "status": "empty"
+            },
+            {
+              "field": "soloKills",
+              "status": "empty"
+            },
+            {
+              "field": "solo_kills",
+              "status": "empty"
+            },
+            {
+              "field": "turretPlates",
+              "status": "empty"
+            },
+            {
+              "field": "plates",
+              "status": "empty"
+            },
+            {
+              "field": "monsterKillsEnemyJungle",
+              "status": "empty"
+            },
+            {
+              "field": "campsStolen",
+              "status": "empty"
+            },
+            {
+              "field": "position",
+              "status": "empty"
+            },
+            {
+              "field": "champion",
+              "status": "empty"
+            },
+            {
+              "field": "role",
+              "status": "populated",
+              "detail": "40/40"
+            }
+          ]
+        },
+        "match_timeline": {
+          "status": "partial",
+          "checks": [
+            {
+              "field": "timeline",
+              "status": "populated",
+              "detail": "events=94"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "sample": {
+        "league": "LCS",
+        "phase": "regular",
+        "matchId": "lol-match-115564793879403676",
+        "blockName": "Week 6",
+        "startTime": "2026-05-10T20:00:00.000Z",
+        "teams": "FlyQuest vs Cloud9 Kia",
+        "gameId": "lol-game-115564793879403678",
+        "gameNumber": 2
+      },
+      "endpoints": {
+        "postgame": {
+          "status": "empty",
+          "checks": [
+            {
+              "field": "postgame.goldGraph",
+              "status": "empty",
+              "detail": "10 points, all zero"
+            },
+            {
+              "field": "postgame.timeline",
+              "status": "empty",
+              "detail": "len=0"
+            },
+            {
+              "field": "postgame.plates",
+              "status": "empty",
+              "detail": "null"
+            },
+            {
+              "field": "postgame.goldDistribution",
+              "status": "empty",
+              "detail": "null"
+            },
+            {
+              "field": "postgame.damageDistribution",
+              "status": "empty",
+              "detail": "null"
+            },
+            {
+              "field": "postgame.vision",
+              "status": "empty",
+              "detail": "null"
+            },
+            {
+              "field": "postgame.jungleShare",
+              "status": "empty",
+              "detail": "null"
+            },
+            {
+              "field": "postgame.rawAdvancedStats",
+              "status": "empty",
+              "detail": "null"
+            }
+          ]
+        },
+        "gold": {
+          "status": "empty",
+          "checks": [
+            {
+              "field": "gold",
+              "status": "empty",
+              "detail": "10 points, all zero"
+            }
+          ]
+        },
+        "plates": {
+          "status": "empty",
+          "checks": [
+            {
+              "field": "plates",
+              "status": "empty",
+              "detail": "null"
+            }
+          ]
+        },
+        "distributions": {
+          "status": "empty",
+          "checks": [
+            {
+              "field": "distributions",
+              "status": "empty",
+              "detail": "{\"gold\":null,\"damage\":null}"
+            }
+          ]
+        },
+        "vision": {
+          "status": "empty",
+          "checks": [
+            {
+              "field": "vision",
+              "status": "empty",
+              "detail": "null"
+            }
+          ]
+        },
+        "jungle-share": {
+          "status": "empty",
+          "checks": [
+            {
+              "field": "jungle-share",
+              "status": "empty",
+              "detail": "null"
+            }
+          ]
+        },
+        "objectives": {
+          "status": "empty",
+          "checks": [
+            {
+              "field": "objectives",
+              "status": "empty",
+              "detail": "events=0"
+            }
+          ]
+        },
+        "timeline": {
+          "status": "empty",
+          "checks": [
+            {
+              "field": "timeline",
+              "status": "empty",
+              "detail": "events=0"
+            }
+          ]
+        },
+        "player-stats": {
+          "status": "partial",
+          "checks": [
+            {
+              "field": "players",
+              "status": "populated",
+              "detail": "10 rows"
+            },
+            {
+              "field": "kills",
+              "status": "populated",
+              "detail": "10/10"
+            },
+            {
+              "field": "deaths",
+              "status": "populated",
+              "detail": "10/10"
+            },
+            {
+              "field": "assists",
+              "status": "populated",
+              "detail": "10/10"
+            },
+            {
+              "field": "kda",
+              "status": "populated",
+              "detail": "10/10"
+            },
+            {
+              "field": "cs",
+              "status": "populated",
+              "detail": "10/10"
+            },
+            {
+              "field": "csPerMin",
+              "status": "populated",
+              "detail": "10/10"
+            },
+            {
+              "field": "gold",
+              "status": "populated",
+              "detail": "10/10"
+            },
+            {
+              "field": "goldPerMin",
+              "status": "populated",
+              "detail": "10/10"
+            },
+            {
+              "field": "damage",
+              "status": "empty"
+            },
+            {
+              "field": "damagePerMin",
+              "status": "populated",
+              "detail": "10/10"
+            },
+            {
+              "field": "damageShare",
+              "status": "populated",
+              "detail": "10/10"
+            },
+            {
+              "field": "goldShare",
+              "status": "populated",
+              "detail": "10/10"
+            },
+            {
+              "field": "visionScore",
+              "status": "populated",
+              "detail": "10/10"
+            },
+            {
+              "field": "wardsPlaced",
+              "status": "populated",
+              "detail": "10/10"
+            },
+            {
+              "field": "wardsDestroyed",
+              "status": "empty"
+            },
+            {
+              "field": "wardsKilled",
+              "status": "populated",
+              "detail": "10/10"
+            },
+            {
+              "field": "goldDiffAt15",
+              "status": "empty"
+            },
+            {
+              "field": "golddiffat15",
+              "status": "empty"
+            },
+            {
+              "field": "gd15",
+              "status": "empty"
+            },
+            {
+              "field": "csDiffAt15",
+              "status": "empty"
+            },
+            {
+              "field": "csdiffat15",
+              "status": "empty"
+            },
+            {
+              "field": "csd15",
+              "status": "empty"
+            },
+            {
+              "field": "xpDiffAt15",
+              "status": "empty"
+            },
+            {
+              "field": "xpdiffat15",
+              "status": "empty"
+            },
+            {
+              "field": "xpd15",
+              "status": "empty"
+            },
+            {
+              "field": "soloKills",
+              "status": "empty"
+            },
+            {
+              "field": "solo_kills",
+              "status": "empty"
+            },
+            {
+              "field": "turretPlates",
+              "status": "empty"
+            },
+            {
+              "field": "plates",
+              "status": "empty"
+            },
+            {
+              "field": "monsterKillsEnemyJungle",
+              "status": "empty"
+            },
+            {
+              "field": "campsStolen",
+              "status": "empty"
+            },
+            {
+              "field": "position",
+              "status": "empty"
+            },
+            {
+              "field": "champion",
+              "status": "empty"
+            },
+            {
+              "field": "role",
+              "status": "populated",
+              "detail": "10/10"
+            }
+          ]
+        },
+        "stats": {
+          "status": "partial",
+          "checks": [
+            {
+              "field": "players",
+              "status": "populated",
+              "detail": "10 rows"
+            },
+            {
+              "field": "kills",
+              "status": "populated",
+              "detail": "10/10"
+            },
+            {
+              "field": "deaths",
+              "status": "populated",
+              "detail": "10/10"
+            },
+            {
+              "field": "assists",
+              "status": "populated",
+              "detail": "10/10"
+            },
+            {
+              "field": "kda",
+              "status": "populated",
+              "detail": "10/10"
+            },
+            {
+              "field": "cs",
+              "status": "populated",
+              "detail": "10/10"
+            },
+            {
+              "field": "csPerMin",
+              "status": "populated",
+              "detail": "10/10"
+            },
+            {
+              "field": "gold",
+              "status": "populated",
+              "detail": "10/10"
+            },
+            {
+              "field": "goldPerMin",
+              "status": "populated",
+              "detail": "10/10"
+            },
+            {
+              "field": "damage",
+              "status": "empty"
+            },
+            {
+              "field": "damagePerMin",
+              "status": "populated",
+              "detail": "10/10"
+            },
+            {
+              "field": "damageShare",
+              "status": "populated",
+              "detail": "10/10"
+            },
+            {
+              "field": "goldShare",
+              "status": "populated",
+              "detail": "10/10"
+            },
+            {
+              "field": "visionScore",
+              "status": "populated",
+              "detail": "10/10"
+            },
+            {
+              "field": "wardsPlaced",
+              "status": "populated",
+              "detail": "10/10"
+            },
+            {
+              "field": "wardsDestroyed",
+              "status": "empty"
+            },
+            {
+              "field": "wardsKilled",
+              "status": "populated",
+              "detail": "10/10"
+            },
+            {
+              "field": "goldDiffAt15",
+              "status": "empty"
+            },
+            {
+              "field": "golddiffat15",
+              "status": "empty"
+            },
+            {
+              "field": "gd15",
+              "status": "empty"
+            },
+            {
+              "field": "csDiffAt15",
+              "status": "empty"
+            },
+            {
+              "field": "csdiffat15",
+              "status": "empty"
+            },
+            {
+              "field": "csd15",
+              "status": "empty"
+            },
+            {
+              "field": "xpDiffAt15",
+              "status": "empty"
+            },
+            {
+              "field": "xpdiffat15",
+              "status": "empty"
+            },
+            {
+              "field": "xpd15",
+              "status": "empty"
+            },
+            {
+              "field": "soloKills",
+              "status": "empty"
+            },
+            {
+              "field": "solo_kills",
+              "status": "empty"
+            },
+            {
+              "field": "turretPlates",
+              "status": "empty"
+            },
+            {
+              "field": "plates",
+              "status": "empty"
+            },
+            {
+              "field": "monsterKillsEnemyJungle",
+              "status": "empty"
+            },
+            {
+              "field": "campsStolen",
+              "status": "empty"
+            },
+            {
+              "field": "position",
+              "status": "empty"
+            },
+            {
+              "field": "champion",
+              "status": "empty"
+            },
+            {
+              "field": "role",
+              "status": "populated",
+              "detail": "10/10"
+            }
+          ]
+        },
+        "builds": {
+          "status": "populated",
+          "checks": [
+            {
+              "field": "builds",
+              "status": "populated",
+              "detail": "len=10"
+            }
+          ]
+        }
+      },
+      "matchLevel": {
+        "drafts": {
+          "status": "partial",
+          "checks": [
+            {
+              "field": "hasDraft",
+              "status": "populated",
+              "detail": "[object Object]"
+            }
+          ]
+        },
+        "match_player_stats": {
+          "status": "partial",
+          "checks": [
+            {
+              "field": "players",
+              "status": "populated",
+              "detail": "30 rows"
+            },
+            {
+              "field": "kills",
+              "status": "populated",
+              "detail": "30/30"
+            },
+            {
+              "field": "deaths",
+              "status": "populated",
+              "detail": "30/30"
+            },
+            {
+              "field": "assists",
+              "status": "populated",
+              "detail": "30/30"
+            },
+            {
+              "field": "kda",
+              "status": "populated",
+              "detail": "30/30"
+            },
+            {
+              "field": "cs",
+              "status": "populated",
+              "detail": "30/30"
+            },
+            {
+              "field": "csPerMin",
+              "status": "populated",
+              "detail": "30/30"
+            },
+            {
+              "field": "gold",
+              "status": "populated",
+              "detail": "30/30"
+            },
+            {
+              "field": "goldPerMin",
+              "status": "populated",
+              "detail": "30/30"
+            },
+            {
+              "field": "damage",
+              "status": "empty"
+            },
+            {
+              "field": "damagePerMin",
+              "status": "populated",
+              "detail": "30/30"
+            },
+            {
+              "field": "damageShare",
+              "status": "populated",
+              "detail": "30/30"
+            },
+            {
+              "field": "goldShare",
+              "status": "populated",
+              "detail": "30/30"
+            },
+            {
+              "field": "visionScore",
+              "status": "populated",
+              "detail": "30/30"
+            },
+            {
+              "field": "wardsPlaced",
+              "status": "populated",
+              "detail": "30/30"
+            },
+            {
+              "field": "wardsDestroyed",
+              "status": "empty"
+            },
+            {
+              "field": "wardsKilled",
+              "status": "populated",
+              "detail": "30/30"
+            },
+            {
+              "field": "goldDiffAt15",
+              "status": "empty"
+            },
+            {
+              "field": "golddiffat15",
+              "status": "empty"
+            },
+            {
+              "field": "gd15",
+              "status": "empty"
+            },
+            {
+              "field": "csDiffAt15",
+              "status": "empty"
+            },
+            {
+              "field": "csdiffat15",
+              "status": "empty"
+            },
+            {
+              "field": "csd15",
+              "status": "empty"
+            },
+            {
+              "field": "xpDiffAt15",
+              "status": "empty"
+            },
+            {
+              "field": "xpdiffat15",
+              "status": "empty"
+            },
+            {
+              "field": "xpd15",
+              "status": "empty"
+            },
+            {
+              "field": "soloKills",
+              "status": "empty"
+            },
+            {
+              "field": "solo_kills",
+              "status": "empty"
+            },
+            {
+              "field": "turretPlates",
+              "status": "empty"
+            },
+            {
+              "field": "plates",
+              "status": "empty"
+            },
+            {
+              "field": "monsterKillsEnemyJungle",
+              "status": "empty"
+            },
+            {
+              "field": "campsStolen",
+              "status": "empty"
+            },
+            {
+              "field": "position",
+              "status": "empty"
+            },
+            {
+              "field": "champion",
+              "status": "empty"
+            },
+            {
+              "field": "role",
+              "status": "populated",
+              "detail": "30/30"
+            }
+          ]
+        },
+        "match_timeline": {
+          "status": "empty",
+          "checks": [
+            {
+              "field": "timeline",
+              "status": "empty",
+              "detail": "events=0"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "sample": {
+        "league": "LCS",
+        "phase": "playoff",
+        "matchId": "lol-match-115564689066973286",
+        "blockName": "Finals",
+        "startTime": "2026-03-01T21:00:00.000Z",
+        "teams": "LYON vs Cloud9 Kia",
+        "gameId": "lol-game-115564689066973287",
+        "gameNumber": 1
+      },
+      "endpoints": {
+        "postgame": {
+          "status": "empty",
+          "checks": [
+            {
+              "field": "postgame.goldGraph",
+              "status": "empty",
+              "detail": "10 points, all zero"
+            },
+            {
+              "field": "postgame.timeline",
+              "status": "empty",
+              "detail": "len=0"
+            },
+            {
+              "field": "postgame.plates",
+              "status": "empty",
+              "detail": "null"
+            },
+            {
+              "field": "postgame.goldDistribution",
+              "status": "empty",
+              "detail": "null"
+            },
+            {
+              "field": "postgame.damageDistribution",
+              "status": "empty",
+              "detail": "null"
+            },
+            {
+              "field": "postgame.vision",
+              "status": "empty",
+              "detail": "null"
+            },
+            {
+              "field": "postgame.jungleShare",
+              "status": "empty",
+              "detail": "null"
+            },
+            {
+              "field": "postgame.rawAdvancedStats",
+              "status": "empty",
+              "detail": "null"
+            }
+          ]
+        },
+        "gold": {
+          "status": "empty",
+          "checks": [
+            {
+              "field": "gold",
+              "status": "empty",
+              "detail": "10 points, all zero"
+            }
+          ]
+        },
+        "plates": {
+          "status": "empty",
+          "checks": [
+            {
+              "field": "plates",
+              "status": "empty",
+              "detail": "null"
+            }
+          ]
+        },
+        "distributions": {
+          "status": "empty",
+          "checks": [
+            {
+              "field": "distributions",
+              "status": "empty",
+              "detail": "{\"gold\":null,\"damage\":null}"
+            }
+          ]
+        },
+        "vision": {
+          "status": "empty",
+          "checks": [
+            {
+              "field": "vision",
+              "status": "empty",
+              "detail": "null"
+            }
+          ]
+        },
+        "jungle-share": {
+          "status": "empty",
+          "checks": [
+            {
+              "field": "jungle-share",
+              "status": "empty",
+              "detail": "null"
+            }
+          ]
+        },
+        "objectives": {
+          "status": "empty",
+          "checks": [
+            {
+              "field": "objectives",
+              "status": "empty",
+              "detail": "events=0"
+            }
+          ]
+        },
+        "timeline": {
+          "status": "empty",
+          "checks": [
+            {
+              "field": "timeline",
+              "status": "empty",
+              "detail": "events=0"
+            }
+          ]
+        },
+        "player-stats": {
+          "status": "partial",
+          "checks": [
+            {
+              "field": "players",
+              "status": "populated",
+              "detail": "10 rows"
+            },
+            {
+              "field": "kills",
+              "status": "populated",
+              "detail": "10/10"
+            },
+            {
+              "field": "deaths",
+              "status": "populated",
+              "detail": "10/10"
+            },
+            {
+              "field": "assists",
+              "status": "populated",
+              "detail": "10/10"
+            },
+            {
+              "field": "kda",
+              "status": "populated",
+              "detail": "10/10"
+            },
+            {
+              "field": "cs",
+              "status": "populated",
+              "detail": "10/10"
+            },
+            {
+              "field": "csPerMin",
+              "status": "populated",
+              "detail": "10/10"
+            },
+            {
+              "field": "gold",
+              "status": "populated",
+              "detail": "10/10"
+            },
+            {
+              "field": "goldPerMin",
+              "status": "populated",
+              "detail": "10/10"
+            },
+            {
+              "field": "damage",
+              "status": "empty"
+            },
+            {
+              "field": "damagePerMin",
+              "status": "populated",
+              "detail": "10/10"
+            },
+            {
+              "field": "damageShare",
+              "status": "populated",
+              "detail": "10/10"
+            },
+            {
+              "field": "goldShare",
+              "status": "populated",
+              "detail": "10/10"
+            },
+            {
+              "field": "visionScore",
+              "status": "populated",
+              "detail": "10/10"
+            },
+            {
+              "field": "wardsPlaced",
+              "status": "populated",
+              "detail": "10/10"
+            },
+            {
+              "field": "wardsDestroyed",
+              "status": "empty"
+            },
+            {
+              "field": "wardsKilled",
+              "status": "populated",
+              "detail": "10/10"
+            },
+            {
+              "field": "goldDiffAt15",
+              "status": "empty"
+            },
+            {
+              "field": "golddiffat15",
+              "status": "empty"
+            },
+            {
+              "field": "gd15",
+              "status": "empty"
+            },
+            {
+              "field": "csDiffAt15",
+              "status": "empty"
+            },
+            {
+              "field": "csdiffat15",
+              "status": "empty"
+            },
+            {
+              "field": "csd15",
+              "status": "empty"
+            },
+            {
+              "field": "xpDiffAt15",
+              "status": "empty"
+            },
+            {
+              "field": "xpdiffat15",
+              "status": "empty"
+            },
+            {
+              "field": "xpd15",
+              "status": "empty"
+            },
+            {
+              "field": "soloKills",
+              "status": "empty"
+            },
+            {
+              "field": "solo_kills",
+              "status": "empty"
+            },
+            {
+              "field": "turretPlates",
+              "status": "empty"
+            },
+            {
+              "field": "plates",
+              "status": "empty"
+            },
+            {
+              "field": "monsterKillsEnemyJungle",
+              "status": "empty"
+            },
+            {
+              "field": "campsStolen",
+              "status": "empty"
+            },
+            {
+              "field": "position",
+              "status": "empty"
+            },
+            {
+              "field": "champion",
+              "status": "empty"
+            },
+            {
+              "field": "role",
+              "status": "populated",
+              "detail": "10/10"
+            }
+          ]
+        },
+        "stats": {
+          "status": "partial",
+          "checks": [
+            {
+              "field": "players",
+              "status": "populated",
+              "detail": "10 rows"
+            },
+            {
+              "field": "kills",
+              "status": "populated",
+              "detail": "10/10"
+            },
+            {
+              "field": "deaths",
+              "status": "populated",
+              "detail": "10/10"
+            },
+            {
+              "field": "assists",
+              "status": "populated",
+              "detail": "10/10"
+            },
+            {
+              "field": "kda",
+              "status": "populated",
+              "detail": "10/10"
+            },
+            {
+              "field": "cs",
+              "status": "populated",
+              "detail": "10/10"
+            },
+            {
+              "field": "csPerMin",
+              "status": "populated",
+              "detail": "10/10"
+            },
+            {
+              "field": "gold",
+              "status": "populated",
+              "detail": "10/10"
+            },
+            {
+              "field": "goldPerMin",
+              "status": "populated",
+              "detail": "10/10"
+            },
+            {
+              "field": "damage",
+              "status": "empty"
+            },
+            {
+              "field": "damagePerMin",
+              "status": "populated",
+              "detail": "10/10"
+            },
+            {
+              "field": "damageShare",
+              "status": "populated",
+              "detail": "10/10"
+            },
+            {
+              "field": "goldShare",
+              "status": "populated",
+              "detail": "10/10"
+            },
+            {
+              "field": "visionScore",
+              "status": "populated",
+              "detail": "10/10"
+            },
+            {
+              "field": "wardsPlaced",
+              "status": "populated",
+              "detail": "10/10"
+            },
+            {
+              "field": "wardsDestroyed",
+              "status": "empty"
+            },
+            {
+              "field": "wardsKilled",
+              "status": "populated",
+              "detail": "10/10"
+            },
+            {
+              "field": "goldDiffAt15",
+              "status": "empty"
+            },
+            {
+              "field": "golddiffat15",
+              "status": "empty"
+            },
+            {
+              "field": "gd15",
+              "status": "empty"
+            },
+            {
+              "field": "csDiffAt15",
+              "status": "empty"
+            },
+            {
+              "field": "csdiffat15",
+              "status": "empty"
+            },
+            {
+              "field": "csd15",
+              "status": "empty"
+            },
+            {
+              "field": "xpDiffAt15",
+              "status": "empty"
+            },
+            {
+              "field": "xpdiffat15",
+              "status": "empty"
+            },
+            {
+              "field": "xpd15",
+              "status": "empty"
+            },
+            {
+              "field": "soloKills",
+              "status": "empty"
+            },
+            {
+              "field": "solo_kills",
+              "status": "empty"
+            },
+            {
+              "field": "turretPlates",
+              "status": "empty"
+            },
+            {
+              "field": "plates",
+              "status": "empty"
+            },
+            {
+              "field": "monsterKillsEnemyJungle",
+              "status": "empty"
+            },
+            {
+              "field": "campsStolen",
+              "status": "empty"
+            },
+            {
+              "field": "position",
+              "status": "empty"
+            },
+            {
+              "field": "champion",
+              "status": "empty"
+            },
+            {
+              "field": "role",
+              "status": "populated",
+              "detail": "10/10"
+            }
+          ]
+        },
+        "builds": {
+          "status": "populated",
+          "checks": [
+            {
+              "field": "builds",
+              "status": "populated",
+              "detail": "len=10"
+            }
+          ]
+        }
+      },
+      "matchLevel": {
+        "drafts": {
+          "status": "partial",
+          "checks": [
+            {
+              "field": "hasDraft",
+              "status": "populated",
+              "detail": "[object Object]"
+            }
+          ]
+        },
+        "match_player_stats": {
+          "status": "partial",
+          "checks": [
+            {
+              "field": "players",
+              "status": "populated",
+              "detail": "40 rows"
+            },
+            {
+              "field": "kills",
+              "status": "populated",
+              "detail": "40/40"
+            },
+            {
+              "field": "deaths",
+              "status": "populated",
+              "detail": "40/40"
+            },
+            {
+              "field": "assists",
+              "status": "populated",
+              "detail": "40/40"
+            },
+            {
+              "field": "kda",
+              "status": "populated",
+              "detail": "40/40"
+            },
+            {
+              "field": "cs",
+              "status": "populated",
+              "detail": "40/40"
+            },
+            {
+              "field": "csPerMin",
+              "status": "populated",
+              "detail": "40/40"
+            },
+            {
+              "field": "gold",
+              "status": "populated",
+              "detail": "40/40"
+            },
+            {
+              "field": "goldPerMin",
+              "status": "populated",
+              "detail": "40/40"
+            },
+            {
+              "field": "damage",
+              "status": "empty"
+            },
+            {
+              "field": "damagePerMin",
+              "status": "populated",
+              "detail": "40/40"
+            },
+            {
+              "field": "damageShare",
+              "status": "populated",
+              "detail": "40/40"
+            },
+            {
+              "field": "goldShare",
+              "status": "populated",
+              "detail": "40/40"
+            },
+            {
+              "field": "visionScore",
+              "status": "populated",
+              "detail": "40/40"
+            },
+            {
+              "field": "wardsPlaced",
+              "status": "populated",
+              "detail": "40/40"
+            },
+            {
+              "field": "wardsDestroyed",
+              "status": "empty"
+            },
+            {
+              "field": "wardsKilled",
+              "status": "populated",
+              "detail": "40/40"
+            },
+            {
+              "field": "goldDiffAt15",
+              "status": "empty"
+            },
+            {
+              "field": "golddiffat15",
+              "status": "empty"
+            },
+            {
+              "field": "gd15",
+              "status": "empty"
+            },
+            {
+              "field": "csDiffAt15",
+              "status": "empty"
+            },
+            {
+              "field": "csdiffat15",
+              "status": "empty"
+            },
+            {
+              "field": "csd15",
+              "status": "empty"
+            },
+            {
+              "field": "xpDiffAt15",
+              "status": "empty"
+            },
+            {
+              "field": "xpdiffat15",
+              "status": "empty"
+            },
+            {
+              "field": "xpd15",
+              "status": "empty"
+            },
+            {
+              "field": "soloKills",
+              "status": "empty"
+            },
+            {
+              "field": "solo_kills",
+              "status": "empty"
+            },
+            {
+              "field": "turretPlates",
+              "status": "empty"
+            },
+            {
+              "field": "plates",
+              "status": "empty"
+            },
+            {
+              "field": "monsterKillsEnemyJungle",
+              "status": "empty"
+            },
+            {
+              "field": "campsStolen",
+              "status": "empty"
+            },
+            {
+              "field": "position",
+              "status": "empty"
+            },
+            {
+              "field": "champion",
+              "status": "empty"
+            },
+            {
+              "field": "role",
+              "status": "populated",
+              "detail": "40/40"
+            }
+          ]
+        },
+        "match_timeline": {
+          "status": "empty",
+          "checks": [
+            {
+              "field": "timeline",
+              "status": "empty",
+              "detail": "events=0"
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "summary": {
+    "n": 8,
+    "endpointCounts": {
+      "postgame": {
+        "populated": 2,
+        "partial": 2,
+        "empty": 4,
+        "error": 0
+      },
+      "gold": {
+        "populated": 2,
+        "partial": 0,
+        "empty": 6,
+        "error": 0
+      },
+      "plates": {
+        "populated": 2,
+        "partial": 0,
+        "empty": 6,
+        "error": 0
+      },
+      "distributions": {
+        "populated": 4,
+        "partial": 0,
+        "empty": 4,
+        "error": 0
+      },
+      "vision": {
+        "populated": 4,
+        "partial": 0,
+        "empty": 4,
+        "error": 0
+      },
+      "jungle-share": {
+        "populated": 4,
+        "partial": 0,
+        "empty": 4,
+        "error": 0
+      },
+      "objectives": {
+        "populated": 2,
+        "partial": 0,
+        "empty": 6,
+        "error": 0
+      },
+      "timeline": {
+        "populated": 2,
+        "partial": 0,
+        "empty": 6,
+        "error": 0
+      },
+      "player-stats": {
+        "populated": 0,
+        "partial": 8,
+        "empty": 0,
+        "error": 0
+      },
+      "stats": {
+        "populated": 0,
+        "partial": 8,
+        "empty": 0,
+        "error": 0
+      },
+      "builds": {
+        "populated": 8,
+        "partial": 0,
+        "empty": 0,
+        "error": 0
+      }
+    },
+    "fieldCounts": {
+      "postgame.goldGraph": {
+        "populated": 2,
+        "partial": 0,
+        "empty": 6
+      },
+      "postgame.timeline": {
+        "populated": 2,
+        "partial": 0,
+        "empty": 6
+      },
+      "postgame.plates": {
+        "populated": 2,
+        "partial": 0,
+        "empty": 6
+      },
+      "postgame.goldDistribution": {
+        "populated": 4,
+        "partial": 0,
+        "empty": 4
+      },
+      "postgame.damageDistribution": {
+        "populated": 4,
+        "partial": 0,
+        "empty": 4
+      },
+      "postgame.vision": {
+        "populated": 4,
+        "partial": 0,
+        "empty": 4
+      },
+      "postgame.jungleShare": {
+        "populated": 4,
+        "partial": 0,
+        "empty": 4
+      },
+      "postgame.rawAdvancedStats": {
+        "populated": 4,
+        "partial": 0,
+        "empty": 4
+      },
+      "gold": {
+        "populated": 18,
+        "partial": 0,
+        "empty": 6
+      },
+      "plates": {
+        "populated": 2,
+        "partial": 0,
+        "empty": 22
+      },
+      "distributions": {
+        "populated": 4,
+        "partial": 0,
+        "empty": 4
+      },
+      "vision": {
+        "populated": 4,
+        "partial": 0,
+        "empty": 4
+      },
+      "jungle-share": {
+        "populated": 4,
+        "partial": 0,
+        "empty": 4
+      },
+      "objectives": {
+        "populated": 2,
+        "partial": 0,
+        "empty": 6
+      },
+      "timeline": {
+        "populated": 2,
+        "partial": 0,
+        "empty": 6
+      },
+      "players": {
+        "populated": 16,
+        "partial": 0,
+        "empty": 0
+      },
+      "kills": {
+        "populated": 16,
+        "partial": 0,
+        "empty": 0
+      },
+      "deaths": {
+        "populated": 16,
+        "partial": 0,
+        "empty": 0
+      },
+      "assists": {
+        "populated": 16,
+        "partial": 0,
+        "empty": 0
+      },
+      "kda": {
+        "populated": 16,
+        "partial": 0,
+        "empty": 0
+      },
+      "cs": {
+        "populated": 16,
+        "partial": 0,
+        "empty": 0
+      },
+      "csPerMin": {
+        "populated": 16,
+        "partial": 0,
+        "empty": 0
+      },
+      "goldPerMin": {
+        "populated": 16,
+        "partial": 0,
+        "empty": 0
+      },
+      "damage": {
+        "populated": 0,
+        "partial": 0,
+        "empty": 16
+      },
+      "damagePerMin": {
+        "populated": 16,
+        "partial": 0,
+        "empty": 0
+      },
+      "damageShare": {
+        "populated": 16,
+        "partial": 0,
+        "empty": 0
+      },
+      "goldShare": {
+        "populated": 16,
+        "partial": 0,
+        "empty": 0
+      },
+      "visionScore": {
+        "populated": 16,
+        "partial": 0,
+        "empty": 0
+      },
+      "wardsPlaced": {
+        "populated": 16,
+        "partial": 0,
+        "empty": 0
+      },
+      "wardsDestroyed": {
+        "populated": 0,
+        "partial": 0,
+        "empty": 16
+      },
+      "wardsKilled": {
+        "populated": 16,
+        "partial": 0,
+        "empty": 0
+      },
+      "goldDiffAt15": {
+        "populated": 0,
+        "partial": 0,
+        "empty": 16
+      },
+      "golddiffat15": {
+        "populated": 0,
+        "partial": 0,
+        "empty": 16
+      },
+      "gd15": {
+        "populated": 0,
+        "partial": 0,
+        "empty": 16
+      },
+      "csDiffAt15": {
+        "populated": 0,
+        "partial": 0,
+        "empty": 16
+      },
+      "csdiffat15": {
+        "populated": 0,
+        "partial": 0,
+        "empty": 16
+      },
+      "csd15": {
+        "populated": 0,
+        "partial": 0,
+        "empty": 16
+      },
+      "xpDiffAt15": {
+        "populated": 0,
+        "partial": 0,
+        "empty": 16
+      },
+      "xpdiffat15": {
+        "populated": 0,
+        "partial": 0,
+        "empty": 16
+      },
+      "xpd15": {
+        "populated": 0,
+        "partial": 0,
+        "empty": 16
+      },
+      "soloKills": {
+        "populated": 0,
+        "partial": 0,
+        "empty": 16
+      },
+      "solo_kills": {
+        "populated": 0,
+        "partial": 0,
+        "empty": 16
+      },
+      "turretPlates": {
+        "populated": 0,
+        "partial": 0,
+        "empty": 16
+      },
+      "monsterKillsEnemyJungle": {
+        "populated": 0,
+        "partial": 0,
+        "empty": 16
+      },
+      "campsStolen": {
+        "populated": 0,
+        "partial": 0,
+        "empty": 16
+      },
+      "position": {
+        "populated": 0,
+        "partial": 0,
+        "empty": 16
+      },
+      "champion": {
+        "populated": 0,
+        "partial": 0,
+        "empty": 16
+      },
+      "role": {
+        "populated": 16,
+        "partial": 0,
+        "empty": 0
+      },
+      "builds": {
+        "populated": 8,
+        "partial": 0,
+        "empty": 0
+      },
+      "objectives[0].keys": {
+        "populated": 2,
+        "partial": 0,
+        "empty": 0
+      },
+      "timeline[0].keys": {
+        "populated": 2,
+        "partial": 0,
+        "empty": 0
+      }
+    }
+  }
+}

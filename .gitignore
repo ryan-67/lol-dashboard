@@ -58,4 +58,10 @@ scripts/rag-indexer/src/
 scripts/rag-indexer/tsconfig.json
 
 # ML pipeline generated artifacts (scripts/ml/) — regenerate via build_feature_mart.py etc.
-data/ml/
+data/ml/*
+# ...except curated (hand-maintained, not regenerated) config:
+!data/ml/roster_overrides.json
+
+# Agent skills (runtime deps / browsers stay local)
+.agents/skills/**/node_modules/
+.cursor/skills/**/node_modules/

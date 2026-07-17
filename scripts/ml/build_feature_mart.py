@@ -81,6 +81,18 @@ def main() -> None:
     team_games = build_team_game_rows(years, args.lol_dir)
     print(f"  {len(team_games)} team-game rows across {team_games['gameid'].nunique()} games")
 
+    print("Computing per-game roster box-score strength (Component 3, walk-forward safe)...")
+    try:
+        from build_player_ratings import build_roster_box_z
+
+        roster_z = build_roster_box_z(years=years).rename(columns={"team": "canonical_team"})
+        team_games = team_games.merge(roster_z, on=["gameid", "canonical_team"], how="left")
+        covered = team_games["roster_box_z"].notna().mean()
+        print(f"  roster_box_z attached to {covered:.1%} of team-game rows")
+    except Exception as exc:  # never let this optional feature break the mart
+        print(f"  WARNING: roster_box_z unavailable ({exc}); filling NaN", file=sys.stderr)
+        team_games["roster_box_z"] = float("nan")
+
     if not args.no_cito:
         print("Fetching Cito gold-timeline supplement...")
         team_games = merge_gold_throw_features(team_games)

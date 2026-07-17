@@ -1,0 +1,30 @@
+/** Tier-1 teams with Cito API slugs for objective sync (esportsSlug preferred). */
+export const CITO_TIER1_TEAMS: Array<{ citoSlug: string; name: string; league: string }> = [
+  { citoSlug: 't1', name: 'T1', league: 'LCK' },
+  { citoSlug: 'geng', name: 'Gen.G', league: 'LCK' },
+  { citoSlug: 'dwg-kia', name: 'Dplus Kia', league: 'LCK' },
+  { citoSlug: 'hanwha-life-esports', name: 'Hanwha Life Esports', league: 'LCK' },
+  { citoSlug: 'kt-rolster', name: 'KT Rolster', league: 'LCK' },
+  { citoSlug: 'drx', name: 'DRX', league: 'LCK' },
+  { citoSlug: 'nongshim-redforce', name: 'Nongshim RedForce', league: 'LCK' },
+  { citoSlug: 'fearx', name: 'FearX', league: 'LCK' },
+  { citoSlug: 'bilibili-gaming', name: 'Bilibili Gaming', league: 'LPL' },
+  { citoSlug: 'jd-gaming', name: 'JD Gaming', league: 'LPL' },
+  { citoSlug: 'top-esports', name: 'Top Esports', league: 'LPL' },
+  { citoSlug: 'weibo-gaming', name: 'Weibo Gaming', league: 'LPL' },
+  { citoSlug: 'lng-esports', name: 'LNG Esports', league: 'LPL' },
+  { citoSlug: 'anyones-legend', name: 'Anyone\'s Legend', league: 'LPL' },
+  { citoSlug: 'invictus-gaming', name: 'Invictus Gaming', league: 'LPL' },
+  { citoSlug: 'edward-gaming', name: 'EDward Gaming', league: 'LPL' },
+  { citoSlug: 'g2-esports', name: 'G2 Esports', league: 'LEC' },
+  { citoSlug: 'fnatic', name: 'Fnatic', league: 'LEC' },
+  { citoSlug: 'karmine-corp', name: 'Karmine Corp', league: 'LEC' },
+  { citoSlug: 'team-bds', name: 'Team BDS', league: 'LEC' },
+  { citoSlug: 'giantx-lec', name: 'GIANTX', league: 'LEC' },
+  { citoSlug: 'cloud9', name: 'Cloud9', league: 'LCS' },
+  { citoSlug: 'team-liquid', name: 'Team Liquid', league: 'LCS' },
+  { citoSlug: 'flyquest', name: 'FlyQuest', league: 'LCS' },
+  { citoSlug: '100-thieves', name: '100 Thieves', league: 'LCS' },
+]
+
+export const CITO_ENRICHMENT_MIN_DATE = '2026-01-01'
