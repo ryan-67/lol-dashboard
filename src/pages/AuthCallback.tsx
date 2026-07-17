@@ -32,13 +32,13 @@ export default function AuthCallback() {
         data: { session },
       } = await supabase.auth.getSession()
       if (session && mounted) {
-        navigate('/', { replace: true })
+        navigate('/dashboard', { replace: true })
         return
       }
 
       const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ''))
       if (hashParams.get('access_token') && mounted) {
-        navigate('/', { replace: true })
+        navigate('/dashboard', { replace: true })
         return
       }
     }
@@ -49,7 +49,7 @@ export default function AuthCallback() {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((event) => {
       if (event === 'SIGNED_IN') {
-        navigate('/', { replace: true })
+        navigate('/dashboard', { replace: true })
       }
     })
 

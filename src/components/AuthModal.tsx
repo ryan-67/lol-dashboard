@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react'
+import { useEffect, useState, type FormEvent } from 'react'
 import { useAuth } from '../context/AuthContext'
 
 type AuthView = 'signin' | 'signup' | 'forgot'
@@ -6,12 +6,13 @@ type AuthView = 'signin' | 'signup' | 'forgot'
 interface AuthModalProps {
   open: boolean
   onClose: () => void
+  initialView?: 'signin' | 'signup'
 }
 
 const inputClass =
   'w-full border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-3 py-2 text-sm text-[var(--text-primary)] font-[family-name:var(--font-mono)] outline-none focus:border-[var(--border-focus)]'
 
-export default function AuthModal({ open, onClose }: AuthModalProps) {
+export default function AuthModal({ open, onClose, initialView = 'signin' }: AuthModalProps) {
   const {
     signInWithEmail,
     signUpWithEmail,
@@ -20,7 +21,7 @@ export default function AuthModal({ open, onClose }: AuthModalProps) {
     signInWithDiscord,
   } = useAuth()
 
-  const [view, setView] = useState<AuthView>('signin')
+  const [view, setView] = useState<AuthView>(initialView)
   const [email, setEmail] = useState('')
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
@@ -28,6 +29,14 @@ export default function AuthModal({ open, onClose }: AuthModalProps) {
   const [error, setError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
   const [forgotSuccess, setForgotSuccess] = useState(false)
+
+  useEffect(() => {
+    if (open) {
+      setView(initialView)
+      setError(null)
+      setForgotSuccess(false)
+    }
+  }, [open, initialView])
 
   if (!open) return null
 

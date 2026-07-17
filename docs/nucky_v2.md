@@ -637,8 +637,9 @@ Do this before major user-facing rebuild.
 
 ### Phase 2 — IA / nav / nucky-as-spine
 
+- **Marketing landing shipped early (2026-07-17):** `/` is the product landing page (Terminal Editorial); dashboard Overview moved to `/dashboard`. Marketing routes: `/features`, `/pricing`, `/faq`, `/terms`, `/private-policy`.
 - New sidebar IA above.
-- nucky as chat + smart entity search.
+- nucky as chat + smart entity search; `/chat` + `/duo` (split chat|dashboard) + default-page preference (`chat` | `dashboard` | `duo`) for logged-in `/` redirects.
 - Ask-nucky entry points on player / team / champion / series / tournament pages.
 - Visual / motion pass (counters, chart/radar reveal-on-scroll, premium micro-motion) without generic AI-slop aesthetics.
 - **Remove Live Match Hub** from nav, routes, and cross-links.

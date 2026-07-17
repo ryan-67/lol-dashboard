@@ -10,7 +10,7 @@ import { navSearchForPath, stripNuckyAiSearchParams } from '../lib/navSearchPara
 import { GlobalSearch } from './entities'
 
 const primaryNav = [
-  { to: '/', label: 'Overview' },
+  { to: '/dashboard', label: 'Overview' },
   { to: '/nuckyai', label: 'nuckyAI' },
   { to: '/live', label: 'Live' },
 ]
@@ -25,7 +25,7 @@ const menuNav = [
 ]
 
 const MAIN_DASHBOARD_PATHS = new Set([
-  '/',
+  '/dashboard',
   '/players',
   '/teams',
   '/champions',
@@ -135,9 +135,9 @@ export default function Layout({ children }: { children: React.ReactNode }) {
       <header className="app-header">
         <div className="app-header-inner app-header-bar py-3">
           <Link
-            to="/"
+            to="/dashboard"
             className="flex items-center gap-3 no-underline text-inherit hover:opacity-90 transition-opacity shrink-0"
-            aria-label="nucky.gg home — Overview"
+            aria-label="nucky.gg dashboard"
           >
             <div
               className="w-8 h-8 flex items-center justify-center border border-accent"

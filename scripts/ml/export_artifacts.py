@@ -198,8 +198,13 @@ def build_inference_bundle(mart: pd.DataFrame, features: list[str]) -> dict:
     }
 
 
+PUBLIC_SCORECARD_DIR = ROOT / "public" / "data"
+PUBLIC_SCORECARD_NAMES = frozenset({"accuracy_scorecard.json"})
+
+
 def deploy_artifacts() -> None:
     DEPLOY_DIR.mkdir(parents=True, exist_ok=True)
+    PUBLIC_SCORECARD_DIR.mkdir(parents=True, exist_ok=True)
     names = [
         "series_model.json",
         "feature_schema.json",
@@ -231,7 +236,11 @@ def deploy_artifacts() -> None:
         src = ARTIFACTS_DIR / name
         if src.exists():
             shutil.copyfile(src, DEPLOY_DIR / name)
+            if name in PUBLIC_SCORECARD_NAMES:
+                shutil.copyfile(src, PUBLIC_SCORECARD_DIR / name)
     print(f"  Deployed {len(list(DEPLOY_DIR.glob('*.json')))} files -> {DEPLOY_DIR}")
+    if (PUBLIC_SCORECARD_DIR / "accuracy_scorecard.json").exists():
+        print(f"  Public scorecard -> {PUBLIC_SCORECARD_DIR / 'accuracy_scorecard.json'}")
 
 
 def main() -> None:
