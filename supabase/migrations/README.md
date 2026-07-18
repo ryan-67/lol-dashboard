@@ -15,6 +15,7 @@ Full SQL migrations for the production Supabase project are **not** in the publi
 | `agent_usage_events` | Rate limiting |
 | `documents` | pgvector RAG chunks |
 | `esports_schedules` | Tier-1 match schedule rows |
+| storage `avatars` | Profile avatar images (apply `avatars_storage.sql`) |
 
 RPCs include `match_documents` (vector search) and restricted `execute_sql` for the agent (private).
 
