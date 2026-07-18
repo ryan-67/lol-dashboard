@@ -40,7 +40,7 @@ export default function NuckyAiPaywall({
           ))}
         </ul>
         <p className="nuckyai-paywall-usage">{nuckyAiBetaUsageLabel()} during beta</p>
-        <button type="button" className="btn nuckyai-paywall-cta" disabled={actionDisabled} onClick={onAction}>
+        <button type="button" className="btn btn-primary nuckyai-paywall-cta" disabled={actionDisabled} onClick={onAction}>
           {actionLabel}
         </button>
         <p className="nuckyai-paywall-beta-note">

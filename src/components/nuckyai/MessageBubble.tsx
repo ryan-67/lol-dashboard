@@ -199,10 +199,10 @@ function ChartBlock({ json }: { json: string }) {
     return row
   })
 
-  const colors = ['#c5a059', '#8c7340', '#9e8c7a', '#6a7a8c']
+  const colors = [CHART.series, CHART.seriesAlt, '#a8a49a', '#7a8a9a']
 
   return (
-    <ShareableChart className="border border-[var(--border-subtle)] bg-[var(--bg-base)] p-3 my-2">
+    <ShareableChart className="border border-[var(--border-subtle)] bg-[var(--bg-base)] p-3 my-2 rounded-[var(--radius-sm)]">
       <div className="text-xs text-[var(--text-secondary)] mb-2">{barPayload.title}</div>
       <div className="h-64">
         <ResponsiveContainer width="100%" height="100%">
@@ -288,10 +288,10 @@ export default function MessageBubble({
   return (
     <div className={`w-full ${isAssistant ? '' : 'flex flex-col items-end'}`}>
       <div
-        className={`border px-3 py-2 max-w-[95%] md:max-w-[85%] ${
+        className={`nuckyai-bubble border px-3.5 py-2.5 max-w-[95%] md:max-w-[85%] rounded-[var(--radius-md)] ${
           isAssistant
-            ? 'border-[var(--border-subtle)] bg-[var(--bg-surface)]'
-            : 'border-[var(--accent)] bg-[var(--accent-bg)]'
+            ? 'nuckyai-bubble--assistant border-[var(--border-subtle)] bg-[var(--bg-surface)]'
+            : 'nuckyai-bubble--user border-[var(--border-accent)] bg-[var(--accent-bg)]'
         } group`}
       >
         {isThinking ? (

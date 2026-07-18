@@ -19,11 +19,13 @@
 }
 
 .app-sidebar {
-  width: 280px;
+  width: 272px;
   flex-shrink: 0;
   border-right: 1px solid var(--border-subtle);
-  background: color-mix(in oklab, var(--bg-surface) 88%, transparent);
-  backdrop-filter: blur(10px);
+  background:
+    linear-gradient(180deg, color-mix(in oklab, var(--bg-elevated) 70%, transparent) 0%, transparent 28%),
+    color-mix(in oklab, var(--bg-surface) 92%, transparent);
+  backdrop-filter: blur(14px);
   display: flex;
   flex-direction: column;
   height: 100%;
@@ -53,16 +55,20 @@
 }
 
 .app-sidebar-mark {
-  width: 1.75rem;
-  height: 1.75rem;
+  width: 1.85rem;
+  height: 1.85rem;
   display: grid;
   place-items: center;
-  border: 1px solid var(--border-subtle);
+  border: 1px solid var(--border-accent);
   border-radius: var(--radius-sm);
-  background: var(--bg-elevated);
-  color: var(--text-primary);
-  font-size: 0.75rem;
+  background:
+    radial-gradient(circle at 30% 25%, var(--accent-glow), transparent 55%),
+    var(--bg-elevated);
+  color: var(--accent);
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
   font-weight: 700;
+  box-shadow: 0 0 0 1px color-mix(in oklab, var(--accent) 12%, transparent);
 }
 
 .app-sidebar-new-chat {
@@ -99,23 +105,29 @@
 
 .app-sidebar-link {
   display: block;
-  padding: 0.55rem 0.75rem;
+  padding: 0.58rem 0.8rem;
   font-size: 0.88rem;
+  font-weight: 500;
   border-radius: var(--radius-sm);
   color: var(--text-secondary);
   text-decoration: none;
-  transition: color 140ms ease, background 140ms ease;
+  border: 1px solid transparent;
+  transition:
+    color var(--dur-fast) var(--ease-out),
+    background var(--dur-fast) var(--ease-out),
+    border-color var(--dur-fast) var(--ease-out);
 }
 
 .app-sidebar-link:hover {
   color: var(--text-primary);
   background: var(--bg-elevated);
+  border-color: var(--border-subtle);
 }
 
 .app-sidebar-link.is-active {
   color: var(--text-primary);
-  background: var(--bg-elevated);
-  box-shadow: inset 2px 0 0 var(--accent);
+  background: color-mix(in oklab, var(--accent-bg) 70%, var(--bg-elevated));
+  border-color: var(--border-accent);
 }
 
 .app-sidebar-conversations {
@@ -501,33 +513,35 @@
   padding: 2rem 1.5rem 1rem;
   overflow-y: auto;
   overscroll-behavior: contain;
+  background:
+    radial-gradient(520px 280px at 50% 20%, var(--accent-bg), transparent 70%);
 }
 
 .chat-empty-greeting {
-  font-size: clamp(1.6rem, 3vw, 2.2rem);
+  font-size: clamp(1.75rem, 3.2vw, 2.4rem);
   font-weight: 700;
-  letter-spacing: -0.03em;
-  margin: 0 0 0.5rem;
+  letter-spacing: -0.035em;
+  margin: 0 0 0.55rem;
   text-align: center;
   color: var(--text-primary);
 }
 
 .chat-empty-sub {
-  font-size: 0.9rem;
+  font-size: 0.92rem;
   color: var(--text-secondary);
   text-align: center;
-  max-width: 36ch;
-  margin: 0 0 1.75rem;
-  line-height: 1.5;
+  max-width: 38ch;
+  margin: 0 0 1.85rem;
+  line-height: 1.55;
 }
 
 .chat-empty-prompts {
   width: 100%;
-  max-width: 520px;
+  max-width: 540px;
   margin-top: 1.25rem;
   display: flex;
   flex-direction: column;
-  gap: 0.35rem;
+  gap: 0.45rem;
 }
 
 .chat-pane-loading {
@@ -559,23 +573,28 @@
   appearance: none;
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-sm);
-  background: transparent;
+  background: color-mix(in oklab, var(--bg-surface) 80%, transparent);
   color: var(--text-secondary);
   font-family: inherit;
-  font-size: 0.8rem;
-  padding: 0.7rem 0.85rem;
+  font-size: 0.82rem;
+  padding: 0.78rem 0.95rem;
   text-align: left;
   cursor: pointer;
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  transition: border-color 140ms ease, color 140ms ease, background 140ms ease;
+  transition:
+    border-color var(--dur-fast) var(--ease-out),
+    color var(--dur-fast) var(--ease-out),
+    background var(--dur-fast) var(--ease-out),
+    transform var(--dur-fast) var(--ease-out);
 }
 
 .chat-empty-prompt:hover {
-  border-color: var(--border-focus);
+  border-color: var(--border-accent);
   color: var(--text-primary);
-  background: var(--bg-elevated);
+  background: color-mix(in oklab, var(--accent-bg) 45%, var(--bg-elevated));
+  transform: translateY(-1px);
 }
 
 .chat-empty-prompt-slash {
@@ -600,12 +619,16 @@
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-md);
   background: var(--bg-surface);
-  padding: 0.75rem 0.85rem 0.65rem;
-  transition: border-color 140ms ease;
+  padding: 0.8rem 0.9rem 0.7rem;
+  box-shadow: var(--shadow-soft);
+  transition:
+    border-color var(--dur-fast) var(--ease-out),
+    box-shadow var(--dur-fast) var(--ease-out);
 }
 
 .chat-input-shell:focus-within {
   border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-bg), var(--shadow-lift);
 }
 
 .chat-input-shell textarea {
@@ -636,16 +659,26 @@
 
 .chat-input-send {
   appearance: none;
-  width: 2rem;
-  height: 2rem;
+  width: 2.15rem;
+  height: 2.15rem;
   border: 0;
   border-radius: var(--radius-sm);
   background: var(--accent);
-  color: #0c0c0c;
+  color: oklch(0.16 0.02 195);
   font-size: 0.95rem;
   cursor: pointer;
   display: grid;
   place-items: center;
+  transition: transform var(--dur-fast) var(--ease-out), background var(--dur-fast) var(--ease-out);
+}
+
+.chat-input-send:hover:not(:disabled) {
+  background: var(--accent-dim);
+  transform: scale(1.04);
+}
+
+.chat-input-send:active:not(:disabled) {
+  transform: scale(0.96);
 }
 
 .chat-input-send:disabled {

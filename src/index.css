@@ -17,12 +17,7 @@ html.app-shell-scroll body {
 @tailwind utilities;
 
 @layer base {
-  *,
-  *::before,
-  *::after {
-    border-radius: 0 !important;
-    box-shadow: none !important;
-  }
+  /* Soft terminal radius/elevation come from theme tokens — do not zero them globally */
 
   html.lenis,
   html.lenis body {

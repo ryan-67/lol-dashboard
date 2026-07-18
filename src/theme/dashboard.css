@@ -1,36 +1,39 @@
-/* Modern analytics surface polish — cream hierarchy, sparse turquoise */
+/* Product surface polish — Research Terminal Precision */
 
 .page-header {
   display: flex;
   align-items: flex-end;
   justify-content: space-between;
   gap: 1rem;
-  margin-bottom: 1.25rem;
+  margin-bottom: 1.4rem;
   flex-wrap: wrap;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid color-mix(in oklab, var(--border-subtle) 80%, transparent);
 }
 
 .page-header-eyebrow {
-  margin: 0 0 0.35rem;
-  font-size: 0.68rem;
-  letter-spacing: 0.14em;
+  margin: 0 0 0.4rem;
+  font-family: var(--font-mono);
+  font-size: 0.66rem;
+  letter-spacing: 0.16em;
   text-transform: uppercase;
-  color: var(--text-tertiary);
+  color: var(--accent);
 }
 
 .page-header-title {
   margin: 0;
-  font-size: clamp(1.35rem, 2.2vw, 1.75rem);
-  font-weight: 600;
-  letter-spacing: -0.03em;
+  font-size: clamp(1.5rem, 2.5vw, 1.95rem);
+  font-weight: 700;
+  letter-spacing: -0.035em;
   color: var(--text-primary);
 }
 
 .page-header-sub {
-  margin: 0.4rem 0 0;
-  font-size: 0.85rem;
+  margin: 0.45rem 0 0;
+  font-size: 0.88rem;
   color: var(--text-secondary);
-  max-width: 52ch;
-  line-height: 1.45;
+  max-width: 56ch;
+  line-height: 1.5;
 }
 
 .page-header-actions {
@@ -41,13 +44,10 @@
 
 .card {
   transition:
-    border-color 180ms ease,
-    background-color 180ms ease,
-    transform 180ms ease;
-}
-
-.card:hover {
-  border-color: var(--border-focus);
+    border-color var(--dur-med) var(--ease-out),
+    background-color var(--dur-med) var(--ease-out),
+    transform var(--dur-med) var(--ease-out),
+    box-shadow var(--dur-med) var(--ease-out);
 }
 
 .radar-card,
@@ -55,27 +55,28 @@
 .overview-totw-card,
 .overview-hub-card {
   transition:
-    border-color 180ms ease,
-    background-color 180ms ease,
-    transform 160ms ease;
+    border-color var(--dur-med) var(--ease-out),
+    background-color var(--dur-med) var(--ease-out),
+    transform var(--dur-med) var(--ease-out),
+    box-shadow var(--dur-med) var(--ease-out);
 }
 
 .radar-card:hover,
 .player-chart-card:hover,
 .overview-totw-card:hover {
   border-color: var(--border-focus);
-  transform: translateY(-1px);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lift);
 }
 
 .overview-hub-card:hover {
   border-color: var(--border-focus);
-  box-shadow: none;
 }
 
 .dash-kpi-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0.65rem;
+  gap: 0.7rem;
   margin-bottom: 1rem;
 }
 
@@ -86,10 +87,24 @@
 }
 
 .dash-kpi {
+  position: relative;
   border: 1px solid var(--border-subtle);
-  background: var(--bg-surface);
-  padding: 0.85rem 0.95rem;
-  transition: border-color 160ms ease, transform 160ms ease;
+  background:
+    linear-gradient(180deg, color-mix(in oklab, var(--bg-elevated) 70%, transparent), var(--bg-surface));
+  padding: 0.9rem 1rem;
+  overflow: hidden;
+  transition:
+    border-color var(--dur-fast) var(--ease-out),
+    transform var(--dur-fast) var(--ease-out);
+}
+
+.dash-kpi::after {
+  content: '';
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 1px;
+  background: linear-gradient(90deg, var(--accent), transparent 70%);
+  opacity: 0.55;
 }
 
 .dash-kpi:hover {
@@ -99,20 +114,21 @@
 
 .dash-kpi-label {
   display: block;
-  font-size: 0.65rem;
-  letter-spacing: 0.1em;
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
   color: var(--text-tertiary);
-  margin-bottom: 0.35rem;
+  margin-bottom: 0.4rem;
 }
 
 .dash-kpi-value {
   display: block;
-  font-size: 1.45rem;
+  font-size: 1.55rem;
   font-weight: 600;
   font-variant-numeric: tabular-nums;
   color: var(--text-primary);
-  letter-spacing: -0.02em;
+  letter-spacing: -0.025em;
   line-height: 1.1;
 }
 
@@ -134,15 +150,14 @@
 .entity-hero {
   display: grid;
   gap: 1rem;
-  margin-bottom: 1.25rem;
-  padding: 1.1rem 1.15rem;
+  margin-bottom: 1.35rem;
+  padding: 1.25rem 1.3rem;
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-md);
-  background: linear-gradient(
-    135deg,
-    color-mix(in oklab, var(--bg-elevated) 92%, var(--accent) 8%) 0%,
-    var(--bg-surface) 55%
-  );
+  background:
+    radial-gradient(500px 160px at 0% 0%, var(--accent-bg), transparent 60%),
+    linear-gradient(135deg, var(--bg-elevated) 0%, var(--bg-surface) 58%);
+  box-shadow: var(--shadow-soft);
 }
 
 .dash-kpi,
@@ -198,13 +213,17 @@
 .power-rankings-role {
   appearance: none;
   border: 1px solid var(--border-subtle);
-  border-radius: 999px;
+  border-radius: var(--radius-sm);
   background: transparent;
   color: var(--text-secondary);
   font-family: inherit;
   font-size: 0.72rem;
   padding: 0.35rem 0.7rem;
   cursor: pointer;
+  transition:
+    border-color var(--dur-fast) var(--ease-out),
+    color var(--dur-fast) var(--ease-out),
+    background var(--dur-fast) var(--ease-out);
 }
 
 .power-rankings-role.is-active,
@@ -228,10 +247,12 @@
   grid-template-columns: 2.5rem minmax(0, 1fr) auto;
   gap: 0.65rem;
   align-items: center;
-  padding: 0.55rem 0.65rem;
+  padding: 0.6rem 0.7rem;
   border: 1px solid transparent;
   border-radius: var(--radius-sm);
-  transition: border-color 140ms ease, background 140ms ease;
+  transition:
+    border-color var(--dur-fast) var(--ease-out),
+    background var(--dur-fast) var(--ease-out);
 }
 
 .power-rankings-row:hover {
@@ -254,7 +275,6 @@
   color: var(--text-primary);
 }
 
-/* Hover underline only on the identity name text — not a full-row accent rule. */
 .power-rankings-player > .entity-link {
   align-self: flex-start;
   width: fit-content;
@@ -271,9 +291,9 @@
 }
 
 .power-rankings-score {
-  font-size: 0.95rem;
+  font-size: 1rem;
   font-variant-numeric: tabular-nums;
-  color: var(--text-primary);
+  color: var(--accent);
   font-weight: 600;
 }
 
@@ -292,26 +312,30 @@
 
 .entity-hero-name {
   margin: 0;
-  font-size: clamp(1.6rem, 2.8vw, 2.2rem);
+  font-size: clamp(1.75rem, 3vw, 2.45rem);
   font-weight: 700;
-  letter-spacing: -0.03em;
+  letter-spacing: -0.035em;
   color: var(--text-primary);
 }
 
 .entity-hero-meta {
-  margin: 0.4rem 0 0;
-  font-size: 0.85rem;
+  margin: 0.45rem 0 0;
+  font-size: 0.88rem;
   color: var(--text-secondary);
 }
 
+.model-outlook-card {
+  border-color: var(--border-accent) !important;
+}
+
 .tab-content .page-section {
-  animation: dash-page-in 280ms ease-out;
+  animation: dash-page-in var(--dur-slow) var(--ease-out);
 }
 
 @keyframes dash-page-in {
   from {
     opacity: 0;
-    transform: translateY(6px);
+    transform: translateY(10px);
   }
   to {
     opacity: 1;

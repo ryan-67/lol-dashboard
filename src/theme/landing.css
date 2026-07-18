@@ -5,11 +5,13 @@
   display: flex;
   flex-direction: column;
   background:
-    radial-gradient(ellipse 80% 50% at 10% -10%, oklch(0.72 0.105 195 / 0.08), transparent 55%),
-    radial-gradient(ellipse 60% 40% at 90% 10%, oklch(0.54 0.07 205 / 0.05), transparent 50%),
+    radial-gradient(ellipse 90% 55% at 8% -12%, oklch(0.78 0.12 195 / 0.14), transparent 58%),
+    radial-gradient(ellipse 55% 40% at 95% 8%, oklch(0.55 0.07 205 / 0.08), transparent 52%),
+    radial-gradient(ellipse 70% 45% at 50% 100%, oklch(0.35 0.03 220 / 0.25), transparent 65%),
     var(--bg-base);
   color: var(--text-primary);
   overflow-x: clip;
+  font-family: var(--font-sans);
 }
 
 .landing-header {
@@ -194,29 +196,74 @@
 }
 
 .landing-hero {
-  min-height: min(100dvh, 820px);
+  min-height: min(100dvh, 880px);
   display: flex;
   flex-direction: column;
   justify-content: center;
-  padding: 3.5rem 0 4.5rem;
+  padding: 4rem 0 5rem;
   position: relative;
 }
 
+.landing-hero::before {
+  content: 'nucky';
+  position: absolute;
+  left: -0.05em;
+  top: 18%;
+  font-size: clamp(5rem, 18vw, 12rem);
+  font-weight: 700;
+  letter-spacing: -0.06em;
+  line-height: 0.85;
+  color: color-mix(in oklab, var(--text-primary) 6%, transparent);
+  pointer-events: none;
+  user-select: none;
+  z-index: 0;
+}
+
+.landing-hero-copy {
+  position: relative;
+  z-index: 1;
+}
+
+.landing-brand-signal {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.55rem;
+  margin-bottom: 1.1rem;
+}
+
+.landing-brand-signal-name {
+  font-family: var(--font-mono);
+  font-size: clamp(1.6rem, 3.5vw, 2.2rem);
+  font-weight: 700;
+  letter-spacing: -0.04em;
+  color: var(--text-primary);
+}
+
+.landing-brand-signal-mark {
+  width: 0.55rem;
+  height: 0.55rem;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 0 4px var(--accent-bg);
+}
+
 .landing-eyebrow {
-  font-size: 0.7rem;
-  letter-spacing: 0.14em;
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.16em;
   text-transform: uppercase;
   color: var(--accent);
-  margin-bottom: 1.25rem;
+  margin-bottom: 1.1rem;
 }
 
 .landing-hero-title {
-  font-size: clamp(2.4rem, 6.5vw, 4.6rem);
+  font-size: clamp(2.65rem, 7vw, 5rem);
   font-weight: 700;
-  line-height: 1.05;
-  letter-spacing: -0.04em;
-  max-width: 14ch;
+  line-height: 1.02;
+  letter-spacing: -0.045em;
+  max-width: 13ch;
   margin: 0;
+  text-wrap: balance;
 }
 
 .landing-hero-title em {
@@ -225,28 +272,32 @@
 }
 
 .landing-hero-sub {
-  margin-top: 1.35rem;
-  max-width: 42ch;
-  font-size: clamp(0.9rem, 1.6vw, 1.05rem);
+  margin-top: 1.45rem;
+  max-width: 40ch;
+  font-size: clamp(0.95rem, 1.7vw, 1.1rem);
   line-height: 1.55;
   color: var(--text-secondary);
 }
 
 .landing-hero-actions {
-  margin-top: 1.75rem;
+  margin-top: 2rem;
   display: flex;
   flex-wrap: wrap;
-  gap: 0.65rem;
+  gap: 0.7rem;
 }
 
 .landing-hero-badge {
   position: absolute;
   top: 4.5rem;
   right: 0;
-  border: 1px solid var(--border-subtle);
-  background: color-mix(in srgb, var(--bg-surface) 80%, transparent);
-  padding: 0.85rem 1rem;
-  min-width: 9.5rem;
+  z-index: 1;
+  border: 1px solid var(--border-accent);
+  background:
+    radial-gradient(circle at 100% 0%, var(--accent-bg), transparent 55%),
+    color-mix(in srgb, var(--bg-surface) 88%, transparent);
+  padding: 1rem 1.15rem;
+  min-width: 10.5rem;
+  box-shadow: var(--shadow-lift);
 }
 
 .landing-hero-badge-label {

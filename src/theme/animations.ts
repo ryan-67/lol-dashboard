@@ -5,14 +5,14 @@ gsap.registerPlugin(ScrollTrigger)
 
 export const ENTRANCE_FROM = {
   opacity: 0,
-  y: 18,
+  y: 22,
 }
 
 export const ENTRANCE_TO = {
   opacity: 1,
   y: 0,
-  duration: 0.45,
-  ease: 'power2.out',
+  duration: 0.55,
+  ease: 'power3.out',
 }
 
 const DEFAULT_SCROLL_TRIGGER = {

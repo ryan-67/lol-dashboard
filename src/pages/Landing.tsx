@@ -177,12 +177,16 @@ export default function Landing() {
     <div className="landing-page" ref={rootRef}>
       <section className="landing-hero">
         <div className="landing-hero-copy">
-          <p className="landing-eyebrow">statistics-backed LoL esports intelligence</p>
+          <div className="landing-brand-signal" aria-hidden="true">
+            <span className="landing-brand-signal-name">nucky</span>
+            <span className="landing-brand-signal-mark" />
+          </div>
           <h1 className="landing-hero-title">
             ratings, trends, and <em>predictions</em> grounded in match data.
           </h1>
           <p className="landing-hero-sub">
-            nucky turns thousands of pro matches into ratings, patterns, and evidence-backed analysis.
+            Proprietary model scores over thousands of tier-1 games — then a dashboard and analyst that
+            speak the same evidence.
           </p>
           <div className="landing-hero-actions">
             {user ? (
