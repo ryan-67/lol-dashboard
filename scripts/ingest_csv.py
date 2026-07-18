@@ -49,6 +49,10 @@ from oe_csv_io import (  # noqa: E402
 LOL_DIR = ROOT / "lol"
 OUT_DIR = ROOT / "public" / "data"
 OUT_PATH = OUT_DIR / "oe_slices.json"
+# Cloudflare Pages rejects any single static asset over 25 MiB. Pack year
+# shards into parts under this ceiling (headroom for JSON framing).
+CLOUDFLARE_PAGES_MAX_FILE_BYTES = 25 * 1024 * 1024
+MAX_SHARD_BYTES = 24 * 1024 * 1024
 
 TARGET_LEAGUES = {"LCK", "LPL", "LEC", "LCS"}
 INTERNATIONAL_LEAGUES = {"MSI", "WLDs", "FST", "EWC"}
@@ -1373,7 +1377,111 @@ def filter_csv_files_by_years(csv_files: list[Path], years: set[str] | None) -> 
     return scoped
 
 
-def load_existing_manifest() -> tuple[dict[str, str], list[str]]:
+YearFilesMap = dict[str, str | list[str]]
+
+
+def year_from_shard_stem(stem: str) -> str | None:
+    """oe_slices_2026 / oe_slices_2026_p01 → '2026'."""
+    rest = stem.replace("oe_slices_", "", 1)
+    if len(rest) >= 4 and rest[:4].isdigit():
+        return rest[:4]
+    return None
+
+
+def flatten_year_filenames(year_files: YearFilesMap) -> list[str]:
+    out: list[str] = []
+    for value in year_files.values():
+        if isinstance(value, list):
+            out.extend(value)
+        elif isinstance(value, str):
+            out.append(value)
+    return out
+
+
+def pack_year_slice_parts(
+    year_slices: dict[str, dict],
+) -> list[dict[str, dict]]:
+    """Greedily pack split groups into parts under MAX_SHARD_BYTES."""
+    by_split: dict[str, dict[str, dict]] = defaultdict(dict)
+    for key, value in year_slices.items():
+        split = key.split("|", 1)[0]
+        by_split[split][key] = value
+
+    # Size each split blob once (compact JSON).
+    split_order = sorted(by_split.keys(), key=split_sort_key)
+    split_payloads: list[tuple[str, dict[str, dict], int]] = []
+    for split in split_order:
+        chunk = by_split[split]
+        encoded = json.dumps({"slices": chunk}, separators=(",", ":")).encode("utf-8")
+        split_payloads.append((split, chunk, len(encoded)))
+
+    parts: list[dict[str, dict]] = []
+    current: dict[str, dict] = {}
+    # {"slices":{}} framing overhead
+    current_bytes = len(b'{"slices":{}}')
+
+    def flush() -> None:
+        nonlocal current, current_bytes
+        if current:
+            parts.append(current)
+            current = {}
+            current_bytes = len(b'{"slices":{}}')
+
+    for _split, chunk, size in split_payloads:
+        # Oversized single split: still emit alone (better than silent drop).
+        if size > MAX_SHARD_BYTES and not current:
+            print(
+                f"  WARNING: split exceeds {MAX_SHARD_BYTES / (1024 * 1024):.0f} MiB "
+                f"pack budget ({size / (1024 * 1024):.2f} MiB) — writing as its own part",
+                file=sys.stderr,
+            )
+            parts.append(chunk)
+            continue
+        if current and current_bytes + size > MAX_SHARD_BYTES:
+            flush()
+        current.update(chunk)
+        current_bytes += size
+    flush()
+    return parts or [{}]
+
+
+def write_year_shards(year: str, year_slices: dict[str, dict]) -> str | list[str]:
+    """Write one or more part files for a year; return manifest year_files entry."""
+    parts = pack_year_slice_parts(year_slices)
+    if len(parts) == 1:
+        name = f"oe_slices_{year}.json"
+        path = OUT_DIR / name
+        with path.open("w", encoding="utf-8") as f:
+            json.dump({"slices": parts[0]}, f, separators=(",", ":"))
+        size = path.stat().st_size
+        print(f"  Wrote shard {name} ({size / 1024:.1f} KB)")
+        if size >= CLOUDFLARE_PAGES_MAX_FILE_BYTES:
+            print(
+                f"  ERROR: {name} is {size / (1024 * 1024):.2f} MiB — "
+                f"Cloudflare Pages limit is 25 MiB",
+                file=sys.stderr,
+            )
+        return name
+
+    names: list[str] = []
+    for idx, part in enumerate(parts, start=1):
+        name = f"oe_slices_{year}_p{idx:02d}.json"
+        path = OUT_DIR / name
+        with path.open("w", encoding="utf-8") as f:
+            json.dump({"slices": part}, f, separators=(",", ":"))
+        size = path.stat().st_size
+        print(f"  Wrote shard part {name} ({size / 1024:.1f} KB)")
+        if size >= CLOUDFLARE_PAGES_MAX_FILE_BYTES:
+            print(
+                f"  ERROR: {name} is {size / (1024 * 1024):.2f} MiB — "
+                f"Cloudflare Pages limit is 25 MiB",
+                file=sys.stderr,
+            )
+        names.append(name)
+    return names
+
+
+def load_existing_manifest() -> tuple[YearFilesMap, list[str]]:
     if not OUT_PATH.exists():
         return {}, []
     try:
@@ -1483,17 +1591,12 @@ def ingest():
         year = key.split(" ", 1)[0]
         slices_by_year[year][key] = value
 
-    shard_files: dict[str, str] = {}
+    shard_files: YearFilesMap = {}
     for year, year_slices in sorted(slices_by_year.items()):
-        shard_name = f"oe_slices_{year}.json"
-        shard_path = OUT_DIR / shard_name
-        with shard_path.open("w", encoding="utf-8") as f:
-            json.dump({"slices": year_slices}, f, separators=(",", ":"))
-        shard_files[year] = shard_name
-        print(f"  Wrote shard {shard_name} ({shard_path.stat().st_size / 1024:.1f} KB)")
+        shard_files[year] = write_year_shards(year, year_slices)
 
     existing_year_files, existing_splits = load_existing_manifest()
-    merged_year_files = {**existing_year_files, **shard_files}
+    merged_year_files: YearFilesMap = {**existing_year_files, **shard_files}
     # Drop stale splits for years we just re-ingested (e.g. ghost "2026 Summer"
     # left in the manifest after the slice itself disappeared).
     if scoped_years is not None:
@@ -1508,12 +1611,14 @@ def ingest():
         removable_years = scoped_years
     else:
         removable_years = set(shard_files.keys())
-    keep = {"oe_slices.json", *merged_year_files.values()}
+    keep = {"oe_slices.json", *flatten_year_filenames(merged_year_files)}
     for existing in OUT_DIR.glob("oe_slices_*.json"):
-        year = existing.stem.replace("oe_slices_", "")
-        if year in removable_years and existing.name not in keep:
+        year = year_from_shard_stem(existing.stem)
+        if year and year in removable_years and existing.name not in keep:
             existing.unlink(missing_ok=True)
-            merged_year_files.pop(year, None)
+            # Drop orphan year keys only when no kept files remain for that year.
+            if year in merged_year_files and year not in shard_files:
+                merged_year_files.pop(year, None)
 
     meta["splits"] = merged_splits
     payload = {"meta": meta, "year_files": merged_year_files}

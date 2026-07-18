@@ -35,21 +35,34 @@ export function currentYear(): string {
 }
 
 export function loadTier1DataFromShards(year: string): { players: Player[]; teams: Team[] } {
-  const shardPath = path.join(ROOT, 'public', 'data', `oe_slices_${year}.json`)
-  if (!existsSync(shardPath)) {
-    throw new Error(`Missing shard ${shardPath}. Run ingest first.`)
+  const dataDir = path.join(ROOT, 'public', 'data')
+  const candidates = [
+    path.join(dataDir, `oe_slices_${year}.json`),
+    ...Array.from({ length: 9 }, (_, i) =>
+      path.join(dataDir, `oe_slices_${year}_p${String(i + 1).padStart(2, '0')}.json`),
+    ),
+  ].filter((p) => existsSync(p))
+
+  if (!candidates.length) {
+    throw new Error(`Missing shard(s) for ${year} under ${dataDir}. Run ingest first.`)
   }
-  const payload = JSON.parse(readFileSync(shardPath, 'utf8')) as {
-    slices: OEStore['slices']
+
+  const slices: OEStore['slices'] = {}
+  for (const shardPath of candidates) {
+    const payload = JSON.parse(readFileSync(shardPath, 'utf8')) as {
+      slices: OEStore['slices']
+    }
+    Object.assign(slices, payload.slices ?? {})
   }
+
   const meta: OEStoreMeta = {
     source: "Oracle's Elixir",
     generated_at: new Date().toISOString(),
     leagues: ['LCK', 'LPL', 'LEC', 'LCS'],
-    splits: [...new Set(Object.keys(payload.slices).map((k) => k.split('|')[0]!))],
+    splits: [...new Set(Object.keys(slices).map((k) => k.split('|')[0]!))],
     schema_version: '2.1',
   }
-  const store: OEStore = { meta, slices: payload.slices }
+  const store: OEStore = { meta, slices }
   const merged = mergeSlices(store, 'All Tier 1', 'ALL', year)
   return { players: merged.players, teams: merged.teams }
 }

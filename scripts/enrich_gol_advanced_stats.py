@@ -225,13 +225,27 @@ def enrich_slices(
     if verbose:
         print(f"Loaded {len(gol_games)} parsed gol games")
 
-    shard = OUT_DIR / f"oe_slices_{year}.json"
-    if not shard.exists():
-        raise FileNotFoundError(f"Missing shard {shard}")
+    shards = sorted(OUT_DIR.glob(f"oe_slices_{year}.json")) + sorted(
+        OUT_DIR.glob(f"oe_slices_{year}_p*.json")
+    )
+    # Deduplicate while preserving order
+    seen: set[Path] = set()
+    unique_shards: list[Path] = []
+    for shard in shards:
+        if shard in seen:
+            continue
+        seen.add(shard)
+        unique_shards.append(shard)
+    if not unique_shards:
+        raise FileNotFoundError(f"Missing shard(s) for year {year} under {OUT_DIR}")
 
-    patched = enrich_year_shard(shard, gol_games)
+    patched = 0
+    for shard in unique_shards:
+        patched += enrich_year_shard(shard, gol_games)
+        if verbose:
+            print(f"Patched rows in {shard.name}")
     if verbose:
-        print(f"Patched {patched} game-log rows in {shard.name}")
+        print(f"Patched {patched} game-log rows across {len(unique_shards)} shard file(s)")
     return patched
 
 

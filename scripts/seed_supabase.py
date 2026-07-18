@@ -64,6 +64,13 @@ def parse_slice_key(key: str) -> tuple[str, str]:
     return split, league
 
 
+def shard_year_from_stem(stem: str) -> str | None:
+    rest = stem.replace("oe_slices_", "", 1)
+    if len(rest) >= 4 and rest[:4].isdigit():
+        return rest[:4]
+    return None
+
+
 def shard_files() -> list[Path]:
     paths = sorted(DATA_DIR.glob("oe_slices_*.json"))
     paths = [p for p in paths if p.name != MANIFEST_NAME]
@@ -71,7 +78,7 @@ def shard_files() -> list[Path]:
     if scope:
         years = parse_download_years(scope)
         if years is not None:
-            paths = [p for p in paths if p.stem.replace("oe_slices_", "") in years]
+            paths = [p for p in paths if shard_year_from_stem(p.stem) in years]
             if not paths:
                 logger.error(
                     "No shard files for OE_DOWNLOAD_YEARS=%r in %s", scope, DATA_DIR

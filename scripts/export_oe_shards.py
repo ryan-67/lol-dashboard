@@ -140,14 +140,12 @@ def main() -> None:
 
     OUT_DIR.mkdir(parents=True, exist_ok=True)
 
-    year_files: dict[str, str] = {}
+    # Reuse ingest packing so CDN parts stay under Cloudflare Pages' 25 MiB cap.
+    from ingest_csv import write_year_shards  # noqa: WPS433
+
+    year_files: dict[str, str | list[str]] = {}
     for year, year_slices in sorted(slices_by_year.items()):
-        shard_name = f"oe_slices_{year}.json"
-        shard_path = OUT_DIR / shard_name
-        with shard_path.open("w", encoding="utf-8") as f:
-            json.dump({"slices": year_slices}, f, separators=(",", ":"))
-        year_files[year] = shard_name
-        print(f"Wrote {shard_name} ({shard_path.stat().st_size / 1024 / 1024:.2f} MB)")
+        year_files[year] = write_year_shards(year, year_slices)
 
     manifest_path = OUT_DIR / MANIFEST_NAME
     with manifest_path.open("w", encoding="utf-8") as f:

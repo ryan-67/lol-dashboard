@@ -65,29 +65,38 @@ def remote_signature(meta: dict) -> tuple[str, str, int, str | None]:
     )
 
 
+def _shard_paths_for_year(year: str) -> list[Path]:
+    single = DATA_DIR / f"oe_slices_{year}.json"
+    parts = sorted(DATA_DIR.glob(f"oe_slices_{year}_p*.json"))
+    if single.is_file():
+        return [single, *[p for p in parts if p != single]]
+    return parts
+
+
 def latest_game_date_from_shard(year: str) -> str | None:
     """Read max match date from ingested JSON shard (avoids re-scanning the full CSV)."""
-    path = DATA_DIR / f"oe_slices_{year}.json"
-    if not path.is_file():
+    paths = _shard_paths_for_year(year)
+    if not paths:
         return None
     latest: str | None = None
-    with path.open(encoding="utf-8") as fh:
-        payload = json.load(fh)
-    slices = payload.get("slices")
-    if not isinstance(slices, dict):
-        return None
-    for slice_data in slices.values():
-        if not isinstance(slice_data, dict):
+    for path in paths:
+        with path.open(encoding="utf-8") as fh:
+            payload = json.load(fh)
+        slices = payload.get("slices")
+        if not isinstance(slices, dict):
             continue
-        for player in slice_data.get("players") or []:
-            if not isinstance(player, dict):
+        for slice_data in slices.values():
+            if not isinstance(slice_data, dict):
                 continue
-            for game in player.get("gameLog") or []:
-                if not isinstance(game, dict):
+            for player in slice_data.get("players") or []:
+                if not isinstance(player, dict):
                     continue
-                date_raw = str(game.get("date", "")).strip()[:10]
-                if len(date_raw) == 10 and (latest is None or date_raw > latest):
-                    latest = date_raw
+                for game in player.get("gameLog") or []:
+                    if not isinstance(game, dict):
+                        continue
+                    date_raw = str(game.get("date", "")).strip()[:10]
+                    if len(date_raw) == 10 and (latest is None or date_raw > latest):
+                        latest = date_raw
     return latest
 
 

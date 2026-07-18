@@ -5,7 +5,7 @@ import { resolveSplitLabelsForMerge } from './filterOptions'
 import type { FetchOESlicesParams, OESliceRow } from './loadOEStore'
 
 const MANIFEST_URL = `${import.meta.env.BASE_URL}data/oe_slices.json`
-const CACHE_VERSION = 'v1'
+const CACHE_VERSION = 'v2'
 
 function resolveTargetSplits(
   catalogSplits: string[],
@@ -39,9 +39,12 @@ function resolveTargetSplits(
   return [...expanded]
 }
 
+/** Single file or part list when a year exceeds Cloudflare's 25 MiB asset cap. */
+export type YearShardRef = string | string[]
+
 interface ShardManifest {
   meta: OEStoreMeta
-  year_files: Record<string, string>
+  year_files: Record<string, YearShardRef>
 }
 
 interface YearShardPayload {
@@ -112,7 +115,16 @@ function yearsForParams(years: string[], manifest: ShardManifest): string[] {
   return years.filter((year) => manifest.year_files[year])
 }
 
-async function loadYearSlices(year: string, filename: string, stamp: string): Promise<Record<string, DashboardSlice>> {
+function filenamesForYear(ref: YearShardRef | undefined): string[] {
+  if (!ref) return []
+  return Array.isArray(ref) ? ref : [ref]
+}
+
+async function loadYearSlices(
+  year: string,
+  filenames: string[],
+  stamp: string,
+): Promise<Record<string, DashboardSlice>> {
   const memory = yearSliceCache.get(year)
   if (memory) return memory
 
@@ -122,9 +134,12 @@ async function loadYearSlices(year: string, filename: string, stamp: string): Pr
     return cached
   }
 
-  const url = `${import.meta.env.BASE_URL}data/${filename}`
-  const body = await fetchJson<YearShardPayload>(url)
-  const slices = body?.slices ?? {}
+  const slices: Record<string, DashboardSlice> = {}
+  for (const filename of filenames) {
+    const url = `${import.meta.env.BASE_URL}data/${filename}`
+    const body = await fetchJson<YearShardPayload>(url)
+    if (body?.slices) Object.assign(slices, body.slices)
+  }
   if (!Object.keys(slices).length) return {}
 
   yearSliceCache.set(year, slices)
@@ -140,9 +155,9 @@ async function loadAllShardSlices(years: string[]): Promise<Record<string, Dashb
   const merged: Record<string, DashboardSlice> = {}
 
   for (const year of yearsForParams(years, manifest)) {
-    const filename = manifest.year_files[year]
-    if (!filename) continue
-    const slices = await loadYearSlices(year, filename, stamp)
+    const filenames = filenamesForYear(manifest.year_files[year])
+    if (!filenames.length) continue
+    const slices = await loadYearSlices(year, filenames, stamp)
     Object.assign(merged, slices)
   }
 

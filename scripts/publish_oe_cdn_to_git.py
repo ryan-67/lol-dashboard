@@ -50,6 +50,21 @@ def tracked_shard_paths() -> list[Path]:
     return [ROOT / line.strip() for line in result.stdout.splitlines() if line.strip()]
 
 
+def shard_year_from_stem(stem: str) -> str | None:
+    rest = stem.replace("oe_slices_", "", 1)
+    if len(rest) >= 4 and rest[:4].isdigit():
+        return rest[:4]
+    return None
+
+
+def flatten_year_ref(value: str | list[str] | None) -> list[str]:
+    if value is None:
+        return []
+    if isinstance(value, list):
+        return value
+    return [value]
+
+
 def restore_unpublished_shards(publish_years: set[str] | None) -> None:
     """Drop accidental on-disk regenerations of historical shards we are not publishing.
 
@@ -58,7 +73,7 @@ def restore_unpublished_shards(publish_years: set[str] | None) -> None:
     older commits — leaving them modified but unstaged breaks `git pull --rebase`.
     """
     for path in tracked_shard_paths():
-        year = path.stem.replace("oe_slices_", "")
+        year = shard_year_from_stem(path.stem)
         if publish_years is not None and year in publish_years:
             continue
         rel = path.relative_to(ROOT)
@@ -73,7 +88,7 @@ def remove_unpublished_shards_from_git(publish_years: set[str] | None) -> None:
     if publish_years is None:
         return
     for path in tracked_shard_paths():
-        year = path.stem.replace("oe_slices_", "")
+        year = shard_year_from_stem(path.stem)
         if year in publish_years:
             continue
         rel = path.relative_to(ROOT)
@@ -88,25 +103,40 @@ def main() -> None:
 
     publish_years = parse_download_years(os.environ.get("OE_CDN_PUBLISH_YEARS", "current"))
     payload = json.loads(MANIFEST_PATH.read_text(encoding="utf-8"))
-    year_files: dict[str, str] = dict(payload.get("year_files") or {})
+    year_files: dict[str, str | list[str]] = dict(payload.get("year_files") or {})
 
     if publish_years is not None:
         year_files = {y: f for y, f in year_files.items() if y in publish_years}
 
     staged_files: list[Path] = []
     skipped_large: list[str] = []
-    for year, filename in sorted(year_files.items()):
-        shard_path = DATA_DIR / filename
-        if not shard_path.exists():
-            print(f"WARNING: manifest lists {filename} but file is missing — skipping", file=sys.stderr)
-            year_files.pop(year, None)
+    kept: dict[str, str | list[str]] = {}
+    for year, ref in sorted(year_files.items()):
+        filenames = flatten_year_ref(ref)
+        if not filenames:
             continue
-        size = shard_path.stat().st_size
-        if size >= GITHUB_FILE_LIMIT_BYTES:
-            skipped_large.append(f"{filename} ({size / (1024 * 1024):.1f} MB)")
-            year_files.pop(year, None)
+        year_paths: list[Path] = []
+        drop_year = False
+        for filename in filenames:
+            shard_path = DATA_DIR / filename
+            if not shard_path.exists():
+                print(
+                    f"WARNING: manifest lists {filename} but file is missing — skipping year {year}",
+                    file=sys.stderr,
+                )
+                drop_year = True
+                break
+            size = shard_path.stat().st_size
+            if size >= GITHUB_FILE_LIMIT_BYTES:
+                skipped_large.append(f"{filename} ({size / (1024 * 1024):.1f} MB)")
+                drop_year = True
+                break
+            year_paths.append(shard_path)
+        if drop_year:
             continue
-        staged_files.append(shard_path)
+        staged_files.extend(year_paths)
+        kept[year] = filenames if len(filenames) > 1 else filenames[0]
+    year_files = kept
 
     if skipped_large:
         print(
