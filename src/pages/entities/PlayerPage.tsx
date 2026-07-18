@@ -1,5 +1,6 @@
 import { useCallback, useMemo } from 'react'
-import { useParams, Link } from 'react-router-dom'
+import { useParams } from 'react-router-dom'
+import ShellLink from '../../components/shell/ShellLink'
 import { useEntityPageData } from '../../hooks/useEntityPageData'
 import { resolvePlayerFromSlug, bestWorstChampions, sideCellClass } from '../../lib/entities'
 import {
@@ -109,9 +110,9 @@ export default function PlayerPage() {
       <div className="page-section entity-page">
         {filterBar}
         <div className="empty-state">Player not found for this filter.</div>
-        <Link to="/players" className="entity-back-link">
+        <ShellLink to="/players" className="entity-back-link">
           ← Players
-        </Link>
+        </ShellLink>
       </div>
     )
   }
@@ -123,9 +124,9 @@ export default function PlayerPage() {
     <div className="page-section entity-page">
       {filterBar}
 
-      <Link to="/players" className="entity-back-link">
+      <ShellLink to="/players" className="entity-back-link">
         ← Players
-      </Link>
+      </ShellLink>
 
       <header className="entity-hero">
         <div>
@@ -239,9 +240,9 @@ export default function PlayerPage() {
                     <td className="text-secondary text-sm">
                       <span className="entity-tournament-cell">
                         <LeagueLogo league={tournamentIdentity.league} size={16} />
-                        <Link to={tournamentPath(tournamentIdentity.id)} className="entity-link">
+                        <ShellLink to={tournamentPath(tournamentIdentity.id)} className="entity-link">
                           {tournament}
-                        </Link>
+                        </ShellLink>
                       </span>
                     </td>
                   </tr>

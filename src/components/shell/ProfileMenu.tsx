@@ -33,9 +33,10 @@ export default function ProfileMenu() {
     )
   }
 
-  const username = profile?.username ?? null
+  const username = profile?.username?.trim() || null
   const initial = (username ?? user.email ?? 'n').slice(0, 1).toUpperCase()
-  const displayName = username ? `@${username}` : user.email ?? 'account'
+  const displayName = username ? `@${username}` : 'set username'
+  const secondaryLine = username ? user.email ?? '' : user.email ?? 'account'
 
   return (
     <div className="profile-menu" ref={wrapRef}>
@@ -82,7 +83,7 @@ export default function ProfileMenu() {
         </span>
         <span className="profile-menu-meta">
           <span className="profile-menu-name">{displayName}</span>
-          <span className="profile-menu-email">{user.email}</span>
+          {secondaryLine ? <span className="profile-menu-email">{secondaryLine}</span> : null}
         </span>
         <span className="profile-menu-chevrons" aria-hidden>
           ↕

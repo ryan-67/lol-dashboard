@@ -1,5 +1,6 @@
 import { useCallback, useMemo } from 'react'
-import { useParams, Link } from 'react-router-dom'
+import { useParams } from 'react-router-dom'
+import ShellLink from '../../components/shell/ShellLink'
 import { useEntityPageData } from '../../hooks/useEntityPageData'
 import {
   findChampionBySlug,
@@ -108,9 +109,9 @@ export default function ChampionPage() {
       <div className="page-section entity-page">
         {filterBar}
         <div className="empty-state">Champion not found for this filter.</div>
-        <Link to="/champions" className="entity-back-link">
+        <ShellLink to="/champions" className="entity-back-link">
           ← Champions
-        </Link>
+        </ShellLink>
       </div>
     )
   }
@@ -125,9 +126,9 @@ export default function ChampionPage() {
     <div className="page-section entity-page">
       {filterBar}
 
-      <Link to="/champions" className="entity-back-link">
+      <ShellLink to="/champions" className="entity-back-link">
         ← Champions
-      </Link>
+      </ShellLink>
 
       <header className="entity-hero">
         <div>

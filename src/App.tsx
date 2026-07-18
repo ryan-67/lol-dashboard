@@ -130,7 +130,9 @@ function HomeEntry() {
 
 function LegacyEntityRedirect({ type }: { type: 'players' | 'teams' | 'champions' | 'tournaments' }) {
   const { slug } = useParams()
-  return <Navigate to={`/dashboard/${type}/${slug}`} replace />
+  const { defaultView } = useViewPreference()
+  const prefix = defaultView === 'duo' ? '/duo' : '/dashboard'
+  return <Navigate to={`${prefix}/${type}/${slug}`} replace />
 }
 
 function AppRoutes() {
@@ -223,7 +225,9 @@ function AppRoutes() {
 
 function LegacySeriesRedirect() {
   const { seriesId } = useParams()
-  return <Navigate to={`/dashboard/series/${seriesId}`} replace />
+  const { defaultView } = useViewPreference()
+  const prefix = defaultView === 'duo' ? '/duo' : '/dashboard'
+  return <Navigate to={`${prefix}/series/${seriesId}`} replace />
 }
 
 function App() {

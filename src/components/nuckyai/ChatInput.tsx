@@ -7,6 +7,7 @@ import {
   searchEntities,
   type EntitySearchEntry,
 } from '../../lib/entities/searchIndex'
+import { shellAwarePath } from '../../lib/shellPath'
 import ChampionIcon from '../entities/ChampionIcon'
 
 interface ChatInputProps {
@@ -17,19 +18,6 @@ interface ChatInputProps {
   onStop?: () => void
   focusTrigger?: number
   floating?: boolean
-}
-
-function resolveEntityTarget(path: string, pathname: string): string {
-  if (pathname.startsWith('/duo')) {
-    return `/duo${path}`
-  }
-  if (pathname.startsWith('/chat')) {
-    return `/dashboard${path}`
-  }
-  if (pathname.startsWith('/dashboard')) {
-    return `/dashboard${path}`
-  }
-  return path
 }
 
 export default function ChatInput({
@@ -85,8 +73,7 @@ export default function ChatInput({
   }, [results.length, value])
 
   const pickEntity = (entry: EntitySearchEntry) => {
-    const raw = entityPath(entry)
-    navigate(resolveEntityTarget(raw, location.pathname))
+    navigate(shellAwarePath(entityPath(entry), location.pathname))
     onChange('')
     setShowTypeahead(false)
   }

@@ -4,6 +4,8 @@ public/data/*
 !public/data/cito_schedule_cache.json
 !public/data/gol_game_cache.json
 !public/data/accuracy_scorecard.json
+!public/data/player_ratings.json
+!public/data/region_strength.json
 !public/data/live-mock
 !public/data/live-mock/**
 

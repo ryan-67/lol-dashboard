@@ -1,8 +1,6 @@
-import { useMemo, useRef } from 'react'
-import { useGSAP } from '@gsap/react'
+import { useMemo } from 'react'
 import type { Champion, Player, Team, TeamChampion } from '../../hooks/useDashboardData'
 import { teamKey } from '../../lib/teamAnalytics'
-import { scrollEntrance } from '../../theme/animations'
 import TeamDropdown from './TeamDropdown'
 import TeamComparisonRadar from './TeamComparisonRadar'
 import TeamComparisonStatsChart from './TeamComparisonStatsChart'
@@ -27,8 +25,6 @@ export default function TeamComparisonSection({
   teamChampions,
   champions,
 }: TeamComparisonSectionProps) {
-  const sectionRef = useRef<HTMLDivElement>(null)
-
   const teamByKey = useMemo(() => {
     const map = new Map<string, Team>()
     teams.forEach((t) => map.set(teamKey(t), t))
@@ -49,16 +45,9 @@ export default function TeamComparisonSection({
     return teams.filter((t) => leagues.has(t.league))
   }, [compareTeams, teams])
 
-  useGSAP(
-    () => {
-      scrollEntrance(sectionRef.current)
-    },
-    { scope: sectionRef, dependencies: [compareTeams.length] },
-  )
-
   return (
-    <div ref={sectionRef} className="page-section team-comparison-section">
-      <h2 className="card-title">Team Comparison</h2>
+    <div className="page-section team-comparison-section">
+      <h2 className="card-title">Multi-team comparison</h2>
       <TeamDropdown teams={teams} selectedKeys={compareKeys} onChange={onCompareChange} />
 
       {compareTeams.length === 0 ? (

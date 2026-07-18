@@ -3,17 +3,34 @@ import NuckyAiPaywall from '../nuckyai/NuckyAiPaywall'
 import ChatWindow from '../nuckyai/ChatWindow'
 import { useChatSession } from '../../context/ChatSessionContext'
 import { useProfile } from '../../context/ProfileContext'
+import { useAuth } from '../../context/AuthContext'
 
 interface ChatPaneProps {
   /** When true, fill available height without outer card chrome */
   embedded?: boolean
 }
 
+function ChatLoading({ embedded }: { embedded: boolean }) {
+  return (
+    <div className={`chat-pane ${embedded ? 'chat-pane-embedded' : ''}`}>
+      <div className="chat-pane-loading" aria-busy="true" aria-live="polite">
+        <div className="chat-pane-loading-pulse" />
+        <p className="text-secondary text-sm">loading nucky…</p>
+      </div>
+    </div>
+  )
+}
+
 export default function ChatPane({ embedded = false }: ChatPaneProps) {
+  const { loading: authLoading } = useAuth()
   const chat = useChatSession()
   const { profile } = useProfile()
   const displayName =
-    profile?.username ?? chat.profile?.username ?? chat.user?.email?.split('@')[0] ?? undefined
+    profile?.username ?? chat.profile?.username ?? undefined
+
+  if (authLoading) {
+    return <ChatLoading embedded={embedded} />
+  }
 
   if (!chat.user) {
     return (
@@ -29,6 +46,10 @@ export default function ChatPane({ embedded = false }: ChatPaneProps) {
         <AuthModal open={chat.showAuth} onClose={() => chat.setShowAuth(false)} />
       </div>
     )
+  }
+
+  if (!chat.subscriptionReady) {
+    return <ChatLoading embedded={embedded} />
   }
 
   if (!chat.isSubscribed) {

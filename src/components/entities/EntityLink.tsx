@@ -1,10 +1,11 @@
-import { Link } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 import {
   buildPlayerSearchSlug,
   championSlug,
   playerSlug,
   teamSlugFromName,
 } from '../../lib/entities'
+import { shellAwarePath } from '../../lib/shellPath'
 import type { Player } from '../../hooks/useDashboardData'
 import ChampionIcon from './ChampionIcon'
 import TeamLogo from './TeamLogo'
@@ -43,9 +44,16 @@ export default function EntityLink({
   className = '',
   showIcon = type !== 'player',
 }: EntityLinkProps) {
+  const location = useLocation()
   if (!name || name === 'N/A') return <span className={className}>{children ?? name}</span>
 
-  const to = hrefFor(type, name, player ?? (allPlayers ? allPlayers.find((p) => p.name === name) : undefined), allPlayers)
+  const raw = hrefFor(
+    type,
+    name,
+    player ?? (allPlayers ? allPlayers.find((p) => p.name === name) : undefined),
+    allPlayers,
+  )
+  const to = shellAwarePath(raw, location.pathname)
   const label = children ?? name
 
   return (

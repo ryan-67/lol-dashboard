@@ -1,5 +1,6 @@
 import { useCallback, useMemo, useState, useEffect } from 'react'
-import { useParams, Link } from 'react-router-dom'
+import { Link, useParams } from 'react-router-dom'
+import ShellLink from '../../components/shell/ShellLink'
 import { useEntityPageData } from '../../hooks/useEntityPageData'
 import {
   mergeTeamsByCanonical,
@@ -271,9 +272,9 @@ export default function TeamPage() {
       <div className="page-section entity-page">
         {filterBar}
         <div className="empty-state">Team not found for this filter.</div>
-        <Link to="/teams" className="entity-back-link">
+        <ShellLink to="/teams" className="entity-back-link">
           ← Teams
-        </Link>
+        </ShellLink>
       </div>
     )
   }
@@ -283,9 +284,9 @@ export default function TeamPage() {
       {filterBar}
       <TeamSubnav active={activeTab} onChange={setActiveTab} />
 
-      <Link to="/teams" className="entity-back-link">
+      <ShellLink to="/teams" className="entity-back-link">
         ← Teams
-      </Link>
+      </ShellLink>
 
       <header className="entity-hero">
         <div>
@@ -520,9 +521,9 @@ export default function TeamPage() {
                           {seriesId ? (
                             <>
                               {' · '}
-                              <Link to={seriesPath(seriesId)} className="entity-inline-link">
+                              <ShellLink to={seriesPath(seriesId)} className="entity-inline-link">
                                 series
-                              </Link>
+                              </ShellLink>
                             </>
                           ) : null}
                         </td>
@@ -531,9 +532,9 @@ export default function TeamPage() {
                         <td>
                           <span className="entity-tournament-cell">
                             <LeagueLogo league={m.tournamentLeague} size={16} />
-                            <Link to={tournamentPath(m.tournamentId)} className="entity-link">
+                            <ShellLink to={tournamentPath(m.tournamentId)} className="entity-link">
                               {m.tournament}
-                            </Link>
+                            </ShellLink>
                           </span>
                         </td>
                         <td>{formatGameDate(m.date)}</td>

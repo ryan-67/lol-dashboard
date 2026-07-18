@@ -9,17 +9,17 @@ import { isTier1Team } from '../lib/mergeSlices'
 import {
   TeamFilterBar,
   TeamRadarGrid,
-  TeamComparisonSection,
 } from '../components/teams'
 import TeamMetricsTableCard from '../components/teams/TeamMetricsTableCard'
 import { scrollEntranceStagger, refreshScrollTrigger } from '../theme/animations'
 import PageHeader from '../components/ui/PageHeader'
+import PowerRankingsPanel from '../components/rankings/PowerRankingsPanel'
+import TeamPowerBoard from '../components/rankings/TeamPowerBoard'
 
 export default function Teams() {
-  const { filteredTeams, filteredPlayers, filteredChampions, data, league, split } =
+  const { filteredTeams, filteredPlayers, league, split } =
     useDashboard()
   const [scope, setScope] = useState<TeamScope>('top')
-  const [compareKeys, setCompareKeys] = useState<string[]>([])
   const [showTable, setShowTable] = useState(false)
 
   const teams = useMemo(
@@ -40,15 +40,16 @@ export default function Teams() {
 
   useEffect(() => {
     requestAnimationFrame(() => refreshScrollTrigger())
-  }, [scope, league, split, showTable, compareKeys.length])
+  }, [scope, league, split, showTable])
 
   return (
     <div className="page-section">
       <PageHeader
         eyebrow="teams"
         title="team power & style"
-        subtitle="Radar profiles, head-to-head compares, and objective fingerprints across the filtered split."
+        subtitle="Radar profiles and objective fingerprints across the filtered split. Multi-team compares live on Matchups."
       />
+      <TeamPowerBoard teams={teams} players={filteredPlayers} />
       <TeamFilterBar scope={scope} onScopeChange={setScope} />
 
       {teams.length === 0 ? (
@@ -59,13 +60,10 @@ export default function Teams() {
         </div>
       )}
 
-      <TeamComparisonSection
-        teams={teams}
-        compareKeys={compareKeys}
-        onCompareChange={setCompareKeys}
-        players={filteredPlayers}
-        teamChampions={data?.teamChampions ?? []}
-        champions={filteredChampions}
+      <PowerRankingsPanel
+        title="player power by role"
+        subtitle="nucky model rankings — useful context while scanning team radars."
+        limit={6}
       />
 
       <div className="players-table-toggle">

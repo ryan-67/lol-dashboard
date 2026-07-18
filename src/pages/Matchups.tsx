@@ -8,6 +8,7 @@ import {
   TeamRadarComparison,
   HighestPriorityChamps,
 } from '../components/matchups'
+import { TeamComparisonSection } from '../components/teams'
 import { TeamLogo } from '../components/entities'
 import { isTier1Player, isTier1Team } from '../lib/mergeSlices'
 import PageHeader from '../components/ui/PageHeader'
@@ -17,6 +18,7 @@ export default function Matchups() {
   const [searchParams] = useSearchParams()
   const [teamA, setTeamA] = useState('')
   const [teamB, setTeamB] = useState('')
+  const [compareKeys, setCompareKeys] = useState<string[]>([])
 
   useEffect(() => {
     const a = searchParams.get('teamA')
@@ -69,7 +71,7 @@ export default function Matchups() {
   }
 
   return (
-    <div className="page-section">
+    <div className="page-section matchups-page">
       <PageHeader
         eyebrow="matchups"
         title="team matchup comparison"
@@ -113,8 +115,8 @@ export default function Matchups() {
       {!teamAData || !teamBData ? (
         <div className="empty-state">Select two teams to compare</div>
       ) : (
-        <>
-          <div className="page-section card">
+        <div className="matchups-stack">
+          <div className="card">
             <div className="matchup-summary">
               <div className="stat-tile text-center">
                 <div className="stat-value entity-inline-row justify-center">
@@ -122,7 +124,7 @@ export default function Matchups() {
                   <span>{teamAData.name}</span>
                 </div>
                 <div className="text-secondary text-sm">{teamAData.league}</div>
-                <div className="mt-2 text-2xl font-medium text-accent">
+                <div className="mt-2 text-2xl font-medium">
                   <AnimatedCounter value={teamAData.winrate} suffix="%" />
                 </div>
                 <div className="stat-label mt-1">Win Rate</div>
@@ -151,7 +153,7 @@ export default function Matchups() {
                   <span>{teamBData.name}</span>
                 </div>
                 <div className="text-secondary text-sm">{teamBData.league}</div>
-                <div className="mt-2 text-2xl font-medium text-accent">
+                <div className="mt-2 text-2xl font-medium">
                   <AnimatedCounter value={teamBData.winrate} suffix="%" />
                 </div>
                 <div className="stat-label mt-1">Win Rate</div>
@@ -173,8 +175,17 @@ export default function Matchups() {
             teamAName={teamAData.name}
             teamBName={teamBData.name}
           />
-        </>
+        </div>
       )}
+
+      <TeamComparisonSection
+        teams={teams}
+        compareKeys={compareKeys}
+        onCompareChange={setCompareKeys}
+        players={filteredPlayers}
+        teamChampions={data?.teamChampions ?? []}
+        champions={filteredChampions}
+      />
     </div>
   )
 }

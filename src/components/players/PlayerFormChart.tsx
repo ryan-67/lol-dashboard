@@ -14,7 +14,7 @@ import type { Player } from '../../hooks/useDashboardData'
 import { makeChartTooltipContent } from '../ui/ChartTooltip'
 import ShareableChart from '../ui/ShareableChart'
 import { buildFormTrajectorySeries, type FormTrajectorySeries } from '../../lib/playerAnalytics'
-import { scrollEntrance } from '../../theme/animations'
+import { animateChartDraw } from '../../theme/animations'
 import { CHART } from '../../theme/chartTheme'
 
 interface PlayerFormChartProps {
@@ -51,7 +51,7 @@ export default function PlayerFormChart({ players, cohortPlayers }: PlayerFormCh
 
   useGSAP(
     () => {
-      scrollEntrance(sectionRef.current)
+      animateChartDraw(sectionRef.current)
     },
     { scope: sectionRef, dependencies: [series.length] },
   )

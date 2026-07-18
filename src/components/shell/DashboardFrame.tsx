@@ -17,9 +17,9 @@ export default function DashboardFrame() {
     normalized === '/dashboard/players' ||
     normalized === '/dashboard/teams' ||
     normalized === '/dashboard/champions' ||
-    normalized === '/dashboard/matchups' ||
     normalized === '/dashboard/tournaments'
 
+  // Matchups uses its own team selectors — league/year/split strip is irrelevant
   const shouldShowTopBar = isListTab && !isEntityPage
 
   return (

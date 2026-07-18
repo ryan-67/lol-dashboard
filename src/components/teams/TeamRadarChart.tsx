@@ -71,8 +71,11 @@ export default function TeamRadarChart({
           </h3>
           <p className="radar-card-subtitle entity-subtitle">
             <LeagueLogo league={team.league} size={16} />
-            <span style={{ color }}>{team.league}</span> · {team.winrate.toFixed(1)}% WR · {team.wins}W-
-            {team.losses}L
+            <span className="radar-card-league">{team.league}</span>
+            <span className="radar-card-record">
+              {' '}
+              · {team.winrate.toFixed(1)}% WR · {team.wins}W-{team.losses}L
+            </span>
           </p>
         </div>
       ) : (

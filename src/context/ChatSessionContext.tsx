@@ -22,6 +22,8 @@ interface ChatSessionContextValue {
   user: ReturnType<typeof useAuth>['user']
   profile: ProfileRow | null
   isSubscribed: boolean
+  /** False until first subscription resolve for the current user. */
+  subscriptionReady: boolean
   conversations: ConversationRow[]
   conversationsLoading: boolean
   messages: MessageRow[]
@@ -57,6 +59,7 @@ export function ChatSessionProvider({ children }: { children: ReactNode }) {
   } = useDashboard()
   const [profile, setProfile] = useState<ProfileRow | null>(null)
   const [isSubscribed, setIsSubscribed] = useState(false)
+  const [subscriptionReady, setSubscriptionReady] = useState(false)
   const [conversations, setConversations] = useState<ConversationRow[]>([])
   const [conversationsLoading, setConversationsLoading] = useState(false)
   const [messages, setMessages] = useState<MessageRow[]>([])
@@ -75,8 +78,10 @@ export function ChatSessionProvider({ children }: { children: ReactNode }) {
     if (!user) {
       setProfile(null)
       setIsSubscribed(false)
+      setSubscriptionReady(true)
       return
     }
+    setSubscriptionReady(false)
     const [{ data: profileData }, subscriptionState] = await Promise.all([
       supabase
         .from('profiles')
@@ -87,6 +92,7 @@ export function ChatSessionProvider({ children }: { children: ReactNode }) {
     ])
     setProfile((profileData as ProfileRow | null) ?? null)
     setIsSubscribed(subscriptionState.isSubscribed)
+    setSubscriptionReady(true)
   }, [user])
 
   const loadConversations = useCallback(async () => {
@@ -136,8 +142,10 @@ export function ChatSessionProvider({ children }: { children: ReactNode }) {
       if (!user) {
         setProfile(null)
         setIsSubscribed(false)
+        setSubscriptionReady(true)
         return
       }
+      setSubscriptionReady(false)
       const state = await fetchSubscriptionState(user.id)
       if (!state.isSubscribed) {
         try {
@@ -380,6 +388,7 @@ export function ChatSessionProvider({ children }: { children: ReactNode }) {
       user,
       profile,
       isSubscribed,
+      subscriptionReady,
       conversations,
       conversationsLoading,
       messages,
@@ -404,6 +413,7 @@ export function ChatSessionProvider({ children }: { children: ReactNode }) {
       user,
       profile,
       isSubscribed,
+      subscriptionReady,
       conversations,
       conversationsLoading,
       messages,

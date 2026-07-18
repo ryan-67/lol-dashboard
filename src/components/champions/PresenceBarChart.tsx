@@ -16,7 +16,7 @@ import { useDashboard } from '../../context/DashboardContext'
 import { makeChartTooltipContent } from '../ui/ChartTooltip'
 import ShareableChart from '../ui/ShareableChart'
 import ChampionAxisTick from '../ui/ChampionAxisTick'
-import { scrollEntrance } from '../../theme/animations'
+import { animateChartDraw } from '../../theme/animations'
 import { CHART } from '../../theme/chartTheme'
 
 const presenceBarTooltip = makeChartTooltipContent(
@@ -58,7 +58,7 @@ export default function PresenceBarChart({ champions }: PresenceBarChartProps) {
 
   useGSAP(
     () => {
-      scrollEntrance(sectionRef.current)
+      animateChartDraw(sectionRef.current)
     },
     { scope: sectionRef, dependencies: [champions.length, totalGames] },
   )

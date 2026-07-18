@@ -7,15 +7,8 @@ import {
   searchEntities,
   type EntitySearchEntry,
 } from '../../lib/entities/searchIndex'
+import { shellAwarePath } from '../../lib/shellPath'
 import ChampionIcon from '../entities/ChampionIcon'
-
-/** entityPath returns /players/..., /teams/..., /champions/... */
-function shellAwarePath(path: string, pathname: string): string {
-  if (pathname.startsWith('/duo')) return `/duo${path}`
-  if (pathname.startsWith('/chat')) return `/dashboard${path}`
-  if (pathname.startsWith('/dashboard')) return `/dashboard${path}`
-  return `/dashboard${path}`
-}
 
 interface EntitySearchProps {
   compact?: boolean
@@ -113,4 +106,3 @@ export default function EntitySearch({
   )
 }
 
-export { shellAwarePath }

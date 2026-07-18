@@ -137,11 +137,138 @@
   margin-bottom: 1.25rem;
   padding: 1.1rem 1.15rem;
   border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
   background: linear-gradient(
     135deg,
     color-mix(in oklab, var(--bg-elevated) 92%, var(--accent) 8%) 0%,
     var(--bg-surface) 55%
   );
+}
+
+.dash-kpi,
+.power-rankings-panel,
+.radar-card,
+.player-chart-card,
+.overview-totw-card,
+.overview-stat-cell,
+.chat-empty-prompt,
+.entity-search-results,
+.contact-link,
+.contact-input {
+  border-radius: var(--radius-sm);
+}
+
+.radar-card-league {
+  color: var(--text-primary);
+}
+
+.radar-card-record {
+  color: var(--text-secondary);
+}
+
+.matchups-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.matchups-page .page-section.team-comparison-section {
+  margin-top: 1.5rem;
+}
+
+.power-rankings-panel {
+  margin-bottom: 1rem;
+}
+
+.power-rankings-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.85rem;
+}
+
+.power-rankings-roles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.power-rankings-role {
+  appearance: none;
+  border: 1px solid var(--border-subtle);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text-secondary);
+  font-family: inherit;
+  font-size: 0.72rem;
+  padding: 0.35rem 0.7rem;
+  cursor: pointer;
+}
+
+.power-rankings-role.is-active,
+.power-rankings-role:hover {
+  border-color: var(--accent);
+  color: var(--text-primary);
+  background: var(--accent-bg);
+}
+
+.power-rankings-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.power-rankings-row {
+  display: grid;
+  grid-template-columns: 2.5rem minmax(0, 1fr) auto;
+  gap: 0.65rem;
+  align-items: center;
+  padding: 0.55rem 0.65rem;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  transition: border-color 140ms ease, background 140ms ease;
+}
+
+.power-rankings-row:hover {
+  border-color: var(--border-subtle);
+  background: var(--bg-elevated);
+}
+
+.power-rankings-rank {
+  font-size: 0.75rem;
+  color: var(--text-tertiary);
+  font-variant-numeric: tabular-nums;
+}
+
+.power-rankings-player {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 0;
+  color: var(--text-primary);
+}
+
+.power-rankings-meta {
+  font-size: 0.72rem;
+  color: var(--text-secondary);
+}
+
+.power-rankings-score {
+  font-size: 0.95rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+.power-rankings-footer {
+  margin: 0.75rem 0 0;
+  font-size: 0.68rem;
+  color: var(--text-tertiary);
 }
 
 @media (min-width: 900px) {

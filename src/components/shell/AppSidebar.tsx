@@ -3,6 +3,7 @@ import { useOptionalChatSession } from '../../context/ChatSessionContext'
 import { useViewPreference } from '../../context/ViewPreferenceContext'
 import EntitySearch from './EntitySearch'
 import ProfileMenu from './ProfileMenu'
+import { pathForView } from '../../lib/viewPreference'
 
 type ShellMode = 'duo' | 'chat' | 'dashboard'
 
@@ -29,7 +30,7 @@ const DASH_TABS = [
 export default function AppSidebar() {
   const location = useLocation()
   const mode = detectMode(location.pathname)
-  const { defaultView } = useViewPreference()
+  const { defaultView, homePath } = useViewPreference()
   const chat = useOptionalChatSession()
 
   // Chat-preference + on /chat: collapse dash tabs to single Dashboard link
@@ -41,7 +42,7 @@ export default function AppSidebar() {
   return (
     <aside className="app-sidebar">
       <div className="app-sidebar-top">
-        <Link to={mode === 'duo' ? '/duo' : mode === 'chat' ? '/chat' : '/dashboard'} className="app-sidebar-brand">
+        <Link to={homePath || pathForView(defaultView)} className="app-sidebar-brand">
           <span className="app-sidebar-mark" aria-hidden>
             N
           </span>
@@ -63,7 +64,7 @@ export default function AppSidebar() {
 
         <nav className="app-sidebar-nav" aria-label="Primary">
           {showNuckyLink ? (
-            <NavLink to="/chat" className="app-sidebar-link">
+            <NavLink to={homePath || pathForView(defaultView)} className="app-sidebar-link">
               nucky
             </NavLink>
           ) : null}

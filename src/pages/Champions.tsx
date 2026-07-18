@@ -21,6 +21,7 @@ import SortableTh from '../components/ui/SortableTh'
 import { ChampionEntityInline } from '../components/entities'
 import { refreshScrollTrigger } from '../theme/animations'
 import PageHeader from '../components/ui/PageHeader'
+import PowerRankingsPanel from '../components/rankings/PowerRankingsPanel'
 
 export default function Champions() {
   const { filteredChampions, league, split } = useDashboard()
@@ -76,6 +77,11 @@ export default function Champions() {
         eyebrow="champions"
         title="meta & performance"
         subtitle="Presence, winrate, OP spotlight, and rising/falling trends for the current filter."
+      />
+      <PowerRankingsPanel
+        title="player power context"
+        subtitle="Top nucky model powers by role — pair with the meta charts below."
+        limit={5}
       />
       <RoleFilterBar value={roleFilter} onChange={setRoleFilter} />
 

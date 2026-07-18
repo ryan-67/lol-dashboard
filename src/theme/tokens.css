@@ -1,23 +1,26 @@
 :root {
-  /* Backgrounds — matte black, cool tint */
+  /* Backgrounds — matte black with faint cool depth */
   --bg-base: #0b0c0c;
-  --bg-surface: #121314;
-  --bg-elevated: #181a1b;
+  --bg-surface: #121415;
+  --bg-elevated: #191c1e;
+  --bg-glow: oklch(0.78 0.1 195 / 0.045);
 
   /* Borders */
-  --border-subtle: #2a2c2e;
-  --border-focus: #3f4447;
+  --border-subtle: #2c3033;
+  --border-focus: #454b50;
+  --radius-sm: 6px;
+  --radius-md: 10px;
 
   /* Text — cream / off-white for readable hierarchy on black */
-  --text-primary: #f2efe6;
-  --text-secondary: #b8b4a8;
-  --text-tertiary: #7d7a70;
+  --text-primary: #f4f1e8;
+  --text-secondary: #c4c0b4;
+  --text-tertiary: #8a867c;
   --text-accent: var(--text-primary);
 
-  /* Accent — matte turquoise (sparingly: focus, CTA, chart series) */
-  --accent: oklch(0.72 0.09 195);
-  --accent-dim: oklch(0.55 0.07 195);
-  --accent-bg: oklch(0.72 0.09 195 / 0.08);
+  /* Accent — brighter matte turquoise (sparingly) */
+  --accent: oklch(0.78 0.11 195);
+  --accent-dim: oklch(0.62 0.09 195);
+  --accent-bg: oklch(0.78 0.11 195 / 0.1);
 
   /* Chart role colors — mostly neutrals; one accent role */
   --role-top: #c8c4b8;
@@ -60,6 +63,11 @@ html {
 body {
   margin: 0;
   background-color: var(--bg-base);
+  background-image:
+    radial-gradient(1200px 600px at 12% -10%, var(--bg-glow), transparent 55%),
+    radial-gradient(900px 500px at 88% 0%, oklch(0.78 0.08 195 / 0.03), transparent 50%),
+    linear-gradient(180deg, #0e1011 0%, var(--bg-base) 40%, #0a0b0b 100%);
+  background-attachment: fixed;
   color: var(--text-primary);
   font-family: var(--font-mono);
   font-weight: 400;
@@ -172,11 +180,12 @@ b,
 
 /* Cards */
 .card {
-  background-color: var(--bg-surface);
+  background-color: color-mix(in oklab, var(--bg-surface) 92%, transparent);
   border: 1px solid var(--border-subtle);
-  border-radius: 0;
+  border-radius: var(--radius-md);
   padding: var(--component-gap);
   box-shadow: none;
+  backdrop-filter: blur(6px);
 }
 
 .card-title {
