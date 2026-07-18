@@ -40,6 +40,7 @@ import {
   ChampionEntityInline,
 } from '../../components/entities'
 import TeamSubnav, { type TeamPageTab } from '../../components/entities/TeamSubnav'
+import TeamModelCard from '../../components/entities/TeamModelCard'
 import { TeamProfileCard, TeamObjectiveChart } from '../../components/entities/TeamObjectiveProfile'
 import TeamBestChampionsByRole from '../../components/entities/TeamBestChampionsByRole'
 import TeamGoldGraph from '../../components/entities/TeamGoldGraph'
@@ -316,6 +317,8 @@ export default function TeamPage() {
 
       {activeTab === 'stats' && (
         <>
+          <TeamModelCard team={team} />
+
           <div className="overview-grid overview-grid-2">
             <TeamRadarChart team={team} cohort={teams} highlighted compact />
             <TeamProfileCard team={team} />

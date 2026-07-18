@@ -27,6 +27,7 @@ import {
   ChampionTrendCharts,
   ChampionEntityInline,
 } from '../../components/entities'
+import ChampionLaneMatchups from '../../components/entities/ChampionLaneMatchups'
 
 export default function ChampionPage() {
   const { slug = '' } = useParams<{ slug: string }>()
@@ -166,6 +167,8 @@ export default function ChampionPage() {
       </header>
 
       <ChampionTrendCharts champion={champion} totalGames={totalGames} />
+
+      <ChampionLaneMatchups championName={champion.name} players={players} />
 
       <div className="card">
         <h3 className="card-title">Best Players on {champion.name}</h3>

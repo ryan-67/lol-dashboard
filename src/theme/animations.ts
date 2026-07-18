@@ -262,6 +262,43 @@ export function animateChartDraw(container: Element | null, duration = 0.7) {
   ensureVisible(lines, 1600)
 }
 
+/** Horizontal bar fills grow from their CSS transform-origin on scroll into view. */
+export function animateBarGrow(
+  container: Element | null,
+  selector: string,
+  overrides?: gsap.TweenVars,
+) {
+  if (!container) return
+  const fills = container.querySelectorAll(selector)
+  if (!fills.length) return
+
+  if (reducedMotion()) {
+    gsap.set(fills, { scaleX: 1 })
+    return
+  }
+
+  gsap.fromTo(
+    fills,
+    { scaleX: 0 },
+    {
+      scaleX: 1,
+      duration: 0.65,
+      ease: 'power3.out',
+      stagger: 0.05,
+      ...overrides,
+      scrollTrigger: {
+        ...scrollerVars(container),
+        ...(overrides?.scrollTrigger as ScrollTrigger.Vars | undefined),
+      },
+    },
+  )
+
+  // Safety: never leave fills collapsed if the trigger doesn't fire.
+  window.setTimeout(() => {
+    gsap.set(fills, { scaleX: 1 })
+  }, 1800)
+}
+
 export function tabTransitionOut(element: Element | null): gsap.core.Tween {
   if (!element) return gsap.to({}, { duration: 0 })
   return gsap.to(element, { opacity: 0, duration: 0.15, ease: 'power1.inOut' })

@@ -4371,3 +4371,371 @@ b,
   color: var(--text-secondary);
 }
 
+/* Model outlook cards (player rating / team strength) */
+.model-outlook-card {
+  border-color: color-mix(in srgb, var(--accent) 22%, var(--border-subtle));
+  background:
+    radial-gradient(480px 140px at 0% 0%, var(--accent-bg), transparent 60%),
+    var(--bg-surface);
+}
+
+.model-outlook-main {
+  display: grid;
+  grid-template-columns: minmax(180px, 240px) 1fr;
+  gap: 28px;
+  align-items: center;
+}
+
+.model-outlook-score-block {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.model-outlook-eyebrow {
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+.model-outlook-score {
+  font-size: 42px;
+  font-weight: 600;
+  line-height: 1.05;
+  color: var(--text-primary);
+}
+
+.model-outlook-score-max {
+  font-size: 16px;
+  font-weight: 400;
+  color: var(--text-tertiary);
+  margin-left: 4px;
+}
+
+.model-outlook-rank {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.model-outlook-decomp {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+}
+
+.model-decomp-row {
+  display: grid;
+  grid-template-columns: 170px 1fr 72px;
+  align-items: center;
+  gap: 12px;
+}
+
+.model-decomp-label {
+  font-size: 12px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.model-decomp-track {
+  height: 8px;
+  background: color-mix(in srgb, var(--border-subtle) 55%, transparent);
+  overflow: hidden;
+}
+
+.model-decomp-fill {
+  height: 100%;
+  background: var(--accent);
+  transform-origin: 0% 50%;
+}
+
+.model-decomp-negative .model-decomp-fill {
+  background: #8a5c5c;
+}
+
+.model-decomp-value {
+  font-size: 12px;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.model-decomp-value-negative {
+  color: #c48a8a;
+}
+
+.model-outlook-footnote {
+  font-size: 11px;
+  margin: 2px 0 0;
+}
+
+.model-band {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.model-band-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+
+.model-band-track {
+  position: relative;
+  height: 10px;
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--border-subtle) 45%, transparent),
+    color-mix(in srgb, var(--accent) 18%, var(--border-subtle))
+  );
+}
+
+.model-band-marker {
+  position: absolute;
+  top: 50%;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 25%, transparent);
+  transform: translate(-50%, -50%);
+}
+
+.model-band-avg-tick {
+  position: absolute;
+  top: -3px;
+  bottom: -3px;
+  width: 2px;
+  background: rgba(244, 241, 232, 0.5);
+  transform: translateX(-50%);
+}
+
+.model-band-scale {
+  display: flex;
+  justify-content: space-between;
+  font-size: 10px;
+}
+
+.model-band-meta {
+  display: flex;
+  gap: 20px;
+  font-size: 12px;
+}
+
+@media (max-width: 720px) {
+  .model-outlook-main {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+  .model-decomp-row {
+    grid-template-columns: 120px 1fr 64px;
+  }
+}
+
+/* Game explorer (player page) */
+.game-explorer-controls {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 12px 0 4px;
+}
+
+.game-explorer-controls-right {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.game-explorer-body {
+  min-height: 260px;
+}
+
+/* Series tug-of-war comparison bars */
+.series-cmp {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding-bottom: 22px; /* keep hover share button clear of the last row */
+}
+
+.series-cmp-legend {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.series-cmp-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.series-cmp-row {
+  display: grid;
+  grid-template-columns: 56px 1fr 96px 1fr 56px;
+  align-items: center;
+  gap: 10px;
+}
+
+.series-cmp-label {
+  font-size: 11px;
+  text-align: center;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.series-cmp-track {
+  height: 8px;
+  background: color-mix(in srgb, var(--border-subtle) 45%, transparent);
+  overflow: hidden;
+}
+
+.series-cmp-track-a {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.series-cmp-fill {
+  height: 100%;
+}
+
+.series-cmp-fill-a {
+  transform-origin: 100% 50%;
+}
+
+.series-cmp-fill-b {
+  transform-origin: 0% 50%;
+}
+
+.series-cmp-value {
+  font-size: 12px;
+  color: var(--text-tertiary);
+  white-space: nowrap;
+}
+
+.series-cmp-value-a {
+  text-align: right;
+}
+
+.series-cmp-leading {
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+@media (max-width: 640px) {
+  .series-cmp-row {
+    grid-template-columns: 44px 1fr 72px 1fr 44px;
+    gap: 6px;
+  }
+}
+
+/* Champion lane matchups */
+.lane-matchup-card {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.lane-role-dist {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-bottom: 4px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.lane-role-row {
+  display: grid;
+  grid-template-columns: 72px 1fr 96px;
+  align-items: center;
+  gap: 12px;
+}
+
+.lane-role-label {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.lane-role-track {
+  height: 7px;
+  background: color-mix(in srgb, var(--border-subtle) 45%, transparent);
+  overflow: hidden;
+}
+
+.lane-role-fill {
+  height: 100%;
+  background: var(--accent);
+  opacity: 0.8;
+  transform-origin: 0% 50%;
+}
+
+.lane-role-share {
+  font-size: 11px;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.lane-matchup-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+}
+
+.lane-matchup-col-title {
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+  margin-bottom: 10px;
+}
+
+.lane-matchup-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.lane-matchup-row {
+  display: grid;
+  grid-template-columns: minmax(110px, 150px) 1fr 44px 34px;
+  align-items: center;
+  gap: 10px;
+}
+
+.lane-matchup-track {
+  height: 7px;
+  background: color-mix(in srgb, var(--border-subtle) 45%, transparent);
+  overflow: hidden;
+}
+
+.lane-matchup-fill {
+  height: 100%;
+  opacity: 0.85;
+  transform-origin: 0% 50%;
+}
+
+.lane-matchup-wr {
+  font-size: 12px;
+  text-align: right;
+}
+
+.lane-matchup-games {
+  font-size: 11px;
+  text-align: right;
+}
+
+@media (max-width: 720px) {
+  .lane-matchup-grid {
+    grid-template-columns: 1fr;
+  }
+}
+

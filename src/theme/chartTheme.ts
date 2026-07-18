@@ -33,6 +33,12 @@ export const CHART_TOOLTIP_PROPS = {
   labelStyle: { color: CHART.tooltip.color, fontWeight: 500 },
 } as const
 
+/** Shared W/L result colors — muted green win, muted red loss (matches gold/objective graphs) */
+export const RESULT_COLORS = {
+  win: '#5c9e5a',
+  loss: '#c45c5c',
+} as const
+
 export const MATCHUP_COLORS = {
   teamA: '#f2efe6',
   teamB: '#4eb0ba',

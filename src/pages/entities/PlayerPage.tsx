@@ -16,6 +16,8 @@ import { resolveTournamentDisplay, buildTournamentIdentityFromGame, tournamentPa
 import { resolveGameOpponent } from '../../lib/gameOpponent'
 import PlayerRadarChart from '../../components/players/PlayerRadarChart'
 import PlayerFormChart from '../../components/players/PlayerFormChart'
+import PlayerModelCard from '../../components/players/PlayerModelCard'
+import PlayerGameExplorer from '../../components/players/PlayerGameExplorer'
 import {
   EntityFilterBar,
   EntityLink,
@@ -163,10 +165,14 @@ export default function PlayerPage() {
         </div>
       </header>
 
+      <PlayerModelCard player={player} role={role} />
+
       <div className="overview-grid overview-grid-2">
         <PlayerRadarChart player={player} role={role} cohort={cohort} hideHeader />
         <PlayerChampionTable player={player} role={role} cohort={cohort} />
       </div>
+
+      <PlayerGameExplorer player={player} cohort={cohort} />
 
       <PlayerFormChart players={[player]} cohortPlayers={cohort} />
 

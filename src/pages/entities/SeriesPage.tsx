@@ -27,6 +27,7 @@ import { EntityLink, TeamLogo, LeagueLogo } from '../../components/entities'
 import TeamComparisonRadar from '../../components/teams/TeamComparisonRadar'
 import TeamComparisonStatsChart from '../../components/teams/TeamComparisonStatsChart'
 import SeriesShareCharts from '../../components/series/SeriesShareCharts'
+import SeriesComparisonBars from '../../components/series/SeriesComparisonBars'
 import { buildSeriesDistributionRows } from '../../lib/seriesGameInsights'
 import WeeklyRecap from '../../components/overview/WeeklyRecap'
 
@@ -264,6 +265,20 @@ export default function SeriesPage() {
                   teams={scopedTeams}
                   players={scopedPlayers}
                   variant="series"
+                />
+              </section>
+
+              <section className="card series-card">
+                <h2 className="card-title">Series Tug-of-War</h2>
+                <p className="card-subtitle">
+                  Cumulative totals across all games — brighter bar leads the front
+                </p>
+                <SeriesComparisonBars
+                  teamA={series.teamA}
+                  teamB={series.teamB}
+                  league={series.league}
+                  teams={scopedTeams}
+                  players={scopedPlayers}
                 />
               </section>
 
