@@ -158,6 +158,33 @@ b,
   flex-shrink: 0;
 }
 
+/* Canonical brand mark — app sidebar, landing header/footer, matches favicon.svg */
+.nucky-mark {
+  width: 1.85rem;
+  height: 1.85rem;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--border-accent);
+  border-radius: var(--radius-sm);
+  background:
+    radial-gradient(circle at 30% 25%, var(--accent-glow), transparent 55%),
+    var(--bg-elevated);
+  color: var(--accent);
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  font-weight: 700;
+  box-shadow: 0 0 0 1px color-mix(in oklab, var(--accent) 12%, transparent);
+  flex-shrink: 0;
+  line-height: 1;
+  user-select: none;
+}
+
+.nucky-mark--lg {
+  width: 2rem;
+  height: 2rem;
+  font-size: 0.85rem;
+}
+
 /* Layout shell */
 .app-shell {
   min-height: 100vh;

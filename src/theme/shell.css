@@ -53,22 +53,7 @@
   padding: 0.15rem 0.25rem;
 }
 
-.app-sidebar-mark {
-  width: 1.85rem;
-  height: 1.85rem;
-  display: grid;
-  place-items: center;
-  border: 1px solid var(--border-accent);
-  border-radius: var(--radius-sm);
-  background:
-    radial-gradient(circle at 30% 25%, var(--accent-glow), transparent 55%),
-    var(--bg-elevated);
-  color: var(--accent);
-  font-family: var(--font-mono);
-  font-size: 0.78rem;
-  font-weight: 700;
-  box-shadow: 0 0 0 1px color-mix(in oklab, var(--accent) 12%, transparent);
-}
+/* Mark styles live on .nucky-mark in tokens.css (shared with landing + favicon) */
 
 .app-sidebar-new-chat {
   appearance: none;

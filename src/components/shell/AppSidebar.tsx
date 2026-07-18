@@ -43,7 +43,7 @@ export default function AppSidebar() {
     <aside className="app-sidebar">
       <div className="app-sidebar-top">
         <Link to={homePath || pathForView(defaultView)} className="app-sidebar-brand">
-          <span className="app-sidebar-mark" aria-hidden>
+          <span className="nucky-mark" aria-hidden>
             N
           </span>
           <span>nucky</span>

@@ -1,13 +1,13 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="none">
-  <rect width="32" height="32" fill="#141414"/>
-  <rect x="0.5" y="0.5" width="31" height="31" stroke="#c5a059"/>
+  <rect width="32" height="32" rx="4" fill="#16191c"/>
+  <rect x="0.75" y="0.75" width="30.5" height="30.5" rx="3.25" stroke="#57c4cf" stroke-opacity="0.55"/>
   <text
     x="16"
     y="22"
     text-anchor="middle"
-    font-family="'Noto Sans Mono', monospace"
-    font-size="18"
+    font-family="'Noto Sans Mono', ui-monospace, monospace"
+    font-size="16"
     font-weight="700"
-    fill="#c5a059"
+    fill="#57c4cf"
   >N</text>
 </svg>

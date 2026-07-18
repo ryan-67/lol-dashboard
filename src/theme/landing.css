@@ -46,17 +46,7 @@
   opacity: 0.92;
 }
 
-.landing-brand-mark {
-  width: 2rem;
-  height: 2rem;
-  display: grid;
-  place-items: center;
-  border: 1px solid var(--accent);
-  background: var(--accent-bg);
-  color: var(--accent);
-  font-size: 0.85rem;
-  font-weight: 700;
-}
+/* Mark styles live on .nucky-mark in tokens.css (shared with app shell + favicon) */
 
 .landing-brand-name {
   font-size: 0.95rem;

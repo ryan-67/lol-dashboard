@@ -46,7 +46,7 @@ export default function LandingLayout({ children }: LandingLayoutProps) {
       <header className="landing-header">
         <div className="landing-header-inner">
           <Link to="/" className="landing-brand" aria-label="nucky home">
-            <span className="landing-brand-mark" aria-hidden>
+            <span className="nucky-mark nucky-mark--lg" aria-hidden>
               N
             </span>
             <span className="landing-brand-name">nucky</span>
@@ -135,7 +135,7 @@ export default function LandingLayout({ children }: LandingLayoutProps) {
         <div className="landing-footer-grid">
           <div className="landing-footer-brand">
             <Link to="/" className="landing-brand landing-brand-footer">
-              <span className="landing-brand-mark" aria-hidden>
+              <span className="nucky-mark nucky-mark--lg" aria-hidden>
                 N
               </span>
               <span className="landing-brand-name">nucky</span>
