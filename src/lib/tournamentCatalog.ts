@@ -24,7 +24,7 @@ const LEAGUE_SEASON_NAMES: Record<
   },
 }
 
-export const INTERNATIONAL_SEASONS = new Set(['MSI', 'Worlds', 'First Stand'])
+export const INTERNATIONAL_SEASONS = new Set(['MSI', 'Worlds', 'First Stand', 'EWC'])
 
 export function isInternationalSeason(season: string): boolean {
   return INTERNATIONAL_SEASONS.has(season)
@@ -188,6 +188,7 @@ export function leagueFromTournamentLabel(label: string | undefined): string | n
   if (!match) return null
   const rest = match[1]!
   if (rest.startsWith('MSI')) return 'MSI'
+  if (rest.startsWith('EWC') || rest.startsWith('Esports World Cup')) return 'EWC'
   if (rest.startsWith('Worlds')) return 'Worlds'
   if (rest.startsWith('First Stand')) return 'First Stand'
   const tier1 = rest.split(/\s+/)[0]

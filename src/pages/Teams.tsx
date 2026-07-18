@@ -13,7 +13,6 @@ import {
 import TeamMetricsTableCard from '../components/teams/TeamMetricsTableCard'
 import { scrollEntranceStagger, refreshScrollTrigger } from '../theme/animations'
 import PageHeader from '../components/ui/PageHeader'
-import PowerRankingsPanel from '../components/rankings/PowerRankingsPanel'
 import TeamPowerBoard from '../components/rankings/TeamPowerBoard'
 
 export default function Teams() {
@@ -49,7 +48,7 @@ export default function Teams() {
         title="team power & style"
         subtitle="Radar profiles and objective fingerprints across the filtered split. Multi-team compares live on Matchups."
       />
-      <TeamPowerBoard teams={teams} players={filteredPlayers} />
+      <TeamPowerBoard teams={teams} />
       <TeamFilterBar scope={scope} onScopeChange={setScope} />
 
       {teams.length === 0 ? (
@@ -59,12 +58,6 @@ export default function Teams() {
           <TeamRadarGrid teams={teams} scope={scope} allTier1Selected={allTier1Selected} />
         </div>
       )}
-
-      <PowerRankingsPanel
-        title="player power by role"
-        subtitle="nucky model rankings — useful context while scanning team radars."
-        limit={6}
-      />
 
       <div className="players-table-toggle">
         <button type="button" className="btn" onClick={() => setShowTable((v) => !v)}>

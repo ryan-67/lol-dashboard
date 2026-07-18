@@ -45,6 +45,13 @@ const FORMATS: TournamentFormat[] = [
     notes: 'MSI bracket stage is double-elimination (upper/lower). Play-in may eliminate.',
   },
   {
+    id: 'EWC',
+    structure: 'double_elim',
+    defaultBestOf: 3,
+    lossCanEliminateWithoutLower: false,
+    notes: 'Esports World Cup: group double-elim then single-elim playoffs (Bo1/Bo3/Bo5 by stage).',
+  },
+  {
     id: 'Worlds',
     structure: 'swiss',
     defaultBestOf: 5,
@@ -101,6 +108,7 @@ export function resolveTournamentFormat(opts: {
     .toLowerCase()
 
   if (/\bmsi\b/.test(hay)) return FORMATS.find((f) => f.id === 'MSI') ?? null
+  if (/\bewc\b|esports\s*world\s*cup/.test(hay)) return FORMATS.find((f) => f.id === 'EWC') ?? null
   if (/\bworlds\b|\bwlds\b/.test(hay)) return FORMATS.find((f) => f.id === 'Worlds') ?? null
   if (/first\s*stand|\bfst\b/.test(hay)) return FORMATS.find((f) => f.id === 'First Stand') ?? null
 

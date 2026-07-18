@@ -7,8 +7,9 @@ const SEASON_ORDER: Record<string, number> = {
   "First Stand": 1,
   Spring: 2,
   MSI: 3,
-  Summer: 4,
-  Worlds: 5,
+  EWC: 4,
+  Summer: 5,
+  Worlds: 6,
 };
 
 const REGIONAL_ONLY = new Set(["Winter", "Spring", "Summer"]);
@@ -182,7 +183,7 @@ export async function resolveSplit(
     const y = s.slice(0, space);
     const season = s.slice(space + 1).replace(/ Playoffs$/, "");
     if (REGIONAL_ONLY.has(season)) return `${y} ${season}`;
-    if (season === "MSI") return `${y} Spring`;
+    if (season === "MSI" || season === "EWC") return `${y} Spring`;
     if (season === "First Stand") return `${y} Winter`;
     if (season === "Worlds") return `${y} Summer`;
     return null;

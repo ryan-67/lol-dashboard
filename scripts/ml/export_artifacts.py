@@ -199,7 +199,12 @@ def build_inference_bundle(mart: pd.DataFrame, features: list[str]) -> dict:
 
 
 PUBLIC_SCORECARD_DIR = ROOT / "public" / "data"
-PUBLIC_SCORECARD_NAMES = frozenset({"accuracy_scorecard.json"})
+# Dashboard surfaces that read model outputs from /data/* (not only Edge Functions).
+PUBLIC_DASHBOARD_ARTIFACTS = frozenset({
+    "accuracy_scorecard.json",
+    "player_ratings.json",
+    "region_strength.json",
+})
 
 
 def deploy_artifacts() -> None:
@@ -232,15 +237,17 @@ def deploy_artifacts() -> None:
         "archetype_validation.json",
         "model_metadata.json",
     ]
+    public_copied: list[str] = []
     for name in names:
         src = ARTIFACTS_DIR / name
         if src.exists():
             shutil.copyfile(src, DEPLOY_DIR / name)
-            if name in PUBLIC_SCORECARD_NAMES:
+            if name in PUBLIC_DASHBOARD_ARTIFACTS:
                 shutil.copyfile(src, PUBLIC_SCORECARD_DIR / name)
+                public_copied.append(name)
     print(f"  Deployed {len(list(DEPLOY_DIR.glob('*.json')))} files -> {DEPLOY_DIR}")
-    if (PUBLIC_SCORECARD_DIR / "accuracy_scorecard.json").exists():
-        print(f"  Public scorecard -> {PUBLIC_SCORECARD_DIR / 'accuracy_scorecard.json'}")
+    if public_copied:
+        print(f"  Public dashboard artifacts -> {PUBLIC_SCORECARD_DIR}: {', '.join(public_copied)}")
 
 
 def main() -> None:

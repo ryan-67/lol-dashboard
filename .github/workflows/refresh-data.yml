@@ -258,7 +258,9 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
+          # Edge Function artifacts + dashboard public rankings (player_ratings / region_strength).
           git add supabase/functions/agent-chat/ml/
+          git add public/data/player_ratings.json public/data/region_strength.json public/data/accuracy_scorecard.json || true
           if ! git diff --staged --quiet; then
             git commit -m "chore(ml): refresh nuckyAI model artifacts"
             git push || (git fetch origin main && git rebase origin/main && git push)

@@ -4,6 +4,8 @@
   "leagues": {
     "Worlds": "https://static.lolesports.com/leagues/1592594612171_WorldsDarkBG.png",
     "MSI": "https://static.lolesports.com/leagues/1592594634248_MSIDarkBG.png",
+    "EWC": "/leagues/ewc.svg",
+    "Esports World Cup": "/leagues/ewc.svg",
     "First Stand": "https://static.lolesports.com/leagues/1740042025201_RG_LOL_FIRST_STAND_LOGO_VOLT_ALPHA.png",
     "LCS": "https://static.lolesports.com/leagues/1706356907418_LCSNew-01-FullonDark.png",
     "LEC": "https://static.lolesports.com/leagues/1592516184297_LEC-01-FullonDark.png",

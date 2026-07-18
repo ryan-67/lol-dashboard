@@ -162,6 +162,7 @@ default_data_scope: CURRENT SPLIT ONLY — ${split}. Unless the user explicitly 
 training_data_warning: Pretrained roster memory is STALE. NEVER assign players to teams from memory. Verify every player-team claim against player_team_index or current_rosters below — including subs with split time listed by game count.
 roster_rule: starter = most games at role on team in ${split} match data. Subs are labeled (sub, Ng). If two players share a role, cite both with game counts — do not guess from old transfers.
 per_game_stats_rule: Do NOT cite specific game stats unless they appear in MATCH_STATS. Do NOT invent GD@15, KDA lines, or betting odds.
+split_existence_rule: Never claim a regional split (e.g. LCK Summer) is underway unless MATCH_STATS / current_rosters show games for it. If the user asks about a future or empty split, say it has not started and use the latest split that has data.
 foreign_entity_rule: If the user names a champion/hero from another game (e.g. Invoker from Dota), refuse — do NOT invent League stats for it.`;
 
   const worldBlock = worldDataBlock;

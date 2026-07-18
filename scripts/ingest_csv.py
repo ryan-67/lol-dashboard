@@ -51,7 +51,7 @@ OUT_DIR = ROOT / "public" / "data"
 OUT_PATH = OUT_DIR / "oe_slices.json"
 
 TARGET_LEAGUES = {"LCK", "LPL", "LEC", "LCS"}
-INTERNATIONAL_LEAGUES = {"MSI", "WLDs", "FST"}
+INTERNATIONAL_LEAGUES = {"MSI", "WLDs", "FST", "EWC"}
 ALLOWED_LEAGUES = TARGET_LEAGUES | INTERNATIONAL_LEAGUES
 ALLOWED_COMPLETENESS = {"complete", "partial"}
 MIN_PLAYER_GAMES = 5
@@ -75,17 +75,19 @@ SEASON_ORDER = {
     "First Stand": 1,
     "Spring": 2,
     "MSI": 3,
-    "Summer": 4,
-    "Worlds": 5,
+    "EWC": 4,
+    "Summer": 5,
+    "Worlds": 6,
 }
 
 INTERNATIONAL_FROM_LEAGUE = {
     "MSI": "MSI",
     "WLDs": "Worlds",
     "FST": "First Stand",
+    "EWC": "EWC",
 }
 
-INTERNATIONAL_SPLIT_MARKERS = ("MSI", "Worlds", "First Stand")
+INTERNATIONAL_SPLIT_MARKERS = ("MSI", "Worlds", "First Stand", "EWC")
 
 # Alternate OE team names → home tier-1 league (used when MSI/Worlds rows arrive before regional map).
 TEAM_HOME_LEAGUE_FALLBACK: dict[str, str] = {
@@ -117,6 +119,7 @@ GUEST_LOOKBACK_YEARS = 1
 INTERNATIONAL_PATTERNS = [
     (re.compile(r"first\s*stand|\bfst\b", re.I), "First Stand"),
     (re.compile(r"\bmsi\b", re.I), "MSI"),
+    (re.compile(r"\bewc\b|esports\s*world\s*cup", re.I), "EWC"),
     (re.compile(r"worlds|\bwlds\b", re.I), "Worlds"),
 ]
 
@@ -1491,6 +1494,13 @@ def ingest():
 
     existing_year_files, existing_splits = load_existing_manifest()
     merged_year_files = {**existing_year_files, **shard_files}
+    # Drop stale splits for years we just re-ingested (e.g. ghost "2026 Summer"
+    # left in the manifest after the slice itself disappeared).
+    if scoped_years is not None:
+        existing_splits = [
+            s for s in existing_splits
+            if not any(str(s).startswith(f"{y} ") for y in scoped_years)
+        ]
     merged_splits = sorted(set(existing_splits) | split_set, key=split_sort_key)
 
     # Only remove shard files for years we just re-ingested; leave other CDN years alone.

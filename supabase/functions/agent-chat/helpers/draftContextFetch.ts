@@ -123,27 +123,72 @@ function teamCompHistory(
   };
 }
 
+const SEASON_ORD: Record<string, number> = {
+  Winter: 0,
+  "First Stand": 1,
+  Spring: 2,
+  MSI: 3,
+  EWC: 4,
+  Summer: 5,
+  Worlds: 6,
+};
+
+function splitChronoKey(splitLabel: string): [number, number, string] {
+  const spaceIdx = splitLabel.indexOf(" ");
+  const yearPart = spaceIdx >= 0 ? splitLabel.slice(0, spaceIdx) : splitLabel;
+  const season = spaceIdx >= 0
+    ? splitLabel.slice(spaceIdx + 1).replace(/ Playoffs$/, "")
+    : splitLabel;
+  const year = /^\d+$/.test(yearPart) ? parseInt(yearPart, 10) : 0;
+  return [year, SEASON_ORD[season] ?? 99, season.toLowerCase()];
+}
+
 async function fetchRecentBundles(
   service: SupabaseClient,
   league: string,
   currentSplit: string,
 ): Promise<SliceBundle[]> {
-  const { data } = await service.from("oe_slices").select("split").limit(500);
-  const splits = [...new Set((data ?? []).map((r) => String((r as { split?: string }).split ?? "")))]
-    .filter(Boolean)
-    .sort((a, b) => b.localeCompare(a));
+  const { data } = await service.from("oe_slices").select("split,league").limit(3000);
+  const rows = (data ?? []) as Array<{ split?: string; league?: string }>;
 
-  const regional = splits.filter((s) => / (Spring|Summer|Winter)$/.test(s));
-  const ordered = [currentSplit, ...regional.filter((s) => s !== currentSplit)].slice(
-    0,
-    RECENT_SPLIT_LIMIT,
-  );
+  // Only consider splits that actually have rows for the requested league (or any T1 if All).
+  const leaguesWanted = !league || league === "All Tier 1"
+    ? new Set(["LCK", "LPL", "LEC", "LCS"])
+    : new Set([league.toUpperCase()]);
+
+  const splitsWithGames = new Set<string>();
+  for (const row of rows) {
+    const s = String(row.split ?? "");
+    const lg = String(row.league ?? "");
+    if (!s || !leaguesWanted.has(lg)) continue;
+    splitsWithGames.add(s);
+  }
+
+  const regional = [...splitsWithGames]
+    .filter((s) => / (Spring|Summer|Winter)$/.test(s))
+    .sort((a, b) => {
+      const ka = splitChronoKey(a);
+      const kb = splitChronoKey(b);
+      if (ka[0] !== kb[0]) return kb[0] - ka[0];
+      if (ka[1] !== kb[1]) return kb[1] - ka[1];
+      return ka[2].localeCompare(kb[2]);
+    });
+
+  const ordered = [
+    currentSplit,
+    ...regional.filter((s) => s !== currentSplit),
+  ]
+    .filter((s) => Boolean(s) && (s === currentSplit || splitsWithGames.has(s)))
+    .slice(0, RECENT_SPLIT_LIMIT);
 
   const bundles: SliceBundle[] = [];
   for (const split of ordered) {
     if (!split) continue;
     try {
-      bundles.push(await fetchSliceBundle(service, league, split));
+      const bundle = await fetchSliceBundle(service, league, split);
+      // Skip empty / unstarted splits so the model can't invent "2026 Summer" drafts.
+      if (!bundle.players.length && !bundle.teams.length) continue;
+      bundles.push(bundle);
     } catch {
       // skip missing slice
     }

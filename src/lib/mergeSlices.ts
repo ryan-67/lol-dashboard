@@ -71,8 +71,9 @@ const SEASON_ORDER: Record<string, number> = {
   'First Stand': 1,
   Spring: 2,
   MSI: 3,
-  Summer: 4,
-  Worlds: 5,
+  EWC: 4,
+  Summer: 5,
+  Worlds: 6,
 }
 
 /** Matches ingest_csv.py split_sort_key for consistent split dropdown order. */

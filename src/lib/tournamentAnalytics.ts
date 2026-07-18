@@ -43,6 +43,7 @@ function regionCode(league: string): string {
     LEC: 'EU',
     LCS: 'NA',
     MSI: 'INT',
+    EWC: 'INT',
     Worlds: 'INT',
     'First Stand': 'INT',
   }

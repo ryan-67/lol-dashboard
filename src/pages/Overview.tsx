@@ -66,6 +66,7 @@ import {
   PERFORMANCE_SCORE_HINT,
   TEAM_SCORE_HINT,
 } from '../lib/metricHints'
+import { clampScore100, opScoreTo100 } from '../lib/scoreNormalize'
 
 const HUB_COPY = {
   weekly: {
@@ -422,8 +423,9 @@ function calculateHottestTeams(
         minMaxNorm(r.weeklyAvgKda, kdas) * 0.14 +
         minMaxNorm(r.weeklyObjControl, objs) * 0.12 +
         minMaxNorm(r.avgOpponentSplitWinrate, sos) * 0.1 +
-        r.upsetWins * 1.5
-      return { ...r, impressiveness: score }
+        Math.min(r.upsetWins, 3) * 0.05
+      // Same 0–100 display band as power rankings / performance scores.
+      return { ...r, impressiveness: clampScore100(score * 100) }
     })
     .sort((a, b) => b.impressiveness - a.impressiveness)
 }
@@ -931,7 +933,7 @@ export default function Overview() {
             <MetricScoreRow
               label="OP Score"
               hint={OP_SCORE_HINT}
-              value={formatNum(championOpResult.top.opScore, 2)}
+              value={formatNum(opScoreTo100(championOpResult.top.opScore), 1)}
             />
             <div className="overview-hottest-stats">
               {championOpStatBreakdown(championOpResult.top).map((row) => (

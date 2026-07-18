@@ -3,7 +3,8 @@ import { parseCanonicalSplit } from './tournamentCatalog'
 /** UI filter groups — international events merge into their regional season bucket. */
 export const COMBINED_SPLIT_GROUPS = [
   { filterValue: 'Winter', label: 'Winter', catalogSeasons: ['Winter', 'First Stand'] as const },
-  { filterValue: 'Spring', label: 'Spring', catalogSeasons: ['Spring', 'MSI'] as const },
+  // EWC sits after MSI and before regional Summer on the competitive calendar.
+  { filterValue: 'Spring', label: 'Spring', catalogSeasons: ['Spring', 'MSI', 'EWC'] as const },
   { filterValue: 'Summer', label: 'Summer', catalogSeasons: ['Summer', 'Worlds'] as const },
 ] as const
 

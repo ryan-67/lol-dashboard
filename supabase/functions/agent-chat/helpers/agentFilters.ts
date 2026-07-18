@@ -9,7 +9,7 @@ import {
 import { isHistoricalQuestion, widenFiltersForQuestion } from "./historicalAnalysis.ts";
 import type { ResolvedFilters } from "../pipeline/types.ts";
 
-const SEASON_WORDS = ["spring", "summer", "winter", "fall", "playoffs", "worlds", "msi"] as const;
+const SEASON_WORDS = ["spring", "summer", "winter", "fall", "playoffs", "worlds", "msi", "ewc"] as const;
 
 function capitalizeSeason(word: string): string {
   return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
@@ -54,8 +54,8 @@ export function narrowFiltersFromMessage(
       filters.selectedYears?.[0] && filters.selectedYears[0] !== "ALL"
         ? filters.selectedYears[0]!
         : message.match(/\b(20\d{2})\b/)?.[1] ?? String(new Date().getFullYear());
-    if (season === "worlds" || season === "msi") {
-      filters.split = capitalizeSeason(season);
+    if (season === "worlds" || season === "msi" || season === "ewc") {
+      filters.split = season === "ewc" ? "EWC" : capitalizeSeason(season);
       filters.selectedSplits = [filters.split];
     } else {
       filters.split = `${year} ${capitalizeSeason(season)}`;

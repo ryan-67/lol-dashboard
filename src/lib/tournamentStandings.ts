@@ -292,6 +292,105 @@ export function buildResultsFromSeries(
   return results
 }
 
+/**
+ * Primary standings: series W-L from OE tournament games.
+ * Bracket/Cito placement is only used as a tie-break hint when it doesn't invent
+ * massive Swiss-style ties or inject teams that never played in OE.
+ */
+export function buildResultsFromSeriesRecord(
+  seriesRows: TournamentStandingsRow[],
+  players: Player[],
+  gameFilter?: (g: PlayerGameLog) => boolean,
+  participantAllowlist?: Set<string>,
+): TournamentResultsRow[] {
+  const matchGames = teamGameRecords(players, gameFilter)
+  const rows = seriesRows
+    .map((row) => {
+      const team = resolveTeamCanonicalName(row.team)
+      return { ...row, team }
+    })
+    .filter((row) => {
+      if (participantAllowlist && !participantAllowlist.has(row.team)) return false
+      // Drop phantoms / schedule-only shells with no series result.
+      return row.wins + row.losses > 0
+    })
+    .sort((a, b) => {
+      if (b.winrate !== a.winrate) return b.winrate - a.winrate
+      if (b.wins !== a.wins) return b.wins - a.wins
+      if (a.losses !== b.losses) return a.losses - b.losses
+      const ma = matchGames.get(a.team)
+      const mb = matchGames.get(b.team)
+      const mwrA = ma && ma.wins + ma.losses ? ma.wins / (ma.wins + ma.losses) : 0
+      const mwrB = mb && mb.wins + mb.losses ? mb.wins / (mb.wins + mb.losses) : 0
+      if (mwrB !== mwrA) return mwrB - mwrA
+      return a.team.localeCompare(b.team)
+    })
+
+  const results: TournamentResultsRow[] = []
+  let i = 0
+  while (i < rows.length) {
+    let j = i + 1
+    while (
+      j < rows.length &&
+      rows[j]!.winrate === rows[i]!.winrate &&
+      rows[j]!.wins === rows[i]!.wins &&
+      rows[j]!.losses === rows[i]!.losses
+    ) {
+      j += 1
+    }
+    const tiedCount = j - i
+    const rank = i + 1
+    for (let k = i; k < j; k++) {
+      const row = rows[k]!
+      const games = matchGames.get(row.team) ?? { wins: 0, losses: 0 }
+      const matchTotal = games.wins + games.losses
+      results.push({
+        standing: rank,
+        standingLabel: standingLabelForRank(rank, tiedCount),
+        team: row.team,
+        wins: row.wins,
+        losses: row.losses,
+        winrate: row.winrate,
+        matchWins: games.wins,
+        matchLosses: games.losses,
+        matchWinrate: matchTotal ? (games.wins / matchTotal) * 100 : 0,
+      })
+    }
+    i = j
+  }
+  return results
+}
+
+function participantsFromSeries(seriesList: TournamentSeriesRow[]): Set<string> {
+  const out = new Set<string>()
+  for (const s of seriesList) {
+    if (s.inProgress) continue
+    out.add(resolveTeamCanonicalName(s.teamA))
+    out.add(resolveTeamCanonicalName(s.teamB))
+  }
+  return out
+}
+
+function placementLooksBroken(rows: TournamentResultsRow[]): boolean {
+  if (!rows.length) return true
+  const byLabel = new Map<string, number>()
+  for (const row of rows) {
+    byLabel.set(row.standingLabel, (byLabel.get(row.standingLabel) ?? 0) + 1)
+  }
+  // MSI/Swiss bug signature: a single "3rd–Nth" blob covering most of the field.
+  for (const count of byLabel.values()) {
+    if (count >= 6) return true
+  }
+  // Perfect series record ranked below winless teams.
+  const sorted = [...rows].sort((a, b) => a.standing - b.standing)
+  const firstWinless = sorted.findIndex((r) => r.wins === 0 && r.losses > 0)
+  const firstPerfect = sorted.findIndex((r) => r.wins > 0 && r.losses === 0)
+  if (firstPerfect >= 0 && firstWinless >= 0 && firstPerfect > firstWinless) return true
+  // 0–0 shells should never appear.
+  if (rows.some((r) => r.wins === 0 && r.losses === 0)) return true
+  return false
+}
+
 export function buildTournamentResultsStandings(
   seriesList: TournamentSeriesRow[],
   seriesRows: TournamentStandingsRow[],
@@ -299,7 +398,24 @@ export function buildTournamentResultsStandings(
   citoRows: CitoScheduleRow[],
   gameFilter?: (g: PlayerGameLog) => boolean,
 ): TournamentResultsRow[] {
-  const fromCito = buildResultsFromCitoSchedule(citoRows, seriesRows, players, gameFilter)
-  if (fromCito.length) return fromCito
-  return buildResultsFromSeries(seriesList, seriesRows, players, gameFilter)
+  const allowlist = participantsFromSeries(seriesList)
+  // Also allow teams that appear in series standings with real W-L.
+  for (const row of seriesRows) {
+    if (row.wins + row.losses > 0) allowlist.add(resolveTeamCanonicalName(row.team))
+  }
+
+  const fromRecord = buildResultsFromSeriesRecord(seriesRows, players, gameFilter, allowlist)
+  if (fromRecord.length) return fromRecord
+
+  const fromCito = buildResultsFromCitoSchedule(citoRows, seriesRows, players, gameFilter).filter(
+    (row) => row.wins + row.losses > 0 && (!allowlist.size || allowlist.has(row.team)),
+  )
+  if (fromCito.length && !placementLooksBroken(fromCito)) return fromCito
+
+  const fromBracket = buildResultsFromSeries(seriesList, seriesRows, players, gameFilter).filter(
+    (row) => row.wins + row.losses > 0,
+  )
+  if (fromBracket.length && !placementLooksBroken(fromBracket)) return fromBracket
+
+  return fromRecord
 }

@@ -17,7 +17,15 @@ export interface CitoScheduleRow {
   winner_team?: string | null
 }
 
-const INTERNATIONAL_SCHEDULE_LEAGUES = new Set(['MSI', 'WLDs', 'FST', 'Worlds', 'First Stand'])
+const INTERNATIONAL_SCHEDULE_LEAGUES = new Set([
+  'MSI',
+  'WLDs',
+  'FST',
+  'EWC',
+  'Worlds',
+  'First Stand',
+  'Esports World Cup',
+])
 const SCHEDULE_CACHE_URL = `${import.meta.env.BASE_URL}data/cito_schedule_cache.json`
 
 let scheduleCachePromise: Promise<CitoScheduleRow[]> | null = null

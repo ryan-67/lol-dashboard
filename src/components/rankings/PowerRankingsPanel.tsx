@@ -8,6 +8,7 @@ import {
 } from '../../lib/loadPlayerRatings'
 import { EntityLink } from '../entities'
 import { formatNum } from '../../lib/format'
+import { powerScoreTo100 } from '../../lib/scoreNormalize'
 
 const ROLE_LABEL: Record<RatingRole, string> = {
   top: 'top',
@@ -82,11 +83,11 @@ export default function PowerRankingsPanel({
               <span className="power-rankings-player">
                 <EntityLink type="player" name={row.player} showIcon={false} />
                 <span className="power-rankings-meta">
-                  <EntityLink type="team" name={row.team} /> · {row.region}
+                  <EntityLink type="team" name={row.team} showIcon /> · {row.region}
                 </span>
               </span>
-              <span className="power-rankings-score" title="power score">
-                {formatNum(row.powerScore, 3)}
+              <span className="power-rankings-score" title="power score /100">
+                {formatNum(powerScoreTo100(row.powerScore), 1)}
               </span>
             </li>
           ))}
