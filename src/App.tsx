@@ -1,13 +1,18 @@
 import { useEffect, useRef } from 'react'
-import { Navigate, Routes, Route, useLocation } from 'react-router-dom'
+import { Navigate, Routes, Route, useLocation, useParams } from 'react-router-dom'
 import Lenis from 'lenis'
 import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import { DashboardProvider } from './context/DashboardContext'
-import { AuthProvider } from './context/AuthContext'
+import { AuthProvider, useAuth } from './context/AuthContext'
 import { TimezoneProvider } from './context/TimezoneContext'
-import Layout from './components/Layout'
+import { ViewPreferenceProvider, useViewPreference } from './context/ViewPreferenceContext'
+import { ChatSessionProvider } from './context/ChatSessionContext'
 import LandingLayout from './components/landing/LandingLayout'
+import AppShell from './components/shell/AppShell'
+import DuoLayout from './components/shell/DuoLayout'
+import DashboardFrame from './components/shell/DashboardFrame'
+import ChatPane from './components/shell/ChatPane'
 import Landing from './pages/Landing'
 import Overview from './pages/Overview'
 import Players from './pages/Players'
@@ -20,9 +25,6 @@ import TeamPage from './pages/entities/TeamPage'
 import ChampionPage from './pages/entities/ChampionPage'
 import TournamentPage from './pages/entities/TournamentPage'
 import SeriesPage from './pages/entities/SeriesPage'
-import NuckyAI from './pages/NuckyAI'
-import Live from './pages/Live'
-import LiveMatchRoom from './pages/LiveMatchRoom'
 import PrivatePolicy from './pages/PrivatePolicy'
 import Terms from './pages/Terms'
 import UserProfile from './pages/UserProfile'
@@ -30,15 +32,6 @@ import AuthCallback from './pages/AuthCallback'
 import ResetPassword from './pages/ResetPassword'
 
 gsap.registerPlugin(ScrollTrigger)
-
-const MARKETING_PATHS = new Set([
-  '/',
-  '/features',
-  '/pricing',
-  '/faq',
-  '/private-policy',
-  '/terms',
-])
 
 function SmoothScroll({ children }: { children: React.ReactNode }) {
   const location = useLocation()
@@ -51,7 +44,6 @@ function SmoothScroll({ children }: { children: React.ReactNode }) {
       smoothWheel: true,
     })
     lenisRef.current = lenis
-
     lenis.on('scroll', ScrollTrigger.update)
 
     ScrollTrigger.scrollerProxy(document.documentElement, {
@@ -74,7 +66,6 @@ function SmoothScroll({ children }: { children: React.ReactNode }) {
     const raf = (time: number) => {
       lenis.raf(time * 1000)
     }
-
     gsap.ticker.add(raf)
     gsap.ticker.lagSmoothing(0)
     ScrollTrigger.refresh()
@@ -89,79 +80,143 @@ function SmoothScroll({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     const lenis = lenisRef.current
-    if (lenis) {
-      lenis.scrollTo(0, { immediate: true })
-    } else {
-      window.scrollTo(0, 0)
-    }
+    if (lenis) lenis.scrollTo(0, { immediate: true })
+    else window.scrollTo(0, 0)
     ScrollTrigger.refresh()
   }, [location.pathname])
 
   return <>{children}</>
 }
 
-function MarketingRoutes() {
+function HomeEntry() {
+  const { user, loading: authLoading } = useAuth()
+  const { homePath, loading: prefLoading } = useViewPreference()
+
+  if (authLoading || (user && prefLoading)) {
+    return (
+      <div className="flex items-center justify-center min-h-[40vh] text-secondary text-sm">
+        loading…
+      </div>
+    )
+  }
+
+  if (user) return <Navigate to={homePath} replace />
+
   return (
     <LandingLayout>
-      <Routes>
-        <Route path="/" element={<Landing />} />
-        <Route path="/features" element={<Navigate to="/#features" replace />} />
-        <Route path="/pricing" element={<Navigate to="/#pricing" replace />} />
-        <Route path="/faq" element={<Navigate to="/#faq" replace />} />
-        <Route path="/private-policy" element={<PrivatePolicy />} />
-        <Route path="/terms" element={<Terms />} />
-      </Routes>
+      <Landing />
     </LandingLayout>
   )
 }
 
-function AppShellRoutes() {
-  return (
-    <Layout>
-      <Routes>
-        <Route path="/dashboard" element={<Overview />} />
-        <Route path="/players" element={<Players />} />
-        <Route path="/teams" element={<Teams />} />
-        <Route path="/champions" element={<Champions />} />
-        <Route path="/matchups" element={<Matchups />} />
-        <Route path="/tournaments" element={<Tournaments />} />
-        <Route path="/players/:slug" element={<PlayerPage />} />
-        <Route path="/teams/:slug" element={<TeamPage />} />
-        <Route path="/champions/:slug" element={<ChampionPage />} />
-        <Route path="/tournaments/:slug" element={<TournamentPage />} />
-        <Route path="/series/:seriesId" element={<SeriesPage />} />
-        <Route path="/nuckyai" element={<NuckyAI />} />
-        <Route path="/live" element={<Live />} />
-        <Route path="/live/:matchId" element={<LiveMatchRoom />} />
-        <Route path="/profile" element={<UserProfile />} />
-      </Routes>
-    </Layout>
-  )
+function LegacyEntityRedirect({ type }: { type: 'players' | 'teams' | 'champions' | 'tournaments' }) {
+  const { slug } = useParams()
+  return <Navigate to={`/dashboard/${type}/${slug}`} replace />
 }
 
 function AppRoutes() {
-  const location = useLocation()
-  const isMarketing = MARKETING_PATHS.has(location.pathname)
+  return (
+    <Routes>
+      <Route path="/" element={<HomeEntry />} />
+      <Route path="/features" element={<Navigate to="/#features" replace />} />
+      <Route path="/pricing" element={<Navigate to="/#pricing" replace />} />
+      <Route path="/faq" element={<Navigate to="/#faq" replace />} />
+      <Route
+        path="/private-policy"
+        element={
+          <LandingLayout>
+            <PrivatePolicy />
+          </LandingLayout>
+        }
+      />
+      <Route
+        path="/terms"
+        element={
+          <LandingLayout>
+            <Terms />
+          </LandingLayout>
+        }
+      />
 
-  if (location.pathname === '/auth/callback') {
-    return <AuthCallback />
-  }
-  if (location.pathname === '/auth/reset-password') {
-    return <ResetPassword />
-  }
+      <Route path="/auth/callback" element={<AuthCallback />} />
+      <Route path="/auth/reset-password" element={<ResetPassword />} />
 
-  return isMarketing ? <MarketingRoutes /> : <AppShellRoutes />
+      <Route
+        element={
+          <ChatSessionProvider>
+            <AppShell />
+          </ChatSessionProvider>
+        }
+      >
+        <Route path="/duo" element={<DuoLayout />}>
+          <Route index element={<Overview />} />
+          <Route path="players" element={<Players />} />
+          <Route path="teams" element={<Teams />} />
+          <Route path="champions" element={<Champions />} />
+          <Route path="matchups" element={<Matchups />} />
+          <Route path="tournaments" element={<Tournaments />} />
+          <Route path="players/:slug" element={<PlayerPage />} />
+          <Route path="teams/:slug" element={<TeamPage />} />
+          <Route path="champions/:slug" element={<ChampionPage />} />
+          <Route path="tournaments/:slug" element={<TournamentPage />} />
+          <Route path="series/:seriesId" element={<SeriesPage />} />
+        </Route>
+
+        <Route path="/chat" element={<ChatPane />} />
+
+        <Route path="/dashboard" element={<DashboardFrame />}>
+          <Route index element={<Overview />} />
+          <Route path="players" element={<Players />} />
+          <Route path="teams" element={<Teams />} />
+          <Route path="champions" element={<Champions />} />
+          <Route path="matchups" element={<Matchups />} />
+          <Route path="tournaments" element={<Tournaments />} />
+          <Route path="players/:slug" element={<PlayerPage />} />
+          <Route path="teams/:slug" element={<TeamPage />} />
+          <Route path="champions/:slug" element={<ChampionPage />} />
+          <Route path="tournaments/:slug" element={<TournamentPage />} />
+          <Route path="series/:seriesId" element={<SeriesPage />} />
+        </Route>
+
+        <Route path="/profile" element={<UserProfile />} />
+      </Route>
+
+      <Route path="/nuckyai" element={<Navigate to="/chat" replace />} />
+      <Route path="/live" element={<Navigate to="/dashboard" replace />} />
+      <Route path="/live/:matchId" element={<Navigate to="/dashboard" replace />} />
+      <Route path="/players" element={<Navigate to="/dashboard/players" replace />} />
+      <Route path="/teams" element={<Navigate to="/dashboard/teams" replace />} />
+      <Route path="/champions" element={<Navigate to="/dashboard/champions" replace />} />
+      <Route path="/matchups" element={<Navigate to="/dashboard/matchups" replace />} />
+      <Route path="/tournaments" element={<Navigate to="/dashboard/tournaments" replace />} />
+      <Route path="/players/:slug" element={<LegacyEntityRedirect type="players" />} />
+      <Route path="/teams/:slug" element={<LegacyEntityRedirect type="teams" />} />
+      <Route path="/champions/:slug" element={<LegacyEntityRedirect type="champions" />} />
+      <Route path="/tournaments/:slug" element={<LegacyEntityRedirect type="tournaments" />} />
+      <Route
+        path="/series/:seriesId"
+        element={<LegacySeriesRedirect />}
+      />
+    </Routes>
+  )
+}
+
+function LegacySeriesRedirect() {
+  const { seriesId } = useParams()
+  return <Navigate to={`/dashboard/series/${seriesId}`} replace />
 }
 
 function App() {
   return (
     <AuthProvider>
       <TimezoneProvider>
-        <DashboardProvider>
-          <SmoothScroll>
-            <AppRoutes />
-          </SmoothScroll>
-        </DashboardProvider>
+        <ViewPreferenceProvider>
+          <DashboardProvider>
+            <SmoothScroll>
+              <AppRoutes />
+            </SmoothScroll>
+          </DashboardProvider>
+        </ViewPreferenceProvider>
       </TimezoneProvider>
     </AuthProvider>
   )

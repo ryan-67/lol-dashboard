@@ -2,6 +2,7 @@ import { useEffect, useState, type ReactNode } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import AuthModal from '../AuthModal'
 import { useAuth } from '../../context/AuthContext'
+import { useViewPreference } from '../../context/ViewPreferenceContext'
 
 type AuthView = 'signin' | 'signup'
 
@@ -11,23 +12,24 @@ const MARKETING_NAV = [
   { to: '/#pricing', label: 'pricing' },
 ]
 
-const FOOTER_PRODUCT = [
-  { to: '/#features', label: 'features' },
-  { to: '/#faq', label: 'faq' },
-  { to: '/#pricing', label: 'pricing' },
-  { to: '/dashboard', label: 'dashboard' },
-]
-
 interface LandingLayoutProps {
   children: ReactNode
 }
 
 export default function LandingLayout({ children }: LandingLayoutProps) {
   const { user, loading: authLoading, signOut } = useAuth()
+  const { homePath } = useViewPreference()
   const location = useLocation()
   const [showAuth, setShowAuth] = useState(false)
   const [authView, setAuthView] = useState<AuthView>('signin')
   const [menuOpen, setMenuOpen] = useState(false)
+
+  const FOOTER_PRODUCT = [
+    { to: '/#features', label: 'features' },
+    { to: '/#faq', label: 'faq' },
+    { to: '/#pricing', label: 'pricing' },
+    { to: homePath, label: 'open app' },
+  ]
 
   useEffect(() => {
     setMenuOpen(false)
@@ -60,8 +62,8 @@ export default function LandingLayout({ children }: LandingLayoutProps) {
           <div className="landing-header-actions">
             {!authLoading && user ? (
               <>
-                <Link className="landing-btn landing-btn-ghost" to="/dashboard">
-                  open dashboard
+                <Link className="landing-btn landing-btn-ghost" to={homePath}>
+                  open app
                 </Link>
                 <button type="button" className="landing-btn landing-btn-ghost" onClick={() => signOut()}>
                   logout
@@ -109,8 +111,8 @@ export default function LandingLayout({ children }: LandingLayoutProps) {
                 {item.label}
               </Link>
             ))}
-            <Link to="/dashboard" className="landing-mobile-link">
-              dashboard
+            <Link to={homePath} className="landing-mobile-link">
+              open app
             </Link>
             {!user ? (
               <>

@@ -1,4 +1,13 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { useLocation, useNavigate } from 'react-router-dom'
+import { useDashboard } from '../../context/DashboardContext'
+import {
+  buildEntitySearchIndex,
+  entityPath,
+  searchEntities,
+  type EntitySearchEntry,
+} from '../../lib/entities/searchIndex'
+import ChampionIcon from '../entities/ChampionIcon'
 
 interface ChatInputProps {
   value: string
@@ -7,6 +16,20 @@ interface ChatInputProps {
   disabled?: boolean
   onStop?: () => void
   focusTrigger?: number
+  floating?: boolean
+}
+
+function resolveEntityTarget(path: string, pathname: string): string {
+  if (pathname.startsWith('/duo')) {
+    return `/duo${path}`
+  }
+  if (pathname.startsWith('/chat')) {
+    return `/dashboard${path}`
+  }
+  if (pathname.startsWith('/dashboard')) {
+    return `/dashboard${path}`
+  }
+  return path
 }
 
 export default function ChatInput({
@@ -16,14 +39,26 @@ export default function ChatInput({
   disabled,
   onStop,
   focusTrigger,
+  floating = false,
 }: ChatInputProps) {
   const ref = useRef<HTMLTextAreaElement>(null)
+  const { catalog } = useDashboard()
+  const navigate = useNavigate()
+  const location = useLocation()
+  const [index, setIndex] = useState<EntitySearchEntry[]>([])
+  const [highlight, setHighlight] = useState(0)
+  const [showTypeahead, setShowTypeahead] = useState(false)
+
+  useEffect(() => {
+    if (!catalog) return
+    void buildEntitySearchIndex(catalog).then(setIndex)
+  }, [catalog])
 
   useEffect(() => {
     const el = ref.current
     if (!el) return
     el.style.height = 'auto'
-    el.style.height = `${Math.min(el.scrollHeight, 180)}px`
+    el.style.height = `${Math.min(el.scrollHeight, 160)}px`
   }, [value])
 
   useEffect(() => {
@@ -31,9 +66,42 @@ export default function ChatInput({
     ref.current?.focus()
   }, [focusTrigger])
 
+  useEffect(() => {
+    // autofocus on first mount
+    ref.current?.focus()
+  }, [])
+
+  const results = useMemo(() => {
+    const q = value.trim()
+    if (q.length < 1) return []
+    // Prefer identity search when query looks like a short name/token, not a full sentence
+    if (q.includes('?') || q.split(/\s+/).length > 4) return []
+    return searchEntities(index, q).slice(0, 8)
+  }, [index, value])
+
+  useEffect(() => {
+    setShowTypeahead(results.length > 0)
+    setHighlight(0)
+  }, [results.length, value])
+
+  const pickEntity = (entry: EntitySearchEntry) => {
+    const raw = entityPath(entry)
+    navigate(resolveEntityTarget(raw, location.pathname))
+    onChange('')
+    setShowTypeahead(false)
+  }
+
+  const handleSendOrPick = () => {
+    if (showTypeahead && results[highlight]) {
+      pickEntity(results[highlight])
+      return
+    }
+    onSend()
+  }
+
   return (
-    <div className="border-t border-[var(--border-subtle)] bg-[var(--bg-surface)] p-3 shrink-0">
-      {disabled && onStop && (
+    <div className={`chat-input-wrap${floating ? ' chat-input-floating' : ''}`}>
+      {disabled && onStop ? (
         <div className="mb-2">
           <button
             type="button"
@@ -43,8 +111,28 @@ export default function ChatInput({
             stop
           </button>
         </div>
-      )}
-      <div className="flex items-end gap-2">
+      ) : null}
+
+      <div className="chat-input-shell">
+        {showTypeahead ? (
+          <ul className="chat-typeahead" role="listbox">
+            {results.map((entry, i) => (
+              <li key={`${entry.type}-${entry.slug}`}>
+                <button
+                  type="button"
+                  className={`entity-search-result${i === highlight ? ' is-active' : ''}`}
+                  onMouseEnter={() => setHighlight(i)}
+                  onClick={() => pickEntity(entry)}
+                >
+                  {entry.type === 'champion' ? <ChampionIcon name={entry.label} size={18} /> : null}
+                  <span className="entity-search-result-label">{entry.label}</span>
+                  <span className="entity-search-result-type">{entry.type}</span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        ) : null}
+
         <textarea
           ref={ref}
           value={value}
@@ -52,22 +140,40 @@ export default function ChatInput({
           placeholder="ask nucky..."
           disabled={disabled}
           rows={1}
-          className="w-full resize-none border border-[var(--border-subtle)] bg-[var(--bg-base)] px-3 py-2 text-sm text-[var(--text-primary)] outline-none focus:border-[var(--accent)] disabled:opacity-60 font-[family-name:var(--font-mono)]"
           onKeyDown={(e) => {
+            if (showTypeahead && results.length) {
+              if (e.key === 'ArrowDown') {
+                e.preventDefault()
+                setHighlight((h) => Math.min(h + 1, results.length - 1))
+                return
+              }
+              if (e.key === 'ArrowUp') {
+                e.preventDefault()
+                setHighlight((h) => Math.max(h - 1, 0))
+                return
+              }
+              if (e.key === 'Escape') {
+                setShowTypeahead(false)
+                return
+              }
+            }
             if (e.key === 'Enter' && !e.shiftKey) {
               e.preventDefault()
-              onSend()
+              handleSendOrPick()
             }
           }}
         />
-        <button
-          type="button"
-          className="btn min-w-[84px] shrink-0"
-          disabled={disabled || !value.trim()}
-          onClick={onSend}
-        >
-          send
-        </button>
+        <div className="chat-input-toolbar">
+          <button
+            type="button"
+            className="chat-input-send"
+            disabled={disabled || !value.trim()}
+            onClick={handleSendOrPick}
+            aria-label="Send"
+          >
+            ↑
+          </button>
+        </div>
       </div>
     </div>
   )

@@ -20,7 +20,7 @@ export default function NuckyAiPaywall({
   return (
     <div className="nuckyai-paywall">
       <div className="nuckyai-paywall-card">
-        <p className="nuckyai-paywall-eyebrow">unlock nuckyAI</p>
+        <p className="nuckyai-paywall-eyebrow">unlock nucky</p>
         <div className="nuckyai-paywall-price-row">
           <span className="nuckyai-paywall-price">{formatNuckyAiBetaPrice()}</span>
           <span className="nuckyai-paywall-period">/mo</span>
@@ -44,7 +44,7 @@ export default function NuckyAiPaywall({
           {actionLabel}
         </button>
         <p className="nuckyai-paywall-beta-note">
-          nuckyAI is under active development. Beta access helps us improve response quality, tool coverage,
+          nucky is under active development. Beta access helps us improve response quality, tool coverage,
           and accuracy — try it out and send feedback to{' '}
           <a href="mailto:geonbu@nucky.gg">geonbu@nucky.gg</a>.
         </p>

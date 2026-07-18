@@ -4,6 +4,7 @@ import { useGSAP } from '@gsap/react'
 import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import AuthModal from '../components/AuthModal'
+import { useViewPreference } from '../context/ViewPreferenceContext'
 import {
   fetchAccuracyScorecard,
   formatLL,
@@ -80,6 +81,7 @@ const FAQ_ITEMS = [
 
 export default function Landing() {
   const { user } = useAuth()
+  const { homePath } = useViewPreference()
   const location = useLocation()
   const rootRef = useRef<HTMLDivElement>(null)
   const [scorecard, setScorecard] = useState<AccuracyScorecard | null>(null)
@@ -184,8 +186,8 @@ export default function Landing() {
           </p>
           <div className="landing-hero-actions">
             {user ? (
-              <Link className="landing-btn landing-btn-primary" to="/dashboard">
-                open dashboard
+              <Link className="landing-btn landing-btn-primary" to={homePath}>
+                open app
               </Link>
             ) : (
               <button

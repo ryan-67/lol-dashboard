@@ -1,8 +1,9 @@
 const PROMPTS = [
-  'analyze the next lck matchup',
-  'compare T1 vs Gen.G stats',
-  "who's the most overrated player this split?",
-  'draft analysis for geng: ambessa wukong annie ezreal neeko, t1: sion xinzhao anivia caitlyn karma',
+  'analyze faker vs chovy',
+  'who wins geng vs t1?',
+  'compare canyon and peanut this split',
+  'which junglers are overperforming on current patch?',
+  'break down T1 draft tendencies in LCK',
 ] as const
 
 interface SuggestedPromptsProps {

@@ -8,22 +8,22 @@
   --border-subtle: #262626;
   --border-focus: #3a3a3a;
 
-  /* Text */
-  --text-primary: #f0ece2;
-  --text-secondary: #9e9a8e;
-  --text-tertiary: #5c5a54;
+  /* Text — cool neutrals tinted toward turquoise */
+  --text-primary: #e8eef0;
+  --text-secondary: #8a9a9e;
+  --text-tertiary: #556066;
 
-  /* Accent */
-  --accent: #c5a059;
-  --accent-dim: #8c7340;
-  --accent-bg: rgba(197, 160, 89, 0.08);
+  /* Accent — matte turquoise */
+  --accent: oklch(0.72 0.105 195);
+  --accent-dim: oklch(0.57 0.075 195);
+  --accent-bg: oklch(0.72 0.105 195 / 0.09);
 
   /* Chart role colors — flat, non-neon */
-  --role-top: #c5a059;
+  --role-top: oklch(0.72 0.105 195);
   --role-jungle: #7a8c5a;
-  --role-mid: #9e8c7a;
+  --role-mid: #8a9a9e;
   --role-adc: #6a7a8c;
-  --role-support: #8c7340;
+  --role-support: oklch(0.57 0.075 195);
 
   /* Layout */
   --padding-x: 40px;
@@ -469,6 +469,86 @@ b,
   margin-bottom: 0;
 }
 
+.overview-hub-hero {
+  display: grid;
+  gap: 16px;
+}
+
+@media (min-width: 900px) {
+  .overview-hub-hero {
+    grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
+    align-items: end;
+  }
+}
+
+.overview-hub-hero-copy .card-subtitle {
+  margin-bottom: 0;
+}
+
+.overview-stat-strip {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+@media (min-width: 700px) {
+  .overview-stat-strip {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+.overview-stat-cell,
+.overview-stat-tile {
+  border: 1px solid var(--border-subtle);
+  background: color-mix(in oklab, var(--bg-elevated) 88%, var(--accent) 12%);
+  padding: 10px 12px;
+  transition: border-color 160ms ease, background-color 160ms ease, transform 160ms ease;
+}
+
+.overview-stat-cell:hover,
+.overview-stat-tile:hover,
+.overview-totw-card:hover,
+.overview-best-game-row:hover {
+  border-color: color-mix(in oklab, var(--accent) 45%, var(--border-subtle));
+  background: color-mix(in oklab, var(--bg-elevated) 80%, var(--accent) 20%);
+}
+
+.overview-stat-cell:hover,
+.overview-totw-card:hover {
+  transform: translateY(-1px);
+}
+
+.overview-stat-label {
+  display: block;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-secondary);
+  margin-bottom: 4px;
+}
+
+.overview-stat-value {
+  display: block;
+  font-size: 22px;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+  color: var(--accent);
+  font-family: var(--font-mono);
+}
+
+.overview-stat-value--sm {
+  font-size: 18px;
+}
+
+.overview-hub-card {
+  transition: border-color 160ms ease, box-shadow 160ms ease;
+}
+
+.overview-hub-card:hover {
+  border-color: color-mix(in oklab, var(--accent) 28%, var(--border-subtle));
+  box-shadow: 0 0 0 1px color-mix(in oklab, var(--accent) 12%, transparent);
+}
+
 .overview-recap-list {
   list-style: none;
   margin: 0;
@@ -732,6 +812,7 @@ b,
   border: 1px solid var(--border-subtle);
   background: var(--bg-elevated);
   padding: 12px;
+  transition: border-color 160ms ease, background-color 160ms ease, transform 160ms ease;
 }
 
 .overview-mini-meta {

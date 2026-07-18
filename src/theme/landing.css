@@ -1,9 +1,6 @@
 /* Terminal Editorial marketing surface: matte black / matte turquoise */
 
 .landing-shell {
-  --accent: oklch(0.72 0.105 195);
-  --accent-dim: oklch(0.57 0.075 195);
-  --accent-bg: oklch(0.72 0.105 195 / 0.09);
   min-height: 100dvh;
   display: flex;
   flex-direction: column;

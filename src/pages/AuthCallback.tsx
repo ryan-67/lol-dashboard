@@ -1,10 +1,14 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import { useViewPreference } from '../context/ViewPreferenceContext'
 import { supabase } from '../lib/supabaseClient'
+import { pathForView, readLocalViewPreference } from '../lib/viewPreference'
 
 export default function AuthCallback() {
   const navigate = useNavigate()
+  const { homePath, loading: prefLoading } = useViewPreference()
   const [error, setError] = useState<string | null>(null)
+  const [ready, setReady] = useState(false)
 
   useEffect(() => {
     let mounted = true
@@ -32,14 +36,13 @@ export default function AuthCallback() {
         data: { session },
       } = await supabase.auth.getSession()
       if (session && mounted) {
-        navigate('/dashboard', { replace: true })
+        setReady(true)
         return
       }
 
       const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ''))
       if (hashParams.get('access_token') && mounted) {
-        navigate('/dashboard', { replace: true })
-        return
+        setReady(true)
       }
     }
 
@@ -48,8 +51,8 @@ export default function AuthCallback() {
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((event) => {
-      if (event === 'SIGNED_IN') {
-        navigate('/dashboard', { replace: true })
+      if (event === 'SIGNED_IN' && mounted) {
+        setReady(true)
       }
     })
 
@@ -64,7 +67,12 @@ export default function AuthCallback() {
       subscription.unsubscribe()
       window.clearTimeout(timeout)
     }
-  }, [navigate])
+  }, [])
+
+  useEffect(() => {
+    if (!ready || prefLoading) return
+    navigate(homePath || pathForView(readLocalViewPreference()), { replace: true })
+  }, [ready, prefLoading, homePath, navigate])
 
   if (error) {
     return (

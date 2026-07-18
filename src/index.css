@@ -1,5 +1,6 @@
 @import './theme/tokens.css';
 @import './theme/landing.css';
+@import './theme/shell.css';
 @import 'lenis/dist/lenis.css';
 
 @tailwind base;

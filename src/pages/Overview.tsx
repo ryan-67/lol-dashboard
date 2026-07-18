@@ -45,7 +45,9 @@ import { CHART } from '../theme/chartTheme'
 import {
   scrollEntranceStagger,
   refreshScrollTrigger,
+  animateRadarDraw,
 } from '../theme/animations'
+import AnimatedCounter from '../components/ui/AnimatedCounter'
 import { formatGameDate, formatNum, formatPct, formatRefreshTimestamp } from '../lib/format'
 import {
   PolarAngleAxis,
@@ -635,9 +637,18 @@ export default function Overview() {
     copy.recapLimit,
   )
 
+  const sampleGames = useMemo(
+    () => weeklyPlayers.reduce((sum, p) => sum + p.weeklyGames.length, 0),
+    [weeklyPlayers],
+  )
+
   useGSAP(
     () => {
       scrollEntranceStagger(rootRef.current, '.overview-hub-card')
+      scrollEntranceStagger(rootRef.current, '.overview-stat-cell')
+      rootRef.current
+        ?.querySelectorAll('.overview-weekly-radar, .overview-hottest-radar, .overview-totw-card')
+        .forEach((el) => animateRadarDraw(el, 0.7))
       refreshScrollTrigger()
     },
     { dependencies: [loading, league, split, displayPeriod, weeklyPlayers.length, hubContentLoading] },
@@ -657,17 +668,46 @@ export default function Overview() {
         </section>
       ) : (
         <>
-      <section className="card overview-hub-card">
-        <h2 className="card-title">{copy.hubTitle}</h2>
-        <p className="card-subtitle">
-          League: <span className="text-accent">{league}</span> · Split:{' '}
-          <span className="text-accent">{split}</span>
-          {hubWindow ? ` · Past ${copy.periodDays} days: ${hubWindow.label}` : ''}
-          {hubWindow?.dataStale && hubWindow.latestDataDate
-            ? ` · Data through ${formatGameDate(hubWindow.latestDataDate, { year: 'numeric' })}`
-            : ''}
-          {lastUpdated ? ` · Refreshed ${formatRefreshTimestamp(lastUpdated)}` : ''}
-        </p>
+      <section className="card overview-hub-card overview-hub-hero">
+        <div className="overview-hub-hero-copy">
+          <h2 className="card-title">{copy.hubTitle}</h2>
+          <p className="card-subtitle">
+            League: <span className="text-accent">{league}</span> · Split:{' '}
+            <span className="text-accent">{split}</span>
+            {hubWindow ? ` · Past ${copy.periodDays} days: ${hubWindow.label}` : ''}
+            {hubWindow?.dataStale && hubWindow.latestDataDate
+              ? ` · Data through ${formatGameDate(hubWindow.latestDataDate, { year: 'numeric' })}`
+              : ''}
+            {lastUpdated ? ` · Refreshed ${formatRefreshTimestamp(lastUpdated)}` : ''}
+          </p>
+        </div>
+        <div className="overview-stat-strip" aria-label="Hub snapshot">
+          <div className="overview-stat-cell">
+            <span className="overview-stat-label">active players</span>
+            <AnimatedCounter className="overview-stat-value" value={weeklyPlayers.length} decimals={0} />
+          </div>
+          <div className="overview-stat-cell">
+            <span className="overview-stat-label">game rows</span>
+            <AnimatedCounter className="overview-stat-value" value={sampleGames} decimals={0} />
+          </div>
+          <div className="overview-stat-cell">
+            <span className="overview-stat-label">top perf</span>
+            <AnimatedCounter
+              className="overview-stat-value"
+              value={playerOfWeek ? playerOfWeek.scoreAvg * 100 : 0}
+              decimals={1}
+            />
+          </div>
+          <div className="overview-stat-cell">
+            <span className="overview-stat-label">hottest wr</span>
+            <AnimatedCounter
+              className="overview-stat-value"
+              value={hottestTeam?.weeklyWinrate ?? 0}
+              decimals={0}
+              suffix="%"
+            />
+          </div>
+        </div>
       </section>
 
       {hubWindow && (
@@ -813,7 +853,7 @@ export default function Overview() {
       </section>
 
       <section className="card overview-hub-card">
-        <h2 className="card-title">Hottest Team 🔥</h2>
+        <h2 className="card-title">Hottest Team</h2>
         {!hottestTeam ? (
           <p className="text-secondary">{copy.noTeamData}</p>
         ) : (
@@ -828,10 +868,39 @@ export default function Overview() {
                 value={formatNum(hottestTeam.impressiveness, 1)}
               />
               <div className="overview-hottest-stats">
-                <div>{copy.statWr}: {formatPct(hottestTeam.weeklyWinrate, 1)}</div>
-                <div>{copy.statKda}: {formatNum(hottestTeam.weeklyAvgKda, 2)}</div>
-                <div>{copy.statGd}: {formatNum(hottestTeam.weeklyAvgGd15, 1)}</div>
-                <div>{copy.statObj}: {formatNum(hottestTeam.weeklyObjControl, 2)}</div>
+                <div className="overview-stat-tile">
+                  <span className="overview-stat-label">{copy.statWr}</span>
+                  <AnimatedCounter
+                    className="overview-stat-value overview-stat-value--sm"
+                    value={hottestTeam.weeklyWinrate}
+                    decimals={1}
+                    suffix="%"
+                  />
+                </div>
+                <div className="overview-stat-tile">
+                  <span className="overview-stat-label">{copy.statKda}</span>
+                  <AnimatedCounter
+                    className="overview-stat-value overview-stat-value--sm"
+                    value={hottestTeam.weeklyAvgKda}
+                    decimals={2}
+                  />
+                </div>
+                <div className="overview-stat-tile">
+                  <span className="overview-stat-label">{copy.statGd}</span>
+                  <AnimatedCounter
+                    className="overview-stat-value overview-stat-value--sm"
+                    value={hottestTeam.weeklyAvgGd15}
+                    decimals={1}
+                  />
+                </div>
+                <div className="overview-stat-tile">
+                  <span className="overview-stat-label">{copy.statObj}</span>
+                  <AnimatedCounter
+                    className="overview-stat-value overview-stat-value--sm"
+                    value={hottestTeam.weeklyObjControl}
+                    decimals={2}
+                  />
+                </div>
                 <div>Opponent split WR avg: {formatPct(hottestTeam.avgOpponentSplitWinrate, 1)}</div>
                 <div>Upset wins bonus: {hottestTeam.upsetWins}</div>
               </div>

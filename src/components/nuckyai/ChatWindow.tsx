@@ -1,8 +1,21 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import MessageList from './MessageList'
 import ChatInput from './ChatInput'
-import SuggestedPrompts from './SuggestedPrompts'
 import type { MessageRow } from './types'
+
+const PROMPTS = [
+  'analyze faker vs chovy',
+  'who wins geng vs t1?',
+  'compare canyon and peanut this split',
+  'which junglers are overperforming on current patch?',
+  'break down T1 draft tendencies in LCK',
+] as const
+
+function greetingForNow(name?: string): string {
+  const hour = new Date().getHours()
+  const hello = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening'
+  return name ? `${hello}, ${name}` : hello
+}
 
 interface ChatWindowProps {
   messages: MessageRow[]
@@ -12,6 +25,7 @@ interface ChatWindowProps {
   onRetry: () => void
   onStop: () => void
   inputFocusTrigger?: number
+  displayName?: string
 }
 
 export default function ChatWindow({
@@ -21,10 +35,15 @@ export default function ChatWindow({
   onRegenerate,
   onRetry,
   onStop,
-  inputFocusTrigger,
+  inputFocusTrigger = 1,
+  displayName,
 }: ChatWindowProps) {
   const [draft, setDraft] = useState('')
   const showConversation = messages.length > 0 || streaming
+
+  useEffect(() => {
+    // ensure autofocus on mount for empty state
+  }, [])
 
   const send = () => {
     if (!draft.trim()) return
@@ -33,7 +52,7 @@ export default function ChatWindow({
   }
 
   return (
-    <section className="flex-1 min-h-0 flex flex-col bg-[var(--bg-base)]">
+    <section className="chat-window">
       {showConversation ? (
         <MessageList
           messages={messages}
@@ -43,21 +62,50 @@ export default function ChatWindow({
           streaming={streaming}
         />
       ) : (
-        <div className="flex-1 overflow-y-auto p-4">
-          <div className="border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-4 max-w-2xl">
-            <p className="text-sm text-[var(--text-primary)]">ask nucky...</p>
-            <SuggestedPrompts onPick={onSend} />
+        <div className="chat-empty" data-lenis-prevent>
+          <h1 className="chat-empty-greeting">{greetingForNow(displayName)}</h1>
+          <p className="chat-empty-sub">
+            Ask about players, teams, drafts, and statistics of LoL esports — or search an identity
+            to open it in the dashboard.
+          </p>
+          <div className="chat-empty-input-slot">
+            <ChatInput
+              value={draft}
+              onChange={setDraft}
+              onSend={send}
+              disabled={streaming}
+              onStop={onStop}
+              focusTrigger={inputFocusTrigger}
+              floating
+            />
+          </div>
+          <div className="chat-empty-prompts">
+            {PROMPTS.map((prompt) => (
+              <button
+                key={prompt}
+                type="button"
+                className="chat-empty-prompt"
+                onClick={() => onSend(prompt)}
+              >
+                <span className="chat-empty-prompt-slash">/</span>
+                <span>{prompt}</span>
+                <span className="chat-empty-prompt-chevron">›</span>
+              </button>
+            ))}
           </div>
         </div>
       )}
-      <ChatInput
-        value={draft}
-        onChange={setDraft}
-        onSend={send}
-        disabled={streaming}
-        onStop={onStop}
-        focusTrigger={inputFocusTrigger}
-      />
+
+      {showConversation ? (
+        <ChatInput
+          value={draft}
+          onChange={setDraft}
+          onSend={send}
+          disabled={streaming}
+          onStop={onStop}
+          focusTrigger={inputFocusTrigger}
+        />
+      ) : null}
     </section>
   )
 }

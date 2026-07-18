@@ -14,6 +14,8 @@ import {
   formatUsageResetDate,
   type AgentUsageMonthly,
 } from '../lib/agentUsage'
+import { useViewPreference } from '../context/ViewPreferenceContext'
+import { type DefaultView } from '../lib/viewPreference'
 
 interface ProfileSettingsRow {
   username: string | null
@@ -23,6 +25,12 @@ interface ProfileSettingsRow {
   plan: string | null
   timezone: string | null
 }
+
+const DEFAULT_VIEW_OPTIONS: { value: DefaultView; label: string; hint: string }[] = [
+  { value: 'duo', label: 'duo', hint: 'chat + dashboard side by side' },
+  { value: 'chat', label: 'chat', hint: 'full-width nucky chat' },
+  { value: 'dashboard', label: 'dashboard', hint: 'full-width analytics' },
+]
 
 interface SubscriptionRow {
   status: string | null
@@ -38,6 +46,7 @@ export default function UserProfile() {
   const { user } = useAuth()
   const { filteredPlayers, filteredTeams } = useDashboard()
   const { timezone, setTimezone, timezoneOptions } = useTimezone()
+  const { defaultView, setDefaultView } = useViewPreference()
   const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState(false)
   const [billingLoading, setBillingLoading] = useState(false)
@@ -50,6 +59,7 @@ export default function UserProfile() {
   const [savedMsg, setSavedMsg] = useState<string | null>(null)
   const [billingMsg, setBillingMsg] = useState<string | null>(null)
   const [agentUsage, setAgentUsage] = useState<AgentUsageMonthly | null>(null)
+  const [homeView, setHomeView] = useState<DefaultView>(defaultView)
 
   const playerOptions = useMemo(() => {
     return Array.from(new Set(filteredPlayers.map((player) => player.name).filter(Boolean))).sort((a, b) =>
@@ -135,6 +145,10 @@ export default function UserProfile() {
     void loadProfile()
   }, [loadProfile])
 
+  useEffect(() => {
+    setHomeView(defaultView)
+  }, [defaultView])
+
   useGSAP(() => {
     scrollEntrance(document.querySelector('.profile-shell'))
     scrollEntranceStagger(document.querySelector('.profile-form'), '.profile-field')
@@ -151,6 +165,9 @@ export default function UserProfile() {
       favorite_team: favoriteTeam.trim() || null,
     }
     const { error } = await supabase.from('profiles').upsert(payload, { onConflict: 'id' })
+    if (!error) {
+      await setDefaultView(homeView)
+    }
     setSaving(false)
     if (error) {
       if (error.code === '23505') {
@@ -162,7 +179,7 @@ export default function UserProfile() {
     }
     setSavedMsg('profile updated.')
     window.setTimeout(() => setSavedMsg(null), 1800)
-  }, [favoritePlayer, favoriteTeam, user, username])
+  }, [favoritePlayer, favoriteTeam, homeView, setDefaultView, user, username])
 
   const subscribe = useCallback(async () => {
     setBillingLoading(true)
@@ -229,7 +246,7 @@ export default function UserProfile() {
           {isSubscribed && agentUsage && (
             <div className="profile-usage">
               <div className="profile-usage-header">
-                <span className="profile-usage-label">nuckyAI usage this month</span>
+                <span className="profile-usage-label">nucky usage this month</span>
                 <span className="profile-usage-pct">{usagePercent}%</span>
               </div>
               <div
@@ -238,7 +255,7 @@ export default function UserProfile() {
                 aria-valuenow={usagePercent}
                 aria-valuemin={0}
                 aria-valuemax={100}
-                aria-label="nuckyAI monthly token usage"
+                aria-label="nucky monthly token usage"
               >
                 <div className="profile-usage-bar-fill" style={{ width: `${usagePercent}%` }} />
               </div>
@@ -324,6 +341,34 @@ export default function UserProfile() {
               <p className="text-xs text-[var(--text-secondary)]">
                 Dates and times on nucky.gg default to PST/PDT. Selecting a timezone updates
                 displayed dates and times to match your preference.
+              </p>
+            </div>
+
+            <div className="profile-field space-y-2">
+              <label className="label-field">default home</label>
+              <div className="space-y-2" role="radiogroup" aria-label="Default home view">
+                {DEFAULT_VIEW_OPTIONS.map((opt) => (
+                  <label
+                    key={opt.value}
+                    className="flex items-start gap-3 cursor-pointer text-sm text-[var(--text-primary)]"
+                  >
+                    <input
+                      type="radio"
+                      name="default-view"
+                      value={opt.value}
+                      checked={homeView === opt.value}
+                      onChange={() => setHomeView(opt.value)}
+                      className="mt-1 accent-[var(--accent)]"
+                    />
+                    <span>
+                      <span className="uppercase tracking-wide text-[var(--accent)]">{opt.label}</span>
+                      <span className="block text-xs text-[var(--text-secondary)]">{opt.hint}</span>
+                    </span>
+                  </label>
+                ))}
+              </div>
+              <p className="text-xs text-[var(--text-secondary)]">
+                where you land after sign-in. current mode still follows the URL you open.
               </p>
             </div>
 

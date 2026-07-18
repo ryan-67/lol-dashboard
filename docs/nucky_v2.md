@@ -638,13 +638,15 @@ Do this before major user-facing rebuild.
 ### Phase 2 — IA / nav / nucky-as-spine
 
 - **Marketing landing shipped early (2026-07-17):** `/` is the product landing page (Terminal Editorial); dashboard Overview moved to `/dashboard`. Features, pricing, and FAQ are anchored sections on `/`; legal routes remain `/terms` and `/private-policy`.
-- New sidebar IA above.
-- nucky as chat + smart entity search; `/chat` + `/duo` (split chat|dashboard) + default-page preference (`chat` | `dashboard` | `duo`) for logged-in `/` redirects.
-- Ask-nucky entry points on player / team / champion / series / tournament pages.
-- Visual / motion pass (counters, chart/radar reveal-on-scroll, premium micro-motion) without generic AI-slop aesthetics.
-- **Remove Live Match Hub** from nav, routes, and cross-links.
+- **App shell shipped (2026-07-18):** left `AppSidebar` + mode-aware nav; top Overview/nuckyAI/Live/search header removed. Modes: `/duo` (default home — chat left + dashboard right), `/chat` (full-width nucky), `/dashboard/*` (full-width analytics). Profile flyout (settings / feedback / sign out). Filters stay inside the dashboard pane only.
+- **View preference:** `profiles.default_view` + localStorage mirror (`duo` | `chat` | `dashboard`); logged-in `/` and auth callback redirect to preference (`/duo` default). Settings radio on `/profile`.
+- nucky chat restyle (empty-state greeting, autofocus `ask nucky...`, recommended prompts) + entity typeahead in chat input and sidebar search (duo → right pane; chat-only → `/dashboard/...` entity routes).
+- Overview visual/motion pass under new shell (stat strip counters, radar draw-in, denser hover hierarchy). Other tabs: theme + shell only this ship.
+- Global matte black + matte turquoise tokens (landing + product unified).
+- **Remove Live Match Hub** from nav; `/live*` → `/dashboard`. `/nuckyai` → `/chat`.
+- Deferred to follow-up: ask-nucky entry points on every entity page; full Players/Teams/Champions/Matchups/Tournaments chart redesign; `/duo` resizable splitter polish.
 
-**Exit criteria:** one coherent shell; AI discoverable from data pages; no live surface visible.
+**Exit criteria (this ship):** one coherent shell ✅; chat + duo + dashboard modes ✅; entity search-from-chat ✅; no live surface in nav ✅. Follow-up: AI CTAs on every data page.
 
 ### Phase 3 — Prediction Model tab
 

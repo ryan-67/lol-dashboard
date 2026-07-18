@@ -1,15 +1,15 @@
 /** Shared Recharts styling aligned with design tokens */
 export const CHART = {
-  grid: 'rgba(92, 90, 84, 0.15)',
-  axis: '#9e9a8e',
-  tick: '#9e9a8e',
-  accent: '#c5a059',
-  accentDim: '#8c7340',
+  grid: 'rgba(85, 96, 102, 0.18)',
+  axis: '#8a9a9e',
+  tick: '#8a9a9e',
+  accent: '#4eb0ba',
+  accentDim: '#2d8c95',
   tooltip: {
     backgroundColor: '#141414',
     border: '1px solid #262626',
     borderRadius: 0,
-    color: '#f0ece2',
+    color: '#e8eef0',
   },
   fontFamily: '"Noto Sans Mono", monospace',
   fontSize: 12,
@@ -40,11 +40,11 @@ export const MATCHUP_RADAR_STYLE = {
 } as const
 
 export const ROLE_COLORS: Record<string, string> = {
-  top: '#c5a059',
+  top: '#4eb0ba',
   jungle: '#7a8c5a',
-  mid: '#9e8c7a',
+  mid: '#8a9a9e',
   adc: '#6a7a8c',
-  support: '#8c7340',
+  support: '#2d8c95',
 }
 
 export function roleColor(position: string): string {
