@@ -73,6 +73,7 @@ export function ViewPreferenceProvider({ children }: { children: ReactNode }) {
         .upsert({ id: user.id, default_view: view }, { onConflict: 'id' })
       if (error) {
         console.warn('[viewPreference] failed to persist', error.message)
+        throw new Error(error.message)
       }
     },
     [user],

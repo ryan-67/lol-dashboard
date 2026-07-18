@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useGSAP } from '@gsap/react'
 import { useAuth } from '../context/AuthContext'
 import { useDashboard } from '../context/DashboardContext'
@@ -16,16 +16,28 @@ import {
 } from '../lib/agentUsage'
 import { useViewPreference } from '../context/ViewPreferenceContext'
 import { useProfile } from '../context/ProfileContext'
-import { type DefaultView } from '../lib/viewPreference'
+import { type DefaultView, isDefaultView } from '../lib/viewPreference'
+import {
+  AVATAR_ACCEPT,
+  AVATAR_MAX_BYTES,
+  AvatarUploadError,
+  removeUserAvatar,
+  uploadUserAvatar,
+} from '../lib/avatarUpload'
 
 interface ProfileSettingsRow {
   username: string | null
+  avatar_url: string | null
   favorite_player: string | null
   favorite_team: string | null
   is_subscribed: boolean | null
   plan: string | null
   timezone: string | null
+  default_view: string | null
 }
+
+const PROFILE_SELECT =
+  'username, avatar_url, favorite_player, favorite_team, is_subscribed, plan, timezone, default_view'
 
 const DEFAULT_VIEW_OPTIONS: { value: DefaultView; label: string; hint: string }[] = [
   { value: 'duo', label: 'duo', hint: 'chat + dashboard side by side' },
@@ -49,10 +61,13 @@ export default function UserProfile() {
   const { timezone, setTimezone, timezoneOptions } = useTimezone()
   const { defaultView, setDefaultView } = useViewPreference()
   const { applyLocalProfile, refreshProfile } = useProfile()
+  const fileInputRef = useRef<HTMLInputElement>(null)
   const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState(false)
+  const [avatarUploading, setAvatarUploading] = useState(false)
   const [billingLoading, setBillingLoading] = useState(false)
   const [username, setUsername] = useState('')
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null)
   const [favoritePlayer, setFavoritePlayer] = useState('')
   const [favoriteTeam, setFavoriteTeam] = useState('')
   const [isSubscribed, setIsSubscribed] = useState(false)
@@ -75,14 +90,39 @@ export default function UserProfile() {
     )
   }, [filteredTeams])
 
+  const applyRow = useCallback((row: ProfileSettingsRow | null, subRow: SubscriptionRow | null) => {
+    const activeSub = subRow?.status === 'active' || subRow?.status === 'trialing'
+    setUsername(row?.username ?? '')
+    setAvatarUrl(row?.avatar_url ?? null)
+    setFavoritePlayer(row?.favorite_player ?? '')
+    setFavoriteTeam(row?.favorite_team ?? '')
+    setSubscription(subRow)
+    setIsSubscribed(Boolean(row?.is_subscribed) || activeSub)
+    setPlan(row?.plan === 'pro' || activeSub ? 'pro' : 'free')
+    if (row && isDefaultView(row.default_view)) {
+      setHomeView(row.default_view)
+    }
+  }, [])
+
   const loadProfile = useCallback(async () => {
     if (!user) return
     setLoading(true)
-    const { data } = await supabase
-      .from('profiles')
-      .select('username, favorite_player, favorite_team, is_subscribed, plan, timezone')
-      .eq('id', user.id)
-      .maybeSingle()
+    let data: ProfileSettingsRow | null = null
+    const primary = await supabase.from('profiles').select(PROFILE_SELECT).eq('id', user.id).maybeSingle()
+
+    if (primary.error) {
+      // Older DBs may lack default_view — retry without it so username still loads.
+      const fallback = await supabase
+        .from('profiles')
+        .select('username, avatar_url, favorite_player, favorite_team, is_subscribed, plan, timezone')
+        .eq('id', user.id)
+        .maybeSingle()
+      data = fallback.data
+        ? ({ ...(fallback.data as object), default_view: null } as ProfileSettingsRow)
+        : null
+    } else {
+      data = (primary.data as ProfileSettingsRow | null) ?? null
+    }
 
     const { data: subData } = await supabase
       .from('subscriptions')
@@ -102,11 +142,7 @@ export default function UserProfile() {
         const synced = await syncStripeSubscription()
         if (synced.isSubscribed) {
           const [{ data: refreshed }, { data: refreshedSub }] = await Promise.all([
-            supabase
-              .from('profiles')
-              .select('username, favorite_player, favorite_team, is_subscribed, plan, timezone')
-              .eq('id', user.id)
-              .maybeSingle(),
+            supabase.from('profiles').select(PROFILE_SELECT).eq('id', user.id).maybeSingle(),
             supabase
               .from('subscriptions')
               .select('status, current_period_end, cancel_at_period_end')
@@ -125,12 +161,7 @@ export default function UserProfile() {
       }
     }
 
-    setUsername(row?.username ?? '')
-    setFavoritePlayer(row?.favorite_player ?? '')
-    setFavoriteTeam(row?.favorite_team ?? '')
-    setSubscription(subRow)
-    setIsSubscribed(Boolean(row?.is_subscribed) || activeSub)
-    setPlan(row?.plan === 'pro' || activeSub ? 'pro' : 'free')
+    applyRow(row, subRow)
 
     const subscribed = Boolean(row?.is_subscribed) || activeSub
     if (subscribed) {
@@ -141,20 +172,72 @@ export default function UserProfile() {
     }
 
     setLoading(false)
-  }, [user])
+  }, [applyRow, user])
 
   useEffect(() => {
     void loadProfile()
   }, [loadProfile])
 
-  useEffect(() => {
-    setHomeView(defaultView)
-  }, [defaultView])
-
   useGSAP(() => {
     scrollEntrance(document.querySelector('.profile-shell'))
     scrollEntranceStagger(document.querySelector('.profile-form'), '.profile-field')
   }, [])
+
+  const persistAvatarUrl = useCallback(
+    async (nextUrl: string | null) => {
+      if (!user) return
+      const { error } = await supabase
+        .from('profiles')
+        .upsert({ id: user.id, avatar_url: nextUrl }, { onConflict: 'id' })
+      if (error) throw error
+      setAvatarUrl(nextUrl)
+      applyLocalProfile({ id: user.id, avatar_url: nextUrl })
+      await refreshProfile()
+    },
+    [applyLocalProfile, refreshProfile, user],
+  )
+
+  const onAvatarPick = useCallback(
+    async (file: File | null) => {
+      if (!user || !file) return
+      setAvatarUploading(true)
+      setSavedMsg(null)
+      try {
+        const url = await uploadUserAvatar(user.id, file)
+        await persistAvatarUrl(url)
+        setSavedMsg('avatar updated.')
+        window.setTimeout(() => setSavedMsg(null), 1800)
+      } catch (err) {
+        const msg =
+          err instanceof AvatarUploadError
+            ? err.message
+            : err instanceof Error
+              ? err.message
+              : 'avatar upload failed.'
+        setSavedMsg(msg)
+      } finally {
+        setAvatarUploading(false)
+        if (fileInputRef.current) fileInputRef.current.value = ''
+      }
+    },
+    [persistAvatarUrl, user],
+  )
+
+  const onAvatarRemove = useCallback(async () => {
+    if (!user) return
+    setAvatarUploading(true)
+    setSavedMsg(null)
+    try {
+      await removeUserAvatar(user.id)
+      await persistAvatarUrl(null)
+      setSavedMsg('avatar removed.')
+      window.setTimeout(() => setSavedMsg(null), 1800)
+    } catch (err) {
+      setSavedMsg(err instanceof Error ? err.message : 'could not remove avatar.')
+    } finally {
+      setAvatarUploading(false)
+    }
+  }, [persistAvatarUrl, user])
 
   const save = useCallback(async () => {
     if (!user) return
@@ -167,60 +250,82 @@ export default function UserProfile() {
       return
     }
 
-    // Prefer update (preserves other columns); fall back to insert for new profiles.
-    const fields = {
+    // Upsert core identity fields first so username/favorites always stick even if
+    // optional columns (default_view) are missing on older DBs.
+    const coreFields = {
+      id: user.id,
       username: cleanUsername || null,
       favorite_player: favoritePlayer.trim() || null,
       favorite_team: favoriteTeam.trim() || null,
-      default_view: homeView,
+      avatar_url: avatarUrl,
+      timezone,
     }
 
-    const { data: updated, error: updateError } = await supabase
+    const { data: saved, error: coreError } = await supabase
       .from('profiles')
-      .update(fields)
-      .eq('id', user.id)
-      .select('id, username')
-      .maybeSingle()
+      .upsert(coreFields, { onConflict: 'id' })
+      .select('id, username, avatar_url, favorite_player, favorite_team')
+      .single()
 
-    let error = updateError
-    if (!error && !updated) {
-      const { error: insertError } = await supabase.from('profiles').insert({
-        id: user.id,
-        ...fields,
-      })
-      error = insertError
-    }
-
-    if (!error) {
-      applyLocalProfile({
-        id: user.id,
-        username: cleanUsername || null,
-        favorite_player: favoritePlayer.trim() || null,
-        favorite_team: favoriteTeam.trim() || null,
-      })
-      await setDefaultView(homeView)
-      await refreshProfile()
-      setUsername(cleanUsername)
-    }
-
-    setSaving(false)
-    if (error) {
-      if (error.code === '23505') {
+    if (coreError) {
+      setSaving(false)
+      if (coreError.code === '23505') {
         setSavedMsg('username already taken.')
       } else {
-        setSavedMsg(`save failed: ${error.message}`)
+        setSavedMsg(`save failed: ${coreError.message}`)
       }
+      return
+    }
+
+    // Persist default home separately so a missing column can't block username save.
+    let viewError: string | null = null
+    try {
+      await setDefaultView(homeView)
+    } catch (err) {
+      viewError = err instanceof Error ? err.message : 'default home failed'
+    }
+
+    // Re-affirm timezone to DB (also saved on select change).
+    const { error: tzError } = await supabase
+      .from('profiles')
+      .upsert({ id: user.id, timezone }, { onConflict: 'id' })
+
+    const nextUsername = saved?.username ?? (cleanUsername || null)
+    const nextAvatar = saved?.avatar_url ?? avatarUrl
+    const nextPlayer = saved?.favorite_player ?? (favoritePlayer.trim() || null)
+    const nextTeam = saved?.favorite_team ?? (favoriteTeam.trim() || null)
+
+    applyLocalProfile({
+      id: user.id,
+      username: nextUsername,
+      avatar_url: nextAvatar,
+      favorite_player: nextPlayer,
+      favorite_team: nextTeam,
+    })
+    await refreshProfile()
+    setUsername(nextUsername ?? '')
+    setAvatarUrl(nextAvatar)
+
+    setSaving(false)
+    if (tzError) {
+      setSavedMsg(`profile saved, but timezone sync failed: ${tzError.message}`)
+      return
+    }
+    if (viewError) {
+      setSavedMsg(`profile saved, but default home sync failed: ${viewError}`)
       return
     }
     setSavedMsg('profile updated.')
     window.setTimeout(() => setSavedMsg(null), 1800)
   }, [
     applyLocalProfile,
+    avatarUrl,
     favoritePlayer,
     favoriteTeam,
     homeView,
     refreshProfile,
     setDefaultView,
+    timezone,
     user,
     username,
   ])
@@ -265,12 +370,15 @@ export default function UserProfile() {
     agentUsage != null
       ? formatUsagePercent(agentUsage.tokens_used, agentUsage.tokens_limit)
       : 0
+  const avatarInitial = (username.trim() || user.email || 'n').slice(0, 1).toUpperCase()
 
   return (
     <div className="profile-shell page-section space-y-6">
       <section className="card">
         <h2 className="card-title">user profile</h2>
-        <p className="card-subtitle mb-0">set your username and favorite defaults for the players view.</p>
+        <p className="card-subtitle mb-0">
+          set your username, avatar, and favorite defaults. changes stay until you update them again.
+        </p>
       </section>
 
       <section className="card profile-form space-y-4">
@@ -327,6 +435,46 @@ export default function UserProfile() {
         ) : (
           <>
             <div className="profile-field space-y-2">
+              <label className="label-field">avatar</label>
+              <div className="profile-avatar-row">
+                <div className="profile-avatar-preview" aria-hidden>
+                  {avatarUrl ? <img src={avatarUrl} alt="" /> : <span>{avatarInitial}</span>}
+                </div>
+                <div className="profile-avatar-actions">
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept={AVATAR_ACCEPT}
+                    className="sr-only"
+                    id="profile-avatar-input"
+                    disabled={avatarUploading}
+                    onChange={(e) => void onAvatarPick(e.target.files?.[0] ?? null)}
+                  />
+                  <label
+                    htmlFor="profile-avatar-input"
+                    className={`btn${avatarUploading ? ' opacity-50 pointer-events-none' : ''}`}
+                  >
+                    {avatarUploading ? 'uploading…' : avatarUrl ? 'change photo' : 'upload photo'}
+                  </label>
+                  {avatarUrl ? (
+                    <button
+                      type="button"
+                      className="btn"
+                      disabled={avatarUploading}
+                      onClick={() => void onAvatarRemove()}
+                    >
+                      remove
+                    </button>
+                  ) : null}
+                  <p className="text-xs text-[var(--text-secondary)]">
+                    JPEG, PNG, WebP, or GIF · up to {Math.round(AVATAR_MAX_BYTES / (1024 * 1024))} MB ·
+                    cropped square · shown in the sidebar (and later in hub discussions).
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="profile-field space-y-2">
               <label className="label-field">username</label>
               <input
                 value={username}
@@ -334,6 +482,7 @@ export default function UserProfile() {
                 maxLength={24}
                 className="w-full border border-[var(--border-subtle)] bg-[var(--bg-base)] px-3 py-2 text-sm text-[var(--text-primary)] focus:outline-none focus:border-[var(--border-focus)]"
                 placeholder="pick a username"
+                autoComplete="username"
               />
             </div>
 
@@ -417,7 +566,12 @@ export default function UserProfile() {
             </div>
 
             <div className="profile-field flex items-center gap-3">
-              <button type="button" className="btn" disabled={saving} onClick={save}>
+              <button
+                type="button"
+                className="btn"
+                disabled={saving || avatarUploading}
+                onClick={() => void save()}
+              >
                 {saving ? 'saving...' : 'save profile'}
               </button>
               {savedMsg && <span className="text-xs text-[var(--accent)]">{savedMsg}</span>}

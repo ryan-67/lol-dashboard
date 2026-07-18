@@ -154,6 +154,24 @@ export default function ChatSidebar({
                         type="button"
                         role="menuitem"
                         className="chat-sidebar-menu-item"
+                        onClick={async (e) => {
+                          e.stopPropagation()
+                          setMenuOpenId(null)
+                          const url = new URL('/chat', window.location.origin)
+                          url.searchParams.set('conversation_id', conversation.id)
+                          try {
+                            await navigator.clipboard.writeText(url.toString())
+                          } catch {
+                            /* ignore */
+                          }
+                        }}
+                      >
+                        share
+                      </button>
+                      <button
+                        type="button"
+                        role="menuitem"
+                        className="chat-sidebar-menu-item"
                         onClick={(e) => {
                           e.stopPropagation()
                           setMenuOpenId(null)

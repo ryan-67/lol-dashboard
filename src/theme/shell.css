@@ -184,26 +184,200 @@
   gap: 0.15rem;
 }
 
+.app-sidebar-convo-row {
+  position: relative;
+  display: flex;
+  align-items: stretch;
+  border-radius: var(--radius-sm);
+  min-width: 0;
+}
+
+.app-sidebar-convo-row:hover,
+.app-sidebar-convo-row.is-active,
+.app-sidebar-convo-row.is-menu-open {
+  background: var(--bg-elevated);
+}
+
+.app-sidebar-convo-row.is-active .app-sidebar-convo {
+  color: var(--text-primary);
+}
+
 .app-sidebar-convo {
   appearance: none;
-  width: 100%;
+  flex: 1;
+  min-width: 0;
   border: 0;
   background: transparent;
   text-align: left;
   font-family: inherit;
   font-size: 0.75rem;
   color: var(--text-secondary);
-  padding: 0.45rem 0.55rem;
+  padding: 0.45rem 0.35rem 0.45rem 0.55rem;
   cursor: pointer;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-.app-sidebar-convo:hover,
-.app-sidebar-convo.is-active {
+.app-sidebar-convo:hover {
   color: var(--text-primary);
+}
+
+.app-sidebar-convo-menu-wrap {
+  position: relative;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+}
+
+.app-sidebar-convo-menu-btn {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: var(--text-tertiary);
+  width: 1.75rem;
+  height: 100%;
+  min-height: 2rem;
+  padding: 0;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  opacity: 0;
+  transition: opacity var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out);
+}
+
+.app-sidebar-convo-row:hover .app-sidebar-convo-menu-btn,
+.app-sidebar-convo-row.is-active .app-sidebar-convo-menu-btn,
+.app-sidebar-convo-row.is-menu-open .app-sidebar-convo-menu-btn,
+.app-sidebar-convo-menu-btn[aria-expanded='true'] {
+  opacity: 1;
+}
+
+.app-sidebar-convo-menu-btn:hover,
+.app-sidebar-convo-menu-btn[aria-expanded='true'] {
+  color: var(--text-primary);
+}
+
+.app-sidebar-convo-dots {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2.5px;
+}
+
+.app-sidebar-convo-dots span {
+  display: block;
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.app-sidebar-convo-menu {
+  position: absolute;
+  top: calc(100% - 2px);
+  right: 0;
+  z-index: 60;
+  min-width: 7.5rem;
+  padding: 0.2rem;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
   background: var(--bg-elevated);
+  box-shadow: var(--shadow-lift);
+}
+
+.app-sidebar-convo-menu-item {
+  appearance: none;
+  display: block;
+  width: 100%;
+  border: 0;
+  background: transparent;
+  text-align: left;
+  font-family: inherit;
+  font-size: 0.72rem;
+  color: var(--text-secondary);
+  padding: 0.45rem 0.6rem;
+  cursor: pointer;
+  border-radius: 2px;
+}
+
+.app-sidebar-convo-menu-item:hover {
+  color: var(--text-primary);
+  background: var(--bg-surface);
+}
+
+.app-sidebar-convo-menu-item.is-danger {
+  color: #c45c5c;
+}
+
+.app-sidebar-convo-menu-item.is-danger:hover {
+  color: #e07070;
+  background: rgba(196, 92, 92, 0.08);
+}
+
+.app-sidebar-convo-row.is-renaming {
+  gap: 0.25rem;
+  padding: 0.2rem;
+  background: var(--bg-elevated);
+}
+
+.app-sidebar-convo-rename-input {
+  flex: 1;
+  min-width: 0;
+  border: 1px solid var(--border-accent);
+  background: var(--bg-base);
+  color: var(--text-primary);
+  font-family: inherit;
+  font-size: 0.72rem;
+  padding: 0.35rem 0.45rem;
+  outline: none;
+}
+
+.app-sidebar-convo-rename-save {
+  appearance: none;
+  border: 1px solid var(--border-subtle);
+  background: transparent;
+  color: var(--accent);
+  font-family: inherit;
+  font-size: 0.65rem;
+  padding: 0.3rem 0.45rem;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.app-sidebar-convo-row.is-confirm-delete {
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  padding: 0.4rem 0.45rem;
+  background: var(--bg-elevated);
+}
+
+.app-sidebar-convo-confirm-label {
+  flex: 1 1 100%;
+  font-size: 0.68rem;
+  color: var(--text-secondary);
+}
+
+.app-sidebar-convo-confirm-btn {
+  appearance: none;
+  border: 1px solid var(--border-subtle);
+  background: transparent;
+  color: var(--text-secondary);
+  font-family: inherit;
+  font-size: 0.65rem;
+  padding: 0.25rem 0.45rem;
+  cursor: pointer;
+}
+
+.app-sidebar-convo-confirm-btn.is-danger {
+  border-color: color-mix(in oklab, #c45c5c 50%, var(--border-subtle));
+  color: #c45c5c;
+}
+
+.app-sidebar-convo-toast {
+  margin: 0 0 0.35rem;
+  font-size: 0.65rem;
+  color: var(--accent);
 }
 
 .app-sidebar-spacer {
@@ -250,6 +424,14 @@
   font-size: 0.85rem;
   font-weight: 700;
   flex-shrink: 0;
+  overflow: hidden;
+}
+
+.profile-menu-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
 }
 
 .profile-menu-meta {

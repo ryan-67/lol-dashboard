@@ -34,6 +34,7 @@ export default function ProfileMenu() {
   }
 
   const username = profile?.username?.trim() || null
+  const avatarUrl = profile?.avatar_url?.trim() || null
   const initial = (username ?? user.email ?? 'n').slice(0, 1).toUpperCase()
   const displayName = username ? `@${username}` : 'set username'
   const secondaryLine = username ? user.email ?? '' : user.email ?? 'account'
@@ -79,7 +80,7 @@ export default function ProfileMenu() {
         onClick={() => setOpen((v) => !v)}
       >
         <span className="profile-menu-avatar" aria-hidden>
-          {initial}
+          {avatarUrl ? <img src={avatarUrl} alt="" /> : initial}
         </span>
         <span className="profile-menu-meta">
           <span className="profile-menu-name">{displayName}</span>

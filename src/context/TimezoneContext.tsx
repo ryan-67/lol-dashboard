@@ -83,7 +83,12 @@ export function TimezoneProvider({ children }: { children: ReactNode }) {
       }
 
       if (user) {
-        await supabase.from('profiles').upsert({ id: user.id, timezone: next }, { onConflict: 'id' })
+        const { error } = await supabase
+          .from('profiles')
+          .upsert({ id: user.id, timezone: next }, { onConflict: 'id' })
+        if (error) {
+          console.warn('[timezone] failed to persist', error.message)
+        }
       }
     },
     [user],
