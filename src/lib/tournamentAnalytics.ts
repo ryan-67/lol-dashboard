@@ -12,7 +12,12 @@ import {
 } from './tournamentCatalog'
 import { isDisplayablePlayer } from './playerRadar'
 import { isDisplayableTeam } from './teamAnalytics'
-import { isDisplayableChampion, championHasRole, type RoleFilter } from './championAnalytics'
+import {
+  isDisplayableChampion,
+  championHasRole,
+  computeOpScores,
+  type RoleFilter,
+} from './championAnalytics'
 import type { ChampionRoleContext } from './championRoleContext'
 import { enrichChampionsFromPlayers } from './championRoleContext'
 import { buildTournamentSeriesList } from './seriesAnalytics'
@@ -377,6 +382,7 @@ export interface TournamentChampionRow {
   winrate: number
   presence: number
   priority: number
+  opScore: number
   gd15: number | null
   csd15: number | null
   xpd15: number | null
@@ -393,22 +399,27 @@ export function buildTournamentChampionRows(
       : champions.filter((c) => championHasRole(c, roleFilter, roleCtx))
 
   const maxPicks = Math.max(...filtered.map((c) => c.picks), 1)
+  const { all: opRows } = computeOpScores(filtered, undefined, roleCtx)
+  const opByName = new Map(opRows.map((r) => [r.champion.name, r.opScore]))
 
-  return filtered.map((c) => {
-    const pickRate = c.pickRate ?? (c.picks / maxPicks) * 100
-    return {
-      name: c.name,
-      positions: c.positions ?? [],
-      picks: c.picks,
-      bans: c.bans ?? 0,
-      winrate: c.winrate,
-      presence: c.presence ?? pickRate + (c.banRate ?? 0),
-      priority: pickRate,
-      gd15: typeof c.avgGd15 === 'number' ? c.avgGd15 : null,
-      csd15: typeof c.avgCsd15 === 'number' ? c.avgCsd15 : null,
-      xpd15: typeof c.avgXpd15 === 'number' ? c.avgXpd15 : null,
-    }
-  })
+  return filtered
+    .map((c) => {
+      const pickRate = c.pickRate ?? (c.picks / maxPicks) * 100
+      return {
+        name: c.name,
+        positions: c.positions ?? [],
+        picks: c.picks,
+        bans: c.bans ?? 0,
+        winrate: c.winrate,
+        presence: c.presence ?? pickRate + (c.banRate ?? 0),
+        priority: pickRate,
+        opScore: opByName.get(c.name) ?? 0,
+        gd15: typeof c.avgGd15 === 'number' ? c.avgGd15 : null,
+        csd15: typeof c.avgCsd15 === 'number' ? c.avgCsd15 : null,
+        xpd15: typeof c.avgXpd15 === 'number' ? c.avgXpd15 : null,
+      }
+    })
+    .sort((a, b) => b.opScore - a.opScore)
 }
 
 export function buildTournamentStandings(players: Player[]): TournamentStandingsRow[] {

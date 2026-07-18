@@ -15,6 +15,8 @@ import { scrollEntrance } from '../../theme/animations'
 
 interface TeamModelCardProps {
   team: Team
+  /** ISO date (YYYY-MM-DD) of the team's most recent game — prefer this live value over the artifact's stale field. */
+  lastGameDate?: string | null
 }
 
 interface TeamStrengthHit {
@@ -45,7 +47,13 @@ function confidenceLabel(deviation: number | undefined): string {
  * nucky model strength — team Elo from region_strength.json with global +
  * region context, and the team's position inside its region's rating band.
  */
-export default function TeamModelCard({ team }: TeamModelCardProps) {
+function daysSinceDate(isoDate: string): number | null {
+  const parsed = new Date(`${isoDate}T12:00:00`)
+  if (Number.isNaN(parsed.getTime())) return null
+  return Math.floor((Date.now() - parsed.getTime()) / 86400000)
+}
+
+export default function TeamModelCard({ team, lastGameDate }: TeamModelCardProps) {
   const sectionRef = useRef<HTMLDivElement>(null)
   const [bundle, setBundle] = useState<RegionStrengthBundle | null>(null)
 
@@ -113,6 +121,7 @@ export default function TeamModelCard({ team }: TeamModelCardProps) {
 
   const { row } = hit
   const score100 = eloTo100(row.rating)
+  const daysSinceLastSeries = lastGameDate ? daysSinceDate(lastGameDate) : null
 
   return (
     <div ref={sectionRef} className="card model-outlook-card">
@@ -161,7 +170,11 @@ export default function TeamModelCard({ team }: TeamModelCardProps) {
             <span className="text-secondary">
               Confidence: <span className="text-accent">{confidenceLabel(row.ratingDeviation)}</span>
             </span>
-            {typeof row.daysSinceLastSeries === 'number' ? (
+            {daysSinceLastSeries != null ? (
+              <span className="text-secondary">
+                Last series: <span className="text-accent">{daysSinceLastSeries}d ago</span>
+              </span>
+            ) : typeof row.daysSinceLastSeries === 'number' ? (
               <span className="text-secondary">
                 Last series: <span className="text-accent">{row.daysSinceLastSeries}d ago</span>
               </span>

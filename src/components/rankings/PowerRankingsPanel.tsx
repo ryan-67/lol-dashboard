@@ -23,16 +23,31 @@ interface PowerRankingsPanelProps {
   limit?: number
   title?: string
   subtitle?: string
+  /** Externally-controlled role (e.g. from a page-level role filter). */
+  role?: RatingRole
+  /** Called when the internal role tabs change (ignored once `role` is externally controlled). */
+  onRoleChange?: (role: RatingRole) => void
+  /** Hide the built-in role tablist — pass `role` from the parent instead. */
+  hideRoleTabs?: boolean
 }
 
 export default function PowerRankingsPanel({
   limit = 8,
   title = 'nucky power rankings',
   subtitle = 'Role-normalized player power from the nucky model (box-score prior + region shift).',
+  role: roleProp,
+  onRoleChange,
+  hideRoleTabs = false,
 }: PowerRankingsPanelProps) {
   const [bundle, setBundle] = useState<PlayerRatingsBundle | null>(null)
-  const [role, setRole] = useState<RatingRole>('mid')
+  const [internalRole, setInternalRole] = useState<RatingRole>('mid')
   const [loading, setLoading] = useState(true)
+  const role = roleProp ?? internalRole
+
+  const setRole = (next: RatingRole) => {
+    setInternalRole(next)
+    onRoleChange?.(next)
+  }
 
   useEffect(() => {
     let alive = true
@@ -55,20 +70,22 @@ export default function PowerRankingsPanel({
           <h2 className="card-title">{title}</h2>
           <p className="card-subtitle mb-0">{subtitle}</p>
         </div>
-        <div className="power-rankings-roles" role="tablist" aria-label="Role">
-          {RATING_ROLES.map((r) => (
-            <button
-              key={r}
-              type="button"
-              role="tab"
-              aria-selected={role === r}
-              className={`power-rankings-role${role === r ? ' is-active' : ''}`}
-              onClick={() => setRole(r)}
-            >
-              {ROLE_LABEL[r]}
-            </button>
-          ))}
-        </div>
+        {!hideRoleTabs && (
+          <div className="power-rankings-roles" role="tablist" aria-label="Role">
+            {RATING_ROLES.map((r) => (
+              <button
+                key={r}
+                type="button"
+                role="tab"
+                aria-selected={role === r}
+                className={`power-rankings-role${role === r ? ' is-active' : ''}`}
+                onClick={() => setRole(r)}
+              >
+                {ROLE_LABEL[r]}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
       {loading ? (

@@ -16,6 +16,7 @@ import ShareableChart from '../ui/ShareableChart'
 import { buildFormTrajectorySeries, type FormTrajectorySeries } from '../../lib/playerAnalytics'
 import { animateChartDraw } from '../../theme/animations'
 import { CHART } from '../../theme/chartTheme'
+import { unitIntervalTo100 } from '../../lib/scoreNormalize'
 
 interface PlayerFormChartProps {
   players: Player[]
@@ -32,8 +33,8 @@ const formTooltip = makeChartTooltipContent(
     if (!row) return []
     const rows = [
       { label: 'Game', value: String(row.game) },
-      { label: 'Score', value: row.rawScore.toFixed(3) },
-      { label: 'Rolling avg', value: row.rollingScore.toFixed(3) },
+      { label: 'Score /100', value: row.rawScore.toFixed(1) },
+      { label: 'Rolling avg /100', value: row.rollingScore.toFixed(1) },
     ]
     if (row.opponent) rows.push({ label: 'Opponent', value: row.opponent })
     rows.push({ label: 'Result', value: row.result === 1 ? 'Win' : 'Loss' })
@@ -44,10 +45,18 @@ const formTooltip = makeChartTooltipContent(
 
 export default function PlayerFormChart({ players, cohortPlayers }: PlayerFormChartProps) {
   const sectionRef = useRef<HTMLDivElement>(null)
-  const series = useMemo(
-    () => buildFormTrajectorySeries(players, cohortPlayers, 20),
-    [players, cohortPlayers],
-  )
+  const series = useMemo<FormTrajectorySeries[]>(() => {
+    const raw = buildFormTrajectorySeries(players, cohortPlayers, 20)
+    return raw.map((s) => ({
+      ...s,
+      points: s.points.map((p) => ({
+        ...p,
+        rawScore: unitIntervalTo100(p.rawScore),
+        rollingScore: unitIntervalTo100(p.rollingScore),
+        trendScore: unitIntervalTo100(p.trendScore),
+      })),
+    }))
+  }, [players, cohortPlayers])
 
   useGSAP(
     () => {
@@ -68,7 +77,10 @@ export default function PlayerFormChart({ players, cohortPlayers }: PlayerFormCh
   return (
     <ShareableChart ref={sectionRef} className="card player-chart-card">
       <h3 className="card-title">Form Trajectory</h3>
-      <p className="card-subtitle">Composite score · 3-game rolling average · dotted trend</p>
+      <p className="card-subtitle">
+        0–100 performance score (composite, role-normalized) · 3-game rolling average · dotted
+        trend
+      </p>
       <div className="player-chart-body">
         <ResponsiveContainer width="100%" height="100%">
           <ComposedChart margin={{ top: 8, right: 16, left: 8, bottom: 8 }}>
@@ -88,10 +100,10 @@ export default function PlayerFormChart({ players, cohortPlayers }: PlayerFormCh
               }}
             />
             <YAxis
-              domain={[0, 1]}
+              domain={[0, 100]}
               stroke={CHART.axis}
               tick={{ fill: CHART.tick, fontSize: CHART.fontSize, fontFamily: CHART.fontFamily }}
-              tickFormatter={(v) => v.toFixed(2)}
+              tickFormatter={(v) => v.toFixed(0)}
             />
             <Tooltip content={formTooltip} />
             <Legend

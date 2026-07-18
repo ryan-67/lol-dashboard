@@ -6,7 +6,6 @@ import {
   mergeTeamsByCanonical,
   buildTeamMatchHistory,
   computeSideWinrates,
-  buildTeamTrend,
   priorityChampsByRole,
   playerChampionIcons,
   teamHasData,
@@ -35,17 +34,26 @@ import {
   TeamLogo,
   LeagueLogo,
   TeamSideWinrates,
-  TeamTrendChart,
+  TeamStatTrends,
   ChampionIcon,
   ChampionEntityInline,
 } from '../../components/entities'
 import TeamSubnav, { type TeamPageTab } from '../../components/entities/TeamSubnav'
 import TeamModelCard from '../../components/entities/TeamModelCard'
+import TeamRosterRadars from '../../components/entities/TeamRosterRadars'
 import { TeamProfileCard, TeamObjectiveChart } from '../../components/entities/TeamObjectiveProfile'
 import TeamBestChampionsByRole from '../../components/entities/TeamBestChampionsByRole'
 import TeamGoldGraph from '../../components/entities/TeamGoldGraph'
 import TeamObjectivesGraph from '../../components/entities/TeamObjectivesGraph'
+import SectionSubnav from '../../components/ui/SectionSubnav'
 import { roleLabel } from '../../lib/championAnalytics'
+
+const TEAM_STATS_SECTIONS = [
+  { id: 'team-overview', label: 'Overview' },
+  { id: 'team-sides', label: 'Sides' },
+  { id: 'team-trends', label: 'Trends' },
+  { id: 'team-roster-radars', label: 'Roster Radars' },
+]
 
 export default function TeamPage() {
   const { slug = '' } = useParams<{ slug: string }>()
@@ -87,19 +95,27 @@ export default function TeamPage() {
     if (!team) return []
     const roleOrder = new Map(ROLES.map((role, index) => [role, index]))
     const teamPlayers = players.filter((p) => teamMatchesCanonical(p.team, slug))
+    // Role match is required — no name-only fallback across roles, else a starter in
+    // one role can resolve to their (unrelated) record filed under a different role.
     const findPlayer = (name: string, role: string) =>
       teamPlayers.find(
         (p) =>
           p.name.toLowerCase() === name.toLowerCase() &&
           normalizePosition(p.position) === role,
-      ) ?? teamPlayers.find((p) => p.name.toLowerCase() === name.toLowerCase())
+      )
 
     const depth = getTeamRosterDepth(team.name, data?.rosterDepth ?? [], teamPlayers)
     const hasDepth = depth.starters.length > 0 && (data?.rosterDepth?.length ?? 0) > 0
 
     if (hasDepth) {
       const rows: Array<{ player?: Player; name: string; position: string; games: number; isSub: boolean }> = []
+      const seenNames = new Set<string>()
+      const starterNames = new Set(depth.starters.map((s) => s.name.toLowerCase()))
+
       for (const starter of depth.starters) {
+        const key = starter.name.toLowerCase()
+        if (seenNames.has(key)) continue
+        seenNames.add(key)
         rows.push({
           player: findPlayer(starter.name, starter.position),
           name: starter.name,
@@ -108,6 +124,10 @@ export default function TeamPage() {
           isSub: false,
         })
         for (const sub of depth.subsByRole[starter.position] ?? []) {
+          const subKey = sub.name.toLowerCase()
+          // Skip subs that are actually starters elsewhere, or already listed as a sub.
+          if (starterNames.has(subKey) || seenNames.has(subKey)) continue
+          seenNames.add(subKey)
           rows.push({
             player: findPlayer(sub.name, sub.position),
             name: sub.name,
@@ -150,11 +170,18 @@ export default function TeamPage() {
     () => (data ? buildGameToSeriesMap(data) : new Map<string, string>()),
     [data],
   )
+  const lastGameDate = useMemo(() => {
+    if (matchHistory[0]?.date) return matchHistory[0].date
+    const teamPlayers = players.filter((p) => teamMatchesCanonical(p.team, slug))
+    let max: string | null = null
+    for (const p of teamPlayers) {
+      for (const g of p.gameLog ?? []) {
+        if (g.date && (!max || g.date > max)) max = g.date
+      }
+    }
+    return max
+  }, [matchHistory, players, slug])
   const sides = useMemo(() => computeSideWinrates(players, slug), [players, slug])
-  const trend = useMemo(
-    () => buildTeamTrend(players, slug, 15, filterLeague, filterSplit),
-    [players, slug, filterLeague, filterSplit],
-  )
   const priorityByRole = useMemo(
     () =>
       team && data
@@ -317,7 +344,10 @@ export default function TeamPage() {
 
       {activeTab === 'stats' && (
         <>
-          <TeamModelCard team={team} />
+          <SectionSubnav items={TEAM_STATS_SECTIONS} />
+
+          <section id="team-overview">
+          <TeamModelCard team={team} lastGameDate={lastGameDate} />
 
           <div className="overview-grid overview-grid-2">
             <TeamRadarChart team={team} cohort={teams} highlighted compact />
@@ -327,11 +357,6 @@ export default function TeamPage() {
           <div className="overview-grid overview-grid-2">
             {bestByRole ? <TeamBestChampionsByRole byRole={bestByRole} /> : null}
             <TeamObjectiveChart team={team} />
-          </div>
-
-          <div className="overview-grid overview-grid-2">
-            <TeamSideWinrates sides={sides} />
-            <TeamTrendChart points={trend} />
           </div>
 
           <div className="card">
@@ -440,6 +465,19 @@ export default function TeamPage() {
               </div>
             </div>
           )}
+          </section>
+
+          <section id="team-sides">
+            <TeamSideWinrates sides={sides} />
+          </section>
+
+          <section id="team-trends">
+            <TeamStatTrends players={players} teamSlugOrName={slug} />
+          </section>
+
+          <section id="team-roster-radars">
+            <TeamRosterRadars roster={roster} players={players} />
+          </section>
         </>
       )}
 

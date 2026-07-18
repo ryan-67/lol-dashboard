@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useGSAP } from '@gsap/react'
 import {
   Bar,
@@ -18,6 +18,13 @@ import ShareableChart from '../ui/ShareableChart'
 import { formatGameDate, formatNum } from '../../lib/format'
 import { animateChartDraw } from '../../theme/animations'
 import { CHART, RESULT_COLORS } from '../../theme/chartTheme'
+import {
+  ROLE_METRICS,
+  gameMetricRaw,
+  getMetricValue,
+  type RadarMetricKey,
+  type RoleKey,
+} from '../../lib/playerRadar'
 
 type ExplorerMetricKey =
   | 'gd15'
@@ -66,6 +73,15 @@ function metricValue(game: PlayerGameLog, key: ExplorerMetricKey): number | null
   return typeof raw === 'number' && Number.isFinite(raw) ? raw : null
 }
 
+/** Unified metric shape shown as a toggle — either a role-specific radar metric or a fallback. */
+interface DisplayMetric {
+  key: string
+  label: string
+  digits: number
+  suffix?: string
+  isRoleMetric: boolean
+}
+
 const explorerTooltip = makeChartTooltipContent(
   (props) => {
     const row = props.payload?.[0]?.payload as ExplorerPoint | undefined
@@ -88,32 +104,65 @@ const explorerTooltip = makeChartTooltipContent(
 interface PlayerGameExplorerProps {
   player: Player
   cohort: Player[]
+  /** When set, metric toggles are drawn from that role's radar metrics (ROLE_METRICS) instead of the generic list. */
+  role?: RoleKey
+}
+
+function getExplorerValue(game: PlayerGameLog, metric: DisplayMetric, cohort: Player[]): number | null {
+  if (metric.isRoleMetric) {
+    return gameMetricRaw(game, metric.key as RadarMetricKey, cohort)
+  }
+  return metricValue(game, metric.key as ExplorerMetricKey)
 }
 
 /**
  * Interactive game-by-game metric explorer: pick a metric and window,
  * every game rendered as a W/L-colored bar against the role-average baseline.
  */
-export default function PlayerGameExplorer({ player, cohort }: PlayerGameExplorerProps) {
+export default function PlayerGameExplorer({ player, cohort, role }: PlayerGameExplorerProps) {
   const sectionRef = useRef<HTMLDivElement>(null)
-  const [metricKey, setMetricKey] = useState<ExplorerMetricKey>('gd15')
+  const [metricKey, setMetricKey] = useState<string>('')
   const [window, setWindow] = useState(20)
   const [mode, setMode] = useState<'bars' | 'line'>('bars')
 
-  const metric = METRICS.find((m) => m.key === metricKey) ?? METRICS[0]!
-
-  const availableMetrics = useMemo(() => {
+  const availableMetrics = useMemo<DisplayMetric[]>(() => {
     const log = player.gameLog ?? []
-    return METRICS.filter((m) => log.some((g) => metricValue(g, m.key) != null))
-  }, [player])
+    if (role) {
+      const roleDefs = ROLE_METRICS[role].filter((def) =>
+        log.some((g) => gameMetricRaw(g, def.key, cohort) != null),
+      )
+      if (roleDefs.length) {
+        return roleDefs.map((def) => ({
+          key: def.key,
+          label: def.shortLabel,
+          digits: 1,
+          isRoleMetric: true,
+        }))
+      }
+    }
+    return METRICS.filter((m) => log.some((g) => metricValue(g, m.key) != null)).map((m) => ({
+      key: m.key,
+      label: m.label,
+      digits: m.digits,
+      isRoleMetric: false,
+    }))
+  }, [player, role, cohort])
+
+  const metric = availableMetrics.find((m) => m.key === metricKey) ?? availableMetrics[0]
+
+  useEffect(() => {
+    if (!metric) return
+    if (!availableMetrics.some((m) => m.key === metricKey)) setMetricKey(metric.key)
+  }, [availableMetrics, metric, metricKey])
 
   const points = useMemo<ExplorerPoint[]>(() => {
+    if (!metric) return []
     const games = [...(player.gameLog ?? [])]
       .sort((a, b) => a.date.localeCompare(b.date) || (a.gameId ?? '').localeCompare(b.gameId ?? ''))
       .slice(-window)
     return games
       .map((g, i) => {
-        const value = metricValue(g, metric.key)
+        const value = getExplorerValue(g, metric, cohort)
         if (value == null) return null
         return {
           index: i + 1,
@@ -126,15 +175,23 @@ export default function PlayerGameExplorer({ player, cohort }: PlayerGameExplore
         }
       })
       .filter((p): p is ExplorerPoint => p !== null)
-  }, [player, metric.key, window])
+  }, [player, metric, cohort, window])
 
   const roleAverage = useMemo(() => {
-    const field = metric.cohortField
-    const vals = field
+    if (!metric) return null
+    const vals = metric.isRoleMetric
       ? cohort
-          .map((p) => p[field])
-          .filter((v): v is number => typeof v === 'number' && Number.isFinite(v))
-      : []
+          .map((p) => getMetricValue(p, metric.key as RadarMetricKey, { cohort }))
+          .filter((v): v is number => v != null)
+      : (() => {
+          const def = METRICS.find((m) => m.key === metric.key)
+          const field = def?.cohortField
+          return field
+            ? cohort
+                .map((p) => p[field])
+                .filter((v): v is number => typeof v === 'number' && Number.isFinite(v))
+            : []
+        })()
     if (!vals.length) {
       // No trustworthy role aggregate (e.g. GPM) — fall back to the player's own window mean.
       if (!points.length) return null
@@ -158,7 +215,7 @@ export default function PlayerGameExplorer({ player, cohort }: PlayerGameExplore
     <ShareableChart ref={sectionRef} className="card player-chart-card player-chart-card-wide game-explorer">
       <div className="player-chart-header-row">
         <div>
-          <h3 className="card-title">Game Explorer</h3>
+          <h3 className="card-title">Statistical Trends</h3>
           <p className="card-subtitle">
             Every game as a data point · green win · red loss · dashed line = role average
           </p>

@@ -14,12 +14,13 @@ import TeamMetricsTableCard from '../components/teams/TeamMetricsTableCard'
 import { scrollEntranceStagger, refreshScrollTrigger } from '../theme/animations'
 import PageHeader from '../components/ui/PageHeader'
 import TeamPowerBoard from '../components/rankings/TeamPowerBoard'
+import SectionSubnav from '../components/ui/SectionSubnav'
 
 export default function Teams() {
   const { filteredTeams, filteredPlayers, league, split } =
     useDashboard()
   const [scope, setScope] = useState<TeamScope>('top')
-  const [showTable, setShowTable] = useState(false)
+  const [showTable, setShowTable] = useState(true)
 
   const teams = useMemo(
     () => filteredTeams.filter(isDisplayableTeam).filter(isTier1Team),
@@ -48,30 +49,45 @@ export default function Teams() {
         title="team power & style"
         subtitle="Radar profiles and objective fingerprints across the filtered split. Multi-team compares live on Matchups."
       />
-      <TeamPowerBoard teams={teams} />
-      <TeamFilterBar scope={scope} onScopeChange={setScope} />
 
-      {teams.length === 0 ? (
-        <div className="empty-state">No teams match the current filters.</div>
-      ) : (
-        <div ref={radarGridRef}>
-          <TeamRadarGrid teams={teams} scope={scope} allTier1Selected={allTier1Selected} />
+      <SectionSubnav
+        items={[
+          { id: 'teams-rankings', label: 'rankings' },
+          { id: 'teams-radar', label: 'radar' },
+          { id: 'teams-tables', label: 'tables' },
+        ]}
+        extra={<TeamFilterBar scope={scope} onScopeChange={setScope} compact />}
+      />
+
+      <section id="teams-rankings" className="players-section">
+        <TeamPowerBoard teams={teams} />
+      </section>
+
+      <section id="teams-radar" className="players-section">
+        {teams.length === 0 ? (
+          <div className="empty-state">No teams match the current filters.</div>
+        ) : (
+          <div ref={radarGridRef}>
+            <TeamRadarGrid teams={teams} scope={scope} allTier1Selected={allTier1Selected} />
+          </div>
+        )}
+      </section>
+
+      <section id="teams-tables" className="players-section">
+        <div className="players-table-toggle">
+          <button type="button" className="btn" onClick={() => setShowTable((v) => !v)}>
+            {showTable ? 'Hide Tables' : 'Show Tables'}
+          </button>
         </div>
-      )}
 
-      <div className="players-table-toggle">
-        <button type="button" className="btn" onClick={() => setShowTable((v) => !v)}>
-          {showTable ? 'Hide Tables' : 'Show Tables'}
-        </button>
-      </div>
-
-      {showTable && (
-        <TeamMetricsTableCard
-          teams={teams}
-          players={filteredPlayers}
-          subtitle="All teams in the current league, year, and split filter."
-        />
-      )}
+        {showTable && (
+          <TeamMetricsTableCard
+            teams={teams}
+            players={filteredPlayers}
+            subtitle="All teams in the current league, year, and split filter."
+          />
+        )}
+      </section>
     </div>
   )
 }

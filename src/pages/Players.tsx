@@ -17,14 +17,22 @@ import RoleFilterBar from '../components/players/RoleFilterBar'
 import PlayerRadarChart from '../components/players/PlayerRadarChart'
 import PlayerDropdown from '../components/players/PlayerDropdown'
 import PlayerFormChart from '../components/players/PlayerFormChart'
-import PlayerChampionPool from '../components/players/PlayerChampionPool'
-import PlayerConsistencyStrip from '../components/players/PlayerConsistencyStrip'
+import PlayerTrendsCompare from '../components/players/PlayerTrendsCompare'
 import PlayerMetricsTableCard from '../components/players/PlayerMetricsTableCard'
 import { playerKey, resolveDefaultPlayerKey } from '../lib/playerAnalytics'
 import { scrollEntranceStagger, refreshScrollTrigger } from '../theme/animations'
 import { supabase } from '../lib/supabaseClient'
 import PageHeader from '../components/ui/PageHeader'
 import PowerRankingsPanel from '../components/rankings/PowerRankingsPanel'
+import SectionSubnav, { type SectionSubnavItem } from '../components/ui/SectionSubnav'
+import type { RatingRole } from '../lib/loadPlayerRatings'
+
+const SUBNAV_ITEMS: SectionSubnavItem[] = [
+  { id: 'players-rankings', label: 'Rankings' },
+  { id: 'players-radar', label: 'Radar' },
+  { id: 'players-compare', label: 'Compare' },
+  { id: 'players-tables', label: 'Tables' },
+]
 
 export default function Players() {
   const { user } = useAuth()
@@ -55,6 +63,8 @@ export default function Players() {
     const ranked = rankPlayersByRole(players, roleFilter, 10)
     return ranked.map((player) => ({ player, role: roleFilter }))
   }, [players, tier1Players, roleFilter])
+
+  const powerRankingsRole: RatingRole = roleFilter === 'all' ? 'mid' : roleFilter
 
   const radarGridRef = useRef<HTMLDivElement>(null)
   const analyticsRef = useRef<HTMLDivElement>(null)
@@ -131,36 +141,48 @@ export default function Players() {
       <PageHeader
         eyebrow="players"
         title="player rankings & form"
-        subtitle="Role radars, form trajectories, champion pools, and consistency — filtered by league and split."
+        subtitle="Power rankings, role radars, statistical trends, and form trajectories — filtered by league and split."
       />
-      <PowerRankingsPanel limit={8} />
-      <RoleFilterBar value={roleFilter} onChange={setRoleFilter} />
+      <SectionSubnav
+        items={SUBNAV_ITEMS}
+        extra={<RoleFilterBar value={roleFilter} onChange={setRoleFilter} />}
+      />
 
-      {radarPlayers.length === 0 ? (
-        <div className="empty-state">No players match the current filters.</div>
-      ) : (
-        <div
-          ref={radarGridRef}
-          className={`radar-grid${roleFilter === 'all' ? ' radar-grid-5' : ''}`}
-        >
-          {radarPlayers.map(({ player, role }) => {
-            const cohort =
-              roleFilter === 'all'
-                ? playersForRole(tier1Players, role)
-                : playersForRole(players, role)
-            return (
-              <PlayerRadarChart
-                key={`${player.name}-${player.team}-${role}`}
-                player={player}
-                role={role}
-                cohort={cohort}
-              />
-            )
-          })}
-        </div>
-      )}
+      <section id="players-rankings" className="players-section">
+        <PowerRankingsPanel limit={8} role={powerRankingsRole} hideRoleTabs />
+      </section>
 
-      <section ref={analyticsRef} className="player-analytics-section">
+      <section id="players-radar" className="players-section">
+        {radarPlayers.length === 0 ? (
+          <div className="empty-state">No players match the current filters.</div>
+        ) : (
+          <div
+            ref={radarGridRef}
+            className={`radar-grid${roleFilter === 'all' ? ' radar-grid-5' : ''}`}
+          >
+            {radarPlayers.map(({ player, role }) => {
+              const cohort =
+                roleFilter === 'all'
+                  ? playersForRole(tier1Players, role)
+                  : playersForRole(players, role)
+              return (
+                <PlayerRadarChart
+                  key={`${player.name}-${player.team}-${role}`}
+                  player={player}
+                  role={role}
+                  cohort={cohort}
+                />
+              )
+            })}
+          </div>
+        )}
+      </section>
+
+      <section
+        ref={analyticsRef}
+        id="players-compare"
+        className="players-section player-analytics-section"
+      >
         <PlayerDropdown
           players={players}
           selectedKeys={selectedPlayerKeys}
@@ -173,28 +195,27 @@ export default function Players() {
         />
         {selectedPlayers.length > 0 && (
           <>
-            <div className="player-analytics-grid">
-              <PlayerFormChart players={selectedPlayers} cohortPlayers={players} />
-              <PlayerChampionPool players={selectedPlayers} />
-            </div>
-            <PlayerConsistencyStrip players={selectedPlayers} cohortPlayers={players} />
+            <PlayerTrendsCompare players={selectedPlayers} cohortPlayers={players} />
+            <PlayerFormChart players={selectedPlayers} cohortPlayers={players} />
           </>
         )}
       </section>
 
-      <div className="players-table-toggle">
-        <button type="button" className="btn" onClick={() => setShowTable((v) => !v)}>
-          {showTable ? 'Hide Tables' : 'Show Tables'}
-        </button>
-      </div>
+      <section id="players-tables" className="players-section">
+        <div className="players-table-toggle">
+          <button type="button" className="btn" onClick={() => setShowTable((v) => !v)}>
+            {showTable ? 'Hide Tables' : 'Show Tables'}
+          </button>
+        </div>
 
-      {showTable && (
-        <PlayerMetricsTableCard
-          players={players}
-          filteredPlayers={roleFilteredPlayers}
-          roleFilter={roleFilter}
-        />
-      )}
+        {showTable && (
+          <PlayerMetricsTableCard
+            players={players}
+            filteredPlayers={roleFilteredPlayers}
+            roleFilter={roleFilter}
+          />
+        )}
+      </section>
     </div>
   )
 }

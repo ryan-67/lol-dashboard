@@ -6,6 +6,7 @@ import { radarColorForTeam } from '../../lib/entities/teamBrandColor'
 import { formatNum } from '../../lib/format'
 import { animateBarGrow } from '../../theme/animations'
 import ShareableChart from '../ui/ShareableChart'
+import { TeamLogo } from '../entities'
 
 interface ComparisonRow {
   label: string
@@ -88,9 +89,11 @@ export default function SeriesComparisonBars({
     <ShareableChart ref={sectionRef} className="series-cmp">
       <div className="series-cmp-legend">
         <span className="series-cmp-legend-team" style={{ color: colorA }}>
+          <TeamLogo name={teamA} size={16} />
           {teamA}
         </span>
         <span className="series-cmp-legend-team" style={{ color: colorB }}>
+          <TeamLogo name={teamB} size={16} />
           {teamB}
         </span>
       </div>

@@ -7,7 +7,7 @@ import {
   type PlayerPowerRow,
   type RatingRole,
 } from '../../lib/loadPlayerRatings'
-import { powerScoreTo100 } from '../../lib/scoreNormalize'
+import { ordinalSuffix, powerScoreTo100 } from '../../lib/scoreNormalize'
 import { formatNum } from '../../lib/format'
 import AnimatedCounter from '../ui/AnimatedCounter'
 import { animateBarGrow, scrollEntrance } from '../../theme/animations'
@@ -118,7 +118,8 @@ export default function PlayerModelCard({ player, role }: PlayerModelCardProps) 
             <span className="model-outlook-score-max">/100</span>
           </span>
           <span className="model-outlook-rank">
-            #{row.rank} of {roleRows.length} {role.toUpperCase()}s · {percentile}th percentile
+            #{row.rank} of {roleRows.length} {role.toUpperCase()}s · {percentile}
+            {ordinalSuffix(percentile)} percentile
           </span>
         </div>
 

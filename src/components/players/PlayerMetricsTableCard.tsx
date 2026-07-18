@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import type { Player } from '../../hooks/useDashboardData'
 import { formatNum, formatPct } from '../../lib/format'
 import {
@@ -13,6 +13,8 @@ import {
 import { EntityLink } from '../entities'
 import SegmentFilterBar from '../ui/SegmentFilterBar'
 import SortableTh from '../ui/SortableTh'
+import { fetchPlayerRatings, RATING_ROLES, type PlayerRatingsBundle } from '../../lib/loadPlayerRatings'
+import { powerScoreTo100 } from '../../lib/scoreNormalize'
 
 export type PlayerTableView = 'full' | 'rankings'
 
@@ -51,6 +53,28 @@ export default function PlayerMetricsTableCard({
     defaultView === 'rankings' ? 'perfScore' : 'kda',
   )
   const [sortDesc, setSortDesc] = useState(true)
+  const [ratingsBundle, setRatingsBundle] = useState<PlayerRatingsBundle | null>(null)
+
+  useEffect(() => {
+    let alive = true
+    void fetchPlayerRatings().then((data) => {
+      if (alive) setRatingsBundle(data)
+    })
+    return () => {
+      alive = false
+    }
+  }, [])
+
+  const modelScoreLookup = useMemo(() => {
+    const map = new Map<string, number>()
+    if (!ratingsBundle) return map
+    for (const role of RATING_ROLES) {
+      for (const row of ratingsBundle.roles[role] ?? []) {
+        map.set(`${row.player.toLowerCase()}|${role}`, row.powerScore)
+      }
+    }
+    return map
+  }, [ratingsBundle])
 
   const rankingRows = useMemo<PlayerRankingRow[]>(() => {
     return filteredPlayers.map((player) => {
@@ -60,13 +84,18 @@ export default function PlayerMetricsTableCard({
       for (const def of ALL_PLAYER_RADAR_METRICS) {
         metrics[def.key] = getMetricValue(player, def.key, { cohort, allowMissing: true })
       }
+      const modelPowerScore = modelScoreLookup.get(`${player.name.toLowerCase()}|${role}`)
+      const score =
+        modelPowerScore != null
+          ? powerScoreTo100(modelPowerScore) / 100
+          : computeAggregateScore(player, role, cohort)
       return {
         player,
-        score: computeAggregateScore(player, role, cohort),
+        score,
         metrics,
       }
     })
-  }, [filteredPlayers, players])
+  }, [filteredPlayers, players, modelScoreLookup])
 
   const sortedRankingRows = useMemo(() => {
     return [...rankingRows].sort((a, b) => {

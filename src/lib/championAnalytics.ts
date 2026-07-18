@@ -369,6 +369,8 @@ export interface OpChampionEntry {
 export interface OpScoresResult {
   top: OpChampionEntry | null
   runners: OpChampionEntry[]
+  /** Every eligible champion, sorted descending by opScore (top first). */
+  all: OpChampionEntry[]
   roleAverages: Record<
     RoleKey,
     { presence: number; winrate: number; banRate: number; kda: number }
@@ -382,7 +384,7 @@ export function computeOpScores(
 ): OpScoresResult {
   const eligible = champions.filter((c) => (c.games ?? c.picks) >= minPicks)
   if (!eligible.length) {
-    return { top: null, runners: [], roleAverages: {} as OpScoresResult['roleAverages'] }
+    return { top: null, runners: [], all: [], roleAverages: {} as OpScoresResult['roleAverages'] }
   }
 
   const roleAverages = {} as OpScoresResult['roleAverages']
@@ -445,6 +447,7 @@ export function computeOpScores(
   return {
     top: scored[0] ?? null,
     runners: scored.slice(1, 5),
+    all: scored,
     roleAverages,
   }
 }

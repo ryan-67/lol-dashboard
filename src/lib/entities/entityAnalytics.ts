@@ -163,53 +163,151 @@ export function buildTeamMatchHistory(
   return limit === undefined ? sorted : sorted.slice(0, limit)
 }
 
-export interface SideWinrates {
-  blue: { wins: number; games: number; winrate: number }
-  red: { wins: number; games: number; winrate: number }
+export interface SideStats {
+  wins: number
+  games: number
+  winrate: number
+  /** Average game duration in seconds, when the OE game catalog has it. */
+  avgDuration: number | null
+  avgGd15: number | null
+  /** Team gold/min — summed across the roster players present in the game log. */
+  avgGpm: number | null
+  killsPerMin: number | null
+  visionPerMin: number | null
+  firstBloodRate: number | null
 }
 
+export interface SideWinrates {
+  blue: SideStats
+  red: SideStats
+}
+
+function emptySideStats(): SideStats {
+  return {
+    wins: 0,
+    games: 0,
+    winrate: 0,
+    avgDuration: null,
+    avgGd15: null,
+    avgGpm: null,
+    killsPerMin: null,
+    visionPerMin: null,
+    firstBloodRate: null,
+  }
+}
+
+function average(nums: number[]): number | null {
+  return nums.length ? nums.reduce((a, b) => a + b, 0) / nums.length : null
+}
+
+interface SideGameAgg {
+  side: 'blue' | 'red'
+  result: number
+  gameLength: number | null
+  gd15: number[]
+  gpmSum: number
+  killsSum: number
+  visionSum: number
+  firstBloodHits: number
+  firstBloodSamples: number
+}
+
+/**
+ * Blue/red side profile — games/wins/winrate always available from any roster
+ * player's gameLog; duration, gold, kills, vision, and first blood are combined
+ * across every rostered player seen in a given game (OE logs are per-player).
+ */
 export function computeSideWinrates(
   players: Player[],
   teamSlugOrName: string,
 ): SideWinrates {
-  const acc = {
-    blue: { wins: 0, games: 0 },
-    red: { wins: 0, games: 0 },
-  }
-  const seen = new Set<string>()
-
   const roster = players.filter((p) => teamMatchesCanonical(p.team, teamSlugOrName))
   if (!roster.length) {
-    return {
-      blue: { wins: 0, games: 0, winrate: 0 },
-      red: { wins: 0, games: 0, winrate: 0 },
+    return { blue: emptySideStats(), red: emptySideStats() }
+  }
+
+  const games = new Map<string, SideGameAgg>()
+
+  for (const player of roster) {
+    for (const game of player.gameLog ?? []) {
+      const side = normalizeSide(game.side)
+      if (!side) continue
+      const key = game.gameId ?? `${game.date}|${game.opponent ?? ''}|${side}`
+      let agg = games.get(key)
+      if (!agg) {
+        agg = {
+          side,
+          result: game.result,
+          gameLength: null,
+          gd15: [],
+          gpmSum: 0,
+          killsSum: 0,
+          visionSum: 0,
+          firstBloodHits: 0,
+          firstBloodSamples: 0,
+        }
+        games.set(key, agg)
+      }
+      if (agg.gameLength == null && typeof game.gameLength === 'number' && game.gameLength > 0) {
+        agg.gameLength = game.gameLength
+      }
+      if (typeof game.gd15 === 'number') agg.gd15.push(game.gd15)
+      if (typeof game.gpm === 'number') agg.gpmSum += game.gpm
+      if (typeof game.kills === 'number') agg.killsSum += game.kills
+      if (typeof game.visionScore === 'number') agg.visionSum += game.visionScore
+      if (typeof game.firstBloodRate === 'number') {
+        agg.firstBloodSamples += 1
+        if (game.firstBloodRate > 0) agg.firstBloodHits += 1
+      }
     }
   }
 
-  const anchor = roster.reduce((best, p) =>
-    (p.gameLog?.length ?? 0) > (best.gameLog?.length ?? 0) ? p : best,
-  )
-
-  for (const game of anchor.gameLog ?? []) {
-    const side = normalizeSide(game.side)
-    if (!side) continue
-    const key = game.gameId ?? `${game.date}|${game.opponent ?? ''}|${side}`
-    if (seen.has(key)) continue
-    seen.add(key)
-    acc[side].games += 1
-    if (game.result === 1) acc[side].wins += 1
+  const buckets: Record<'blue' | 'red', {
+    wins: number
+    games: number
+    durations: number[]
+    gd15s: number[]
+    gpms: number[]
+    killsPerMin: number[]
+    visionPerMin: number[]
+    fbHits: number
+    fbSamples: number
+  }> = {
+    blue: { wins: 0, games: 0, durations: [], gd15s: [], gpms: [], killsPerMin: [], visionPerMin: [], fbHits: 0, fbSamples: 0 },
+    red: { wins: 0, games: 0, durations: [], gd15s: [], gpms: [], killsPerMin: [], visionPerMin: [], fbHits: 0, fbSamples: 0 },
   }
 
-  return {
-    blue: {
-      ...acc.blue,
-      winrate: acc.blue.games ? (acc.blue.wins / acc.blue.games) * 100 : 0,
-    },
-    red: {
-      ...acc.red,
-      winrate: acc.red.games ? (acc.red.wins / acc.red.games) * 100 : 0,
-    },
+  for (const agg of games.values()) {
+    const bucket = buckets[agg.side]
+    bucket.games += 1
+    if (agg.result === 1) bucket.wins += 1
+    if (agg.gd15.length) bucket.gd15s.push(average(agg.gd15)!)
+    if (agg.gpmSum > 0) bucket.gpms.push(agg.gpmSum)
+    if (agg.gameLength) {
+      bucket.durations.push(agg.gameLength)
+      const minutes = agg.gameLength / 60
+      if (agg.killsSum > 0) bucket.killsPerMin.push(agg.killsSum / minutes)
+      if (agg.visionSum > 0) bucket.visionPerMin.push(agg.visionSum / minutes)
+    }
+    if (agg.firstBloodSamples > 0) {
+      bucket.fbSamples += 1
+      if (agg.firstBloodHits > 0) bucket.fbHits += 1
+    }
   }
+
+  const toStats = (bucket: (typeof buckets)['blue']): SideStats => ({
+    wins: bucket.wins,
+    games: bucket.games,
+    winrate: bucket.games ? (bucket.wins / bucket.games) * 100 : 0,
+    avgDuration: average(bucket.durations),
+    avgGd15: average(bucket.gd15s),
+    avgGpm: average(bucket.gpms),
+    killsPerMin: average(bucket.killsPerMin),
+    visionPerMin: average(bucket.visionPerMin),
+    firstBloodRate: bucket.fbSamples ? (bucket.fbHits / bucket.fbSamples) * 100 : null,
+  })
+
+  return { blue: toStats(buckets.blue), red: toStats(buckets.red) }
 }
 
 export interface TeamTrendPoint {
@@ -255,6 +353,84 @@ export function buildTeamTrend(
       gd15: gdCount ? gdSum / gdCount : 0,
     }
   })
+}
+
+export interface TeamGameStatRow {
+  date: string
+  gameId: string
+  opponent: string
+  result: 'W' | 'L'
+  kills: number | null
+  deaths: number | null
+  gd15: number | null
+  csd15: number | null
+  gpm: number | null
+  visionScore: number | null
+}
+
+/**
+ * One row per unique team game (kills/gd15/csd15/gpm/vision combined across every
+ * rostered player seen in that game's logs — OE logs are per-player, not per-team).
+ */
+export function buildTeamGameStats(players: Player[], teamSlugOrName: string): TeamGameStatRow[] {
+  const roster = players.filter((p) => teamMatchesCanonical(p.team, teamSlugOrName))
+  if (!roster.length) return []
+
+  interface Agg {
+    date: string
+    opponent: string
+    result: number
+    kills: number
+    deaths: number
+    gd15: number[]
+    csd15: number[]
+    gpmSum: number
+    visionSum: number
+  }
+
+  const games = new Map<string, Agg>()
+
+  for (const player of roster) {
+    for (const game of player.gameLog ?? []) {
+      const key = game.gameId ?? `${game.date}|${game.opponent ?? ''}`
+      let agg = games.get(key)
+      if (!agg) {
+        agg = {
+          date: game.date,
+          opponent: game.opponent ?? '',
+          result: game.result,
+          kills: 0,
+          deaths: 0,
+          gd15: [],
+          csd15: [],
+          gpmSum: 0,
+          visionSum: 0,
+        }
+        games.set(key, agg)
+      }
+      if (typeof game.kills === 'number') agg.kills += game.kills
+      if (typeof game.deaths === 'number') agg.deaths += game.deaths
+      if (typeof game.gd15 === 'number') agg.gd15.push(game.gd15)
+      if (typeof game.csd15 === 'number') agg.csd15.push(game.csd15)
+      if (typeof game.gpm === 'number') agg.gpmSum += game.gpm
+      if (typeof game.visionScore === 'number') agg.visionSum += game.visionScore
+    }
+  }
+
+  return [...games.entries()]
+    .map(([key, agg]) => ({
+      date: agg.date,
+      gameId: key,
+      opponent: agg.opponent,
+      result: (agg.result === 1 ? 'W' : 'L') as 'W' | 'L',
+      kills: agg.kills > 0 ? agg.kills : null,
+      deaths: agg.deaths > 0 ? agg.deaths : null,
+      gd15: average(agg.gd15),
+      csd15: average(agg.csd15),
+      gpm: agg.gpmSum > 0 ? agg.gpmSum : null,
+      visionScore: agg.visionSum > 0 ? agg.visionSum : null,
+    }))
+    .sort((a, b) => a.date.localeCompare(b.date) || a.gameId.localeCompare(b.gameId))
 }
 
 function teamTotalGames(teams: Team[], teamName: string): number {

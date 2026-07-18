@@ -4,6 +4,8 @@ import { useDashboard } from '../context/DashboardContext'
 import { type Player, type PlayerGameLog } from '../hooks/useDashboardData'
 import {
   ROLES,
+  computeOpScores,
+  isDisplayableChampion,
   type RoleKey,
 } from '../lib/championAnalytics'
 import {
@@ -28,6 +30,9 @@ import TeamRadarChart from '../components/teams/TeamRadarChart'
 import { EntityLink, ChampionEntityInline } from '../components/entities'
 import WeeklyRecap from '../components/overview/WeeklyRecap'
 import OverviewHubToggle from '../components/overview/OverviewHubToggle'
+import SectionSubnav, { type SectionSubnavItem } from '../components/ui/SectionSubnav'
+import PowerRankingsPanel from '../components/rankings/PowerRankingsPanel'
+import TeamPowerBoard from '../components/rankings/TeamPowerBoard'
 import { buildWeeklyRecapLines } from '../lib/weeklyRecap'
 import { mergeWeeklyRecapLines } from '../lib/recapMerge'
 import { fetchCachedWeeklyRecapLines } from '../lib/loadWeeklyRecap'
@@ -66,7 +71,13 @@ import {
   PERFORMANCE_SCORE_HINT,
   TEAM_SCORE_HINT,
 } from '../lib/metricHints'
-import { clampScore100, opScoreTo100 } from '../lib/scoreNormalize'
+import { clampScore100, opScoreTo100, unitIntervalTo100 } from '../lib/scoreNormalize'
+
+const OVERVIEW_SUBNAV_ITEMS: SectionSubnavItem[] = [
+  { id: 'overview-recap', label: 'Recap' },
+  { id: 'overview-standouts', label: 'Standouts' },
+  { id: 'overview-rankings', label: 'Rankings' },
+]
 
 const HUB_COPY = {
   weekly: {
@@ -497,6 +508,7 @@ export default function Overview() {
   const {
     filteredPlayers,
     filteredTeams,
+    filteredChampions,
     weeklyHubPlayers,
     weeklyHubTeams,
     weeklyHubChampions,
@@ -570,6 +582,11 @@ export default function Overview() {
     )
     return computeChampionOfWeekScores(stats)
   }, [weeklyPlayers, weeklyHubChampions, hubWindow])
+
+  const topOpChampions = useMemo(() => {
+    const displayable = filteredChampions.filter(isDisplayableChampion)
+    return computeOpScores(displayable, 1).all.slice(0, 10)
+  }, [filteredChampions])
 
   const [citoResults, setCitoResults] = useState<CitoSeriesResult[]>([])
 
@@ -662,6 +679,10 @@ export default function Overview() {
 
   return (
     <div ref={rootRef} className="overview-hub">
+      <SectionSubnav
+        key={hubContentLoading ? 'overview-subnav-pending' : 'overview-subnav-ready'}
+        items={OVERVIEW_SUBNAV_ITEMS}
+      />
       <OverviewHubToggle value={hubPeriod} onChange={handleHubPeriodChange} />
 
       {hubContentLoading ? (
@@ -670,6 +691,7 @@ export default function Overview() {
         </section>
       ) : (
         <>
+      <section id="overview-recap" className="overview-section">
       <section className="card overview-hub-card overview-hub-hero">
         <div className="overview-hub-hero-copy">
           <h2 className="card-title">{copy.hubTitle}</h2>
@@ -721,7 +743,9 @@ export default function Overview() {
           title={copy.recapTitle}
         />
       )}
+      </section>
 
+      <section id="overview-standouts" className="overview-section">
       <section className="card overview-hub-card">
         <h2 className="card-title">{copy.playerTitle}</h2>
         {!playerOfWeek ? (
@@ -834,8 +858,13 @@ export default function Overview() {
         <div className="overview-totw-grid">
           {teamOfWeek.map((p) => (
               <article key={`${p.base.name}-${p.role}`} className="overview-totw-card">
-                <div className="overview-weekly-name">
-                  <EntityLink type="player" name={p.base.name} player={p.base} allPlayers={filteredPlayers} showIcon={false} />
+                <div className="overview-totw-name-row">
+                  <div className="overview-weekly-name">
+                    <EntityLink type="player" name={p.base.name} player={p.base} allPlayers={filteredPlayers} showIcon={false} />
+                  </div>
+                  <span className="overview-totw-score" title="Average performance score /100">
+                    {formatNum(unitIntervalTo100(p.scoreAvg), 1)}
+                  </span>
                 </div>
                 <div className="overview-weekly-meta entity-inline-row">
                   <EntityLink type="team" name={p.base.team} />
@@ -945,6 +974,58 @@ export default function Overview() {
             </div>
           </div>
         )}
+      </section>
+      </section>
+
+      <section id="overview-rankings" className="overview-section">
+        <div className="overview-rankings-grid">
+          <PowerRankingsPanel
+            limit={8}
+            title="nucky power rankings"
+            subtitle="Role-normalized player power from the nucky model — current league/split filters."
+          />
+          <TeamPowerBoard teams={filteredTeams} limit={8} />
+        </div>
+
+        <section className="card overview-hub-card">
+          <h2 className="card-title">Champion Power Rankings</h2>
+          <p className="card-subtitle">
+            Top 10 champions by OP score (presence, win rate, ban rate, and KDA z-scores) for the
+            current league and split filters.
+          </p>
+          {topOpChampions.length === 0 ? (
+            <p className="text-secondary">Not enough champion data for the current filters.</p>
+          ) : (
+            <div className="table-wrap">
+              <table className="data-table">
+                <thead>
+                  <tr>
+                    <th>#</th>
+                    <th>Champion</th>
+                    <th>Presence</th>
+                    <th>Win %</th>
+                    <th title={OP_SCORE_HINT}>OP Score</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {topOpChampions.map((entry, idx) => (
+                    <tr key={entry.champion.name}>
+                      <td className="text-secondary">#{idx + 1}</td>
+                      <td className="font-medium">
+                        <ChampionEntityInline name={entry.champion.name} iconSize={20} />
+                      </td>
+                      <td className="text-secondary">{formatPct(entry.champion.presence, 1)}</td>
+                      <td className="text-secondary">{formatPct(entry.champion.winrate, 1)}</td>
+                      <td className="text-accent font-medium">
+                        {formatNum(opScoreTo100(entry.opScore), 1)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </section>
       </section>
         </>
       )}

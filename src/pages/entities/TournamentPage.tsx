@@ -18,6 +18,7 @@ import {
   tournamentPath,
 } from '../../lib/tournamentCatalog'
 import { formatGameDate, formatNum, formatPct } from '../../lib/format'
+import { opScoreTo100 } from '../../lib/scoreNormalize'
 import { scrollEntranceStagger } from '../../theme/animations'
 import { TournamentSubnav, type TournamentPageTab } from '../../components/tournaments'
 import TournamentMatchList from '../../components/tournaments/TournamentMatchList'
@@ -41,7 +42,7 @@ import { computeOpScores, roleLabel, type RoleFilter } from '../../lib/championA
 import RoleFilterBar from '../../components/champions/RoleFilterBar'
 import PlayerDropdown from '../../components/players/PlayerDropdown'
 import PlayerFormChart from '../../components/players/PlayerFormChart'
-import PlayerChampionPool from '../../components/players/PlayerChampionPool'
+import PlayerTrendsCompare from '../../components/players/PlayerTrendsCompare'
 import PlayerComparisonRadar from '../../components/players/PlayerComparisonRadar'
 import { playerKey } from '../../lib/playerAnalytics'
 import PlayerMetricsTableCard from '../../components/players/PlayerMetricsTableCard'
@@ -70,7 +71,7 @@ function OpChampionSpotlight({
       <span className="role-badge tournament-standout-role">{roleLabel(role)}</span>
       <div className="tournament-standout-op-score">
         <span className="text-secondary text-xs">OP SCORE</span>
-        <span className="text-accent text-xl">{opScore.toFixed(2)}</span>
+        <span className="text-accent text-xl">{formatNum(opScoreTo100(opScore), 1)}</span>
       </div>
       <ChampionEntityInline name={champion.name} iconSize={24} />
       <div className="tournament-standout-mini-stats">
@@ -483,11 +484,11 @@ export default function TournamentPage() {
               onChange={setSelectedPlayerKeys}
             />
             {selectedPlayers.length > 0 && (
-              <div className="player-analytics-grid">
+              <>
                 <PlayerComparisonRadar players={selectedPlayers} cohort={scopedPlayers} />
+                <PlayerTrendsCompare players={selectedPlayers} cohortPlayers={scopedPlayers} />
                 <PlayerFormChart players={selectedPlayers} cohortPlayers={scopedPlayers} />
-                <PlayerChampionPool players={selectedPlayers} />
-              </div>
+              </>
             )}
           </section>
 
@@ -561,6 +562,7 @@ export default function TournamentPage() {
                     <th>Bans</th>
                     <th>Winrate</th>
                     <th>Presence</th>
+                    <th>OP Score</th>
                     <th>Priority</th>
                     <th>GD@15</th>
                     <th>CS@15</th>
@@ -577,6 +579,7 @@ export default function TournamentPage() {
                       <td>{c.bans}</td>
                       <td className="text-accent">{formatPct(c.winrate, 1)}</td>
                       <td>{formatPct(c.presence, 1)}</td>
+                      <td className="text-accent">{formatNum(opScoreTo100(c.opScore), 1)}</td>
                       <td>{formatNum(c.priority, 1)}</td>
                       <td>
                         {c.gd15 != null ? `${c.gd15 > 0 ? '+' : ''}${formatNum(c.gd15, 1)}` : '—'}

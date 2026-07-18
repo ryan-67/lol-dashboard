@@ -31,7 +31,7 @@ async function tryLifetimeFilters(
 async function findBestSplit(
   catalogSplits: string[],
   globalYear: string,
-  _globalSplit: string,
+  globalSplit: string,
   league: string,
   catalog: NonNullable<ReturnType<typeof useDashboard>['catalog']>,
   hasData: (data: DashboardData) => boolean,
@@ -58,6 +58,20 @@ async function findBestSplit(
     const yearSplits = catalogSplits.filter((s) => s.startsWith(`${globalYear} `))
     const tryOrder: string[] = []
     const seen = new Set<string>()
+
+    // Prefer the dashboard's current split first so entity pages open on the
+    // same context the user was browsing (not lifetime / ALL).
+    if (globalSplit && globalSplit !== 'ALL') {
+      tryOrder.push(globalSplit)
+      seen.add(globalSplit)
+      const { season } = parseCanonicalSplit(globalSplit)
+      const leader = `${globalYear} ${combinedFilterForCatalogSeason(season)}`
+      if (!seen.has(leader)) {
+        seen.add(leader)
+        tryOrder.push(leader)
+      }
+    }
+
     for (const catalogSplit of splitsNewestFirst(yearSplits)) {
       const { season } = parseCanonicalSplit(catalogSplit)
       const leader = `${globalYear} ${combinedFilterForCatalogSeason(season)}`

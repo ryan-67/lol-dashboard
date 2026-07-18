@@ -563,6 +563,42 @@ b,
   font-size: 18px;
 }
 
+.overview-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--component-gap);
+  scroll-margin-top: var(--section-subnav-offset, 160px);
+}
+
+.overview-rankings-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--component-gap);
+}
+
+@media (min-width: 1024px) {
+  .overview-rankings-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.overview-totw-name-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.overview-totw-score {
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  color: var(--accent);
+  border: 1px solid var(--border-subtle);
+  padding: 2px 6px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
 .overview-hub-card {
   transition: border-color 160ms ease;
 }
@@ -1478,6 +1514,74 @@ b,
   margin: 8px 0;
 }
 
+/* Blue/Red Side Comparison table */
+.side-cmp-table {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.side-cmp-header,
+.side-cmp-row {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 12px;
+}
+
+.side-cmp-header {
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--border-subtle);
+  margin-bottom: 4px;
+}
+
+.side-cmp-header-side {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-weight: 600;
+}
+
+.side-cmp-header-blue {
+  color: rgba(92, 122, 158, 0.9);
+  text-align: right;
+}
+
+.side-cmp-header-red {
+  color: rgba(197, 92, 92, 0.9);
+  text-align: left;
+}
+
+.side-cmp-row {
+  padding: 6px 0;
+}
+
+.side-cmp-row:not(:last-child) {
+  border-bottom: 1px solid color-mix(in srgb, var(--border-subtle) 60%, transparent);
+}
+
+.side-cmp-label {
+  font-size: 11px;
+  color: var(--text-secondary);
+  text-align: center;
+  white-space: nowrap;
+}
+
+.side-cmp-value {
+  font-size: 13px;
+  color: var(--text-primary);
+  text-align: right;
+}
+
+.side-cmp-row .side-cmp-value + .side-cmp-label + .side-cmp-value {
+  text-align: left;
+}
+
+.side-cmp-value-better {
+  color: #5c9e5a;
+  font-weight: 600;
+}
+
 .champion-icon,
 .team-logo {
   flex-shrink: 0;
@@ -1781,6 +1885,67 @@ b,
 
 .radar-card-compact .radar-chart-wrap {
   min-height: 200px;
+}
+
+.team-roster-radars-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 16px;
+  margin-top: 12px;
+}
+
+.team-roster-radar-item {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.team-roster-radar-score {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding: 0 4px;
+  font-size: 13px;
+}
+
+.player-radar-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* Compact stat grid shown below the player radar chart (tabesports-style advanced stats) */
+.radar-stats-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1px;
+  margin-top: 12px;
+  border: 1px solid var(--border-subtle);
+  background: var(--border-subtle);
+}
+
+.radar-stats-grid-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 12px;
+  background: var(--bg-surface);
+}
+
+.radar-stats-grid-label {
+  font-size: 11px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.radar-stats-grid-value {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+  white-space: nowrap;
 }
 
 @media (max-width: 767px) {
@@ -2122,6 +2287,82 @@ b,
   color: var(--accent);
   border-color: var(--accent);
   background: var(--accent-bg);
+}
+
+/* Sticky in-page section nav (Players, and any future tab that adopts it) */
+.section-subnav {
+  position: sticky;
+  z-index: 25;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: var(--component-gap);
+  padding-block: 10px;
+  background: color-mix(in srgb, var(--bg-base) 94%, transparent);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.section-subnav-items {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.section-subnav-link {
+  padding: 7px 14px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: color 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+}
+
+.section-subnav-link:hover {
+  color: var(--text-primary);
+  background: var(--bg-elevated);
+}
+
+.section-subnav-link.is-active {
+  color: var(--accent);
+  border-color: var(--accent);
+  background: var(--accent-bg);
+}
+
+.section-subnav-extra {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.section-subnav-extra .role-filter-bar {
+  margin-bottom: 0;
+  padding-bottom: 0;
+  border-bottom: none;
+}
+
+@media (max-width: 768px) {
+  .section-subnav {
+    justify-content: flex-start;
+  }
+}
+
+/* Players tab — sticky subnav section anchors */
+.players-section {
+  scroll-margin-top: var(--section-subnav-offset, 160px);
+}
+
+.players-section + .players-section {
+  margin-top: var(--section-gap);
 }
 
 /* Players tab — analytics charts */
@@ -2559,6 +2800,10 @@ b,
 }
 
 /* Champions tab */
+.champions-section {
+  scroll-margin-top: var(--section-subnav-offset, 160px);
+}
+
 .ring-center-label {
   position: absolute;
   inset: 0;
@@ -4570,6 +4815,12 @@ b,
   font-weight: 600;
 }
 
+.series-cmp-legend-team {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
 .series-cmp-rows {
   display: flex;
   flex-direction: column;
@@ -4736,6 +4987,124 @@ b,
 @media (max-width: 720px) {
   .lane-matchup-grid {
     grid-template-columns: 1fr;
+  }
+}
+
+/* Champion trajectory panel (Champions tab) */
+.champion-trajectory-search-wrap {
+  position: relative;
+  max-width: 360px;
+  margin-bottom: 12px;
+}
+
+.champion-trajectory-search-input {
+  width: 100%;
+  background: var(--bg-base);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  padding: 8px 10px;
+}
+
+.champion-trajectory-search-input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.champion-trajectory-search-input:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.champion-trajectory-search-dropdown {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  z-index: 30;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  max-height: 260px;
+  overflow-y: auto;
+}
+
+.champion-trajectory-search-empty {
+  padding: 10px 12px;
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+}
+
+.champion-trajectory-search-row {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  padding: 8px 12px;
+  border: none;
+  border-bottom: 1px solid var(--border-subtle);
+  background: transparent;
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  text-align: left;
+  cursor: pointer;
+}
+
+.champion-trajectory-search-row:last-child {
+  border-bottom: none;
+}
+
+.champion-trajectory-search-row:hover {
+  background: var(--accent-bg);
+}
+
+.champion-trajectory-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.champion-trajectory-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-elevated);
+  padding: 4px 8px;
+  font-size: 12px;
+}
+
+.champion-trajectory-chip-swatch {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.champion-trajectory-chip-remove {
+  border: none;
+  background: transparent;
+  color: var(--text-tertiary);
+  cursor: pointer;
+  font-size: 14px;
+  line-height: 1;
+  padding: 0 2px;
+}
+
+.champion-trajectory-chip-remove:hover {
+  color: var(--text-primary);
+}
+
+.champion-trajectory-charts {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--component-gap);
+}
+
+@media (min-width: 1024px) {
+  .champion-trajectory-charts {
+    grid-template-columns: 1fr 1fr;
   }
 }
 

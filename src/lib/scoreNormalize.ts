@@ -11,9 +11,21 @@ export function clampScore100(value: number): number {
   return Math.max(0, Math.min(100, value))
 }
 
-/** Role-normalized power score → 0–100 (e.g. 0.534 → 53.4). */
-export function powerScoreTo100(powerScore: number): number {
-  return clampScore100(powerScore * 100)
+/**
+ * Role-normalized power score → 0–100.
+ * Anchored to the observed model band (not a raw ×100, which crushed mid-pack
+ * scores like ShowMaker 0.064 into a misleading 6.4).
+ *
+ * With defaults: Chovy ~0.53 → ~97, ShowMaker ~0.064 → ~39, bottom ~0.
+ */
+export function powerScoreTo100(
+  powerScore: number,
+  opts?: { floor?: number; ceiling?: number },
+): number {
+  const floor = opts?.floor ?? -0.25
+  const ceiling = opts?.ceiling ?? 0.55
+  const span = Math.max(ceiling - floor, 1e-6)
+  return clampScore100(((powerScore - floor) / span) * 100)
 }
 
 /** Team Elo power rating → 0–100 (anchored to typical tier-1 Elo band). */
@@ -34,4 +46,20 @@ export function unitIntervalTo100(score: number): number {
  */
 export function opScoreTo100(opScore: number): number {
   return clampScore100(50 + opScore * 25)
+}
+
+/** Ordinal suffix for ranks/percentiles (1st, 2nd, 3rd, 4th, … 21st, 22nd). */
+export function ordinalSuffix(n: number): string {
+  const v = Math.abs(Math.round(n)) % 100
+  if (v >= 11 && v <= 13) return 'th'
+  switch (v % 10) {
+    case 1:
+      return 'st'
+    case 2:
+      return 'nd'
+    case 3:
+      return 'rd'
+    default:
+      return 'th'
+  }
 }

@@ -8,16 +8,20 @@ import {
   isDisplayablePlayer,
   formatGameLogMetric,
   roleMatchHistoryMetrics,
+  computeGameScore,
   type RoleKey,
 } from '../../lib/playerRadar'
 import { getPlayerRole, resolveLaneOpponentForGame } from '../../lib/playerAnalytics'
+import { unitIntervalTo100 } from '../../lib/scoreNormalize'
 import { formatGameDate, formatNum, formatPct } from '../../lib/format'
 import { resolveTournamentDisplay, buildTournamentIdentityFromGame, tournamentPath } from '../../lib/tournamentCatalog'
 import { resolveGameOpponent } from '../../lib/gameOpponent'
 import PlayerRadarChart from '../../components/players/PlayerRadarChart'
+import PlayerRadarStatsGrid from '../../components/players/PlayerRadarStatsGrid'
 import PlayerFormChart from '../../components/players/PlayerFormChart'
 import PlayerModelCard from '../../components/players/PlayerModelCard'
 import PlayerGameExplorer from '../../components/players/PlayerGameExplorer'
+import SectionSubnav from '../../components/ui/SectionSubnav'
 import {
   EntityFilterBar,
   EntityLink,
@@ -28,6 +32,13 @@ import {
   PlayerChampionTable,
 } from '../../components/entities'
 import type { DashboardData } from '../../hooks/useDashboardData'
+
+const PLAYER_PAGE_SECTIONS = [
+  { id: 'player-overview', label: 'Overview' },
+  { id: 'player-trends', label: 'Trends' },
+  { id: 'player-form', label: 'Form' },
+  { id: 'player-history', label: 'History' },
+]
 
 export default function PlayerPage() {
   const { slug = '' } = useParams<{ slug: string }>()
@@ -165,23 +176,34 @@ export default function PlayerPage() {
         </div>
       </header>
 
-      <PlayerModelCard player={player} role={role} />
+      <SectionSubnav items={PLAYER_PAGE_SECTIONS} />
 
-      <div className="overview-grid overview-grid-2">
-        <PlayerRadarChart player={player} role={role} cohort={cohort} hideHeader />
-        <PlayerChampionTable player={player} role={role} cohort={cohort} />
-      </div>
+      <section id="player-overview">
+        <PlayerModelCard player={player} role={role} />
 
-      <PlayerGameExplorer player={player} cohort={cohort} />
+        <div className="overview-grid overview-grid-2">
+          <div className="player-radar-stack">
+            <PlayerRadarChart player={player} role={role} cohort={cohort} hideHeader />
+            <PlayerRadarStatsGrid player={player} role={role} cohort={cohort} />
+          </div>
+          <PlayerChampionTable player={player} role={role} cohort={cohort} />
+        </div>
 
-      <PlayerFormChart players={[player]} cohortPlayers={cohort} />
+        <div className="overview-grid overview-grid-2">
+          <ChampionWinrateBars title="Best Champions" entries={champExtremes.best} tone="best" />
+          <ChampionWinrateBars title="Worst Champions" entries={champExtremes.worst} tone="worst" />
+        </div>
+      </section>
 
-      <div className="overview-grid overview-grid-2">
-        <ChampionWinrateBars title="Best Champions" entries={champExtremes.best} tone="best" />
-        <ChampionWinrateBars title="Worst Champions" entries={champExtremes.worst} tone="worst" />
-      </div>
+      <section id="player-trends">
+        <PlayerGameExplorer player={player} cohort={cohort} role={role} />
+      </section>
 
-      <div className="card">
+      <section id="player-form">
+        <PlayerFormChart players={[player]} cohortPlayers={cohort} />
+      </section>
+
+      <section id="player-history" className="card">
         <h3 className="card-title">Match History</h3>
         <div className="entity-table-wrap">
           <table className="entity-table">
@@ -197,6 +219,7 @@ export default function PlayerPage() {
                   <th key={m.key}>{m.shortLabel}</th>
                 ))}
                 <th>K/D/A</th>
+                <th>Perf</th>
                 <th>Tournament</th>
               </tr>
             </thead>
@@ -243,6 +266,7 @@ export default function PlayerPage() {
                     <td>
                       {g.kills ?? 0}/{g.deaths ?? 0}/{g.assists ?? 0}
                     </td>
+                    <td>{formatNum(unitIntervalTo100(computeGameScore(g, role, cohort)), 1)}</td>
                     <td className="text-secondary text-sm">
                       <span className="entity-tournament-cell">
                         <LeagueLogo league={tournamentIdentity.league} size={16} />
@@ -257,7 +281,7 @@ export default function PlayerPage() {
             </tbody>
           </table>
         </div>
-      </div>
+      </section>
     </div>
   )
 }

@@ -104,7 +104,7 @@ export default function SeriesPage() {
   const seriesLeagueForLogo = useMemo(() => {
     if (!series) return ''
     const { season } = parseCanonicalSplit(series.split ?? '')
-    if (season === 'MSI' || season === 'Worlds' || season === 'First Stand') return season
+    if (season === 'MSI' || season === 'Worlds' || season === 'First Stand' || season === 'EWC') return season
     return series.league
   }, [series])
 
@@ -269,7 +269,7 @@ export default function SeriesPage() {
               </section>
 
               <section className="card series-card">
-                <h2 className="card-title">Series Tug-of-War</h2>
+                <h2 className="card-title">Series Stat Comparison</h2>
                 <p className="card-subtitle">
                   Cumulative totals across all games — brighter bar leads the front
                 </p>
