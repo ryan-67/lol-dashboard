@@ -15,6 +15,8 @@ export interface CitoScheduleRow {
   team_a_score?: number | null
   team_b_score?: number | null
   winner_team?: string | null
+  /** Series length when present on cito_schedules (may be absent in cache). */
+  best_of?: number | null
 }
 
 const INTERNATIONAL_SCHEDULE_LEAGUES = new Set([
@@ -85,22 +87,45 @@ async function loadScheduleCache(): Promise<CitoScheduleRow[]> {
   return scheduleCachePromise
 }
 
+const SCHEDULE_SELECT_WITH_BEST_OF =
+  'match_id, league, tournament_name, team_a, team_b, scheduled_at, status, block_name, best_of'
+const SCHEDULE_SELECT_BASE =
+  'match_id, league, tournament_name, team_a, team_b, scheduled_at, status, block_name'
+
 async function fetchUpcomingSchedulePool(now: string): Promise<CitoScheduleRow[]> {
   const byId = new Map<string, CitoScheduleRow>()
 
   if (isSupabaseConfigured) {
-    const { data, error } = await supabase
+    let data: CitoScheduleRow[] | null = null
+    let errorMsg: string | null = null
+
+    const withBestOf = await supabase
       .from('cito_schedules')
-      .select('match_id, league, tournament_name, team_a, team_b, scheduled_at, status, block_name')
+      .select(SCHEDULE_SELECT_WITH_BEST_OF)
       .in('status', ['scheduled', 'live', 'unstarted', 'tbd'])
       .gte('scheduled_at', now)
       .order('scheduled_at', { ascending: true })
       .limit(300)
 
-    if (error) {
-      console.warn('[cito-schedule] fetch failed', error.message)
+    if (withBestOf.error && /best_of/i.test(withBestOf.error.message)) {
+      const fallback = await supabase
+        .from('cito_schedules')
+        .select(SCHEDULE_SELECT_BASE)
+        .in('status', ['scheduled', 'live', 'unstarted', 'tbd'])
+        .gte('scheduled_at', now)
+        .order('scheduled_at', { ascending: true })
+        .limit(300)
+      data = (fallback.data as CitoScheduleRow[] | null) ?? null
+      errorMsg = fallback.error?.message ?? null
     } else {
-      for (const row of (data as CitoScheduleRow[] | null) ?? []) {
+      data = (withBestOf.data as CitoScheduleRow[] | null) ?? null
+      errorMsg = withBestOf.error?.message ?? null
+    }
+
+    if (errorMsg) {
+      console.warn('[cito-schedule] fetch failed', errorMsg)
+    } else {
+      for (const row of data ?? []) {
         byId.set(row.match_id, row)
       }
     }
@@ -115,6 +140,22 @@ async function fetchUpcomingSchedulePool(now: string): Promise<CitoScheduleRow[]
   return [...byId.values()].sort((a, b) =>
     (a.scheduled_at ?? '').localeCompare(b.scheduled_at ?? ''),
   )
+}
+
+/**
+ * Confirmed upcoming series for the Predictions board (both teams named).
+ * International + tier-1 domestics; TBD brackets excluded.
+ */
+export async function fetchUpcomingCitoScheduleBoard(options?: {
+  limit?: number
+}): Promise<CitoScheduleRow[]> {
+  const limit = options?.limit ?? 120
+  const now = new Date().toISOString()
+  const allRows = await fetchUpcomingSchedulePool(now)
+  return allRows
+    .filter((row) => isConfirmedRow(row))
+    .filter((row) => ['scheduled', 'live', 'unstarted'].includes(row.status.toLowerCase()))
+    .slice(0, limit)
 }
 
 function pendingBracketRows(

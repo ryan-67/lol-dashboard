@@ -49,13 +49,15 @@ export function TimezoneProvider({ children }: { children: ReactNode }) {
 
     let cancelled = false
     void (async () => {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from('profiles')
         .select('timezone')
         .eq('id', user.id)
         .maybeSingle()
 
       if (cancelled) return
+      // Missing column → keep localStorage preference.
+      if (error && (/timezone/i.test(error.message) || error.code === 'PGRST204')) return
       const profileTz = normalizeTimezone((data as { timezone?: string | null } | null)?.timezone)
       setTimezoneState(profileTz)
       setTimezoneStore(profileTz)
@@ -87,7 +89,14 @@ export function TimezoneProvider({ children }: { children: ReactNode }) {
           .from('profiles')
           .upsert({ id: user.id, timezone: next }, { onConflict: 'id' })
         if (error) {
-          console.warn('[timezone] failed to persist', error.message)
+          // Column may be absent on older schemas — localStorage already updated.
+          const missingCol =
+            /timezone/i.test(error.message) ||
+            error.code === 'PGRST204' ||
+            error.code === '42703'
+          if (!missingCol) {
+            console.warn('[timezone] failed to persist', error.message)
+          }
         }
       }
     },

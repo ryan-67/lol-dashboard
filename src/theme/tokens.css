@@ -1866,12 +1866,19 @@ b,
   }
 }
 
-#entity-tab-slot:not(:empty) {
+#entity-tab-slot:not(:empty),
+#entity-section-slot:not(:empty) {
   background-color: var(--bg-surface);
 }
 
 #entity-tab-slot:not(:empty) .entity-subnav {
   border-bottom: none;
+  max-width: var(--max-width);
+  margin: 0 auto;
+  width: 100%;
+}
+
+#entity-section-slot:not(:empty) .section-subnav--portaled {
   max-width: var(--max-width);
   margin: 0 auto;
   width: 100%;
@@ -2463,6 +2470,17 @@ b,
   backdrop-filter: blur(14px);
   border-bottom: 1px solid var(--border-subtle);
   box-shadow: 0 8px 24px oklch(0.08 0.01 220 / 0.35);
+}
+
+/* Portaled into sticky filter strip — already anchored; drop nested sticky chrome. */
+.section-subnav--portaled {
+  position: relative;
+  top: auto;
+  z-index: auto;
+  margin-bottom: 0;
+  box-shadow: none;
+  background: transparent;
+  backdrop-filter: none;
 }
 
 .section-subnav-items {

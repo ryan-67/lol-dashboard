@@ -227,6 +227,184 @@
   margin-top: 1.5rem;
 }
 
+/* Predictions board */
+.predictions-scorecard {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.5rem 1rem;
+  margin-bottom: 1rem;
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+}
+
+.predictions-scorecard-label {
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-size: 11px;
+}
+
+.predictions-scorecard-value {
+  font-size: 1.25rem;
+  font-weight: 600;
+}
+
+.predictions-filters {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin: 0 0 1rem;
+  padding: 0.65rem 0;
+  background: color-mix(in srgb, var(--bg-base) 92%, transparent);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.predictions-filter-btn {
+  appearance: none;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  padding: 0.4rem 0.85rem;
+  cursor: pointer;
+  transition: color 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+}
+
+.predictions-filter-btn:hover {
+  color: var(--text-primary);
+  background: var(--bg-elevated);
+}
+
+.predictions-filter-btn.is-active {
+  color: var(--accent);
+  border-color: var(--accent);
+  background: var(--accent-bg);
+}
+
+.predictions-matchup {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem 0.55rem;
+}
+
+.predictions-team {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.predictions-preview-btn {
+  font-size: 12px;
+  padding: 0.35rem 0.7rem;
+}
+
+.predictions-hero {
+  margin-bottom: 1.25rem;
+}
+
+.predictions-hero-eyebrow {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+  margin-bottom: 0.75rem;
+}
+
+.predictions-hero-matchup {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem 1rem;
+  margin-bottom: 0.5rem;
+}
+
+.predictions-hero-team {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 1.15rem;
+  font-weight: 600;
+}
+
+.predictions-hero-odds {
+  display: grid;
+  grid-template-columns: 1fr minmax(80px, 2fr) 1fr;
+  gap: 0.75rem;
+  align-items: center;
+  margin: 1rem 0 0.75rem;
+}
+
+.predictions-hero-side {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.predictions-hero-side:last-child {
+  text-align: right;
+  align-items: flex-end;
+}
+
+.predictions-hero-pct {
+  font-family: var(--font-mono);
+  font-size: 1.75rem;
+  font-weight: 600;
+}
+
+.predictions-hero-bar {
+  height: 6px;
+  border-radius: 999px;
+  background: var(--bg-elevated);
+  overflow: hidden;
+}
+
+.predictions-hero-bar-fill {
+  height: 100%;
+  background: var(--accent);
+}
+
+.predictions-power-grid,
+.predictions-trends-grid,
+.predictions-roster-cols {
+  display: grid;
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+}
+
+@media (min-width: 768px) {
+  .predictions-power-grid,
+  .predictions-trends-grid,
+  .predictions-roster-cols {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.predictions-roster-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  font-size: var(--text-sm);
+}
+
+.predictions-back {
+  margin-bottom: 0.75rem;
+}
+
 .power-rankings-panel {
   margin-bottom: 1rem;
 }

@@ -111,15 +111,30 @@ export default function UserProfile() {
     const primary = await supabase.from('profiles').select(PROFILE_SELECT).eq('id', user.id).maybeSingle()
 
     if (primary.error) {
-      // Older DBs may lack default_view — retry without it so username still loads.
-      const fallback = await supabase
-        .from('profiles')
-        .select('username, avatar_url, favorite_player, favorite_team, is_subscribed, plan, timezone')
-        .eq('id', user.id)
-        .maybeSingle()
-      data = fallback.data
-        ? ({ ...(fallback.data as object), default_view: null } as ProfileSettingsRow)
-        : null
+      // Older DBs may lack default_view and/or timezone — retry without optional columns.
+      const missingTz = /timezone/i.test(primary.error.message)
+      const select = missingTz
+        ? 'username, avatar_url, favorite_player, favorite_team, is_subscribed, plan'
+        : 'username, avatar_url, favorite_player, favorite_team, is_subscribed, plan, timezone'
+      const fallback = await supabase.from('profiles').select(select).eq('id', user.id).maybeSingle()
+      if (fallback.error && /timezone/i.test(fallback.error.message)) {
+        const core = await supabase
+          .from('profiles')
+          .select('username, avatar_url, favorite_player, favorite_team, is_subscribed, plan')
+          .eq('id', user.id)
+          .maybeSingle()
+        data = core.data
+          ? ({ ...(core.data as object), timezone: null, default_view: null } as ProfileSettingsRow)
+          : null
+      } else {
+        data = fallback.data
+          ? ({
+              ...(fallback.data as object),
+              timezone: (fallback.data as { timezone?: string | null }).timezone ?? null,
+              default_view: null,
+            } as ProfileSettingsRow)
+          : null
+      }
     } else {
       data = (primary.data as ProfileSettingsRow | null) ?? null
     }
@@ -250,15 +265,14 @@ export default function UserProfile() {
       return
     }
 
-    // Upsert core identity fields first so username/favorites always stick even if
-    // optional columns (default_view) are missing on older DBs.
+    // Upsert core identity only — never include optional columns (timezone /
+    // default_view) here so a missing DB column can't fail username/avatar save.
     const coreFields = {
       id: user.id,
       username: cleanUsername || null,
       favorite_player: favoritePlayer.trim() || null,
       favorite_team: favoriteTeam.trim() || null,
       avatar_url: avatarUrl,
-      timezone,
     }
 
     const { data: saved, error: coreError } = await supabase
@@ -277,18 +291,21 @@ export default function UserProfile() {
       return
     }
 
-    // Persist default home separately so a missing column can't block username save.
-    let viewError: string | null = null
+    const warnings: string[] = []
+
     try {
       await setDefaultView(homeView)
     } catch (err) {
-      viewError = err instanceof Error ? err.message : 'default home failed'
+      warnings.push(err instanceof Error ? err.message : 'default home failed')
     }
 
-    // Re-affirm timezone to DB (also saved on select change).
-    const { error: tzError } = await supabase
-      .from('profiles')
-      .upsert({ id: user.id, timezone }, { onConflict: 'id' })
+    // Timezone persists to localStorage via setTimezone; DB write is best-effort
+    // (profiles.timezone may not exist on older schemas).
+    try {
+      await setTimezone(timezone)
+    } catch {
+      warnings.push('timezone kept locally only')
+    }
 
     const nextUsername = saved?.username ?? (cleanUsername || null)
     const nextAvatar = saved?.avatar_url ?? avatarUrl
@@ -307,12 +324,9 @@ export default function UserProfile() {
     setAvatarUrl(nextAvatar)
 
     setSaving(false)
-    if (tzError) {
-      setSavedMsg(`profile saved, but timezone sync failed: ${tzError.message}`)
-      return
-    }
-    if (viewError) {
-      setSavedMsg(`profile saved, but default home sync failed: ${viewError}`)
+    if (warnings.length) {
+      setSavedMsg(`profile saved (${warnings.join('; ')})`)
+      window.setTimeout(() => setSavedMsg(null), 3200)
       return
     }
     setSavedMsg('profile updated.')

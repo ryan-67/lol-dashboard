@@ -27,6 +27,7 @@ const DASH_TABS = [
   { id: 'champions', label: 'champions' },
   { id: 'tournaments', label: 'tournaments' },
   { id: 'matchups', label: 'matchups' },
+  { id: 'predictions', label: 'predictions', gated: true },
 ] as const
 
 function MenuDotsIcon() {
@@ -277,16 +278,22 @@ export default function AppSidebar() {
           ) : (
             <>
               <p className="app-sidebar-section-label app-sidebar-nav-label">analytics</p>
-              {DASH_TABS.map((tab) => (
-                <NavLink
-                  key={tab.id}
-                  to={dashPath(mode, tab.id)}
-                  end={tab.id === 'overview'}
-                  className={({ isActive }) => `app-sidebar-link${isActive ? ' is-active' : ''}`}
-                >
-                  {tab.label}
-                </NavLink>
-              ))}
+              {DASH_TABS.map((tab) => {
+                const gated = 'gated' in tab && tab.gated && !chat?.isSubscribed
+                return (
+                  <NavLink
+                    key={tab.id}
+                    to={dashPath(mode, tab.id)}
+                    end={tab.id === 'overview'}
+                    title={gated ? 'subscribe for access' : undefined}
+                    className={({ isActive }) =>
+                      `app-sidebar-link${isActive ? ' is-active' : ''}${gated ? ' is-gated' : ''}`
+                    }
+                  >
+                    {tab.label}
+                  </NavLink>
+                )
+              })}
             </>
           )}
         </nav>

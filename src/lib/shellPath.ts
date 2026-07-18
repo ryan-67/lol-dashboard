@@ -32,7 +32,14 @@ export function shellAwarePath(path: string, pathname: string): string {
   }
 
   if (isDuoPath(pathname)) {
-    if (path === '/players' || path === '/teams' || path === '/champions' || path === '/matchups' || path === '/tournaments') {
+    if (
+      path === '/players' ||
+      path === '/teams' ||
+      path === '/champions' ||
+      path === '/matchups' ||
+      path === '/tournaments' ||
+      path === '/predictions'
+    ) {
       return `/duo${path}`
     }
     return `/duo${path}`

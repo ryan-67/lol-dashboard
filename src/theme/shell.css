@@ -137,6 +137,16 @@
   transform: scale(1);
 }
 
+.app-sidebar-link.is-gated {
+  color: var(--text-muted, oklch(0.55 0.01 220));
+  opacity: 0.72;
+}
+
+.app-sidebar-link.is-gated:hover {
+  color: var(--text-secondary);
+  opacity: 0.9;
+}
+
 .app-sidebar-link.is-active {
   color: var(--text-primary);
   background: color-mix(in oklab, var(--accent-bg) 70%, var(--bg-elevated));

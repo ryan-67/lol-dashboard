@@ -21,11 +21,13 @@ import Teams from './pages/Teams'
 import Champions from './pages/Champions'
 import Matchups from './pages/Matchups'
 import Tournaments from './pages/Tournaments'
+import Predictions from './pages/Predictions'
 import PlayerPage from './pages/entities/PlayerPage'
 import TeamPage from './pages/entities/TeamPage'
 import ChampionPage from './pages/entities/ChampionPage'
 import TournamentPage from './pages/entities/TournamentPage'
 import SeriesPage from './pages/entities/SeriesPage'
+import PredictionPreviewPage from './pages/entities/PredictionPreviewPage'
 import PrivatePolicy from './pages/PrivatePolicy'
 import Terms from './pages/Terms'
 import Contact from './pages/Contact'
@@ -176,6 +178,8 @@ function AppRoutes() {
           <Route path="champions" element={<Champions />} />
           <Route path="matchups" element={<Matchups />} />
           <Route path="tournaments" element={<Tournaments />} />
+          <Route path="predictions" element={<Predictions />} />
+          <Route path="predictions/:matchId" element={<PredictionPreviewPage />} />
           <Route path="players/:slug" element={<PlayerPage />} />
           <Route path="teams/:slug" element={<TeamPage />} />
           <Route path="champions/:slug" element={<ChampionPage />} />
@@ -192,6 +196,8 @@ function AppRoutes() {
           <Route path="champions" element={<Champions />} />
           <Route path="matchups" element={<Matchups />} />
           <Route path="tournaments" element={<Tournaments />} />
+          <Route path="predictions" element={<Predictions />} />
+          <Route path="predictions/:matchId" element={<PredictionPreviewPage />} />
           <Route path="players/:slug" element={<PlayerPage />} />
           <Route path="teams/:slug" element={<TeamPage />} />
           <Route path="champions/:slug" element={<ChampionPage />} />
@@ -211,6 +217,11 @@ function AppRoutes() {
       <Route path="/champions" element={<Navigate to="/dashboard/champions" replace />} />
       <Route path="/matchups" element={<Navigate to="/dashboard/matchups" replace />} />
       <Route path="/tournaments" element={<Navigate to="/dashboard/tournaments" replace />} />
+      <Route path="/predictions" element={<Navigate to="/dashboard/predictions" replace />} />
+      <Route
+        path="/predictions/:matchId"
+        element={<LegacyPredictionRedirect />}
+      />
       <Route path="/players/:slug" element={<LegacyEntityRedirect type="players" />} />
       <Route path="/teams/:slug" element={<LegacyEntityRedirect type="teams" />} />
       <Route path="/champions/:slug" element={<LegacyEntityRedirect type="champions" />} />
@@ -228,6 +239,13 @@ function LegacySeriesRedirect() {
   const { defaultView } = useViewPreference()
   const prefix = defaultView === 'duo' ? '/duo' : '/dashboard'
   return <Navigate to={`${prefix}/series/${seriesId}`} replace />
+}
+
+function LegacyPredictionRedirect() {
+  const { matchId } = useParams()
+  const { defaultView } = useViewPreference()
+  const prefix = defaultView === 'duo' ? '/duo' : '/dashboard'
+  return <Navigate to={`${prefix}/predictions/${matchId}`} replace />
 }
 
 function App() {

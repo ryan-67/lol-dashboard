@@ -34,6 +34,7 @@ export default function DashboardFrame() {
             <>
               <div id="entity-filter-slot" />
               <div id="entity-tab-slot" />
+              <div id="entity-section-slot" />
             </>
           ) : null}
         </div>
