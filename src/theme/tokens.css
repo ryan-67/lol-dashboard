@@ -1,19 +1,20 @@
 :root {
-  /* Research Terminal Precision — cool matte charcoal + turquoise signal */
-  --bg-base: #090a0b;
-  --bg-surface: #101214;
-  --bg-elevated: #171a1d;
-  --bg-glow: oklch(0.78 0.1 195 / 0.055);
-  --bg-inset: #0d0f10;
+  /* Signal Instrument — deep matte black + turquoise signal channel */
+  --bg-base: #08090a;
+  --bg-surface: #0f1113;
+  --bg-elevated: #16191c;
+  --bg-glow: oklch(0.78 0.1 195 / 0.05);
+  --bg-inset: #0c0e0f;
 
   /* Borders / elevation */
-  --border-subtle: #2a2e32;
-  --border-focus: #4a5158;
+  --border-hairline: #1c2023;
+  --border-subtle: #272b2f;
+  --border-focus: #464d54;
   --border-accent: color-mix(in oklab, var(--accent) 45%, var(--border-subtle));
   --radius-sm: 4px;
   --radius-md: 8px;
-  --shadow-soft: 0 12px 40px oklch(0.12 0.02 220 / 0.45);
-  --shadow-lift: 0 8px 24px oklch(0.1 0.02 220 / 0.35);
+  --shadow-soft: 0 12px 40px oklch(0.1 0.02 220 / 0.5);
+  --shadow-lift: 0 10px 32px oklch(0.09 0.02 220 / 0.42);
 
   /* Text — warm cream hierarchy on cool black */
   --text-primary: #f3f0e7;
@@ -21,9 +22,11 @@
   --text-tertiary: #7e7a70;
   --text-accent: var(--text-primary);
 
-  /* Accent — matte turquoise as sparse signal */
+  /* Accent — matte turquoise: the signal channel (means "model output") */
   --accent: oklch(0.8 0.115 195);
+  --accent-strong: oklch(0.87 0.13 195);
   --accent-dim: oklch(0.64 0.09 195);
+  --accent-ink: #071012;
   --accent-bg: oklch(0.8 0.115 195 / 0.12);
   --accent-glow: oklch(0.8 0.115 195 / 0.22);
 
@@ -110,7 +113,7 @@ h6 {
 .model-decomp-value,
 .stat-value,
 .recharts-wrapper,
-.landing-hero-badge-value,
+.landing-readout-value,
 .nuckyai-paywall-price,
 .entity-stat-row {
   font-family: var(--font-mono);
@@ -121,6 +124,38 @@ strong,
 b,
 .font-emphasis {
   font-weight: 700;
+}
+
+/* Global focus ring — signal colored, offset, never removed */
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+::selection {
+  background: var(--accent-bg);
+  color: var(--text-primary);
+}
+
+/* Micro-label — the system's smallest voice: mono, uppercase, tracked */
+.micro-label {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+}
+
+/* Signal dot — marks live/model-derived elements */
+.signal-dot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 8px var(--accent-glow);
+  flex-shrink: 0;
 }
 
 /* Layout shell */
@@ -212,14 +247,14 @@ b,
 
 /* Cards */
 .card {
+  position: relative;
   background:
-    linear-gradient(165deg, color-mix(in oklab, var(--bg-elevated) 55%, transparent) 0%, transparent 42%),
-    color-mix(in oklab, var(--bg-surface) 94%, transparent);
+    linear-gradient(168deg, color-mix(in oklab, var(--bg-elevated) 62%, transparent) 0%, transparent 40%),
+    color-mix(in oklab, var(--bg-surface) 96%, transparent);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-md);
   padding: var(--component-gap);
   box-shadow: var(--shadow-soft);
-  backdrop-filter: blur(8px);
   transition:
     border-color var(--dur-med) var(--ease-out),
     box-shadow var(--dur-med) var(--ease-out),
@@ -229,6 +264,15 @@ b,
 .card:hover {
   border-color: var(--border-focus);
   box-shadow: var(--shadow-lift);
+}
+
+/* Signal card — for model-output surfaces (ratings, outlooks, model cards) */
+.card--signal {
+  border-top: 1px solid color-mix(in oklab, var(--accent) 55%, var(--border-subtle));
+  background:
+    linear-gradient(180deg, var(--accent-bg) 0%, transparent 18%),
+    linear-gradient(168deg, color-mix(in oklab, var(--bg-elevated) 62%, transparent) 0%, transparent 40%),
+    color-mix(in oklab, var(--bg-surface) 96%, transparent);
 }
 
 .card-title {
@@ -274,16 +318,22 @@ b,
   color: var(--text-primary);
 }
 
+.btn:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
 .btn-primary {
   border-color: var(--accent);
   background: var(--accent);
-  color: #0c0c0c;
+  color: var(--accent-ink);
+  font-weight: 600;
 }
 
 .btn-primary:hover:not(:disabled) {
-  background: var(--accent-dim);
-  border-color: var(--accent-dim);
-  color: #0c0c0c;
+  background: var(--accent-strong);
+  border-color: var(--accent-strong);
+  color: var(--accent-ink);
+  box-shadow: 0 0 0 1px var(--accent-glow), 0 6px 20px oklch(0.8 0.115 195 / 0.18);
 }
 
 .btn:disabled {
@@ -447,13 +497,14 @@ b,
 
 .data-table thead th {
   text-align: left;
-  font-size: 12px;
+  font-family: var(--font-mono);
+  font-size: 10.5px;
   font-weight: 500;
-  color: var(--text-secondary);
+  color: var(--text-tertiary);
   text-transform: uppercase;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.12em;
   padding: 8px 12px;
-  border-bottom: 1px solid var(--border-subtle);
+  border-bottom: 1px solid var(--border-focus);
 }
 
 .data-table th.sortable {
@@ -463,16 +514,17 @@ b,
 }
 
 .data-table th.sortable:hover {
-  color: var(--text-primary);
+  color: var(--accent);
 }
 
 .data-table tbody tr {
-  border-bottom: 1px solid var(--border-subtle);
-  transition: background 0.15s ease;
+  border-bottom: 1px solid var(--border-hairline);
+  transition: background 0.15s ease, box-shadow 0.15s ease;
 }
 
 .data-table tbody tr:hover {
   background-color: var(--bg-elevated);
+  box-shadow: inset 2px 0 0 var(--accent);
 }
 
 .data-table tbody td {
@@ -499,11 +551,19 @@ b,
 }
 
 .empty-state {
-  border: 1px solid var(--border-subtle);
-  background: var(--bg-surface);
-  padding: 32px;
+  border: 1px dashed var(--border-subtle);
+  background:
+    repeating-linear-gradient(
+      -45deg,
+      transparent 0 12px,
+      color-mix(in oklab, var(--bg-elevated) 45%, transparent) 12px 13px
+    ),
+    var(--bg-surface);
+  padding: 40px 32px;
   text-align: center;
   color: var(--text-secondary);
+  font-family: var(--font-mono);
+  font-size: 13px;
 }
 
 .overview-section {
@@ -1043,25 +1103,33 @@ b,
 }
 
 .stat-tile {
+  position: relative;
   background-color: var(--bg-elevated);
   border: 1px solid var(--border-subtle);
   padding: 16px;
   border-radius: 0;
+  transition: border-color var(--dur-fast) var(--ease-out);
+}
+
+.stat-tile:hover {
+  border-color: var(--border-focus);
 }
 
 .stat-label {
-  font-size: 11px;
+  font-family: var(--font-mono);
+  font-size: 10px;
   font-weight: 500;
-  color: var(--text-secondary);
+  color: var(--text-tertiary);
   text-transform: uppercase;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.12em;
 }
 
 .stat-value {
-  font-size: 18px;
+  font-size: 20px;
   font-weight: 500;
   color: var(--text-primary);
-  margin-top: 4px;
+  margin-top: 6px;
+  line-height: 1.1;
 }
 
 .stat-meta {
@@ -1399,16 +1467,26 @@ b,
 .entity-table td {
   padding: 10px 8px;
   text-align: left;
-  border-bottom: 1px solid var(--border-subtle);
+  border-bottom: 1px solid var(--border-hairline);
 }
 
 .entity-table th {
-  font-size: var(--text-xs);
+  font-size: 10.5px;
   text-transform: uppercase;
-  letter-spacing: 0.04em;
-  color: var(--text-secondary);
+  letter-spacing: 0.12em;
+  color: var(--text-tertiary);
   font-weight: 500;
   white-space: nowrap;
+  border-bottom-color: var(--border-focus);
+}
+
+.entity-table tbody tr {
+  transition: background 0.15s ease, box-shadow 0.15s ease;
+}
+
+.entity-table tbody tr:hover {
+  background: var(--bg-elevated);
+  box-shadow: inset 2px 0 0 var(--accent);
 }
 
 .entity-table-compact th,

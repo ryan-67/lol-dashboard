@@ -112,36 +112,70 @@ export default function Landing() {
     return () => window.cancelAnimationFrame(frame)
   }, [location.hash])
 
+  // Hero choreography + section reveals — runs exactly once on mount
   useGSAP(
     () => {
       const root = rootRef.current
       if (!root) return
       const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches
 
-      scrollEntrance(root.querySelector('.landing-hero-copy'))
-      if (!reduce) scrollEntrance(root.querySelector('.landing-hero-badge'))
+      if (!reduce) {
+        // Masked line reveal, then supporting copy + model readout
+        const tl = gsap.timeline({ defaults: { ease: 'power3.out' } })
+        tl.from(root.querySelectorAll('.landing-hero-line-inner'), {
+          yPercent: 110,
+          duration: 0.85,
+          stagger: 0.09,
+        })
+          .from(
+            root.querySelectorAll('.landing-brand-signal, .landing-hero-sub, .landing-hero-actions, .landing-hero-leagues'),
+            { opacity: 0, y: 14, duration: 0.6, stagger: 0.07 },
+            '-=0.5',
+          )
+          .from(
+            root.querySelector('.landing-hero-readout'),
+            { opacity: 0, y: 18, duration: 0.65 },
+            '-=0.45',
+          )
+        root.querySelectorAll<HTMLElement>('.landing-readout-bar-fill').forEach((bar) => {
+          gsap.from(bar, { scaleX: 0, transformOrigin: 'left center', duration: 1.1, ease: 'power2.out', delay: 0.7 })
+        })
+      }
 
       root.querySelectorAll<HTMLElement>('.landing-section').forEach((section) => {
         scrollEntrance(section.querySelector('.landing-section-head'))
         scrollEntranceStagger(section, '.landing-reveal')
       })
+    },
+    { scope: rootRef },
+  )
 
-      if (!reduce && scorecard) {
-        animateCounter(root.querySelector('[data-counter="accuracy"]'), scorecard.aggregate.model.accuracy * 100, {
-          duration: 1.4,
-          decimals: 1,
-          suffix: '%',
-        })
-        animateCounter(root.querySelector('[data-counter="logloss"]'), scorecard.aggregate.model.log_loss, {
-          duration: 1.4,
-          decimals: 3,
-        })
-        animateCounter(root.querySelector('[data-counter="baseline"]'), scorecard.aggregate.baseline.accuracy * 100, {
-          duration: 1.4,
-          decimals: 1,
-          suffix: '%',
-        })
-      }
+  // Counters — re-run when scorecard data arrives
+  useGSAP(
+    () => {
+      const root = rootRef.current
+      if (!root || !scorecard) return
+      if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
+
+      animateCounter(root.querySelector('[data-counter="hero-acc"]'), scorecard.aggregate.model.accuracy * 100, {
+        duration: 1.6,
+        decimals: 1,
+        suffix: '%',
+      })
+      animateCounter(root.querySelector('[data-counter="accuracy"]'), scorecard.aggregate.model.accuracy * 100, {
+        duration: 1.4,
+        decimals: 1,
+        suffix: '%',
+      })
+      animateCounter(root.querySelector('[data-counter="logloss"]'), scorecard.aggregate.model.log_loss, {
+        duration: 1.4,
+        decimals: 3,
+      })
+      animateCounter(root.querySelector('[data-counter="baseline"]'), scorecard.aggregate.baseline.accuracy * 100, {
+        duration: 1.4,
+        decimals: 1,
+        suffix: '%',
+      })
     },
     { scope: rootRef, dependencies: [scorecard] },
   )
@@ -182,7 +216,20 @@ export default function Landing() {
             <span className="landing-brand-signal-mark" />
           </div>
           <h1 className="landing-hero-title">
-            ratings, trends, and <em>predictions</em> grounded in match data.
+            <span className="landing-hero-line">
+              <span className="landing-hero-line-inner">ratings, trends,</span>
+            </span>
+            <span className="landing-hero-line">
+              <span className="landing-hero-line-inner">
+                and <em>predictions</em>
+              </span>
+            </span>
+            <span className="landing-hero-line">
+              <span className="landing-hero-line-inner">grounded in</span>
+            </span>
+            <span className="landing-hero-line">
+              <span className="landing-hero-line-inner">match data.</span>
+            </span>
           </h1>
           <p className="landing-hero-sub">
             Proprietary model scores over thousands of tier-1 games — then a dashboard and analyst that
@@ -206,12 +253,53 @@ export default function Landing() {
               see features
             </a>
           </div>
+          <div className="landing-hero-leagues" aria-label="League coverage">
+            {['LCK', 'LPL', 'LEC', 'LCS', 'MSI', 'Worlds', 'First Stand'].map((league) => (
+              <span key={league}>{league}</span>
+            ))}
+          </div>
         </div>
 
-        <aside className="landing-hero-badge" aria-label="Model accuracy">
-          <div className="landing-hero-badge-label">walk-forward accuracy</div>
-          <div className="landing-hero-badge-value">{formatPct(acc)}</div>
-          <div className="landing-hero-badge-meta">vs {formatPct(baseAcc)} baseline</div>
+        <aside className="landing-hero-readout" aria-label="Model scorecard">
+          <div className="landing-readout-head">
+            <span className="signal-dot" aria-hidden="true" />
+            <span>model scorecard</span>
+            <span className="landing-readout-tag">walk-forward</span>
+          </div>
+          <div className="landing-readout-value" data-counter="hero-acc">
+            {formatPct(acc)}
+          </div>
+          <div className="landing-readout-caption">
+            prediction accuracy · {holdout.toLocaleString()} holdout games
+          </div>
+          <div className="landing-readout-bars">
+            <div className="landing-readout-bar">
+              <span className="landing-readout-bar-label">nucky model</span>
+              <span className="landing-readout-bar-track">
+                <span
+                  className="landing-readout-bar-fill is-model"
+                  style={{ width: `${(acc * 100).toFixed(1)}%` }}
+                />
+              </span>
+              <span className="landing-readout-bar-num">{formatPct(acc)}</span>
+            </div>
+            <div className="landing-readout-bar">
+              <span className="landing-readout-bar-label">naive baseline</span>
+              <span className="landing-readout-bar-track">
+                <span
+                  className="landing-readout-bar-fill"
+                  style={{ width: `${(baseAcc * 100).toFixed(1)}%` }}
+                />
+              </span>
+              <span className="landing-readout-bar-num">{formatPct(baseAcc)}</span>
+            </div>
+          </div>
+          <div className="landing-readout-foot">
+            <span>log-loss {formatLL(ll)}</span>
+            <span>
+              {dateRange[0]} → {dateRange[1]}
+            </span>
+          </div>
         </aside>
       </section>
 
@@ -271,7 +359,6 @@ export default function Landing() {
 
       <section className="landing-section" id="difference">
         <div className="landing-section-head">
-          <p className="landing-section-label">why nucky is different</p>
           <h2 className="landing-section-title">not a raw table. not a general chatbot.</h2>
           <p className="landing-section-lead">
             nucky connects structured statistics, proprietary models, and domain retrieval so every
@@ -304,7 +391,6 @@ export default function Landing() {
 
       <section className="landing-section" id="features">
         <div className="landing-section-head">
-          <p className="landing-section-label">features</p>
           <h2 className="landing-section-title">one analytics spine, six ways in</h2>
           <p className="landing-section-lead">
             Explore the evidence visually, ask for an explanation, or inspect how the model performed.
@@ -322,7 +408,6 @@ export default function Landing() {
 
       <section className="landing-section" id="use">
         <div className="landing-section-head">
-          <p className="landing-section-label">how to use it</p>
           <h2 className="landing-section-title">move from stat to context</h2>
           <p className="landing-section-lead">
             Start with the free dashboard, follow a player or team signal, then ask nucky to connect
@@ -430,7 +515,6 @@ export default function Landing() {
 
       <section className="landing-section" id="pricing">
         <div className="landing-section-head">
-          <p className="landing-section-label">pricing</p>
           <h2 className="landing-section-title">free analytics. paid analyst.</h2>
           <p className="landing-section-lead">
             Browse the statistics dashboard without an account. Subscribe when you want retrieval,
@@ -487,7 +571,6 @@ export default function Landing() {
 
       <section className="landing-section" id="faq">
         <div className="landing-section-head">
-          <p className="landing-section-label">faq</p>
           <h2 className="landing-section-title">questions, answered</h2>
         </div>
         <div className="landing-faq-list">
@@ -502,7 +585,6 @@ export default function Landing() {
 
       <section className="landing-section" id="about">
         <div className="landing-section-head">
-          <p className="landing-section-label">about</p>
           <h2 className="landing-section-title">built for better LoL esports questions</h2>
           <p className="landing-section-lead">
             Hi, I&apos;m geonbu, a LoL esports fan and solo developer. I built nucky because I wanted

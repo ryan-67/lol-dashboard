@@ -23,9 +23,8 @@
   flex-shrink: 0;
   border-right: 1px solid var(--border-subtle);
   background:
-    linear-gradient(180deg, color-mix(in oklab, var(--bg-elevated) 70%, transparent) 0%, transparent 28%),
-    color-mix(in oklab, var(--bg-surface) 92%, transparent);
-  backdrop-filter: blur(14px);
+    linear-gradient(180deg, color-mix(in oklab, var(--bg-elevated) 55%, transparent) 0%, transparent 22%),
+    var(--bg-inset);
   display: flex;
   flex-direction: column;
   height: 100%;
@@ -103,8 +102,16 @@
   margin-top: 0.25rem;
 }
 
+.app-sidebar-nav-label {
+  margin: 0.6rem 0 0.3rem;
+  padding-left: 0.25rem;
+}
+
 .app-sidebar-link {
-  display: block;
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
   padding: 0.58rem 0.8rem;
   font-size: 0.88rem;
   font-weight: 500;
@@ -118,16 +125,44 @@
     border-color var(--dur-fast) var(--ease-out);
 }
 
+/* signal dot slot — lights up on the active route */
+.app-sidebar-link::before {
+  content: '';
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--border-focus);
+  opacity: 0;
+  transform: scale(0.4);
+  transition:
+    opacity var(--dur-fast) var(--ease-out),
+    transform var(--dur-fast) var(--ease-out),
+    background var(--dur-fast) var(--ease-out);
+  flex-shrink: 0;
+}
+
 .app-sidebar-link:hover {
   color: var(--text-primary);
   background: var(--bg-elevated);
   border-color: var(--border-subtle);
 }
 
+.app-sidebar-link:hover::before {
+  opacity: 0.7;
+  transform: scale(1);
+}
+
 .app-sidebar-link.is-active {
   color: var(--text-primary);
   background: color-mix(in oklab, var(--accent-bg) 70%, var(--bg-elevated));
   border-color: var(--border-accent);
+}
+
+.app-sidebar-link.is-active::before {
+  opacity: 1;
+  transform: scale(1);
+  background: var(--accent);
+  box-shadow: 0 0 8px var(--accent-glow);
 }
 
 .app-sidebar-conversations {
@@ -141,8 +176,9 @@
 }
 
 .app-sidebar-section-label {
-  font-size: 0.65rem;
-  letter-spacing: 0.12em;
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  letter-spacing: 0.16em;
   text-transform: uppercase;
   color: var(--text-tertiary);
   margin: 0.5rem 0 0.45rem;
@@ -505,6 +541,7 @@
 }
 
 .chat-empty {
+  position: relative;
   flex: 1;
   display: flex;
   flex-direction: column;
@@ -514,13 +551,31 @@
   overflow-y: auto;
   overscroll-behavior: contain;
   background:
-    radial-gradient(520px 280px at 50% 20%, var(--accent-bg), transparent 70%);
+    radial-gradient(520px 280px at 50% 22%, var(--accent-bg), transparent 70%);
+}
+
+/* blueprint grid — fades toward the edges, only on the empty state */
+.chat-empty::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image:
+    linear-gradient(color-mix(in oklab, var(--border-subtle) 40%, transparent) 1px, transparent 1px),
+    linear-gradient(90deg, color-mix(in oklab, var(--border-subtle) 40%, transparent) 1px, transparent 1px);
+  background-size: 44px 44px;
+  mask-image: radial-gradient(620px 380px at 50% 32%, black 0%, transparent 78%);
+  opacity: 0.5;
+}
+
+.chat-empty > * {
+  position: relative;
 }
 
 .chat-empty-greeting {
-  font-size: clamp(1.75rem, 3.2vw, 2.4rem);
+  font-size: clamp(1.9rem, 3.4vw, 2.6rem);
   font-weight: 700;
-  letter-spacing: -0.035em;
+  letter-spacing: -0.04em;
   margin: 0 0 0.55rem;
   text-align: center;
   color: var(--text-primary);
@@ -598,7 +653,9 @@
 }
 
 .chat-empty-prompt-slash {
-  color: var(--text-tertiary);
+  color: var(--accent);
+  font-family: var(--font-mono);
+  font-weight: 600;
 }
 
 .chat-empty-prompt-chevron {
@@ -822,6 +879,7 @@
   .app-sidebar-new-chat,
   .entity-search,
   .app-sidebar-link,
+  .app-sidebar-nav-label,
   .app-sidebar-conversations,
   .profile-menu-meta,
   .profile-menu-chevrons {

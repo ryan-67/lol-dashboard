@@ -74,7 +74,9 @@ export default function AppSidebar() {
               dashboard
             </NavLink>
           ) : (
-            DASH_TABS.map((tab) => (
+            <>
+              <p className="app-sidebar-section-label app-sidebar-nav-label">analytics</p>
+              {DASH_TABS.map((tab) => (
               <NavLink
                 key={tab.id}
                 to={dashPath(mode, tab.id)}
@@ -83,7 +85,8 @@ export default function AppSidebar() {
               >
                 {tab.label}
               </NavLink>
-            ))
+              ))}
+            </>
           )}
         </nav>
       </div>
