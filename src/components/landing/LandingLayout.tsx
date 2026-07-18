@@ -29,6 +29,7 @@ export default function LandingLayout({ children }: LandingLayoutProps) {
     { to: '/#faq', label: 'faq' },
     { to: '/#pricing', label: 'pricing' },
     { to: homePath, label: 'open app' },
+    { to: '/contact', label: 'contact' },
   ]
 
   useEffect(() => {
@@ -179,7 +180,10 @@ export default function LandingLayout({ children }: LandingLayoutProps) {
                 </li>
               )}
               <li>
-                <Link to="/nuckyai">nucky</Link>
+                <Link to="/chat">nucky</Link>
+              </li>
+              <li>
+                <Link to="/contact">contact</Link>
               </li>
             </ul>
           </div>
@@ -192,6 +196,9 @@ export default function LandingLayout({ children }: LandingLayoutProps) {
               </li>
               <li>
                 <Link to="/terms">terms</Link>
+              </li>
+              <li>
+                <a href="mailto:geonbu@nucky.gg">geonbu@nucky.gg</a>
               </li>
             </ul>
           </div>

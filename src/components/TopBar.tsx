@@ -5,7 +5,10 @@ import { FilterStripControls, FilterStripShell } from './FilterStrip'
 
 export default function TopBar() {
   const location = useLocation()
-  const isOverview = location.pathname === '/'
+  const isOverview =
+    location.pathname === '/dashboard' ||
+    location.pathname === '/duo' ||
+    location.pathname === '/'
   const {
     lastUpdated,
     leagues,

@@ -127,34 +127,37 @@ export default function PlayerPage() {
         ← Players
       </Link>
 
-      <header className="entity-header">
+      <header className="entity-hero">
         <div>
-          <h1 className="page-title">{player.name}</h1>
-          <p className="entity-subtitle">
+          <p className="page-header-eyebrow">player</p>
+          <h1 className="entity-hero-name">{player.name}</h1>
+          <p className="entity-hero-meta entity-subtitle">
             <TeamLogo name={player.team} size={22} />
             <EntityLink type="team" name={player.team} showIcon={false} /> ·{' '}
             <LeagueLogo league={player.league} size={18} /> {player.league} ·{' '}
-            <span className="text-accent">{role.toUpperCase()}</span>
+            <span>{role.toUpperCase()}</span>
           </p>
         </div>
-        <div className="entity-stat-row">
-          <div className="stat-tile">
-            <div className="stat-value">{formatNum(player.kda, 2)}</div>
-            <div className="stat-label">KDA</div>
+        <div className="dash-kpi-grid" style={{ marginBottom: 0 }}>
+          <div className="dash-kpi">
+            <span className="dash-kpi-label">KDA</span>
+            <span className="dash-kpi-value">{formatNum(player.kda, 2)}</span>
           </div>
-          <div className="stat-tile">
-            <div className="stat-value">{player.games}</div>
-            <div className="stat-label">Games</div>
+          <div className="dash-kpi">
+            <span className="dash-kpi-label">Games</span>
+            <span className="dash-kpi-value">{player.games}</span>
           </div>
-          <div className="stat-tile">
-            <div className="stat-value">
+          <div className="dash-kpi">
+            <span className="dash-kpi-label">W-L</span>
+            <span className="dash-kpi-value">
               {wins}-{losses}
-            </div>
-            <div className="stat-label">W-L</div>
+            </span>
           </div>
-          <div className="stat-tile">
-            <div className="stat-value">{formatPct((wins / Math.max(player.games, 1)) * 100, 1)}</div>
-            <div className="stat-label">Winrate</div>
+          <div className="dash-kpi">
+            <span className="dash-kpi-label">Winrate</span>
+            <span className="dash-kpi-value">
+              {formatPct((wins / Math.max(player.games, 1)) * 100, 1)}
+            </span>
           </div>
         </div>
       </header>

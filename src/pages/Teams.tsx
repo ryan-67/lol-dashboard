@@ -13,6 +13,7 @@ import {
 } from '../components/teams'
 import TeamMetricsTableCard from '../components/teams/TeamMetricsTableCard'
 import { scrollEntranceStagger, refreshScrollTrigger } from '../theme/animations'
+import PageHeader from '../components/ui/PageHeader'
 
 export default function Teams() {
   const { filteredTeams, filteredPlayers, filteredChampions, data, league, split } =
@@ -43,6 +44,11 @@ export default function Teams() {
 
   return (
     <div className="page-section">
+      <PageHeader
+        eyebrow="teams"
+        title="team power & style"
+        subtitle="Radar profiles, head-to-head compares, and objective fingerprints across the filtered split."
+      />
       <TeamFilterBar scope={scope} onScopeChange={setScope} />
 
       {teams.length === 0 ? (

@@ -1,29 +1,30 @@
 :root {
-  /* Backgrounds */
-  --bg-base: #0c0c0c;
-  --bg-surface: #141414;
-  --bg-elevated: #1a1a1a;
+  /* Backgrounds — matte black, cool tint */
+  --bg-base: #0b0c0c;
+  --bg-surface: #121314;
+  --bg-elevated: #181a1b;
 
   /* Borders */
-  --border-subtle: #262626;
-  --border-focus: #3a3a3a;
+  --border-subtle: #2a2c2e;
+  --border-focus: #3f4447;
 
-  /* Text — cool neutrals tinted toward turquoise */
-  --text-primary: #e8eef0;
-  --text-secondary: #8a9a9e;
-  --text-tertiary: #556066;
+  /* Text — cream / off-white for readable hierarchy on black */
+  --text-primary: #f2efe6;
+  --text-secondary: #b8b4a8;
+  --text-tertiary: #7d7a70;
+  --text-accent: var(--text-primary);
 
-  /* Accent — matte turquoise */
-  --accent: oklch(0.72 0.105 195);
-  --accent-dim: oklch(0.57 0.075 195);
-  --accent-bg: oklch(0.72 0.105 195 / 0.09);
+  /* Accent — matte turquoise (sparingly: focus, CTA, chart series) */
+  --accent: oklch(0.72 0.09 195);
+  --accent-dim: oklch(0.55 0.07 195);
+  --accent-bg: oklch(0.72 0.09 195 / 0.08);
 
-  /* Chart role colors — flat, non-neon */
-  --role-top: oklch(0.72 0.105 195);
-  --role-jungle: #7a8c5a;
-  --role-mid: #8a9a9e;
-  --role-adc: #6a7a8c;
-  --role-support: oklch(0.57 0.075 195);
+  /* Chart role colors — mostly neutrals; one accent role */
+  --role-top: #c8c4b8;
+  --role-jungle: #8a9a6a;
+  --role-mid: #a8a49a;
+  --role-adc: #7a8a9a;
+  --role-support: oklch(0.62 0.08 195);
 
   /* Layout */
   --padding-x: 40px;
@@ -199,20 +200,33 @@ b,
   gap: 8px;
   padding: 8px 20px;
   background: transparent;
-  border: 1px solid var(--accent);
-  color: var(--accent);
+  border: 1px solid var(--border-focus);
+  color: var(--text-primary);
   font-family: var(--font-mono);
   font-size: 14px;
   font-weight: 500;
   border-radius: 0;
   cursor: pointer;
-  transition: background 0.15s ease, color 0.15s ease;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
   box-shadow: none;
 }
 
 .btn:hover:not(:disabled) {
+  border-color: var(--accent);
+  background: var(--accent-bg);
+  color: var(--text-primary);
+}
+
+.btn-primary {
+  border-color: var(--accent);
   background: var(--accent);
-  color: var(--bg-base);
+  color: #0c0c0c;
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: var(--accent-dim);
+  border-color: var(--accent-dim);
+  color: #0c0c0c;
 }
 
 .btn:disabled {
@@ -500,7 +514,7 @@ b,
 .overview-stat-cell,
 .overview-stat-tile {
   border: 1px solid var(--border-subtle);
-  background: color-mix(in oklab, var(--bg-elevated) 88%, var(--accent) 12%);
+  background: var(--bg-elevated);
   padding: 10px 12px;
   transition: border-color 160ms ease, background-color 160ms ease, transform 160ms ease;
 }
@@ -509,8 +523,8 @@ b,
 .overview-stat-tile:hover,
 .overview-totw-card:hover,
 .overview-best-game-row:hover {
-  border-color: color-mix(in oklab, var(--accent) 45%, var(--border-subtle));
-  background: color-mix(in oklab, var(--bg-elevated) 80%, var(--accent) 20%);
+  border-color: var(--border-focus);
+  background: var(--bg-surface);
 }
 
 .overview-stat-cell:hover,
@@ -532,7 +546,7 @@ b,
   font-size: 22px;
   line-height: 1.1;
   font-variant-numeric: tabular-nums;
-  color: var(--accent);
+  color: var(--text-primary);
   font-family: var(--font-mono);
 }
 
@@ -541,12 +555,11 @@ b,
 }
 
 .overview-hub-card {
-  transition: border-color 160ms ease, box-shadow 160ms ease;
+  transition: border-color 160ms ease;
 }
 
 .overview-hub-card:hover {
-  border-color: color-mix(in oklab, var(--accent) 28%, var(--border-subtle));
-  box-shadow: 0 0 0 1px color-mix(in oklab, var(--accent) 12%, transparent);
+  border-color: var(--border-focus);
 }
 
 .overview-recap-list {
@@ -760,7 +773,7 @@ b,
   display: block;
   margin-top: 4px;
   font-size: 12px;
-  color: var(--accent);
+  color: var(--text-primary);
 }
 
 .overview-weekly-radar {
@@ -875,7 +888,7 @@ b,
 .overview-metric-value {
   font-size: 28px;
   line-height: 1;
-  color: var(--accent);
+  color: var(--text-primary);
 }
 
 .metric-hint {
@@ -1993,8 +2006,12 @@ b,
   height: 3px;
 }
 
-/* Utilities */
+/* Utilities — accent text stays cream for readability; use .color-accent for turquoise */
 .text-accent {
+  color: var(--text-primary);
+}
+
+.color-accent {
   color: var(--accent);
 }
 

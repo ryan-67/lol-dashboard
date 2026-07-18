@@ -1,7 +1,16 @@
 @import './theme/tokens.css';
 @import './theme/landing.css';
 @import './theme/shell.css';
+@import './theme/dashboard.css';
 @import 'lenis/dist/lenis.css';
+
+/* App shell uses nested overflow panes — disable document scroll bounce */
+html.app-shell-scroll,
+html.app-shell-scroll body {
+  height: 100%;
+  overflow: hidden;
+  overscroll-behavior: none;
+}
 
 @tailwind base;
 @tailwind components;

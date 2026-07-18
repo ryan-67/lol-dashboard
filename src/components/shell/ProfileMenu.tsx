@@ -1,31 +1,15 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
-import { fetchSubscriptionState } from '../../lib/subscription'
+import { useProfile } from '../../context/ProfileContext'
 import AuthModal from '../AuthModal'
 
 export default function ProfileMenu() {
   const { user, loading, signOut } = useAuth()
+  const { profile } = useProfile()
   const [open, setOpen] = useState(false)
   const [showAuth, setShowAuth] = useState(false)
-  const [username, setUsername] = useState<string | null>(null)
   const wrapRef = useRef<HTMLDivElement>(null)
-
-  useEffect(() => {
-    let mounted = true
-    async function load() {
-      if (!user) {
-        if (mounted) setUsername(null)
-        return
-      }
-      const { profile } = await fetchSubscriptionState(user.id)
-      if (mounted) setUsername((profile?.username as string | null) ?? null)
-    }
-    void load()
-    return () => {
-      mounted = false
-    }
-  }, [user])
 
   useEffect(() => {
     if (!open) return
@@ -49,6 +33,7 @@ export default function ProfileMenu() {
     )
   }
 
+  const username = profile?.username ?? null
   const initial = (username ?? user.email ?? 'n').slice(0, 1).toUpperCase()
   const displayName = username ? `@${username}` : user.email ?? 'account'
 
@@ -62,17 +47,12 @@ export default function ProfileMenu() {
             </span>
             settings
           </Link>
-          <a
-            href="mailto:geonbu@nucky.gg?subject=nucky%20feedback"
-            className="profile-menu-item"
-            role="menuitem"
-            onClick={() => setOpen(false)}
-          >
+          <Link to="/contact" className="profile-menu-item" role="menuitem" onClick={() => setOpen(false)}>
             <span className="profile-menu-icon" aria-hidden>
               ✎
             </span>
-            a problem? an idea?
-          </a>
+            contact
+          </Link>
           <button
             type="button"
             className="profile-menu-item"

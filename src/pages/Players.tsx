@@ -23,6 +23,7 @@ import PlayerMetricsTableCard from '../components/players/PlayerMetricsTableCard
 import { playerKey, resolveDefaultPlayerKey } from '../lib/playerAnalytics'
 import { scrollEntranceStagger, refreshScrollTrigger } from '../theme/animations'
 import { supabase } from '../lib/supabaseClient'
+import PageHeader from '../components/ui/PageHeader'
 
 export default function Players() {
   const { user } = useAuth()
@@ -126,6 +127,11 @@ export default function Players() {
 
   return (
     <div className="page-section">
+      <PageHeader
+        eyebrow="players"
+        title="player rankings & form"
+        subtitle="Role radars, form trajectories, champion pools, and consistency — filtered by league and split."
+      />
       <RoleFilterBar value={roleFilter} onChange={setRoleFilter} />
 
       {radarPlayers.length === 0 ? (

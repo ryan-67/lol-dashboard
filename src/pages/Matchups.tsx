@@ -10,6 +10,7 @@ import {
 } from '../components/matchups'
 import { TeamLogo } from '../components/entities'
 import { isTier1Player, isTier1Team } from '../lib/mergeSlices'
+import PageHeader from '../components/ui/PageHeader'
 
 export default function Matchups() {
   const { data, loading, filteredTeams, filteredPlayers, filteredChampions } = useDashboard()
@@ -69,7 +70,11 @@ export default function Matchups() {
 
   return (
     <div className="page-section">
-      <h2 className="page-title">Team Matchup Comparison</h2>
+      <PageHeader
+        eyebrow="matchups"
+        title="team matchup comparison"
+        subtitle="Compare structure, lane matchups, and priority champions between two teams."
+      />
 
       <div className="matchup-controls">
         <Select

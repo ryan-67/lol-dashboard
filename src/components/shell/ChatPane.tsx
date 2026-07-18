@@ -2,6 +2,7 @@ import AuthModal from '../AuthModal'
 import NuckyAiPaywall from '../nuckyai/NuckyAiPaywall'
 import ChatWindow from '../nuckyai/ChatWindow'
 import { useChatSession } from '../../context/ChatSessionContext'
+import { useProfile } from '../../context/ProfileContext'
 
 interface ChatPaneProps {
   /** When true, fill available height without outer card chrome */
@@ -10,6 +11,9 @@ interface ChatPaneProps {
 
 export default function ChatPane({ embedded = false }: ChatPaneProps) {
   const chat = useChatSession()
+  const { profile } = useProfile()
+  const displayName =
+    profile?.username ?? chat.profile?.username ?? chat.user?.email?.split('@')[0] ?? undefined
 
   if (!chat.user) {
     return (
@@ -58,7 +62,7 @@ export default function ChatPane({ embedded = false }: ChatPaneProps) {
         onRetry={chat.regenerate}
         onStop={chat.stop}
         inputFocusTrigger={chat.inputFocusTrigger || 1}
-        displayName={chat.profile?.username ?? chat.user.email?.split('@')[0] ?? undefined}
+        displayName={displayName}
       />
     </div>
   )

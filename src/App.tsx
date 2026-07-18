@@ -7,6 +7,7 @@ import { DashboardProvider } from './context/DashboardContext'
 import { AuthProvider, useAuth } from './context/AuthContext'
 import { TimezoneProvider } from './context/TimezoneContext'
 import { ViewPreferenceProvider, useViewPreference } from './context/ViewPreferenceContext'
+import { ProfileProvider } from './context/ProfileContext'
 import { ChatSessionProvider } from './context/ChatSessionContext'
 import LandingLayout from './components/landing/LandingLayout'
 import AppShell from './components/shell/AppShell'
@@ -27,17 +28,34 @@ import TournamentPage from './pages/entities/TournamentPage'
 import SeriesPage from './pages/entities/SeriesPage'
 import PrivatePolicy from './pages/PrivatePolicy'
 import Terms from './pages/Terms'
+import Contact from './pages/Contact'
 import UserProfile from './pages/UserProfile'
 import AuthCallback from './pages/AuthCallback'
 import ResetPassword from './pages/ResetPassword'
+
+const APP_SHELL_PREFIXES = ['/duo', '/chat', '/dashboard', '/profile', '/contact']
+
+function isAppShellPath(pathname: string): boolean {
+  return APP_SHELL_PREFIXES.some((p) => pathname === p || pathname.startsWith(`${p}/`))
+}
 
 gsap.registerPlugin(ScrollTrigger)
 
 function SmoothScroll({ children }: { children: React.ReactNode }) {
   const location = useLocation()
   const lenisRef = useRef<Lenis | null>(null)
+  const appShell = isAppShellPath(location.pathname)
 
   useEffect(() => {
+    // Nested scroll panes in the app shell break under document-level Lenis.
+    if (appShell) {
+      document.documentElement.classList.add('app-shell-scroll')
+      return () => {
+        document.documentElement.classList.remove('app-shell-scroll')
+      }
+    }
+
+    document.documentElement.classList.remove('app-shell-scroll')
     const lenis = new Lenis({
       lerp: 0.1,
       duration: 1.2,
@@ -76,14 +94,15 @@ function SmoothScroll({ children }: { children: React.ReactNode }) {
       lenis.destroy()
       lenisRef.current = null
     }
-  }, [])
+  }, [appShell])
 
   useEffect(() => {
+    if (appShell) return
     const lenis = lenisRef.current
     if (lenis) lenis.scrollTo(0, { immediate: true })
     else window.scrollTo(0, 0)
     ScrollTrigger.refresh()
-  }, [location.pathname])
+  }, [location.pathname, appShell])
 
   return <>{children}</>
 }
@@ -179,6 +198,7 @@ function AppRoutes() {
         </Route>
 
         <Route path="/profile" element={<UserProfile />} />
+        <Route path="/contact" element={<Contact />} />
       </Route>
 
       <Route path="/nuckyai" element={<Navigate to="/chat" replace />} />
@@ -210,13 +230,15 @@ function App() {
   return (
     <AuthProvider>
       <TimezoneProvider>
-        <ViewPreferenceProvider>
-          <DashboardProvider>
-            <SmoothScroll>
-              <AppRoutes />
-            </SmoothScroll>
-          </DashboardProvider>
-        </ViewPreferenceProvider>
+        <ProfileProvider>
+          <ViewPreferenceProvider>
+            <DashboardProvider>
+              <SmoothScroll>
+                <AppRoutes />
+              </SmoothScroll>
+            </DashboardProvider>
+          </ViewPreferenceProvider>
+        </ProfileProvider>
       </TimezoneProvider>
     </AuthProvider>
   )

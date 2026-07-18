@@ -7,7 +7,7 @@ export default function DuoLayout() {
       <div className="duo-chat">
         <ChatPane embedded />
       </div>
-      <div className="duo-dashboard">
+      <div className="duo-dashboard" data-lenis-prevent>
         <DashboardFrame />
       </div>
     </div>

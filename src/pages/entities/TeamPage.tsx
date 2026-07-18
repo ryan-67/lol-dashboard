@@ -287,27 +287,28 @@ export default function TeamPage() {
         ← Teams
       </Link>
 
-      <header className="entity-header">
+      <header className="entity-hero">
         <div>
-          <h1 className="page-title entity-title-row">
+          <p className="page-header-eyebrow">team</p>
+          <h1 className="entity-hero-name entity-title-row">
             <TeamLogo name={team.name} size={32} />
             {team.name}
           </h1>
-          <p className="entity-subtitle">
+          <p className="entity-hero-meta entity-subtitle">
             <LeagueLogo league={team.league} size={20} />
             {team.league}
           </p>
         </div>
-        <div className="entity-stat-row">
-          <div className="stat-tile">
-            <div className="stat-value">{formatPct(team.winrate, 1)}</div>
-            <div className="stat-label">Winrate</div>
+        <div className="dash-kpi-grid" style={{ marginBottom: 0 }}>
+          <div className="dash-kpi">
+            <span className="dash-kpi-label">Winrate</span>
+            <span className="dash-kpi-value">{formatPct(team.winrate, 1)}</span>
           </div>
-          <div className="stat-tile">
-            <div className="stat-value">
+          <div className="dash-kpi">
+            <span className="dash-kpi-label">Record</span>
+            <span className="dash-kpi-value">
               {team.wins}-{team.losses}
-            </div>
-            <div className="stat-label">Record</div>
+            </span>
           </div>
         </div>
       </header>

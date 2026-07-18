@@ -20,6 +20,7 @@ import {
 import SortableTh from '../components/ui/SortableTh'
 import { ChampionEntityInline } from '../components/entities'
 import { refreshScrollTrigger } from '../theme/animations'
+import PageHeader from '../components/ui/PageHeader'
 
 export default function Champions() {
   const { filteredChampions, league, split } = useDashboard()
@@ -71,6 +72,11 @@ export default function Champions() {
 
   return (
     <div className="page-section">
+      <PageHeader
+        eyebrow="champions"
+        title="meta & performance"
+        subtitle="Presence, winrate, OP spotlight, and rising/falling trends for the current filter."
+      />
       <RoleFilterBar value={roleFilter} onChange={setRoleFilter} />
 
       {roleFiltered.length === 0 ? (

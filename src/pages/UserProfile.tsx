@@ -15,6 +15,7 @@ import {
   type AgentUsageMonthly,
 } from '../lib/agentUsage'
 import { useViewPreference } from '../context/ViewPreferenceContext'
+import { useProfile } from '../context/ProfileContext'
 import { type DefaultView } from '../lib/viewPreference'
 
 interface ProfileSettingsRow {
@@ -47,6 +48,7 @@ export default function UserProfile() {
   const { filteredPlayers, filteredTeams } = useDashboard()
   const { timezone, setTimezone, timezoneOptions } = useTimezone()
   const { defaultView, setDefaultView } = useViewPreference()
+  const { applyLocalProfile, refreshProfile } = useProfile()
   const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState(false)
   const [billingLoading, setBillingLoading] = useState(false)
@@ -157,17 +159,50 @@ export default function UserProfile() {
   const save = useCallback(async () => {
     if (!user) return
     setSaving(true)
-    const cleanUsername = username.trim()
-    const payload = {
-      id: user.id,
+    setSavedMsg(null)
+    const cleanUsername = username.trim().replace(/^@+/, '').toLowerCase()
+    if (cleanUsername && !/^[a-z0-9_]{2,24}$/.test(cleanUsername)) {
+      setSaving(false)
+      setSavedMsg('username: 2–24 chars, letters/numbers/underscore only.')
+      return
+    }
+
+    // Prefer update (preserves other columns); fall back to insert for new profiles.
+    const fields = {
       username: cleanUsername || null,
       favorite_player: favoritePlayer.trim() || null,
       favorite_team: favoriteTeam.trim() || null,
+      default_view: homeView,
     }
-    const { error } = await supabase.from('profiles').upsert(payload, { onConflict: 'id' })
+
+    const { data: updated, error: updateError } = await supabase
+      .from('profiles')
+      .update(fields)
+      .eq('id', user.id)
+      .select('id, username')
+      .maybeSingle()
+
+    let error = updateError
+    if (!error && !updated) {
+      const { error: insertError } = await supabase.from('profiles').insert({
+        id: user.id,
+        ...fields,
+      })
+      error = insertError
+    }
+
     if (!error) {
+      applyLocalProfile({
+        id: user.id,
+        username: cleanUsername || null,
+        favorite_player: favoritePlayer.trim() || null,
+        favorite_team: favoriteTeam.trim() || null,
+      })
       await setDefaultView(homeView)
+      await refreshProfile()
+      setUsername(cleanUsername)
     }
+
     setSaving(false)
     if (error) {
       if (error.code === '23505') {
@@ -179,7 +214,16 @@ export default function UserProfile() {
     }
     setSavedMsg('profile updated.')
     window.setTimeout(() => setSavedMsg(null), 1800)
-  }, [favoritePlayer, favoriteTeam, homeView, setDefaultView, user, username])
+  }, [
+    applyLocalProfile,
+    favoritePlayer,
+    favoriteTeam,
+    homeView,
+    refreshProfile,
+    setDefaultView,
+    user,
+    username,
+  ])
 
   const subscribe = useCallback(async () => {
     setBillingLoading(true)

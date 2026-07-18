@@ -129,36 +129,37 @@ export default function ChampionPage() {
         ← Champions
       </Link>
 
-      <header className="entity-header">
+      <header className="entity-hero">
         <div>
-          <h1 className="page-title entity-title-row">
+          <p className="page-header-eyebrow">champion</p>
+          <h1 className="entity-hero-name entity-title-row">
             <ChampionIcon name={champion.name} size={40} />
             {champion.name}
           </h1>
-          <p className="entity-subtitle">{roleSubtitle}</p>
+          <p className="entity-hero-meta entity-subtitle">{roleSubtitle}</p>
         </div>
-        <div className="entity-stat-row">
-          <div className="stat-tile">
-            <div className="stat-value">{formatPct(presence, 1)}</div>
-            <div className="stat-label">Presence</div>
+        <div className="dash-kpi-grid" style={{ marginBottom: 0 }}>
+          <div className="dash-kpi">
+            <span className="dash-kpi-label">Presence</span>
+            <span className="dash-kpi-value">{formatPct(presence, 1)}</span>
           </div>
-          <div className="stat-tile">
-            <div className="stat-value">{formatPct(pickRate, 1)}</div>
-            <div className="stat-label">Pick Rate</div>
+          <div className="dash-kpi">
+            <span className="dash-kpi-label">Pick</span>
+            <span className="dash-kpi-value">{formatPct(pickRate, 1)}</span>
           </div>
-          <div className="stat-tile">
-            <div className="stat-value">{formatPct(banRate, 1)}</div>
-            <div className="stat-label">Ban Rate</div>
+          <div className="dash-kpi">
+            <span className="dash-kpi-label">Ban</span>
+            <span className="dash-kpi-value">{formatPct(banRate, 1)}</span>
           </div>
-          <div className="stat-tile">
-            <div className="stat-value">
+          <div className="dash-kpi">
+            <span className="dash-kpi-label">Winrate</span>
+            <span className="dash-kpi-value">{formatPct(champion.winrate, 1)}</span>
+          </div>
+          <div className="dash-kpi">
+            <span className="dash-kpi-label">Priority</span>
+            <span className="dash-kpi-value">
               {priorityScore != null ? priorityScore.toFixed(1) : '—'}
-            </div>
-            <div className="stat-label">Priority Score</div>
-          </div>
-          <div className="stat-tile">
-            <div className="stat-value">{formatPct(champion.winrate, 1)}</div>
-            <div className="stat-label">Winrate</div>
+            </span>
           </div>
         </div>
       </header>

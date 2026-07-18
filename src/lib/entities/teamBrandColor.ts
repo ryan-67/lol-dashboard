@@ -18,7 +18,7 @@ function radarColorOverride(teamName: string): string | null {
 
 /** Primary brand color from synced LoL Esports logo manifest, else league color. */
 export function teamBrandColor(teamName: string, league?: string): string {
-  return teamBrandColorFromName(teamName) ?? (league ? leagueColor(league) : '#c5a059')
+  return teamBrandColorFromName(teamName) ?? (league ? leagueColor(league) : '#f2efe6')
 }
 
 function parseHex(hex: string): { r: number; g: number; b: number } | null {

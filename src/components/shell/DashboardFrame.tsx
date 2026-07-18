@@ -5,6 +5,7 @@ import { useDashboard } from '../../context/DashboardContext'
 export default function DashboardFrame() {
   const { loading, error } = useDashboard()
   const location = useLocation()
+  const inDuo = location.pathname.startsWith('/duo')
 
   const isEntityPage =
     /\/(players|teams|champions|tournaments)\/[^/]+/.test(location.pathname) ||
@@ -22,13 +23,20 @@ export default function DashboardFrame() {
   const shouldShowTopBar = isListTab && !isEntityPage
 
   return (
-    <div className="dashboard-frame">
-      {shouldShowTopBar ? <TopBar /> : null}
-      {isEntityPage ? (
-        <>
-          <div id="entity-filter-slot" />
-          <div id="entity-tab-slot" />
-        </>
+    <div
+      className={`dashboard-frame${inDuo ? '' : ' dashboard-frame--scroll'}`}
+      data-lenis-prevent
+    >
+      {shouldShowTopBar || isEntityPage ? (
+        <div className="dashboard-frame-filters">
+          {shouldShowTopBar ? <TopBar /> : null}
+          {isEntityPage ? (
+            <>
+              <div id="entity-filter-slot" />
+              <div id="entity-tab-slot" />
+            </>
+          ) : null}
+        </div>
       ) : null}
 
       <div className="dashboard-frame-main">
