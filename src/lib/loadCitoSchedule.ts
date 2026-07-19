@@ -54,7 +54,7 @@ function isInternationalScheduleRow(row: CitoScheduleRow): boolean {
   const hay = `${row.league} ${row.tournament_name ?? ''} ${row.block_name ?? ''}`.toLowerCase()
   return (
     INTERNATIONAL_SCHEDULE_LEAGUES.has(row.league) ||
-    /\bmsi\b|\bworlds\b|first\s*stand/.test(hay)
+    /\bmsi\b|\bworlds\b|first\s*stand|\bewc\b|esports\s*world\s*cup/.test(hay)
   )
 }
 
@@ -143,18 +143,45 @@ async function fetchUpcomingSchedulePool(now: string): Promise<CitoScheduleRow[]
 }
 
 /**
- * Confirmed upcoming series for the Predictions board (both teams named).
- * International + tier-1 domestics; TBD brackets excluded.
+ * Upcoming series for the Predictions board.
+ * Merges Cito/lolesports sync with external caches (Leaguepedia EWC, etc.).
+ * Confirmed matchups preferred; future international TBD bracket slots kept so
+ * EWC finals remain visible before teams are locked.
  */
 export async function fetchUpcomingCitoScheduleBoard(options?: {
   limit?: number
 }): Promise<CitoScheduleRow[]> {
   const limit = options?.limit ?? 120
   const now = new Date().toISOString()
-  const allRows = await fetchUpcomingSchedulePool(now)
-  return allRows
-    .filter((row) => isConfirmedRow(row))
-    .filter((row) => ['scheduled', 'live', 'unstarted'].includes(row.status.toLowerCase()))
+  const byId = new Map<string, CitoScheduleRow>()
+
+  for (const row of await fetchUpcomingSchedulePool(now)) {
+    byId.set(row.match_id, row)
+  }
+
+  try {
+    const { fetchExternalScheduleRows } = await import('./loadExternalSchedule')
+    for (const row of await fetchExternalScheduleRows()) {
+      if (!row.scheduled_at || row.scheduled_at < now) continue
+      // Prefer Cito row when both exist; external fills Riot-blind events (EWC).
+      if (!byId.has(row.match_id)) byId.set(row.match_id, row)
+    }
+  } catch {
+    /* external cache optional */
+  }
+
+  const merged = [...byId.values()].sort((a, b) =>
+    (a.scheduled_at ?? '').localeCompare(b.scheduled_at ?? ''),
+  )
+
+  return merged
+    .filter((row) => {
+      const status = row.status.toLowerCase()
+      if (!['scheduled', 'live', 'unstarted', 'tbd'].includes(status)) return false
+      if (isConfirmedRow(row)) return true
+      // Keep upcoming international TBD slots (EWC GF / 3rd) visible under All Tier-1.
+      return isInternationalScheduleRow(row) && status === 'tbd'
+    })
     .slice(0, limit)
 }
 

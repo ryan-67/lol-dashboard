@@ -1,0 +1,51 @@
+{
+  "source": "leaguepedia+liquipedia",
+  "generatedAt": "2026-07-19T01:00:00.000Z",
+  "notes": "EWC is not on Riot/lolesports Cito feeds. Refreshed by npm run sync:external-schedule.",
+  "rows": [
+    {
+      "match_id": "ewc-2026-sf-t1-kc",
+      "league": "EWC",
+      "tournament_name": "Esports World Cup 2026",
+      "team_a": "T1",
+      "team_b": "Karmine Corp",
+      "scheduled_at": "2026-07-18T09:00:00+00:00",
+      "status": "unstarted",
+      "block_name": "Playoffs Semifinals",
+      "best_of": 3
+    },
+    {
+      "match_id": "ewc-2026-sf-geng-dk",
+      "league": "EWC",
+      "tournament_name": "Esports World Cup 2026",
+      "team_a": "Gen.G",
+      "team_b": "Dplus Kia",
+      "scheduled_at": "2026-07-18T11:30:00+00:00",
+      "status": "unstarted",
+      "block_name": "Playoffs Semifinals",
+      "best_of": 3
+    },
+    {
+      "match_id": "ewc-2026-3rd",
+      "league": "EWC",
+      "tournament_name": "Esports World Cup 2026",
+      "team_a": "TBD",
+      "team_b": "TBD",
+      "scheduled_at": "2026-07-19T08:00:00+00:00",
+      "status": "tbd",
+      "block_name": "Third-Place Match",
+      "best_of": 3
+    },
+    {
+      "match_id": "ewc-2026-gf",
+      "league": "EWC",
+      "tournament_name": "Esports World Cup 2026",
+      "team_a": "TBD",
+      "team_b": "TBD",
+      "scheduled_at": "2026-07-19T10:30:00+00:00",
+      "status": "tbd",
+      "block_name": "Grand Final",
+      "best_of": 5
+    }
+  ]
+}

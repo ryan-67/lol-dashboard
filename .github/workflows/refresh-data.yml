@@ -192,6 +192,10 @@ jobs:
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
         run: npm run sync:cito-schedule
 
+      - name: Sync external schedules (Leaguepedia EWC, etc.)
+        continue-on-error: true
+        run: npm run sync:external-schedule
+
       - name: Generate weekly recap summaries
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
@@ -303,6 +307,10 @@ jobs:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
         run: npm run sync:cito-schedule
+
+      - name: Sync external schedules (Leaguepedia EWC, etc.)
+        continue-on-error: true
+        run: npm run sync:external-schedule
 
       - name: Generate weekly recap summaries
         env:

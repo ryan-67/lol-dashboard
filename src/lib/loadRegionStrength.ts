@@ -17,20 +17,33 @@ export interface RegionStrengthBundle {
 }
 
 let cache: RegionStrengthBundle | null = null
+let cacheAt = 0
 let inflight: Promise<RegionStrengthBundle | null> | null = null
 
-export async function fetchRegionStrength(): Promise<RegionStrengthBundle | null> {
-  if (cache) return cache
+/** Re-fetch model artifacts periodically so Predictions odds track retrain exports. */
+const ARTIFACT_TTL_MS = 5 * 60_000
+
+export function invalidateRegionStrengthCache(): void {
+  cache = null
+  cacheAt = 0
+}
+
+export async function fetchRegionStrength(opts?: {
+  force?: boolean
+}): Promise<RegionStrengthBundle | null> {
+  const stale = !cache || Date.now() - cacheAt > ARTIFACT_TTL_MS
+  if (cache && !stale && !opts?.force) return cache
   if (inflight) return inflight
 
-  inflight = fetch('/data/region_strength.json')
+  inflight = fetch(`/data/region_strength.json?t=${Date.now()}`, { cache: 'no-store' })
     .then(async (res) => {
-      if (!res.ok) return null
+      if (!res.ok) return cache
       const data = (await res.json()) as RegionStrengthBundle
       cache = data
+      cacheAt = Date.now()
       return data
     })
-    .catch(() => null)
+    .catch(() => cache)
     .finally(() => {
       inflight = null
     })

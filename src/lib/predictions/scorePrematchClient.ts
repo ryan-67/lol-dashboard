@@ -174,8 +174,12 @@ export function tournamentDisplayName(row: CitoScheduleRow): string {
 
 export async function buildPredictionBoard(
   rows: CitoScheduleRow[],
+  opts?: { forceArtifacts?: boolean },
 ): Promise<PredictionBoardRow[]> {
-  const [region, ratings] = await Promise.all([fetchRegionStrength(), fetchPlayerRatings()])
+  const [region, ratings] = await Promise.all([
+    fetchRegionStrength({ force: opts?.forceArtifacts }),
+    fetchPlayerRatings({ force: opts?.forceArtifacts }),
+  ])
   return rows.map((row) => {
     const bestOf = resolveSeriesBestOf(row)
     return {

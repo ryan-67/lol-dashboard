@@ -2,6 +2,7 @@ public/data/*
 !public/data/oe_slices.json
 !public/data/oe_slices_*.json
 !public/data/cito_schedule_cache.json
+!public/data/external_schedule_cache.json
 !public/data/gol_game_cache.json
 !public/data/accuracy_scorecard.json
 !public/data/player_ratings.json

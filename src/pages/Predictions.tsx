@@ -1,45 +1,41 @@
-import { useEffect, useMemo, useState } from 'react'
-import { Link, useLocation } from 'react-router-dom'
+import { useEffect, useState } from 'react'
 import PageHeader from '../components/ui/PageHeader'
 import NuckyAiPaywall from '../components/nuckyai/NuckyAiPaywall'
 import AuthModal from '../components/AuthModal'
-import { EntityLink, TeamLogo } from '../components/entities'
 import { useOptionalChatSession } from '../context/ChatSessionContext'
-import {
-  fetchUpcomingCitoScheduleBoard,
-} from '../lib/loadCitoSchedule'
-import {
-  PREDICTION_LEAGUE_FILTERS,
-  matchesPredictionLeagueFilter,
-  type PredictionLeagueFilter,
-} from '../lib/predictions/leagueFilter'
-import {
-  buildPredictionBoard,
-  formatModelOdds,
-  type PredictionBoardRow,
-} from '../lib/predictions/scorePrematchClient'
 import {
   fetchAccuracyScorecard,
   formatPct,
   type AccuracyScorecard,
 } from '../lib/accuracyScorecard'
-import { formatProfileDate } from '../lib/format'
-import { shellAwarePath } from '../lib/shellPath'
+import PredictionScheduleTab from '../components/predictions/PredictionScheduleTab'
+import PredictionAnalysisTab from '../components/predictions/PredictionAnalysisTab'
+import {
+  PredictionChampionRankings,
+  PredictionPlayerRankings,
+  PredictionTeamRankings,
+} from '../components/predictions/PredictionRankingsPanels'
 
-function previewPath(matchId: string, pathname: string): string {
-  return shellAwarePath(`/predictions/${encodeURIComponent(matchId)}`, pathname)
-}
+type ModelTab =
+  | 'schedule'
+  | 'team-rankings'
+  | 'player-rankings'
+  | 'champion-rankings'
+  | 'analysis'
+
+const MODEL_TABS: { id: ModelTab; label: string }[] = [
+  { id: 'schedule', label: 'Schedule' },
+  { id: 'team-rankings', label: 'Team rankings' },
+  { id: 'player-rankings', label: 'Player rankings' },
+  { id: 'champion-rankings', label: 'Champion rankings' },
+  { id: 'analysis', label: 'Analysis' },
+]
 
 export default function Predictions() {
-  const location = useLocation()
   const chat = useOptionalChatSession()
   const isSubscribed = Boolean(chat?.isSubscribed)
   const subscriptionReady = chat?.subscriptionReady !== false
-
-  const [filter, setFilter] = useState<PredictionLeagueFilter>('all')
-  const [rows, setRows] = useState<PredictionBoardRow[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const [tab, setTab] = useState<ModelTab>('schedule')
   const [scorecard, setScorecard] = useState<AccuracyScorecard | null>(null)
 
   useEffect(() => {
@@ -51,52 +47,6 @@ export default function Predictions() {
       alive = false
     }
   }, [])
-
-  useEffect(() => {
-    if (!isSubscribed) {
-      setLoading(false)
-      return
-    }
-    let alive = true
-    setLoading(true)
-    setError(null)
-    void (async () => {
-      try {
-        const schedule = await fetchUpcomingCitoScheduleBoard({ limit: 150 })
-        const board = await buildPredictionBoard(schedule)
-        if (!alive) return
-        setRows(board)
-      } catch (err) {
-        if (!alive) return
-        setError(err instanceof Error ? err.message : 'failed to load schedule')
-      } finally {
-        if (alive) setLoading(false)
-      }
-    })()
-    return () => {
-      alive = false
-    }
-  }, [isSubscribed])
-
-  const filtered = useMemo(
-    () =>
-      rows.filter((row) =>
-        matchesPredictionLeagueFilter(
-          {
-            match_id: row.matchId,
-            league: row.league,
-            tournament_name: row.tournament,
-            team_a: row.teamA,
-            team_b: row.teamB,
-            scheduled_at: row.scheduledAt,
-            status: 'scheduled',
-            block_name: null,
-          },
-          filter,
-        ),
-      ),
-    [rows, filter],
-  )
 
   if (!subscriptionReady) {
     return (
@@ -110,9 +60,9 @@ export default function Predictions() {
     return (
       <div className="page-section predictions-page">
         <PageHeader
-          eyebrow="predictions"
-          title="prediction model"
-          subtitle="Upcoming tier-1 series with nucky model odds — subscribe for access."
+          eyebrow="nucky prediction model"
+          title="nucky prediction model"
+          subtitle="Schedule board, model power rankings, and pre-match analysis — subscribe for access."
         />
         <NuckyAiPaywall
           onAction={() => {
@@ -127,12 +77,9 @@ export default function Predictions() {
                 : 'subscribe for access'
           }
           actionDisabled={Boolean(chat?.checkoutLoading)}
-          footnote="Predictions are analytics, not betting advice. Kalshi odds shown for comparison only when available."
+          footnote="Predictions are analytics, not betting advice. Kalshi odds are display-only."
         />
-        <AuthModal
-          open={Boolean(chat?.showAuth)}
-          onClose={() => chat?.setShowAuth(false)}
-        />
+        <AuthModal open={Boolean(chat?.showAuth)} onClose={() => chat?.setShowAuth(false)} />
       </div>
     )
   }
@@ -140,9 +87,9 @@ export default function Predictions() {
   return (
     <div className="page-section predictions-page">
       <PageHeader
-        eyebrow="predictions"
-        title="prediction model"
-        subtitle="Confirmed upcoming series — model odds from nucky team Elo (Kalshi display-only)."
+        eyebrow="nucky prediction model"
+        title="nucky prediction model"
+        subtitle="Upcoming series with live Kalshi comparison, model odds that track retrain artifacts, and current power boards."
       />
 
       {scorecard ? (
@@ -158,80 +105,26 @@ export default function Predictions() {
         </div>
       ) : null}
 
-      <div className="predictions-filters" role="tablist" aria-label="League filter">
-        {PREDICTION_LEAGUE_FILTERS.map((item) => (
+      <div className="predictions-model-tabs" role="tablist" aria-label="Prediction model sections">
+        {MODEL_TABS.map((item) => (
           <button
             key={item.id}
             type="button"
             role="tab"
-            aria-selected={filter === item.id}
-            className={`predictions-filter-btn${filter === item.id ? ' is-active' : ''}`}
-            onClick={() => setFilter(item.id)}
+            aria-selected={tab === item.id}
+            className={`predictions-model-tab${tab === item.id ? ' is-active' : ''}`}
+            onClick={() => setTab(item.id)}
           >
             {item.label}
           </button>
         ))}
       </div>
 
-      {error ? (
-        <p className="error-banner">{error}</p>
-      ) : loading ? (
-        <p className="text-secondary text-sm">loading upcoming series…</p>
-      ) : filtered.length === 0 ? (
-        <p className="text-secondary text-sm">
-          no confirmed upcoming series for this filter. check back after the next schedule sync.
-        </p>
-      ) : (
-        <div className="entity-table-wrap predictions-table-wrap">
-          <table className="entity-table predictions-table">
-            <thead>
-              <tr>
-                <th>Date</th>
-                <th>Matchup</th>
-                <th>Tournament</th>
-                <th>Format</th>
-                <th>Kalshi</th>
-                <th>Model</th>
-                <th>Preview</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.map((row) => (
-                <tr key={row.matchId}>
-                  <td className="text-secondary whitespace-nowrap">
-                    {row.scheduledAt ? formatProfileDate(row.scheduledAt) : 'TBD'}
-                  </td>
-                  <td>
-                    <span className="predictions-matchup">
-                      <span className="predictions-team">
-                        <TeamLogo name={row.teamA} size={20} />
-                        <EntityLink type="team" name={row.teamA} showIcon={false} />
-                      </span>
-                      <span className="text-secondary">vs</span>
-                      <span className="predictions-team">
-                        <TeamLogo name={row.teamB} size={20} />
-                        <EntityLink type="team" name={row.teamB} showIcon={false} />
-                      </span>
-                    </span>
-                  </td>
-                  <td className="text-secondary">{row.tournament}</td>
-                  <td>{row.formatLabel}</td>
-                  <td className="text-secondary">{row.kalshiOdds}</td>
-                  <td className="text-accent font-mono">{formatModelOdds(row.model)}</td>
-                  <td>
-                    <Link
-                      to={previewPath(row.matchId, location.pathname)}
-                      className="btn btn-secondary predictions-preview-btn"
-                    >
-                      Preview
-                    </Link>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
+      {tab === 'schedule' ? <PredictionScheduleTab /> : null}
+      {tab === 'team-rankings' ? <PredictionTeamRankings /> : null}
+      {tab === 'player-rankings' ? <PredictionPlayerRankings /> : null}
+      {tab === 'champion-rankings' ? <PredictionChampionRankings /> : null}
+      {tab === 'analysis' ? <PredictionAnalysisTab /> : null}
     </div>
   )
 }

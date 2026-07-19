@@ -31,6 +31,9 @@ const SCHEDULE_LEAGUES = [
   { leagueId: 'lol-msi', name: 'MSI' },
   { leagueId: 'lol-worlds', name: 'Worlds' },
   { leagueId: 'lol-first-stand', name: 'First Stand' },
+  // Often absent from Cito (EWC is not a Riot-broadcast league) — sync no-ops cleanly.
+  { leagueId: 'lol-ewc', name: 'EWC' },
+  { leagueId: 'lol-esports-world-cup', name: 'EWC' },
 ]
 
 type ScheduleRow = {

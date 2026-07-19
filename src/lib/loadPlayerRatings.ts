@@ -19,20 +19,32 @@ export interface PlayerRatingsBundle {
 }
 
 let cache: PlayerRatingsBundle | null = null
+let cacheAt = 0
 let inflight: Promise<PlayerRatingsBundle | null> | null = null
 
-export async function fetchPlayerRatings(): Promise<PlayerRatingsBundle | null> {
-  if (cache) return cache
+const ARTIFACT_TTL_MS = 5 * 60_000
+
+export function invalidatePlayerRatingsCache(): void {
+  cache = null
+  cacheAt = 0
+}
+
+export async function fetchPlayerRatings(opts?: {
+  force?: boolean
+}): Promise<PlayerRatingsBundle | null> {
+  const stale = !cache || Date.now() - cacheAt > ARTIFACT_TTL_MS
+  if (cache && !stale && !opts?.force) return cache
   if (inflight) return inflight
 
-  inflight = fetch('/data/player_ratings.json')
+  inflight = fetch(`/data/player_ratings.json?t=${Date.now()}`, { cache: 'no-store' })
     .then(async (res) => {
-      if (!res.ok) return null
+      if (!res.ok) return cache
       const data = (await res.json()) as PlayerRatingsBundle
       cache = data
+      cacheAt = Date.now()
       return data
     })
-    .catch(() => null)
+    .catch(() => cache)
     .finally(() => {
       inflight = null
     })

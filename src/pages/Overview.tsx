@@ -33,6 +33,8 @@ import OverviewHubToggle from '../components/overview/OverviewHubToggle'
 import SectionSubnav, { type SectionSubnavItem } from '../components/ui/SectionSubnav'
 import PowerRankingsPanel from '../components/rankings/PowerRankingsPanel'
 import TeamPowerBoard from '../components/rankings/TeamPowerBoard'
+import ScoreCaveat from '../components/ui/ScoreCaveat'
+import { MODEL_POWER_RANKINGS_SUBTITLE } from '../lib/metricHints'
 import { buildWeeklyRecapLines } from '../lib/weeklyRecap'
 import { mergeWeeklyRecapLines } from '../lib/recapMerge'
 import { fetchCachedWeeklyRecapLines } from '../lib/loadWeeklyRecap'
@@ -978,11 +980,12 @@ export default function Overview() {
       </section>
 
       <section id="overview-rankings" className="overview-section">
+        <ScoreCaveat label="standouts vs model rankings" />
         <div className="overview-rankings-grid">
           <PowerRankingsPanel
             limit={8}
             title="nucky power rankings"
-            subtitle="Role-normalized player power from the nucky model — current league/split filters."
+            subtitle={MODEL_POWER_RANKINGS_SUBTITLE}
           />
           <TeamPowerBoard teams={filteredTeams} limit={8} />
         </div>
@@ -991,7 +994,7 @@ export default function Overview() {
           <h2 className="card-title">Champion Power Rankings</h2>
           <p className="card-subtitle">
             Top 10 champions by OP score (presence, win rate, ban rate, and KDA z-scores) for the
-            current league and split filters.
+            current league and split filters — distinct from weekly Champion of the Week above.
           </p>
           {topOpChampions.length === 0 ? (
             <p className="text-secondary">Not enough champion data for the current filters.</p>

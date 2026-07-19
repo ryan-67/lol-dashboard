@@ -27,7 +27,7 @@ const DASH_TABS = [
   { id: 'champions', label: 'champions' },
   { id: 'tournaments', label: 'tournaments' },
   { id: 'matchups', label: 'matchups' },
-  { id: 'predictions', label: 'predictions', gated: true },
+  { id: 'predictions', label: 'nucky prediction model', gated: true },
 ] as const
 
 function MenuDotsIcon() {

@@ -142,6 +142,12 @@
   opacity: 0.72;
 }
 
+/* Long gated label (nucky prediction model) wraps cleanly in the rail. */
+.app-sidebar-link[href*='/predictions'] {
+  line-height: 1.25;
+  white-space: normal;
+}
+
 .app-sidebar-link.is-gated:hover {
   color: var(--text-secondary);
   opacity: 0.9;
