@@ -4,6 +4,10 @@ import { useGSAP } from '@gsap/react'
 import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import AuthModal from '../components/AuthModal'
+import AmbientBackground from '../components/landing/AmbientBackground'
+import RankTicker from '../components/landing/RankTicker'
+import StoryScroll from '../components/landing/StoryScroll'
+import UseCaseCycle from '../components/landing/UseCaseCycle'
 import { useViewPreference } from '../context/ViewPreferenceContext'
 import {
   fetchAccuracyScorecard,
@@ -209,100 +213,113 @@ export default function Landing() {
 
   return (
     <div className="landing-page" ref={rootRef}>
-      <section className="landing-hero">
-        <div className="landing-hero-copy">
-          <div className="landing-brand-signal" aria-hidden="true">
-            <span className="landing-brand-signal-name">nucky</span>
-            <span className="landing-brand-signal-mark" />
-          </div>
-          <h1 className="landing-hero-title">
-            <span className="landing-hero-line">
-              <span className="landing-hero-line-inner">ratings, trends,</span>
-            </span>
-            <span className="landing-hero-line">
-              <span className="landing-hero-line-inner">
-                and <em>predictions</em>
-              </span>
-            </span>
-            <span className="landing-hero-line">
-              <span className="landing-hero-line-inner">grounded in</span>
-            </span>
-            <span className="landing-hero-line">
-              <span className="landing-hero-line-inner">match data.</span>
-            </span>
-          </h1>
-          <p className="landing-hero-sub">
-            Proprietary model scores over thousands of tier-1 games — then a dashboard and analyst that
-            speak the same evidence.
-          </p>
-          <div className="landing-hero-actions">
-            {user ? (
-              <Link className="landing-btn landing-btn-primary" to={homePath}>
-                open app
-              </Link>
-            ) : (
-              <button
-                type="button"
-                className="landing-btn landing-btn-primary"
-                onClick={() => openAuth('signup')}
-              >
-                create account
-              </button>
-            )}
-            <a className="landing-btn landing-btn-ghost" href="#features">
-              see features
-            </a>
-          </div>
-          <div className="landing-hero-leagues" aria-label="League coverage">
-            {['LCK', 'LPL', 'LEC', 'LCS', 'MSI', 'Worlds', 'First Stand'].map((league) => (
-              <span key={league}>{league}</span>
-            ))}
-          </div>
-        </div>
+      <AmbientBackground />
 
-        <aside className="landing-hero-readout" aria-label="Model scorecard">
-          <div className="landing-readout-head">
-            <span className="signal-dot" aria-hidden="true" />
-            <span>model scorecard</span>
-            <span className="landing-readout-tag">walk-forward</span>
-          </div>
-          <div className="landing-readout-value" data-counter="hero-acc">
-            {formatPct(acc)}
-          </div>
-          <div className="landing-readout-caption">
-            prediction accuracy · {holdout.toLocaleString()} holdout games
-          </div>
-          <div className="landing-readout-bars">
-            <div className="landing-readout-bar">
-              <span className="landing-readout-bar-label">nucky model</span>
-              <span className="landing-readout-bar-track">
-                <span
-                  className="landing-readout-bar-fill is-model"
-                  style={{ width: `${(acc * 100).toFixed(1)}%` }}
-                />
-              </span>
-              <span className="landing-readout-bar-num">{formatPct(acc)}</span>
+      <div className="landing-inner">
+        <section className="landing-hero">
+          <div className="landing-hero-copy">
+            <div className="landing-brand-signal" aria-hidden="true">
+              <span className="landing-brand-signal-name">nucky</span>
+              <span className="landing-brand-signal-mark" />
             </div>
-            <div className="landing-readout-bar">
-              <span className="landing-readout-bar-label">naive baseline</span>
-              <span className="landing-readout-bar-track">
-                <span
-                  className="landing-readout-bar-fill"
-                  style={{ width: `${(baseAcc * 100).toFixed(1)}%` }}
-                />
+            <h1 className="landing-hero-title">
+              <span className="landing-hero-line">
+                <span className="landing-hero-line-inner">ratings, trends,</span>
               </span>
-              <span className="landing-readout-bar-num">{formatPct(baseAcc)}</span>
+              <span className="landing-hero-line">
+                <span className="landing-hero-line-inner">
+                  and <em>predictions</em>
+                </span>
+              </span>
+              <span className="landing-hero-line">
+                <span className="landing-hero-line-inner">grounded in</span>
+              </span>
+              <span className="landing-hero-line">
+                <span className="landing-hero-line-inner">match data.</span>
+              </span>
+            </h1>
+            <p className="landing-hero-sub">
+              Proprietary model scores over thousands of tier-1 games — then a dashboard and analyst
+              that speak the same evidence.
+            </p>
+            <div className="landing-hero-actions">
+              {user ? (
+                <Link className="landing-btn landing-btn-primary" to={homePath}>
+                  open app
+                </Link>
+              ) : (
+                <button
+                  type="button"
+                  className="landing-btn landing-btn-primary"
+                  onClick={() => openAuth('signup')}
+                >
+                  create account
+                </button>
+              )}
+              <a className="landing-btn landing-btn-ghost" href="#features">
+                see features
+              </a>
+            </div>
+            <div className="landing-hero-leagues" aria-label="League coverage">
+              {['LCK', 'LPL', 'LEC', 'LCS', 'MSI', 'Worlds', 'First Stand', 'EWC'].map((league) => (
+                <span key={league}>{league}</span>
+              ))}
             </div>
           </div>
-          <div className="landing-readout-foot">
-            <span>log-loss {formatLL(ll)}</span>
-            <span>
-              {dateRange[0]} → {dateRange[1]}
-            </span>
-          </div>
-        </aside>
-      </section>
 
+          <aside className="landing-hero-readout" aria-label="Model scorecard">
+            <div className="landing-readout-head">
+              <span className="signal-dot" aria-hidden="true" />
+              <span>model scorecard</span>
+              <span className="landing-readout-tag">walk-forward</span>
+            </div>
+            <div className="landing-readout-value" data-counter="hero-acc">
+              {formatPct(acc)}
+            </div>
+            <div className="landing-readout-caption">
+              prediction accuracy · {holdout.toLocaleString()} holdout games
+            </div>
+            <div className="landing-readout-bars">
+              <div className="landing-readout-bar">
+                <span className="landing-readout-bar-label">nucky model</span>
+                <span className="landing-readout-bar-track">
+                  <span
+                    className="landing-readout-bar-fill is-model"
+                    style={{ width: `${(acc * 100).toFixed(1)}%` }}
+                  />
+                </span>
+                <span className="landing-readout-bar-num">{formatPct(acc)}</span>
+              </div>
+              <div className="landing-readout-bar">
+                <span className="landing-readout-bar-label">naive baseline</span>
+                <span className="landing-readout-bar-track">
+                  <span
+                    className="landing-readout-bar-fill"
+                    style={{ width: `${(baseAcc * 100).toFixed(1)}%` }}
+                  />
+                </span>
+                <span className="landing-readout-bar-num">{formatPct(baseAcc)}</span>
+              </div>
+            </div>
+            <div className="landing-readout-foot">
+              <span>log-loss {formatLL(ll)}</span>
+              <span>
+                {dateRange[0]} → {dateRange[1]}
+              </span>
+            </div>
+          </aside>
+        </section>
+      </div>
+
+      <StoryScroll />
+      <RankTicker />
+      <UseCaseCycle
+        ctaLabel={user ? 'open chat' : 'create account to ask'}
+        onAsk={user ? undefined : () => openAuth('signup')}
+        ctaTo={user ? homePath : undefined}
+      />
+
+      <div className="landing-inner">
       <section className="landing-section" id="what">
         <div className="landing-section-head">
           <p className="landing-section-label">what nucky is</p>
@@ -624,6 +641,8 @@ export default function Landing() {
           )}
         </div>
       </section>
+
+      </div>
 
       <AuthModal open={showAuth} onClose={() => setShowAuth(false)} initialView={authView} />
     </div>
