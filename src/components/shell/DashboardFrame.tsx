@@ -28,7 +28,11 @@ export default function DashboardFrame() {
       data-lenis-prevent
     >
       {shouldShowTopBar || isEntityPage ? (
-        <div className="dashboard-frame-filters">
+        <div
+          className={`dashboard-frame-filters${
+            shouldShowTopBar && !isEntityPage ? ' dashboard-frame-filters--scrollaway' : ''
+          }`}
+        >
           {shouldShowTopBar ? <TopBar /> : null}
           {isEntityPage ? (
             <>

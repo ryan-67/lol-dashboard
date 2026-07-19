@@ -16,9 +16,11 @@ interface SectionSubnavProps {
 }
 
 /**
- * Sticky in-page section nav. On entity pages it portals into `#entity-section-slot`
- * inside the sticky filter strip so OVERVIEW/SIDES/… never scroll away. Elsewhere it
- * uses position:sticky below the filter strip.
+ * Sticky in-page section nav.
+ *
+ * - Entity pages: portals into `#entity-section-slot` inside the sticky filter strip.
+ * - List pages (Overview, Players, …): sticks at `top: 0` so it takes the league filter’s
+ *   place once that strip scrolls away.
  */
 export default function SectionSubnav({
   items,
@@ -27,7 +29,6 @@ export default function SectionSubnav({
   className = '',
 }: SectionSubnavProps) {
   const [activeId, setActiveId] = useState<string>(items[0]?.id ?? '')
-  const [offsetTop, setOffsetTop] = useState(0)
   const [portalSlot, setPortalSlot] = useState<HTMLElement | null>(null)
   const navRef = useRef<HTMLDivElement>(null)
   const clickLockRef = useRef(false)
@@ -38,18 +39,21 @@ export default function SectionSubnav({
     setPortalSlot(document.getElementById('entity-section-slot'))
   }, [])
 
-  // Measure sticky offsets and publish --section-subnav-offset for scroll-margin.
+  // Publish --section-subnav-offset for section scroll-margin / IntersectionObserver.
   useEffect(() => {
     const filtersEl = document.querySelector('.dashboard-frame-filters')
+    const filtersStick =
+      filtersEl &&
+      !filtersEl.classList.contains('dashboard-frame-filters--scrollaway')
 
     const update = () => {
-      const filtersHeight = filtersEl?.getBoundingClientRect().height ?? 0
+      const filtersHeight =
+        filtersStick && filtersEl ? filtersEl.getBoundingClientRect().height : 0
       const navHeight = navRef.current?.getBoundingClientRect().height ?? 0
-      // When portaled into the filter strip, sticky top is 0 (we're already in it).
-      setOffsetTop(portaled ? 0 : filtersHeight)
+      // Portaled: already inside sticky strip. List pages: sticky at top:0.
       document.documentElement.style.setProperty(
         '--section-subnav-offset',
-        `${Math.round(filtersHeight + (portaled ? 0 : navHeight) + 16)}px`,
+        `${Math.round(filtersHeight + navHeight + 16)}px`,
       )
     }
 
@@ -80,8 +84,10 @@ export default function SectionSubnav({
 
     const scroller = getAppScrollScroller()
     const root = scroller instanceof Element ? scroller : null
-    const filtersHeight =
-      document.querySelector('.dashboard-frame-filters')?.getBoundingClientRect().height ?? offsetTop
+    const stickyOffset =
+      Number.parseFloat(
+        getComputedStyle(document.documentElement).getPropertyValue('--section-subnav-offset'),
+      ) || 48
 
     const observer = new IntersectionObserver(
       (entries) => {
@@ -94,14 +100,14 @@ export default function SectionSubnav({
       },
       {
         root,
-        rootMargin: `-${Math.round(filtersHeight + 8)}px 0px -55% 0px`,
+        rootMargin: `-${Math.round(stickyOffset)}px 0px -55% 0px`,
         threshold: [0, 0.1, 0.25, 0.5, 0.75, 1],
       },
     )
 
     sections.forEach((el) => observer.observe(el))
     return () => observer.disconnect()
-  }, [items, offsetTop, portaled])
+  }, [items, portaled])
 
   useEffect(() => {
     return () => window.clearTimeout(unlockTimeoutRef.current)
@@ -124,7 +130,7 @@ export default function SectionSubnav({
     <div
       ref={navRef}
       className={`section-subnav${portaled ? ' section-subnav--portaled' : ''} ${className}`.trim()}
-      style={portaled ? undefined : { top: offsetTop }}
+      style={portaled ? undefined : { top: 0 }}
     >
       <nav className="section-subnav-items" aria-label={ariaLabel}>
         {items.map((item) => (
