@@ -676,7 +676,25 @@ export default function Overview() {
   )
 
   if (loading) {
-    return <div className="card h-80" />
+    return (
+      <div className="overview-hub overview-hub--skeleton" aria-busy="true">
+        <section className="card overview-hub-card">
+          <div className="dash-skeleton-block dash-skeleton-block--lg" />
+          <div className="dash-skeleton-strip">
+            <div className="dash-skeleton-block" />
+            <div className="dash-skeleton-block" />
+            <div className="dash-skeleton-block" />
+          </div>
+        </section>
+        <section className="card overview-hub-card">
+          <div className="dash-skeleton-list">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <div key={i} className="dash-skeleton-row" />
+            ))}
+          </div>
+        </section>
+      </div>
+    )
   }
 
   return (
@@ -688,8 +706,18 @@ export default function Overview() {
       <OverviewHubToggle value={hubPeriod} onChange={handleHubPeriodChange} />
 
       {hubContentLoading ? (
-        <section className="card overview-hub-card overview-hub-loading">
-          <p className="text-secondary text-sm">loading...</p>
+        <section className="card overview-hub-card overview-hub-loading" aria-busy="true">
+          <div className="dash-skeleton-block dash-skeleton-block--lg" />
+          <div className="dash-skeleton-strip">
+            <div className="dash-skeleton-block" />
+            <div className="dash-skeleton-block" />
+            <div className="dash-skeleton-block" />
+          </div>
+          <div className="dash-skeleton-list">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} className="dash-skeleton-row" />
+            ))}
+          </div>
         </section>
       ) : (
         <>

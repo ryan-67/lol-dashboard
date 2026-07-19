@@ -596,6 +596,7 @@
 
 .power-rankings-role {
   appearance: none;
+  position: relative;
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-sm);
   background: transparent;
@@ -608,6 +609,23 @@
     border-color var(--dur-fast) var(--ease-out),
     color var(--dur-fast) var(--ease-out),
     background var(--dur-fast) var(--ease-out);
+}
+
+.power-rankings-role::after {
+  content: '';
+  position: absolute;
+  left: 0.55rem;
+  right: 0.55rem;
+  bottom: 0;
+  height: 1px;
+  background: var(--accent);
+  transform: scaleX(0);
+  transform-origin: left center;
+  transition: transform var(--dur-med) var(--ease-out);
+}
+
+.power-rankings-role.is-active::after {
+  transform: scaleX(1);
 }
 
 .power-rankings-role.is-active,
@@ -744,15 +762,90 @@
   }
 }
 
+/* Premium loading skeletons */
+.dash-skeleton-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  margin-top: 0.75rem;
+}
+
+.dash-skeleton-row,
+.dash-skeleton-block {
+  border-radius: var(--radius-sm);
+  background: linear-gradient(
+    90deg,
+    color-mix(in oklab, var(--bg-elevated) 80%, transparent) 0%,
+    color-mix(in oklab, var(--accent-bg) 70%, var(--bg-elevated)) 45%,
+    color-mix(in oklab, var(--bg-elevated) 80%, transparent) 100%
+  );
+  background-size: 200% 100%;
+  animation: dash-skeleton-shimmer 1.4s ease-in-out infinite;
+}
+
+.dash-skeleton-row {
+  height: 2.4rem;
+}
+
+.dash-skeleton-block {
+  height: 1rem;
+  width: 42%;
+}
+
+.dash-skeleton-block--lg {
+  height: 1.5rem;
+  width: 58%;
+  margin-bottom: 0.85rem;
+}
+
+.dash-skeleton-strip {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.65rem;
+  margin: 1rem 0 0.35rem;
+}
+
+.dash-skeleton-strip .dash-skeleton-block {
+  width: 100%;
+  height: 3.2rem;
+}
+
+.overview-hub--skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+@keyframes dash-skeleton-shimmer {
+  0% {
+    background-position: 100% 0;
+  }
+  100% {
+    background-position: -100% 0;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .tab-content .page-section,
   .card,
   .radar-card,
   .player-chart-card,
   .overview-totw-card,
-  .dash-kpi {
+  .dash-kpi,
+  .power-rankings-role::after {
     animation: none !important;
     transition: none !important;
     transform: none !important;
+  }
+
+  .dash-skeleton-row,
+  .dash-skeleton-block {
+    animation: none;
+    background: var(--bg-elevated);
+  }
+
+  .power-rankings-role.is-active::after {
+    transform: none;
+    opacity: 1;
   }
 }

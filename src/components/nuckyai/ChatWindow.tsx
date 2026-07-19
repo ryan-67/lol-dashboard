@@ -1,4 +1,6 @@
-import { useEffect, useState } from 'react'
+import { useRef, useState } from 'react'
+import { useGSAP } from '@gsap/react'
+import gsap from 'gsap'
 import MessageList from './MessageList'
 import ChatInput from './ChatInput'
 import type { MessageRow } from './types'
@@ -38,12 +40,32 @@ export default function ChatWindow({
   inputFocusTrigger = 1,
   displayName,
 }: ChatWindowProps) {
+  const emptyRef = useRef<HTMLDivElement>(null)
   const [draft, setDraft] = useState('')
   const showConversation = messages.length > 0 || streaming
 
-  useEffect(() => {
-    // ensure autofocus on mount for empty state
-  }, [])
+  useGSAP(
+    () => {
+      if (showConversation || !emptyRef.current) return
+      if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
+      gsap.from(emptyRef.current.querySelectorAll('.chat-empty-reveal'), {
+        opacity: 0,
+        y: 14,
+        duration: 0.5,
+        stagger: 0.07,
+        ease: 'power3.out',
+      })
+      gsap.from(emptyRef.current.querySelectorAll('.chat-empty-prompt'), {
+        opacity: 0,
+        y: 10,
+        duration: 0.4,
+        stagger: 0.045,
+        delay: 0.2,
+        ease: 'power2.out',
+      })
+    },
+    { dependencies: [showConversation], scope: emptyRef },
+  )
 
   const send = () => {
     if (!draft.trim()) return
@@ -62,13 +84,13 @@ export default function ChatWindow({
           streaming={streaming}
         />
       ) : (
-        <div className="chat-empty" data-lenis-prevent>
-          <h1 className="chat-empty-greeting">{greetingForNow(displayName)}</h1>
-          <p className="chat-empty-sub">
+        <div className="chat-empty" data-lenis-prevent ref={emptyRef}>
+          <h1 className="chat-empty-greeting chat-empty-reveal">{greetingForNow(displayName)}</h1>
+          <p className="chat-empty-sub chat-empty-reveal">
             Ask about players, teams, drafts, and statistics of LoL esports — or search an identity
             to open it in the dashboard.
           </p>
-          <div className="chat-empty-input-slot">
+          <div className="chat-empty-input-slot chat-empty-reveal">
             <ChatInput
               value={draft}
               onChange={setDraft}

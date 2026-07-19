@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { useGSAP } from '@gsap/react'
 import {
   fetchPlayerRatings,
   RATING_ROLES,
@@ -9,6 +10,7 @@ import {
 import { EntityLink } from '../entities'
 import { formatNum } from '../../lib/format'
 import { powerScoreTo100 } from '../../lib/scoreNormalize'
+import { staggerListReveal, tabTransitionIn } from '../../theme/animations'
 
 const ROLE_LABEL: Record<RatingRole, string> = {
   top: 'top',
@@ -51,6 +53,7 @@ export default function PowerRankingsPanel({
   hideRoleTabs = false,
   region = 'all',
 }: PowerRankingsPanelProps) {
+  const listRef = useRef<HTMLOListElement>(null)
   const [bundle, setBundle] = useState<PlayerRatingsBundle | null>(null)
   const [internalRole, setInternalRole] = useState<RatingRole>('mid')
   const [loading, setLoading] = useState(true)
@@ -79,6 +82,15 @@ export default function PowerRankingsPanel({
     return filtered.slice(0, limit)
   }, [bundle, role, region, limit])
 
+  useGSAP(
+    () => {
+      if (!listRef.current || loading || !rows.length) return
+      staggerListReveal(listRef.current, '.power-rankings-row')
+      tabTransitionIn(listRef.current)
+    },
+    { dependencies: [loading, role, region, rows.length, bundle?.generatedAt] },
+  )
+
   return (
     <section className="card power-rankings-panel dash-reveal">
       <div className="power-rankings-head">
@@ -105,11 +117,15 @@ export default function PowerRankingsPanel({
       </div>
 
       {loading ? (
-        <p className="text-secondary text-sm">loading rankings…</p>
+        <div className="dash-skeleton-list" aria-hidden="true">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <div key={i} className="dash-skeleton-row" />
+          ))}
+        </div>
       ) : !bundle ? (
         <p className="text-secondary text-sm">rankings unavailable.</p>
       ) : (
-        <ol className="power-rankings-list">
+        <ol className="power-rankings-list" ref={listRef}>
           {rows.map((row) => (
             <li key={`${row.player}-${row.team}-${row.rank}`} className="power-rankings-row">
               <span className="power-rankings-rank">#{row.rank}</span>

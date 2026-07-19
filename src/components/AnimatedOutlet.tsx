@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { useLocation } from 'react-router-dom'
-import { tabTransitionIn, tabTransitionOut } from '../theme/animations'
+import { tabContentSwap, tabTransitionIn } from '../theme/animations'
 
 export default function AnimatedOutlet({ children }: { children: React.ReactNode }) {
   const location = useLocation()
@@ -21,12 +21,11 @@ export default function AnimatedOutlet({ children }: { children: React.ReactNode
       return
     }
 
-    tabTransitionOut(el).eventCallback('onComplete', () => {
-      setDisplayed(childrenRef.current)
-      requestAnimationFrame(() => {
-        tabTransitionIn(el)
-      })
-    })
+    tabContentSwap(
+      el,
+      () => setDisplayed(childrenRef.current),
+      () => ref.current,
+    )
   }, [location.pathname])
 
   return (

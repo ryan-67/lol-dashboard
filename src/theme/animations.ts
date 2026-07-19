@@ -316,3 +316,81 @@ export function tabTransitionIn(element: Element | null): gsap.core.Tween {
 export function refreshScrollTrigger() {
   ScrollTrigger.refresh()
 }
+
+/** Compact list/row stagger for dense dashboard surfaces (power rankings, tables). */
+export function staggerListReveal(
+  parent: Element | null,
+  childSelector: string,
+  overrides?: gsap.TweenVars,
+) {
+  if (!parent) return
+  const children = parent.querySelectorAll(childSelector)
+  if (!children.length) return
+
+  if (reducedMotion()) {
+    gsap.set(children, { opacity: 1, y: 0, x: 0 })
+    return
+  }
+
+  gsap.fromTo(
+    children,
+    { opacity: 0, y: 10 },
+    {
+      opacity: 1,
+      y: 0,
+      duration: 0.32,
+      ease: 'power2.out',
+      stagger: 0.035,
+      clearProps: 'transform',
+      ...overrides,
+      scrollTrigger: {
+        ...scrollerVars(parent),
+        ...(overrides?.scrollTrigger as ScrollTrigger.Vars | undefined),
+      },
+    },
+  )
+  ensureVisible(children, 1400)
+}
+
+/** Soft elevate on hover for interactive ranking/table rows (returns cleanup). */
+export function bindRowHoverLift(rows: NodeListOf<Element> | Element[]) {
+  if (reducedMotion()) return () => {}
+
+  const cleanups: Array<() => void> = []
+  rows.forEach((row) => {
+    const enter = () => {
+      gsap.to(row, { y: -1, duration: 0.18, ease: 'power2.out', overwrite: 'auto' })
+    }
+    const leave = () => {
+      gsap.to(row, { y: 0, duration: 0.2, ease: 'power2.out', overwrite: 'auto' })
+    }
+    row.addEventListener('pointerenter', enter)
+    row.addEventListener('pointerleave', leave)
+    cleanups.push(() => {
+      row.removeEventListener('pointerenter', enter)
+      row.removeEventListener('pointerleave', leave)
+    })
+  })
+
+  return () => cleanups.forEach((fn) => fn())
+}
+
+/** Tab content swap with a slightly longer, silkier curve for dashboard panes. */
+export function tabContentSwap(
+  outEl: Element | null,
+  onSwapped: () => void,
+  inEl: () => Element | null,
+) {
+  if (reducedMotion()) {
+    onSwapped()
+    return
+  }
+
+  const out = tabTransitionOut(outEl)
+  out.eventCallback('onComplete', () => {
+    onSwapped()
+    requestAnimationFrame(() => {
+      tabTransitionIn(inEl())
+    })
+  })
+}
