@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import {
   fetchPlayerRatings,
   RATING_ROLES,
@@ -18,6 +18,15 @@ const ROLE_LABEL: Record<RatingRole, string> = {
   support: 'support',
 }
 
+export type PowerRegionFilter = 'all' | 'LCK' | 'LPL' | 'LEC' | 'LCS'
+
+function regionMatch(homeRegion: string | undefined, filter: PowerRegionFilter): boolean {
+  if (filter === 'all') return true
+  const r = (homeRegion ?? '').toUpperCase()
+  if (filter === 'LCS') return r === 'LCS' || r === 'LTA' || r.startsWith('LTA')
+  return r === filter
+}
+
 interface PowerRankingsPanelProps {
   /** Limit rows per role */
   limit?: number
@@ -29,6 +38,8 @@ interface PowerRankingsPanelProps {
   onRoleChange?: (role: RatingRole) => void
   /** Hide the built-in role tablist — pass `role` from the parent instead. */
   hideRoleTabs?: boolean
+  /** Filter model board rows by home region (LCS includes LTA). */
+  region?: PowerRegionFilter
 }
 
 export default function PowerRankingsPanel({
@@ -38,6 +49,7 @@ export default function PowerRankingsPanel({
   role: roleProp,
   onRoleChange,
   hideRoleTabs = false,
+  region = 'all',
 }: PowerRankingsPanelProps) {
   const [bundle, setBundle] = useState<PlayerRatingsBundle | null>(null)
   const [internalRole, setInternalRole] = useState<RatingRole>('mid')
@@ -61,7 +73,11 @@ export default function PowerRankingsPanel({
     }
   }, [])
 
-  const rows: PlayerPowerRow[] = (bundle?.roles?.[role] ?? []).slice(0, limit)
+  const rows: PlayerPowerRow[] = useMemo(() => {
+    const all = bundle?.roles?.[role] ?? []
+    const filtered = region === 'all' ? all : all.filter((r) => regionMatch(r.region, region))
+    return filtered.slice(0, limit)
+  }, [bundle, role, region, limit])
 
   return (
     <section className="card power-rankings-panel dash-reveal">

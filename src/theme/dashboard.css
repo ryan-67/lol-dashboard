@@ -496,6 +496,13 @@
   gap: 1rem;
 }
 
+.predictions-analysis-note {
+  margin: 0;
+  padding: 0.65rem 0.85rem;
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-elevated);
+}
+
 .predictions-champ-metrics {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));

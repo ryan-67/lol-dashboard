@@ -86,13 +86,14 @@ export function PredictionPlayerRankings() {
         limit={region === 'all' ? 15 : 25}
         role={role}
         onRoleChange={setRole}
+        region={region}
         title="nucky player power"
         subtitle={MODEL_POWER_RANKINGS_SUBTITLE}
       />
       {region !== 'all' ? (
         <p className="text-secondary text-sm mt-2">
-          Region chip highlights context — player power rows are global model ranks (role tabs:{' '}
-          {RATING_ROLES.join(', ')}). Filter the identity dashboard for league-window form.
+          Showing {region} rows from the model board (role tabs: {RATING_ROLES.join(', ')}). LCS
+          includes LTA labels when present.
         </p>
       ) : null}
     </div>

@@ -1,0 +1,2 @@
+# Predictions board odds proxy — JWT required (anon or user session).
+verify_jwt = true

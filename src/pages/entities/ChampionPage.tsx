@@ -28,6 +28,7 @@ import {
   ChampionEntityInline,
 } from '../../components/entities'
 import ChampionLaneMatchups from '../../components/entities/ChampionLaneMatchups'
+import ChampionMatchHistoryTable from '../../components/champions/ChampionMatchHistoryTable'
 
 export default function ChampionPage() {
   const { slug = '' } = useParams<{ slug: string }>()
@@ -251,6 +252,13 @@ export default function ChampionPage() {
           </div>
         </div>
       </div>
+
+      <ChampionMatchHistoryTable
+        championName={champion.name}
+        players={players}
+        data={data}
+        limit={50}
+      />
     </div>
   )
 }

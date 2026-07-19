@@ -11,10 +11,13 @@ import { ordinalSuffix, powerScoreTo100 } from '../../lib/scoreNormalize'
 import { formatNum } from '../../lib/format'
 import AnimatedCounter from '../ui/AnimatedCounter'
 import { animateBarGrow, scrollEntrance } from '../../theme/animations'
+import { playerFromRecentForm, RECENT_FORM_STALE_DAYS } from '../../lib/recentFormPlayer'
 
 interface PlayerModelCardProps {
   player: Player
   role: string
+  /** When true, show a filter-window fallback card if the player is off the model board. */
+  showFallback?: boolean
 }
 
 interface ModelRow {
@@ -44,7 +47,11 @@ function findRating(
  * nucky model outlook — the player's role-normalized power rating from the
  * ML pipeline, with the box-score vs region-strength decomposition.
  */
-export default function PlayerModelCard({ player, role }: PlayerModelCardProps) {
+export default function PlayerModelCard({
+  player,
+  role,
+  showFallback = false,
+}: PlayerModelCardProps) {
   const sectionRef = useRef<HTMLDivElement>(null)
   const [bundle, setBundle] = useState<PlayerRatingsBundle | null>(null)
 
@@ -62,6 +69,8 @@ export default function PlayerModelCard({ player, role }: PlayerModelCardProps) 
     () => findRating(bundle, player.name, role),
     [bundle, player.name, role],
   )
+
+  const recent = useMemo(() => playerFromRecentForm(player), [player])
 
   const decomposition = useMemo(() => {
     if (!hit) return null
@@ -100,7 +109,53 @@ export default function PlayerModelCard({ player, role }: PlayerModelCardProps) 
     { scope: sectionRef, dependencies: [hit?.row.player] },
   )
 
-  if (!hit) return null
+  if (!hit) {
+    if (!showFallback) return null
+    return (
+      <div className="card model-outlook-card">
+        <div className="model-outlook-main">
+          <div className="model-outlook-score-block">
+            <span className="model-outlook-eyebrow">nucky model rating</span>
+            <span className="model-outlook-rank">
+              Not on the current role power board (top ~25 per role)
+            </span>
+          </div>
+          <div className="model-outlook-decomp">
+            <p className="text-secondary text-sm mb-2">
+              {player.name} still has filter-window form below. Model power ranks only surface the
+              highest-rated players per role; lower-board or low-volume players (e.g. last-place
+              spring teams with fewer games) are omitted from the artifact.
+            </p>
+            <div className="model-band-meta">
+              <span className="text-secondary">
+                Recent sample:{' '}
+                <span className="text-accent">
+                  {recent.gamesUsed}g
+                  {recent.daysSinceLastGame != null
+                    ? ` · last ${recent.daysSinceLastGame}d ago`
+                    : ''}
+                </span>
+              </span>
+              {recent.isStale || recent.isThinSample ? (
+                <span className="text-secondary">
+                  Activity:{' '}
+                  <span className="text-accent">
+                    {recent.isStale
+                      ? `stale (>${RECENT_FORM_STALE_DAYS}d)`
+                      : 'thin sample (<6g)'}
+                  </span>
+                </span>
+              ) : null}
+            </div>
+            <p className="model-outlook-footnote text-tertiary">
+              Showing filter-window insights below so off-board players remain inspectable without
+              implying a live model rank.
+            </p>
+          </div>
+        </div>
+      </div>
+    )
+  }
 
   const { row, roleRows } = hit
   const score100 = powerScoreTo100(row.powerScore)

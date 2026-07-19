@@ -39,10 +39,13 @@ async function authHeaders(): Promise<Record<string, string>> {
   const {
     data: { session },
   } = await supabase.auth.getSession()
+  // Edge functions with verify_jwt require a Bearer token — use the user JWT when
+  // signed in, otherwise the anon key (subscribed Predictions users always have a session).
+  const bearer = session?.access_token || anonKey
   return {
     'Content-Type': 'application/json',
     ...(anonKey ? { apikey: anonKey } : {}),
-    ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}),
+    ...(bearer ? { Authorization: `Bearer ${bearer}` } : {}),
   }
 }
 

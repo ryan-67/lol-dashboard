@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { Link, useParams, useSearchParams } from 'react-router-dom'
 import { useGSAP } from '@gsap/react'
 import {
   buildTeamsForSeries,
@@ -34,7 +34,18 @@ import WeeklyRecap from '../../components/overview/WeeklyRecap'
 export default function SeriesPage() {
   const { seriesId: seriesIdParam = '' } = useParams<{ seriesId: string }>()
   const seriesId = decodeSeriesIdParam(seriesIdParam)
-  const [activeTab, setActiveTab] = useState<SeriesPageTab>('overview')
+  const [searchParams] = useSearchParams()
+  const gameFromQuery = Number(searchParams.get('game') ?? '')
+  const [activeTab, setActiveTab] = useState<SeriesPageTab>(
+    Number.isFinite(gameFromQuery) && gameFromQuery > 0
+      ? (`game-${gameFromQuery}` as SeriesPageTab)
+      : 'overview',
+  )
+
+  useEffect(() => {
+    if (!Number.isFinite(gameFromQuery) || gameFromQuery <= 0) return
+    setActiveTab(`game-${gameFromQuery}` as SeriesPageTab)
+  }, [gameFromQuery, seriesId])
   const [recapLine, setRecapLine] = useState<WeeklyRecapLine | null>(null)
   const [recapLoading, setRecapLoading] = useState(true)
   const [citoGoldRows, setCitoGoldRows] = useState<CitoGameGoldRecord[]>([])
