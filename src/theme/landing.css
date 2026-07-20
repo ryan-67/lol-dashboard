@@ -1352,13 +1352,13 @@
 .landing-orbit {
   position: relative;
   margin-top: 0.5rem;
-  max-width: min(720px, 100%);
+  max-width: min(760px, 100%);
 }
 
 .landing-orbit-stage {
   position: relative;
-  width: min(520px, 92vw);
-  height: min(420px, 58vw);
+  width: min(680px, 96vw);
+  height: min(560px, 78vw);
   margin: 0.25rem 0 0;
 }
 
@@ -1370,8 +1370,8 @@
   display: grid;
   place-items: center;
   gap: 0.35rem;
-  width: 88px;
-  height: 88px;
+  width: 96px;
+  height: 96px;
   border-radius: 50%;
   border: 1px solid color-mix(in oklab, var(--accent) 45%, var(--border-subtle));
   background: color-mix(in srgb, var(--bg-base) 88%, transparent);
@@ -1395,7 +1395,7 @@
 
 .landing-orbit-ring--path {
   position: absolute;
-  inset: 12%;
+  inset: 8%;
   border-radius: 50%;
   border: 1px dashed color-mix(in oklab, var(--accent) 28%, transparent);
   pointer-events: none;
@@ -1411,32 +1411,41 @@
   position: absolute;
   top: 50%;
   left: 50%;
-  width: 72px;
-  margin: -36px 0 0 -36px;
+  width: 200px;
+  margin: -100px 0 0 -100px;
   transform: rotate(calc((360deg / var(--orbit-n)) * var(--orbit-i)))
-    translateY(calc(min(180px, 34vw) * -1))
+    translateY(calc(min(230px, 32vw) * -1))
     rotate(calc((360deg / var(--orbit-n)) * var(--orbit-i) * -1));
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.3rem;
+  gap: 0.45rem;
 }
 
 .landing-orbit-logo {
   display: grid;
   place-items: center;
-  width: 56px;
-  height: 56px;
+  width: 168px;
+  height: 168px;
   border-radius: 50%;
   border: 1px solid var(--border-subtle);
   background: color-mix(in srgb, var(--bg-surface) 92%, transparent);
   animation: landing-orbit-counter 42s linear infinite;
+  padding: 0.85rem;
+  box-sizing: border-box;
+}
+
+.landing-orbit-logo .league-logo {
+  width: 118px !important;
+  height: auto !important;
+  max-height: 118px;
+  object-fit: contain;
 }
 
 .landing-orbit-name {
   font-family: var(--font-mono);
-  font-size: 0.58rem;
-  letter-spacing: 0.08em;
+  font-size: 0.72rem;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--text-secondary);
   white-space: nowrap;
@@ -1466,7 +1475,7 @@
 }
 
 .landing-story-panel[data-panel='leagues'] {
-  grid-template-columns: minmax(0, 1fr) minmax(280px, 520px);
+  grid-template-columns: minmax(0, 1fr) minmax(320px, 680px);
   align-items: center;
 }
 

@@ -1,19 +1,21 @@
-/** Local Leaguepedia player portraits mirrored under public/landing/portraits/. */
+/** Local Leaguepedia player portraits mirrored under public/landing/portraits/.
+ * Synced via scripts/sync_landing_portraits.py (latest Images-gallery row).
+ */
 export const LANDING_PLAYER_PORTRAITS: Record<string, string> = {
-  Faker: 'landing/portraits/faker.jpg',
-  Chovy: 'landing/portraits/chovy.png',
-  Canyon: 'landing/portraits/canyon.png',
-  ShowMaker: 'landing/portraits/showmaker.png',
-  Caps: 'landing/portraits/caps.jpg',
-  Zeus: 'landing/portraits/zeus.png',
-  Gumayusi: 'landing/portraits/gumayusi.png',
-  Keria: 'landing/portraits/keria.png',
-  Dhokla: 'landing/portraits/dhokla.png',
-  Bdd: 'landing/portraits/bdd.png',
-  Busio: 'landing/portraits/busio.png',
-  Kiin: 'landing/portraits/kiin.png',
-  Knight: 'landing/portraits/knight.png',
-  Bin: 'landing/portraits/bin.png',
-  Viper: 'landing/portraits/viper.png',
-  Zeka: 'landing/portraits/zeka.png',
+  Faker: 'landing/portraits/faker.webp',
+  Chovy: 'landing/portraits/chovy.webp',
+  Canyon: 'landing/portraits/canyon.webp',
+  ShowMaker: 'landing/portraits/showmaker.webp',
+  Caps: 'landing/portraits/caps.webp',
+  Zeus: 'landing/portraits/zeus.webp',
+  Gumayusi: 'landing/portraits/gumayusi.webp',
+  Keria: 'landing/portraits/keria.webp',
+  Dhokla: 'landing/portraits/dhokla.webp',
+  Bdd: 'landing/portraits/bdd.webp',
+  Busio: 'landing/portraits/busio.webp',
+  Kiin: 'landing/portraits/kiin.webp',
+  Knight: 'landing/portraits/knight.webp',
+  Bin: 'landing/portraits/bin.webp',
+  Viper: 'landing/portraits/viper.webp',
+  Zeka: 'landing/portraits/zeka.webp',
 }

@@ -31,7 +31,7 @@ export default function OrbitLeagueLogos() {
               style={{ ['--orbit-i' as string]: i, ['--orbit-n' as string]: ORBIT_LEAGUES.length }}
             >
               <div className="landing-orbit-logo">
-                <LeagueLogo league={league.key} size={32} />
+                <LeagueLogo league={league.key} size={110} />
               </div>
               <span className="landing-orbit-name">{league.label}</span>
             </div>
