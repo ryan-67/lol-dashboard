@@ -28,13 +28,31 @@
 
 | Observation | Detail |
 | --- | --- |
-| OE data | Fresh through **EWC 2026-07-19** (finals weekend) in `oe_slices_2026_p*.json` |
+| OE data | Fresh through **EWC 2026-07-19** (finals weekend) in `oe_slices_2026_p*.json` — weekly recaps / series pages read this |
 | Model artifacts | Still stamped **2026-07-17** UTC; training/holdout `date_range` ends **2026-07-11** |
-| Why gap | ML steps use `continue-on-error: true`; artifact commit only if `ml_retrain.outcome == success`. Soft-failed retrain → **fresh OE, stale model**. Cron with unchanged Drive CSV skips full refresh (scores/recaps only). |
-| Landing “7/17” vs dashboard “7/16” | Same Jul-17 pipeline, different step clocks + local TZ midnight split — **display bug**, not two retrains |
+| Why gap | ML steps use `continue-on-error: true`; artifact commit previously **only** if `ml_retrain.outcome == success`. Soft-failed retrain → **fresh OE, stale model rankings**. Cron with unchanged Drive CSV skips full refresh (scores/recaps only). |
+| Landing “7/17” vs dashboard “7/16” | Same Jul-17 pipeline, different step clocks + local TZ midnight split — **display bug**, fixed with UTC stamps |
 | Scorecard `→ 2026-07-11` | Walk-forward **holdout window**, not live freshness |
+| **Dplus Kia EWC** | Series wins vs BLG/Gen.G (Jul 17–18) and the final **are in OE** but **not yet in** `region_strength` / `player_ratings` until a **successful** retrain commits. Dashboard “updated 7/16” was the symptom of frozen artifacts — yes, post–artifact-stamp series are invisible to the model. |
 
-**Ops TODO (Phase 6):** re-run successful full refresh after EWC; add visibility/alerting when ML soft-fails while OE advances; optionally hard-fail ML on scheduled runs or a dedicated `ml-retrain.yml`.
+**Why “should update every ingest” isn’t happening:** OE publish and ML retrain are sequential steps in one job, but ML is soft-fail. When ML crashes / times out / OOMs, OE still deploys. Rankings/scores/power boards are **artifact-backed**, not recomputed live from OE in the browser — so the site can look “fresh” on recaps while model boards stay frozen.
+
+**Fixes shipped 2026-07-20:**
+
+- UTC model-updated stamps + holdout label
+- CI always writes `public/data/ml_freshness.json` (even on soft-fail) and warns in Actions; commits freshness so UI can show “OE Nd ahead of model”
+- Power rankings footer surfaces OE-ahead lag when >2 days
+- Still need a **successful** full refresh to bake EWC into Elo/player ratings
+
+**Ops TODO:** inspect recent Refresh runs for soft-failed ML; re-run workflow_dispatch until `chore(ml): refresh nuckyAI model artifacts` lands; consider hard-fail ML on scheduled runs once stable.
+
+### Series-grain scoring (2026-07-20)
+
+**Team Elo (Component 1)** was already **series-grain** (one Elo update per Bo3/Bo5, not per game). Margin only scales K slightly; a 3-2 still moves the winner up / loser down. Clarified `_margin_multiplier` so close series are never down-weighted below 1.0×K.
+
+**Player ratings (Component 3)** were game-grain with small win/loss bonuses — a 3-2 winner with two stomps could net negative form from box scores alone. **v0.7** adds series-result credit (`SERIES_WIN_BONUS` / `SERIES_LOSS_PENALTY`, amplified for international) on top of per-game result so series wins still push form positive even when individual games look ugly.
+
+Takes effect on next successful `build_player_ratings.py` / export.
 
 ---
 

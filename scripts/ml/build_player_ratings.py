@@ -102,7 +102,13 @@ for p in (SCRIPTS_DIR, SCRIPTS_ROOT):
         sys.path.insert(0, str(p))
 
 from oe_csv_io import discover_local_csv_files, normalize_oe_row  # noqa: E402
-from oe_leagues import ALL_ALLOWED_LEAGUE_CODES, TIER1_REGIONS, region_for_league_code  # noqa: E402
+from oe_leagues import (  # noqa: E402
+    ALL_ALLOWED_LEAGUE_CODES,
+    TIER1_REGIONS,
+    is_international_code,
+    region_for_league_code,
+)
+from series_grouping import ChronoGame, group_games_into_series  # noqa: E402
 from team_identity import canonical_team  # noqa: E402
 
 LOL_DIR = ROOT / "lol"
@@ -141,6 +147,18 @@ OPPONENT_QUALITY_MAX_MULT = 1.35
 # still dominates the score.
 WIN_BONUS = 0.05
 LOSS_PENALTY = 0.05
+
+# Series-result credit (Component 3 v0.7) — winning a Bo3/Bo5 matters more than
+# the sum of game results. Applied on top of per-game WIN_BONUS/LOSS_PENALTY so
+# a 3-2 winner who got stomped in two games still nets positive series credit:
+# game losses (−0.05) + series win (+0.08) ≈ +0.03 per loss game, while wins
+# stack. Series losses get a smaller penalty so we don't double-punish vs the
+# game-level loss term.
+SERIES_WIN_BONUS = 0.08
+SERIES_LOSS_PENALTY = 0.04
+# International series (MSI/Worlds/EWC/First Stand) amplify series credit —
+# beating Gen.G at EWC should move player form more than a domestic Bo1 week.
+SERIES_INTL_MULT = 1.35
 
 # Standout-performance bonus — symmetric across win/loss, small extra credit
 # for a standout performance specifically in a loss (see EXCEPTIONAL_STATS_BY_ROLE).
@@ -549,8 +567,83 @@ def build_opponent_quality_reference(df: pd.DataFrame) -> dict[tuple[str, str], 
     return ref
 
 
+def attach_series_outcomes(df: pd.DataFrame) -> pd.DataFrame:
+    """Map each player-game to its Bo3/Bo5 series result for that player's team.
+
+    Uses the same series_grouping algorithm as region_elo / the dashboard so
+    series grain stays consistent. Incomplete / ungrouped games get series_won=NaN
+    and receive no series bonus (game-level result still applies).
+    """
+    df = df.copy()
+    if df.empty:
+        df["series_won"] = np.nan
+        df["series_intl"] = 0
+        return df
+
+    # One ChronoGame per gameid from the winning team's row.
+    winners = (
+        df.loc[df["won"] == 1, ["gameid", "date", "team", "league"]]
+        .drop_duplicates(subset=["gameid"], keep="first")
+    )
+    losers = (
+        df.loc[df["won"] == 0, ["gameid", "team"]]
+        .drop_duplicates(subset=["gameid"], keep="first")
+        .rename(columns={"team": "loser"})
+    )
+    games = winners.merge(losers, on="gameid", how="inner")
+    games = games[games["team"] != games["loser"]]
+
+    chrono: list[ChronoGame] = []
+    for row in games.itertuples(index=False):
+        try:
+            gdate = pd.Timestamp(str(row.date)[:10]).date()
+        except Exception:  # noqa: BLE001
+            continue
+        chrono.append(
+            ChronoGame(
+                id=str(row.gameid),
+                game_date=gdate,
+                winner=str(row.team),
+                loser=str(row.loser),
+                payload={"league": str(row.league)},
+            )
+        )
+
+    series_won_by_game_team: dict[tuple[str, str], int] = {}
+    series_intl_by_game: dict[str, int] = {}
+    for bkt in group_games_into_series(chrono):
+        wins_a = sum(1 for g in bkt.games if g.winner == bkt.team_a)
+        wins_b = len(bkt.games) - wins_a
+        if wins_a == wins_b:
+            continue
+        a_won = wins_a > wins_b
+        intl = 0
+        for g in bkt.games:
+            league = str((g.payload or {}).get("league") or "")
+            if is_international_code(league):
+                intl = 1
+                break
+        for g in bkt.games:
+            series_won_by_game_team[(g.id, bkt.team_a)] = 1 if a_won else 0
+            series_won_by_game_team[(g.id, bkt.team_b)] = 0 if a_won else 1
+            series_intl_by_game[g.id] = intl
+
+    df["series_won"] = [
+        series_won_by_game_team.get((gid, team), np.nan)
+        for gid, team in zip(df["gameid"], df["team"])
+    ]
+    df["series_intl"] = [series_intl_by_game.get(gid, 0) for gid in df["gameid"]]
+    covered = int(pd.notna(df["series_won"]).sum())
+    print(
+        f"  Series outcomes attached: {covered}/{len(df)} player-games "
+        f"({df['series_won'].notna().mean()*100:.1f}% coverage)",
+        file=sys.stderr,
+    )
+    return df
+
+
 def apply_opponent_and_result_adjustment(df: pd.DataFrame, opp_ref: dict[tuple[str, str], float]) -> pd.DataFrame:
-    """Pass 2: asymmetric opponent-quality scaling + small win/loss + standout bonus.
+    """Pass 2: asymmetric opponent-quality scaling + game result + series result + standout.
 
     Beating a strong direct opponent scales the (positive) performance z UP;
     losing to one scales the (negative) z DOWN in magnitude (dampened, not
@@ -560,6 +653,10 @@ def apply_opponent_and_result_adjustment(df: pd.DataFrame, opp_ref: dict[tuple[s
     STANDOUT_Z_THRESHOLD) that now applies in BOTH wins and losses — losses
     get an extra multiplier on the same bonus (not a separate mechanic) since
     standing out in a loss also answers "were you the reason your team lost."
+
+    v0.7 adds series-result credit (SERIES_WIN_BONUS / SERIES_LOSS_PENALTY) so
+    a 3-2 series win still nets positive form even when individual game
+    stomps would otherwise dominate the box-score blend.
     """
     df = df.copy()
     opp_z = np.array([
@@ -574,13 +671,23 @@ def apply_opponent_and_result_adjustment(df: pd.DataFrame, opp_ref: dict[tuple[s
     won = df["won"].to_numpy()
     result_adj = np.where(won == 1, WIN_BONUS, -LOSS_PENALTY)
 
+    series_won = df["series_won"].to_numpy() if "series_won" in df.columns else np.full(len(df), np.nan)
+    series_intl = df["series_intl"].to_numpy() if "series_intl" in df.columns else np.zeros(len(df))
+    intl_mult = np.where(series_intl == 1, SERIES_INTL_MULT, 1.0)
+    series_adj = np.zeros(len(df), dtype=float)
+    known = ~np.isnan(series_won.astype(float))
+    series_adj[known & (series_won == 1)] = SERIES_WIN_BONUS
+    series_adj[known & (series_won == 0)] = -SERIES_LOSS_PENALTY
+    series_adj = series_adj * intl_mult
+
     carry = df["carry_z"].fillna(0).to_numpy()
     loss_mult = np.where(won == 1, 1.0, STANDOUT_LOSS_MULTIPLIER)
     standout_bonus = STANDOUT_BONUS_SCALE * loss_mult * np.clip(carry - STANDOUT_Z_THRESHOLD, 0, None)
 
     df["opp_quality_z"] = opp_z
+    df["series_adj"] = series_adj
     df["adjusted_composite_z"] = np.where(
-        df["composite_z"].isna(), np.nan, adj + result_adj + standout_bonus
+        df["composite_z"].isna(), np.nan, adj + result_adj + series_adj + standout_bonus
     )
     return df
 
@@ -719,6 +826,8 @@ def build_ratings(top_n: int) -> dict[str, pd.DataFrame]:
 
     print("Building pass-1 opponent-quality reference...", file=sys.stderr)
     opp_ref = build_opponent_quality_reference(df)
+    print("Attaching Bo3/Bo5 series outcomes...", file=sys.stderr)
+    df = attach_series_outcomes(df)
     df = apply_opponent_and_result_adjustment(df, opp_ref)
 
     current_team_by_player = build_current_teams(df)
@@ -829,15 +938,17 @@ def write_json_artifact(players: dict[str, pd.DataFrame], path: Path) -> None:
     nuckyAI (predictionPacket + player-power context) and the dashboard.
     Deployed to supabase/functions/agent-chat/ml/ by export_artifacts.py."""
     payload = {
-        "version": "0.6",
+        "version": "0.7",
         "generatedAt": pd.Timestamp.utcnow().isoformat(),
         "methodology": (
             "Role-normalized box-score-prior rating over current active tier-1 players "
             "(most-recent-game team + majority-of-last-8-games activity gate). "
             "Role weights mirror src/lib/playerRadar.ts; includes matchup-pair laning "
             "baselines, gd_trajectory phase transition, playmaking/roam-context dampening, "
-            "asymmetric opponent-quality adjustment, symmetric standout bonus, and "
-            "support duo-partner credit. See docs/nucky_v2.md Component 3."
+            "asymmetric opponent-quality adjustment, symmetric standout bonus, "
+            "support duo-partner credit, and v0.7 series-result credit "
+            "(Bo3/Bo5 win/loss bonus on top of per-game result; amplified for "
+            "international series). See docs/nucky_v2.md Component 3."
         ),
         "roles": {},
     }

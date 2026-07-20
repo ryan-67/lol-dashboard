@@ -257,16 +257,33 @@ jobs:
           python scripts/ml/build_accuracy_scorecard.py
           python scripts/ml/export_artifacts.py
 
+      - name: Record ML freshness (success or soft-fail)
+        if: always() && steps.ml_deps.outcome == 'success'
+        continue-on-error: true
+        env:
+          RETRAIN_OUTCOME: ${{ steps.ml_retrain.outcome }}
+        run: |
+          outcome="${RETRAIN_OUTCOME:-unknown}"
+          python scripts/ml/write_ml_freshness.py --outcome "$outcome"
+          if [ "$outcome" != "success" ]; then
+            echo "::warning::ML retrain did not succeed (outcome=$outcome). OE shards may be ahead of model rankings — see public/data/ml_freshness.json"
+          fi
+
       - name: Commit updated nuckyAI ML artifacts
-        if: steps.ml_retrain.outcome == 'success'
+        if: always() && steps.ml_deps.outcome == 'success'
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           # Edge Function artifacts + dashboard public rankings (player_ratings / region_strength).
-          git add supabase/functions/agent-chat/ml/
-          git add public/data/player_ratings.json public/data/region_strength.json public/data/accuracy_scorecard.json || true
+          # Always try to commit ml_freshness.json so OE-ahead-of-model lag is visible even on soft-fail.
+          git add supabase/functions/agent-chat/ml/ || true
+          git add public/data/player_ratings.json public/data/region_strength.json public/data/accuracy_scorecard.json public/data/ml_freshness.json || true
           if ! git diff --staged --quiet; then
-            git commit -m "chore(ml): refresh nuckyAI model artifacts"
+            if [ "${{ steps.ml_retrain.outcome }}" = "success" ]; then
+              git commit -m "chore(ml): refresh nuckyAI model artifacts"
+            else
+              git commit -m "chore(ml): record freshness after soft-fail retrain"
+            fi
             git push || (git fetch origin main && git rebase origin/main && git push)
           else
             echo "ML artifacts unchanged — skip commit."

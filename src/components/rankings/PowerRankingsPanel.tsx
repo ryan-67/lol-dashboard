@@ -9,6 +9,7 @@ import {
 } from '../../lib/loadPlayerRatings'
 import { EntityLink } from '../entities'
 import { formatModelUpdatedDate, formatNum } from '../../lib/format'
+import { fetchMlFreshness, type MlFreshness } from '../../lib/loadMlFreshness'
 import { powerScoreTo100 } from '../../lib/scoreNormalize'
 import { staggerListReveal, tabTransitionIn } from '../../theme/animations'
 
@@ -55,6 +56,7 @@ export default function PowerRankingsPanel({
 }: PowerRankingsPanelProps) {
   const listRef = useRef<HTMLOListElement>(null)
   const [bundle, setBundle] = useState<PlayerRatingsBundle | null>(null)
+  const [freshness, setFreshness] = useState<MlFreshness | null>(null)
   const [internalRole, setInternalRole] = useState<RatingRole>('mid')
   const [loading, setLoading] = useState(true)
   const role = roleProp ?? internalRole
@@ -71,6 +73,10 @@ export default function PowerRankingsPanel({
         if (!alive) return
         setBundle(data)
         setLoading(false)
+      })
+      void fetchMlFreshness({ force }).then((data) => {
+        if (!alive || !data) return
+        setFreshness(data)
       })
     }
     load()
@@ -154,6 +160,13 @@ export default function PowerRankingsPanel({
       {bundle?.generatedAt ? (
         <p className="power-rankings-footer">
           model v{bundle.version} · updated {formatModelUpdatedDate(bundle.generatedAt)} UTC
+          {freshness?.oeAheadOfModelDays != null && freshness.oeAheadOfModelDays > 2 ? (
+            <span className="power-rankings-stale">
+              {' '}
+              · OE through {freshness.oeDataThrough} ({freshness.oeAheadOfModelDays}d ahead of
+              model holdout)
+            </span>
+          ) : null}
         </p>
       ) : null}
     </section>

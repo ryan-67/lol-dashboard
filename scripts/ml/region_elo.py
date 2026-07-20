@@ -100,12 +100,15 @@ def _tier_for(is_international: bool, is_playoffs: bool) -> str:
 
 
 def _margin_multiplier(wins_for: int, wins_against: int) -> float:
-    """Massey-style margin awareness without full point-differential regression:
-    a clean sweep moves rating a bit more than a narrow win; a dead-rubber
-    final game after the series is already decided shouldn't move it as much
-    as a genuinely close set. Capped so one blowout can't dominate a tier's K."""
+    """Scale K by series scoreline — but never below 1.0 for a decided series.
+
+    Series outcome (win/loss) is always the Elo event unit. Margin only adds a
+    modest bump for sweeps so a hard-fought 3-2 still moves ratings fully —
+    winning the series itself is what matters for momentum/form; blowouts get
+    a little extra, close wins are not down-weighted.
+    """
     margin = abs(wins_for - wins_against)
-    return min(1.2, 1.0 + 0.1 * max(0, margin - 1))
+    return min(1.25, 1.0 + 0.08 * max(0, margin - 1))
 
 
 def _series_from_team_games(team_games: pd.DataFrame):
