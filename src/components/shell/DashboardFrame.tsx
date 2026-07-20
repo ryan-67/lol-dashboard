@@ -1,7 +1,9 @@
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 import { Outlet, useLocation } from 'react-router-dom'
 import TopBar from '../TopBar'
+import SignalLoader from '../ui/SignalLoader'
 import { useDashboard } from '../../context/DashboardContext'
+import { revealDashboardSections } from '../../theme/animations'
 
 /** Nested app panes scroll — not the document. Reset on every tab/route change. */
 function scrollDashboardToTop() {
@@ -20,6 +22,7 @@ export default function DashboardFrame() {
   const { loading, error } = useDashboard()
   const location = useLocation()
   const inDuo = location.pathname.startsWith('/duo')
+  const mainRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     scrollDashboardToTop()
@@ -27,6 +30,14 @@ export default function DashboardFrame() {
     const id = window.requestAnimationFrame(() => scrollDashboardToTop())
     return () => window.cancelAnimationFrame(id)
   }, [location.pathname])
+
+  useEffect(() => {
+    if (loading || error) return
+    const id = window.requestAnimationFrame(() => {
+      revealDashboardSections(mainRef.current)
+    })
+    return () => window.cancelAnimationFrame(id)
+  }, [location.pathname, loading, error])
 
   const isEntityPage =
     /\/(players|teams|champions|tournaments)\/[^/]+/.test(location.pathname) ||
@@ -65,7 +76,7 @@ export default function DashboardFrame() {
         </div>
       ) : null}
 
-      <div className="dashboard-frame-main">
+      <div className="dashboard-frame-main" ref={mainRef}>
         {error ? (
           <div className="error-banner">
             <p className="error-title">Failed to load data</p>
@@ -74,13 +85,13 @@ export default function DashboardFrame() {
         ) : null}
 
         {loading && !error ? (
-          <div className="flex items-center justify-center h-12 mb-4">
-            <div className="text-secondary text-sm">Loading dashboard data...</div>
+          <div className="dash-frame-loading">
+            <SignalLoader compact label="loading dashboard data…" />
           </div>
         ) : null}
 
         {!error ? (
-          <div key={location.pathname} className="tab-content">
+          <div key={location.pathname} className="tab-content dash-reveal-ready">
             <Outlet />
           </div>
         ) : null}

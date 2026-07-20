@@ -4,6 +4,7 @@ import { useOptionalChatSession } from '../../context/ChatSessionContext'
 import { useViewPreference } from '../../context/ViewPreferenceContext'
 import EntitySearch from './EntitySearch'
 import ProfileMenu from './ProfileMenu'
+import SignalLoader from '../ui/SignalLoader'
 import { pathForView } from '../../lib/viewPreference'
 import type { ConversationRow } from '../nuckyai/types'
 
@@ -304,7 +305,7 @@ export default function AppSidebar() {
           <p className="app-sidebar-section-label">conversations</p>
           {shareToast ? <p className="app-sidebar-convo-toast">{shareToast}</p> : null}
           {chat.conversationsLoading ? (
-            <p className="app-sidebar-muted">loading…</p>
+            <SignalLoader compact label="loading chats…" />
           ) : chat.conversations.length === 0 ? (
             <p className="app-sidebar-muted">no chats yet</p>
           ) : (

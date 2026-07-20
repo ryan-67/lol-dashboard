@@ -351,16 +351,29 @@ b,
 
 .btn-primary {
   border-color: var(--accent);
-  background: var(--accent);
   color: var(--accent-ink);
   font-weight: 600;
+  background-size: 200% 100%;
+  background-image: linear-gradient(
+    105deg,
+    var(--accent) 0%,
+    color-mix(in oklab, var(--accent) 72%, #9ee7ec) 48%,
+    var(--accent-strong, var(--accent)) 100%
+  );
+  transition:
+    transform 160ms ease-out,
+    box-shadow 220ms ease-out,
+    background-position 420ms ease-out,
+    filter 160ms ease-out;
 }
 
 .btn-primary:hover:not(:disabled) {
-  background: var(--accent-strong);
   border-color: var(--accent-strong);
   color: var(--accent-ink);
+  background-position: 100% 0;
+  filter: brightness(1.03);
   box-shadow: 0 0 0 1px var(--accent-glow), 0 6px 20px oklch(0.8 0.115 195 / 0.18);
+  transform: translateY(-1px);
 }
 
 .btn:disabled {

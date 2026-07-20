@@ -8,6 +8,7 @@ import { fetchSubscriptionState } from '../lib/subscription'
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom'
 import { navSearchForPath, stripNuckyAiSearchParams } from '../lib/navSearchParams'
 import { GlobalSearch } from './entities'
+import SignalLoader from './ui/SignalLoader'
 
 const primaryNav = [
   { to: '/dashboard', label: 'Overview' },
@@ -209,8 +210,8 @@ export default function Layout({ children }: { children: React.ReactNode }) {
           )}
 
           {loading && !error && (
-            <div className="flex items-center justify-center h-16 mb-8">
-              <div className="text-secondary text-sm">Loading dashboard data...</div>
+            <div className="dash-frame-loading">
+              <SignalLoader compact label="loading dashboard data…" />
             </div>
           )}
 

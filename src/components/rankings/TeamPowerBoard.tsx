@@ -4,6 +4,7 @@ import { fetchRegionStrength, type RegionStrengthBundle } from '../../lib/loadRe
 import { eloTo100 } from '../../lib/scoreNormalize'
 import { resolveTeamCanonicalName } from '../../lib/entities/slugs'
 import { EntityLink, TeamLogo } from '../entities'
+import SignalLoader from '../ui/SignalLoader'
 import { formatNum } from '../../lib/format'
 
 interface TeamPowerBoardProps {
@@ -69,7 +70,7 @@ export default function TeamPowerBoard({ teams, limit = 8 }: TeamPowerBoardProps
   if (loading) {
     return (
       <section className="card power-rankings-panel">
-        <p className="text-secondary text-sm">loading team power…</p>
+        <SignalLoader compact label="loading team power…" />
       </section>
     )
   }
