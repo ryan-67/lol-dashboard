@@ -1,6 +1,6 @@
 {
-  "generatedAt": "2026-07-20T07:40:39.863799+00:00",
-  "retrainOutcome": "unknown",
+  "generatedAt": "2026-07-20T08:16:48.547191+00:00",
+  "retrainOutcome": "failure",
   "oeDataThrough": "2026-07-19",
   "modelExportedAt": "2026-07-17T07:03:45.009568+00:00",
   "modelHoldoutEnd": "2026-07-11",
