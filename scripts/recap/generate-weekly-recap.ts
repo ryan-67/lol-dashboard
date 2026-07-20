@@ -33,7 +33,23 @@ import { generateAiRecapLine, briefToTemplateLine } from './compose.ts'
 import { recapLineToText } from '../../src/lib/weeklyRecap.ts'
 import { DEFAULT_RECAP_MODEL } from './openrouter.ts'
 import { fetchGlobalPowerRanks } from './powerRankings.ts'
-import { fetchCitoSeriesResults } from '../../src/lib/citoSeriesVerify.ts'
+import {
+  fetchCitoSeriesResults,
+  mapExternalScheduleRows,
+  type CitoSeriesResult,
+} from '../../src/lib/citoSeriesVerify.ts'
+import { readFileSync } from 'fs'
+import { resolve } from 'path'
+
+function loadExternalScheduleFromDisk(): CitoSeriesResult[] {
+  try {
+    const file = resolve(process.cwd(), 'public/data/external_schedule_cache.json')
+    const body = JSON.parse(readFileSync(file, 'utf8')) as { rows?: Array<Record<string, unknown>> }
+    return mapExternalScheduleRows(body.rows ?? [])
+  } catch {
+    return []
+  }
+}
 
 function dedupeBriefs(briefs: SeriesBrief[]): SeriesBrief[] {
   const map = new Map<string, SeriesBrief>()
@@ -54,13 +70,22 @@ async function main(): Promise<void> {
   const citoKey = process.env.CITO_API_KEY?.trim() ?? ''
   const powerRanks = citoKey ? await fetchGlobalPowerRanks(citoKey) : new Map()
 
-  console.log('Loading Cito schedule results for series score verification...')
-  const citoResults = await fetchCitoSeriesResults({
+  console.log('Loading Cito + external schedule results for series score verification...')
+  const citoOnly = await fetchCitoSeriesResults({
     sinceDays: 60,
     // CI / Node only has the service-role key — do not use the browser anon client.
     client: client ?? undefined,
+    // External cache is merged from disk below (Node-safe; avoids Vite fs bundling).
+    includeExternal: false,
   })
-  console.log(`  ${citoResults.length} Cito schedule row(s) for cross-check`)
+  const external = loadExternalScheduleFromDisk()
+  const byId = new Map<string, CitoSeriesResult>()
+  for (const row of external) byId.set(row.matchId, row)
+  for (const row of citoOnly) byId.set(row.matchId, row)
+  const citoResults = [...byId.values()]
+  console.log(
+    `  ${citoOnly.length} Cito + ${external.length} external → ${citoResults.length} row(s) for cross-check`,
+  )
 
   let briefs: SeriesBrief[] = []
 

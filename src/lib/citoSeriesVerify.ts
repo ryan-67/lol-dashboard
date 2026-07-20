@@ -94,6 +94,10 @@ function dateOnly(iso: string | null | undefined): string {
   return iso.slice(0, 10)
 }
 
+function isTbdTeam(name: string | null | undefined): boolean {
+  return !name?.trim() || /^tbd$/i.test(name.trim()) || /^tba$/i.test(name.trim())
+}
+
 /**
  * Find the best Cito schedule row for an OE series (same two teams, date within ±2 days).
  */
@@ -122,6 +126,63 @@ export function matchCitoSeriesResult(
   return best?.row ?? null
 }
 
+/**
+ * When Leaguepedia/Cito still has TBD teams for a finals slot, match by date + finals block
+ * so we still pick up best_of=5 (e.g. EWC Grand Final) before OE has all games.
+ */
+export function matchFinalsScheduleHint(
+  seriesDate: string,
+  results: CitoSeriesResult[],
+  opts?: { league?: string | null; tournamentLabel?: string | null },
+): CitoSeriesResult | null {
+  const target = dateOnly(seriesDate)
+  if (!target) return null
+  let best: { row: CitoSeriesResult; dist: number } | null = null
+
+  for (const row of results) {
+    const bracket = inferBracketKind(row.blockName)
+    if (bracket !== 'grand-final' && bracket !== 'final') continue
+    const rowDate = dateOnly(row.scheduledAt)
+    if (!rowDate) continue
+    const dist = daysBetween(target, rowDate)
+    if (dist > 1) continue
+
+    const hay = `${row.league} ${row.tournamentName ?? ''}`.toLowerCase()
+    const ctx = `${opts?.league ?? ''} ${opts?.tournamentLabel ?? ''}`.toLowerCase()
+    const leagueOk =
+      !opts?.league ||
+      isInternationalContext({ league: row.league, tournamentLabel: row.tournamentName }) ||
+      hay.includes((opts.league ?? '').toLowerCase()) ||
+      ctx.split(/\s+/).some((t) => t.length > 2 && hay.includes(t))
+    if (!leagueOk && !isInternationalContext({ league: row.league, tournamentLabel: row.tournamentName })) {
+      continue
+    }
+
+    // Prefer TBD finals slots (pre-lock) or any finals on that day.
+    const tbdSlot = isTbdTeam(row.teamA) || isTbdTeam(row.teamB)
+    const score = dist + (tbdSlot ? 0 : 0.25)
+    if (!best || score < best.dist) best = { row, dist: score }
+  }
+
+  return best?.row ?? null
+}
+
+/** Stage-aware best-of from block name (EWC GF = Bo5, groups/SF = Bo3, …). */
+export function resolveStageBestOf(
+  formatId: string | null | undefined,
+  blockName: string | null | undefined,
+): number | null {
+  const hay = (blockName ?? '').toLowerCase()
+  if (!hay) return null
+  const bracket = inferBracketKind(blockName)
+  if (bracket === 'grand-final') return 5
+  if (bracket === 'final' && !/third|3rd|bronze/.test(hay)) return 5
+  if (formatId === 'EWC') {
+    if (/semi|quarter|group|swiss|play[\s-]?in|third|3rd/.test(hay)) return 3
+  }
+  return null
+}
+
 function scoresFromCito(
   row: CitoSeriesResult,
   teamA: string,
@@ -137,7 +198,7 @@ function scoresFromCito(
 }
 
 /**
- * Resolve the display/recap score for a series, preferring Cito when available.
+ * Resolve the display/recap score for a series, preferring Cito / external schedule when available.
  */
 export function resolveSeriesScoreWithCito(
   teamA: string,
@@ -146,24 +207,41 @@ export function resolveSeriesScoreWithCito(
   oeWinsB: number,
   seriesDate: string,
   results: CitoSeriesResult[],
-  opts?: { international?: boolean; defaultBestOf?: number | null },
+  opts?: {
+    international?: boolean
+    defaultBestOf?: number | null
+    formatId?: string | null
+    league?: string | null
+    tournamentLabel?: string | null
+  },
 ): ResolvedSeriesScore {
   const provisionalOe = isProvisionalSeriesScore(oeWinsA, oeWinsB)
-  const cito = matchCitoSeriesResult(teamA, teamB, seriesDate, results)
+  const teamMatch = matchCitoSeriesResult(teamA, teamB, seriesDate, results)
+  const finalsHint =
+    teamMatch ??
+    matchFinalsScheduleHint(seriesDate, results, {
+      league: opts?.league,
+      tournamentLabel: opts?.tournamentLabel,
+    })
+  const cito = teamMatch ?? finalsHint
   const bracket = inferBracketKind(cito?.blockName)
   const status = cito ? normalizeStatus(cito.status) : ''
   const international =
     Boolean(opts?.international) ||
     isInternationalContext({
-      league: cito?.league,
-      tournamentLabel: cito?.tournamentName,
+      league: cito?.league ?? opts?.league,
+      tournamentLabel: cito?.tournamentName ?? opts?.tournamentLabel,
       blockName: cito?.blockName,
     })
   const bestOf = effectiveBestOf({
     citoBestOf: cito?.bestOf,
     defaultBestOf: opts?.defaultBestOf,
     international,
+    formatId: opts?.formatId ?? null,
+    blockName: cito?.blockName ?? null,
   })
+  const requiresThreeWins =
+    bestOf === 5 || bracket === 'grand-final' || (bracket === 'final' && bestOf !== 3)
 
   const pickWinner = (wA: number, wB: number) => {
     const winner = wA >= wB ? teamA : teamB
@@ -181,10 +259,10 @@ export function resolveSeriesScoreWithCito(
     blockName: cito?.blockName ?? null,
     bracket,
     bestOf,
-    cito,
+    cito: teamMatch,
   }
 
-  if (cito) {
+  if (cito && teamMatch) {
     const mapped = scoresFromCito(cito, teamA)
     const inProgress = IN_PROGRESS_STATUS.has(status)
     const completed = COMPLETED_STATUS.has(status)
@@ -203,8 +281,8 @@ export function resolveSeriesScoreWithCito(
 
     if (completed && mapped && isValidSeriesScore(mapped.winsA, mapped.winsB)) {
       const max = Math.max(mapped.winsA, mapped.winsB)
-      // Bo5 / international: Cito often marks "completed" after each game day — require 3 wins.
-      if ((bestOf === 5 || international) && max < 3) {
+      // Bo5 / finals: schedule feeds often mark "completed" after each game day.
+      if (requiresThreeWins && max < 3) {
         return {
           ...pickWinner(mapped.winsA, mapped.winsB),
           ...base,
@@ -225,17 +303,30 @@ export function resolveSeriesScoreWithCito(
       }
     }
 
-    // Cito row exists but scores missing — if OE is provisional and best-of is 5, wait.
-    if (provisionalOe && (bestOf === 5 || international)) {
+    // Schedule row exists but scores missing — wait when Bo5/finals or provisional intl.
+    if (provisionalOe && (requiresThreeWins || (international && bestOf !== 3))) {
       return {
         ...pickWinner(oeWinsA, oeWinsB),
         ...base,
-        bestOf: bestOf ?? 5,
+        bestOf: bestOf ?? (requiresThreeWins ? 5 : bestOf),
         complete: false,
         source: 'oe',
         provisional: true,
         skipCompleted: true,
       }
+    }
+  }
+
+  // Finals hint without locked teams (TBD TBD) — still gate Bo5.
+  if (!teamMatch && finalsHint && provisionalOe && requiresThreeWins) {
+    return {
+      ...pickWinner(oeWinsA, oeWinsB),
+      ...base,
+      bestOf: bestOf ?? 5,
+      complete: false,
+      source: 'oe',
+      provisional: true,
+      skipCompleted: true,
     }
   }
 
@@ -253,10 +344,25 @@ export function resolveSeriesScoreWithCito(
     }
   }
 
-  // Provisional 2-x: never treat as complete for recaps without confirmed Bo3.
+  // Provisional 2-x:
+  // - Bo5 / grand final → always wait
+  // - Explicit Bo3 (incl. EWC SF/groups) → accept
+  // - Unknown best-of on international → wait
   if (provisionalOe) {
-    const confirmedBo3 = bestOf === 3 && !international
-    if (!confirmedBo3) {
+    if (requiresThreeWins || bestOf === 5) {
+      return {
+        ...pickWinner(oeWinsA, oeWinsB),
+        ...base,
+        bestOf: bestOf ?? 5,
+        complete: false,
+        source: 'oe',
+        provisional: true,
+        skipCompleted: true,
+      }
+    }
+    if (bestOf === 3) {
+      // confirmed Bo3 stage — fall through to complete
+    } else if (international) {
       return {
         ...pickWinner(oeWinsA, oeWinsB),
         ...base,
@@ -268,8 +374,8 @@ export function resolveSeriesScoreWithCito(
     }
   }
 
-  // Mid-Bo5 OE stubs (1-1, 2-2, 0-1, …) — wait for Cito / remaining games.
-  if (!isValidSeriesScore(oeWinsA, oeWinsB) || ((bestOf === 5 || international) && oeMax < 3)) {
+  // Mid-Bo5 OE stubs (1-1, 2-2, 0-1, …) — wait for remaining games.
+  if (!isValidSeriesScore(oeWinsA, oeWinsB) || (requiresThreeWins && oeMax < 3)) {
     return {
       ...pickWinner(oeWinsA, oeWinsB),
       ...base,
@@ -292,7 +398,7 @@ export function resolveSeriesScoreWithCito(
 
 /**
  * Recap blurbs must wait for series conclusion — never generate mid-series.
- * 2-x is only valid when best-of is explicitly 3 (never for Bo5 / internationals).
+ * 2-x is only valid when best-of is explicitly 3 (never for Bo5 / finals).
  */
 export function isSeriesReadyForRecap(resolved: ResolvedSeriesScore): boolean {
   if (resolved.skipCompleted || resolved.provisional || !resolved.complete) return false
@@ -323,8 +429,17 @@ export function formatSeriesScoreLabel(opts: {
 }
 
 export function isInternationalLeague(league: string | null | undefined): boolean {
-  const u = (league ?? '').toUpperCase()
-  return ['MSI', 'WLDS', 'WORLDS', 'FST', 'FIRST STAND', 'INT'].includes(u)
+  const u = (league ?? '').toUpperCase().replace(/\s+/g, ' ')
+  return [
+    'MSI',
+    'WLDS',
+    'WORLDS',
+    'FST',
+    'FIRST STAND',
+    'EWC',
+    'ESPORTS WORLD CUP',
+    'INT',
+  ].includes(u)
 }
 
 /** True when league/split/block context is an international event (MSI games are often tagged LCK/LEC/…). */
@@ -339,23 +454,37 @@ export function isInternationalContext(opts: {
     .filter(Boolean)
     .join(' ')
     .toLowerCase()
-  return /\bmsi\b|\bworlds\b|\bwlds\b|first\s*stand|\bfst\b/.test(hay)
+  return /\bmsi\b|\bworlds\b|\bwlds\b|first\s*stand|\bfst\b|\bewc\b|esports\s*world\s*cup/.test(
+    hay,
+  )
 }
 
 /**
- * Resolve effective best-of. Catalog Bo5 (MSI/Worlds/playoffs) must not be overridden by a
- * stale Cito `best_of=3` — that is what let mid-series 2-0 MSI recaps through.
+ * Resolve effective best-of.
+ * Prefer stage (grand final → 5) and explicit schedule best_of; do NOT force every
+ * international series to Bo5 (EWC groups/SF are Bo3).
  */
 export function effectiveBestOf(opts: {
   citoBestOf?: number | null
   defaultBestOf?: number | null
   international?: boolean
+  formatId?: string | null
+  blockName?: string | null
 }): number | null {
+  const stage = resolveStageBestOf(opts.formatId, opts.blockName)
+  if (stage != null) return stage
+
   const catalog = opts.defaultBestOf ?? null
   const cito = opts.citoBestOf ?? null
+
+  // Catalog Bo5 (MSI / Worlds / playoffs) must win over a stale schedule best_of=3.
   if (catalog === 5) return 5
-  if (opts.international && (cito == null || cito < 5)) return 5
-  return cito ?? catalog
+  if (cito != null) return cito
+  if (catalog != null) return catalog
+
+  // Unknown international without catalog/stage → assume Bo5 (safer for recaps).
+  if (opts.international && opts.formatId !== 'EWC') return 5
+  return null
 }
 
 /**
@@ -369,11 +498,16 @@ export async function fetchCitoSeriesResults(options?: {
   sinceDays?: number
   limit?: number
   client?: SupabaseClient
+  /** Include Leaguepedia external cache (EWC, etc.). Default true. */
+  includeExternal?: boolean
 }): Promise<CitoSeriesResult[]> {
   let db: SupabaseClient | null = options?.client ?? null
   if (!db) {
     const { supabase, isSupabaseConfigured } = await import('./supabaseClient')
-    if (!isSupabaseConfigured) return []
+    if (!isSupabaseConfigured) {
+      // Still try external schedule (EWC) when Supabase is unavailable.
+      return options?.includeExternal === false ? [] : loadExternalScheduleAsCitoResults()
+    }
     db = supabase
   }
 
@@ -382,6 +516,7 @@ export async function fetchCitoSeriesResults(options?: {
   const since = new Date()
   since.setUTCDate(since.getUTCDate() - sinceDays)
 
+  let rows: CitoSeriesResult[] = []
   const { data, error } = await db
     .from('cito_schedules')
     .select(
@@ -404,15 +539,57 @@ export async function fetchCitoSeriesResults(options?: {
         .limit(limit)
       if (retry.error) {
         console.warn('[cito-series] fetch failed', retry.error.message)
-        return []
+      } else {
+        rows = mapRows(retry.data ?? [])
       }
-      return mapRows(retry.data ?? [])
+    } else {
+      console.warn('[cito-series] fetch failed', error.message)
     }
-    console.warn('[cito-series] fetch failed', error.message)
-    return []
+  } else {
+    rows = mapRows(data ?? [])
   }
 
-  return mapRows(data ?? [])
+  if (options?.includeExternal === false) return rows
+
+  const external = await loadExternalScheduleAsCitoResults()
+  if (!external.length) return rows
+
+  // Prefer Cito/lolesports rows; fill gaps with Leaguepedia (EWC).
+  const byId = new Map<string, CitoSeriesResult>()
+  for (const row of external) byId.set(row.matchId, row)
+  for (const row of rows) byId.set(row.matchId, row)
+  return [...byId.values()]
+}
+
+/** Map schedule-cache row shapes into CitoSeriesResult (browser or Node). */
+export function mapExternalScheduleRows(
+  rows: Array<Record<string, unknown>>,
+): CitoSeriesResult[] {
+  return rows.map((row) => ({
+    matchId: String(row.match_id ?? ''),
+    league: String(row.league ?? ''),
+    tournamentName: (row.tournament_name as string | null) ?? null,
+    blockName: (row.block_name as string | null) ?? null,
+    teamA: String(row.team_a ?? ''),
+    teamB: String(row.team_b ?? ''),
+    scheduledAt: (row.scheduled_at as string | null) ?? null,
+    status: String(row.status ?? ''),
+    scoreA: typeof row.team_a_score === 'number' ? row.team_a_score : null,
+    scoreB: typeof row.team_b_score === 'number' ? row.team_b_score : null,
+    winnerTeam: (row.winner_team as string | null) ?? null,
+    bestOf: typeof row.best_of === 'number' ? row.best_of : null,
+  }))
+}
+
+/** Browser: load Leaguepedia external cache via fetch. */
+export async function loadExternalScheduleAsCitoResults(): Promise<CitoSeriesResult[]> {
+  try {
+    const { fetchExternalScheduleRows } = await import('./loadExternalSchedule')
+    const rows = await fetchExternalScheduleRows()
+    return mapExternalScheduleRows(rows as unknown as Array<Record<string, unknown>>)
+  } catch {
+    return []
+  }
 }
 
 function mapRows(rows: Array<Record<string, unknown>>): CitoSeriesResult[] {
@@ -451,7 +628,9 @@ export function teamHasUpcomingInTournament(
     if (!teamMatches(team, row.teamA) && !teamMatches(team, row.teamB)) continue
     const hay = `${row.league} ${row.tournamentName ?? ''} ${row.blockName ?? ''}`.toLowerCase()
     const matchesTournament =
-      tokens.length === 0 || tokens.some((t) => hay.includes(t)) || /msi|worlds|first\s*stand/.test(hay)
+      tokens.length === 0 ||
+      tokens.some((t) => hay.includes(t)) ||
+      /msi|worlds|first\s*stand|\bewc\b|esports\s*world\s*cup/.test(hay)
     if (!matchesTournament) continue
     const st = normalizeStatus(row.status)
     if (COMPLETED_STATUS.has(st) || IN_PROGRESS_STATUS.has(st) || st === 'scheduled' || st === 'unstarted') {

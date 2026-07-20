@@ -893,10 +893,21 @@ function buildTournamentImplicationHints(
     hints.push(
       `${tournamentLabel} play-in finals stakes — ${recapTeamTag(winner)} advances to the main bracket, ${recapTeamTag(loser)} is eliminated and sent home`,
     )
-  } else if (
-    (bracket === 'lower' || bracket === 'grand-final') &&
-    !loserContinues
-  ) {
+  } else if (bracket === 'grand-final' && !winnerContinues && !loserContinues) {
+    hints.push(
+      `${recapTeamTag(winner)} wins ${tournamentLabel} — tournament champions`,
+    )
+    hints.push(
+      `${tournamentLabel} grand final — ${recapTeamTag(loser)} finishes runner-up (eliminated)`,
+    )
+  } else if (bracket === 'final' && !winnerContinues && !loserContinues && !doubleElim) {
+    hints.push(
+      `${recapTeamTag(winner)} wins ${tournamentLabel} — tournament champions`,
+    )
+    hints.push(
+      `${tournamentLabel} final — ${recapTeamTag(loser)} is eliminated from ${tournamentLabel}`,
+    )
+  } else if (bracket === 'lower' && !loserContinues) {
     hints.push(
       `${tournamentLabel} elimination stakes — ${recapTeamTag(loser)} is eliminated from ${tournamentLabel}`,
     )

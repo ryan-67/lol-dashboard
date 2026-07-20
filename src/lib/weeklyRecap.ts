@@ -36,13 +36,34 @@ import { resolveTournamentFormat } from './tournamentFormat'
 
 export type { SeriesFacts }
 
-function seriesResolveOpts(league: string | null | undefined, split?: string | null, playoffs?: boolean) {
-  const format = resolveTournamentFormat({ league, split, playoffs })
-  const international = isInternationalContext({ league, split })
+function seriesResolveOpts(
+  league: string | null | undefined,
+  split?: string | null,
+  playoffs?: boolean,
+  tournamentLabel?: string | null,
+) {
+  const format = resolveTournamentFormat({ league, split, playoffs, tournamentLabel })
+  const international = isInternationalContext({ league, split, tournamentLabel })
   return {
     international,
-    defaultBestOf: format?.defaultBestOf ?? (international ? 5 : null),
+    defaultBestOf: format?.defaultBestOf ?? (international && format?.id !== 'EWC' ? 5 : null),
+    formatId: format?.id ?? null,
+    league: league ?? null,
+    tournamentLabel: tournamentLabel ?? null,
   }
+}
+
+function intlTournamentLabel(
+  league: string,
+  year: string,
+  split: string | null | undefined,
+): string {
+  const u = league.toUpperCase()
+  if (u === 'WLDS' || u === 'WORLDS') return `${year} Worlds`
+  if (u === 'FST' || u === 'FIRST STAND') return `${year} First Stand`
+  if (u === 'EWC') return `${year} Esports World Cup`
+  if (u === 'MSI') return `${year} MSI`
+  return split ?? `${year} ${league}`
 }
 
 export interface WeeklyRecapWindow {
@@ -1470,6 +1491,12 @@ export function buildWeeklyRecapLines(
     const ordered = [...bucket.games].sort(compareSeriesGames)
     const latestDate = ordered[ordered.length - 1]?.date ?? bucket.games[0]!.date
     const firstGame = bucket.games[0]!
+    const yearHint = firstGame.oeYear ?? latestDate.slice(0, 4)
+    const tournamentHint = intlTournamentLabel(
+      (firstGame.league ?? 'LCK').toUpperCase(),
+      yearHint,
+      firstGame.split,
+    )
     const resolved = resolveSeriesScoreWithCito(
       bucket.teamA,
       bucket.teamB,
@@ -1477,12 +1504,15 @@ export function buildWeeklyRecapLines(
       winsB,
       latestDate,
       cito,
-      seriesResolveOpts(firstGame.league, firstGame.split, firstGame.playoffs),
+      seriesResolveOpts(firstGame.league, firstGame.split, firstGame.playoffs, tournamentHint),
     )
     // Allow OE mid-Bo5 stubs (e.g. 2-2) when Cito already has the final score.
     // Weekly hub + recaps only show concluded series.
     if (!isSeriesReadyForRecap(resolved)) continue
     if (!isValidSeriesScore(resolved.winsA, resolved.winsB)) continue
+    // Schedule may already show 3-0 while OE only ingested 2 games — wait for full series logs.
+    const neededGames = resolved.winsA + resolved.winsB
+    if (bucket.games.length < neededGames) continue
 
     const line = summarizeSeries(
       bucket,
@@ -1630,6 +1660,10 @@ export function collectSeriesBriefs(
     const winsB = bucket.games.length - winsA
     const ordered = [...bucket.games].sort(compareSeriesGames)
     const latestDate = ordered[ordered.length - 1]?.date ?? bucket.games[0]!.date
+    const g0 = bucket.games[0]!
+    const league = (g0.league ?? 'LCK').toUpperCase()
+    const year = g0.oeYear ?? latestDate.slice(0, 4)
+    const tournamentLabel = intlTournamentLabel(league, year, g0.split)
     const resolved = resolveSeriesScoreWithCito(
       bucket.teamA,
       bucket.teamB,
@@ -1637,16 +1671,10 @@ export function collectSeriesBriefs(
       winsB,
       latestDate,
       cito,
-      seriesResolveOpts(bucket.games[0]?.league, bucket.games[0]?.split, bucket.games[0]?.playoffs),
+      seriesResolveOpts(g0.league, g0.split, g0.playoffs, tournamentLabel),
     )
     if (!isSeriesReadyForRecap(resolved)) continue
     if (!isValidSeriesScore(resolved.winsA, resolved.winsB)) continue
-    const g0 = bucket.games[0]!
-    const league = (g0.league ?? 'LCK').toUpperCase()
-    const year = g0.oeYear ?? latestDate.slice(0, 4)
-    const tournamentLabel = ['MSI', 'WLDS', 'WORLDS', 'FST'].includes(league)
-      ? `${year} ${league === 'WLDS' || league === 'WORLDS' ? 'Worlds' : league === 'FST' ? 'First Stand' : 'MSI'}`
-      : g0.split ?? `${year} ${league}`
     tournamentPeers.push({
       date: latestDate,
       winner: resolved.winner,
@@ -1665,6 +1693,10 @@ export function collectSeriesBriefs(
     const ordered = [...bucket.games].sort(compareSeriesGames)
     const latestDate = ordered[ordered.length - 1]?.date ?? bucket.games[0]!.date
     const firstGameDate = ordered[0]!.date
+    const g0pre = bucket.games[0]!
+    const leaguePre = (g0pre.league ?? 'LCK').toUpperCase()
+    const yearPre = g0pre.oeYear ?? latestDate.slice(0, 4)
+    const tournamentLabelPre = intlTournamentLabel(leaguePre, yearPre, g0pre.split)
     const resolved = resolveSeriesScoreWithCito(
       bucket.teamA,
       bucket.teamB,
@@ -1672,7 +1704,7 @@ export function collectSeriesBriefs(
       winsB,
       latestDate,
       cito,
-      seriesResolveOpts(bucket.games[0]?.league, bucket.games[0]?.split, bucket.games[0]?.playoffs),
+      seriesResolveOpts(g0pre.league, g0pre.split, g0pre.playoffs, tournamentLabelPre),
     )
     if (!isSeriesReadyForRecap(resolved)) {
       console.warn(
@@ -1685,6 +1717,14 @@ export function collectSeriesBriefs(
       console.warn(
         `Skipping invalid resolved score ${Math.max(resolved.winsA, resolved.winsB)}-${Math.min(resolved.winsA, resolved.winsB)} ` +
           `(${bucket.teamA} vs ${bucket.teamB}, OE ${bucket.games.length} games)`,
+      )
+      continue
+    }
+    const neededGames = resolved.winsA + resolved.winsB
+    if (bucket.games.length < neededGames) {
+      console.warn(
+        `Skipping OE-lag series ${bucket.teamA} vs ${bucket.teamB}: schedule ${resolved.score} but only ` +
+          `${bucket.games.length}/${neededGames} OE games ingested`,
       )
       continue
     }
@@ -1710,11 +1750,7 @@ export function collectSeriesBriefs(
     const victimSlump = countSeriesLossStreak(vicHistory, firstGameDate)
 
     const g0 = bucket.games[0]!
-    const league = (g0.league ?? 'LCK').toUpperCase()
-    const year = g0.oeYear ?? latestDate.slice(0, 4)
-    const tournamentLabel = ['MSI', 'WLDS', 'WORLDS', 'FST'].includes(league)
-      ? `${year} ${league === 'WLDS' || league === 'WORLDS' ? 'Worlds' : league === 'FST' ? 'First Stand' : 'MSI'}`
-      : g0.split ?? `${year} ${league}`
+    const tournamentLabel = tournamentLabelPre
 
     const format = resolveTournamentFormat({
       league: g0.league,

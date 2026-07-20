@@ -42,7 +42,10 @@ export function applyCitoScoreToSeries(
     citoResults,
     {
       international,
-      defaultBestOf: format?.defaultBestOf ?? (international ? 5 : null),
+      defaultBestOf: format?.defaultBestOf ?? (international && format?.id !== 'EWC' ? 5 : null),
+      formatId: format?.id ?? null,
+      league: series.league,
+      tournamentLabel: series.split,
     },
   )
 
