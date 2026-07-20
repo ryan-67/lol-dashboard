@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useMemo, useRef } from 'react'
 import gsap from 'gsap'
 import {
   championIconUrl,
@@ -6,13 +6,29 @@ import {
   leagueLogoUrl,
   teamLogoUrlFromName,
 } from '../../lib/entities'
+import { LANDING_PLAYER_PORTRAITS } from '../../data/landingPortraits'
 
 function lerp(a: number, b: number, n: number) {
   return (1 - n) * a + n * b
 }
 
-/** Curated trail assets: teams, leagues, and champion icons (no fragile headshot CDN). */
+function shuffleInPlace<T>(arr: T[]): T[] {
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1))
+    ;[arr[i], arr[j]] = [arr[j]!, arr[i]!]
+  }
+  return arr
+}
+
+function withBase(path: string): string {
+  const base = (import.meta.env.BASE_URL || '/').replace(/\/?$/, '/')
+  return `${base}${path.replace(/^\//, '')}`
+}
+
+/** Interleaved + shuffled trail: player portraits, teams, leagues, champions. */
 function buildTrailUrls(): string[] {
+  const portraits = Object.values(LANDING_PLAYER_PORTRAITS).map(withBase)
+
   const teams = [
     'T1',
     'Gen.G',
@@ -24,33 +40,36 @@ function buildTrailUrls(): string[] {
     'FlyQuest',
     'Top Esports',
     'Fnatic',
+    'Dplus Kia',
+    'Karmine Corp',
   ]
   const leagues = ['LCK', 'LPL', 'LEC', 'LCS', 'MSI', 'Worlds', 'First Stand', 'EWC']
-  const champs = ['Azir', 'Orianna', 'LeeSin', 'Ahri', 'Ezreal', 'Jinx', 'Vi', 'Ryze']
+  const champs = ['Azir', 'Orianna', 'LeeSin', 'Ahri', 'Ezreal', 'Jinx', 'Vi', 'Ryze', 'Lucian', 'Nautilus']
 
-  const urls: string[] = []
-  for (const t of teams) {
-    const u = teamLogoUrlFromName(t)
-    if (u) urls.push(u)
+  const teamUrls = teams.map((t) => teamLogoUrlFromName(t)).filter((u): u is string => Boolean(u))
+  const leagueUrls = leagues.map((l) => leagueLogoUrl(l)).filter((u): u is string => Boolean(u))
+  const champUrls = champs.map((c) => championIconUrl(ddragonChampionKey(c)))
+
+  // Round-robin buckets so consecutive reveals don't clump by type, then shuffle.
+  const buckets = [portraits, teamUrls, leagueUrls, champUrls]
+  const interleaved: string[] = []
+  const max = Math.max(...buckets.map((b) => b.length))
+  for (let i = 0; i < max; i++) {
+    for (const bucket of buckets) {
+      if (bucket[i]) interleaved.push(bucket[i]!)
+    }
   }
-  for (const l of leagues) {
-    const u = leagueLogoUrl(l)
-    if (u) urls.push(u)
-  }
-  for (const c of champs) {
-    urls.push(championIconUrl(ddragonChampionKey(c)))
-  }
-  return urls
+  return shuffleInPlace(interleaved)
 }
 
 /**
  * Image mouse-trail section (React Bits Image Trail variant 1, brand-adapted).
- * Move pointer across the field to leave a trail of logos/icons.
+ * Move pointer across the field to leave a trail of logos/portraits/icons.
  */
 export default function NuckyKnowsTrail() {
   const rootRef = useRef<HTMLElement>(null)
   const stageRef = useRef<HTMLDivElement>(null)
-  const items = buildTrailUrls()
+  const items = useMemo(() => buildTrailUrls(), [])
 
   useEffect(() => {
     const stage = stageRef.current

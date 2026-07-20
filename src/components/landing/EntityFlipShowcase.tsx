@@ -378,13 +378,7 @@ export default function EntityFlipShowcase() {
     <section className="landing-flip-section" aria-label="Example player and team ratings">
       <div className="landing-section-head">
         <p className="landing-section-label">model surfaces</p>
-        <h2 className="landing-section-title">
-          entity cards that <em>flip</em> into the model
-        </h2>
-        <p className="landing-section-lead">
-          Hover or tap to reveal the nucky rating backside — the same compositions you see in the
-          dashboard for players and teams.
-        </p>
+        <h2 className="landing-section-title">model diagnostics for lolesports entities</h2>
       </div>
       <div className="landing-flip-rail">
         {visible.map((ex) => (

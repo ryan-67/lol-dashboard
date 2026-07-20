@@ -923,7 +923,10 @@
 .dash-reveal-ready .card,
 .dash-reveal-ready .page-section,
 .dash-reveal-ready .radar-card,
-.dash-reveal-ready .player-chart-card {
+.dash-reveal-ready .player-chart-card,
+.dash-reveal-ready .dash-kpi,
+.dash-reveal-ready .overview-hub-card,
+.dash-reveal-ready .overview-totw-card {
   will-change: transform, opacity;
 }
 

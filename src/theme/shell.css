@@ -724,15 +724,6 @@
   border-bottom: 1px solid var(--border-subtle);
 }
 
-/* List tabs (Overview/Players/…): league filter scrolls away so SectionSubnav can pin to top. */
-.dashboard-frame-filters--scrollaway {
-  position: relative;
-  top: auto;
-  z-index: 1;
-  backdrop-filter: none;
-  background: transparent;
-}
-
 .dashboard-frame-main {
   flex: 1;
   padding: 1.1rem var(--padding-x) 2.5rem;

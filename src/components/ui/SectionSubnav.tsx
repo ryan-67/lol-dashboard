@@ -19,8 +19,7 @@ interface SectionSubnavProps {
  * Sticky in-page section nav.
  *
  * - Entity pages: portals into `#entity-section-slot` inside the sticky filter strip.
- * - List pages (Overview, Players, …): sticks at `top: 0` so it takes the league filter’s
- *   place once that strip scrolls away.
+ * - List pages (Overview, Players, …): sticks under the sticky league/year/split strip.
  */
 export default function SectionSubnav({
   items,
@@ -39,18 +38,18 @@ export default function SectionSubnav({
     setPortalSlot(document.getElementById('entity-section-slot'))
   }, [])
 
-  // Publish --section-subnav-offset for section scroll-margin / IntersectionObserver.
+  // Publish sticky offsets for section scroll-margin / nested sticky subnav.
   useEffect(() => {
     const filtersEl = document.querySelector('.dashboard-frame-filters')
-    const filtersStick =
-      filtersEl &&
-      !filtersEl.classList.contains('dashboard-frame-filters--scrollaway')
 
     const update = () => {
-      const filtersHeight =
-        filtersStick && filtersEl ? filtersEl.getBoundingClientRect().height : 0
+      const filtersHeight = filtersEl ? filtersEl.getBoundingClientRect().height : 0
       const navHeight = navRef.current?.getBoundingClientRect().height ?? 0
-      // Portaled: already inside sticky strip. List pages: sticky at top:0.
+      document.documentElement.style.setProperty(
+        '--dashboard-filters-sticky-top',
+        portaled ? '0px' : `${Math.round(filtersHeight)}px`,
+      )
+      // Portaled: already inside sticky strip. List pages: filters + subnav stack.
       document.documentElement.style.setProperty(
         '--section-subnav-offset',
         `${Math.round(filtersHeight + navHeight + 16)}px`,
@@ -71,6 +70,7 @@ export default function SectionSubnav({
     return () => {
       ro.disconnect()
       window.removeEventListener('resize', update)
+      document.documentElement.style.removeProperty('--dashboard-filters-sticky-top')
     }
   }, [items.length, portaled])
 

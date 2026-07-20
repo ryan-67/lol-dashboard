@@ -404,31 +404,31 @@ export function revealDashboardSections(root: Element | null) {
   if (reducedMotion()) return
 
   const targets = root.querySelectorAll(
-    '.card:not([data-revealed]), .page-section:not([data-revealed]), .radar-card:not([data-revealed]), .player-chart-card:not([data-revealed]), .dash-kpi:not([data-revealed]), .overview-hub-card:not([data-revealed])',
+    '.card:not([data-revealed]), .page-section:not([data-revealed]), .radar-card:not([data-revealed]), .player-chart-card:not([data-revealed]), .dash-kpi:not([data-revealed]), .overview-hub-card:not([data-revealed]), .overview-totw-card:not([data-revealed]), .power-rankings-panel:not([data-revealed])',
   )
   if (!targets.length) return
 
   targets.forEach((el, i) => {
     el.setAttribute('data-revealed', '1')
-    gsap.fromTo(
-      el,
-      { opacity: 0, y: 18 },
-      {
-        opacity: 1,
-        y: 0,
-        duration: 0.45,
-        delay: Math.min(i * 0.03, 0.24),
-        ease: 'power2.out',
-        clearProps: 'transform',
-        scrollTrigger: {
-          ...scrollerVars(el),
-          start: 'top 93%',
-        },
+    const fromRight = i % 3 === 2
+    gsap.set(el, { opacity: 0, y: fromRight ? 12 : 36, x: fromRight ? 28 : 0 })
+    gsap.to(el, {
+      opacity: 1,
+      y: 0,
+      x: 0,
+      duration: 0.55,
+      delay: Math.min(i * 0.04, 0.28),
+      ease: 'power3.out',
+      clearProps: 'transform',
+      scrollTrigger: {
+        ...scrollerVars(el),
+        start: 'top 90%',
       },
-    )
+    })
   })
 
-  ensureVisible(targets, 1600)
+  ensureVisible(targets, 2000)
+  window.setTimeout(() => refreshScrollTrigger(), 80)
 
   // Chart/radar draw for visible viz wrappers
   root.querySelectorAll('.recharts-wrapper').forEach((wrap) => {

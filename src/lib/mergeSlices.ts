@@ -42,11 +42,17 @@ export interface OEStore {
 }
 
 export const TIER1_LEAGUES = ['LCK', 'LPL', 'LEC', 'LCS'] as const
+/** International events stored as their own league keys in OE slices. */
+export const INTERNATIONAL_LEAGUES = ['MSI', 'WLDs', 'Worlds', 'FST', 'First Stand', 'EWC'] as const
 /** Minor-region / international guest teams (MSI, Worlds participants outside tier-1). */
 export const GUEST_LEAGUE = 'INT' as const
 
 export function isTier1League(league: string | null | undefined): boolean {
   return Boolean(league && (TIER1_LEAGUES as readonly string[]).includes(league))
+}
+
+export function isInternationalLeagueKey(league: string | null | undefined): boolean {
+  return Boolean(league && (INTERNATIONAL_LEAGUES as readonly string[]).includes(league))
 }
 
 /** Teams/players tabs: tier-1 only. Guest orgs keep identity pages via entity routes. */
@@ -59,11 +65,13 @@ export function isTier1Player(p: { league?: string | null }): boolean {
 }
 
 function sliceLeaguesForMerge(leagues: string[]): string[] {
-  const tier1 =
+  // "All Tier 1" must include internationals (MSI / Worlds / First Stand / EWC).
+  // Without this, overview recaps and weekly hub silently drop finished EWC series.
+  const selected =
     !leagues.length || leagues.includes('All Tier 1')
-      ? [...TIER1_LEAGUES]
+      ? [...TIER1_LEAGUES, ...INTERNATIONAL_LEAGUES]
       : leagues.filter((l) => l !== 'All Tier 1')
-  return [...tier1, GUEST_LEAGUE]
+  return [...new Set([...selected, GUEST_LEAGUE])]
 }
 
 const SEASON_ORDER: Record<string, number> = {

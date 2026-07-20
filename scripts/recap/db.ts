@@ -315,7 +315,9 @@ export async function deleteProvisionalScoreRecaps(
       const league = String(row.league ?? '')
       const text = String(row.plain_text ?? '')
       const hay = `${league} ${text}`.toLowerCase()
-      const international = /\b(msi|worlds|wlds|first\s*stand|fst)\b/.test(hay)
+      const international = /\b(msi|worlds|wlds|first\s*stand|fst|ewc|esports\s*world\s*cup)\b/.test(
+        hay,
+      )
       const key = [
         resolveTeamCanonicalName(String(row.team_a ?? '')),
         resolveTeamCanonicalName(String(row.team_b ?? '')),

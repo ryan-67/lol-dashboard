@@ -122,17 +122,25 @@ export default function AmbientBackground() {
         h * 0.4,
         Math.max(w, h) * 0.75,
       )
-      wash.addColorStop(0, 'rgba(87, 196, 207, 0.055)')
-      wash.addColorStop(0.45, 'rgba(87, 196, 207, 0.02)')
+      wash.addColorStop(0, 'rgba(87, 196, 207, 0.1)')
+      wash.addColorStop(0.4, 'rgba(87, 196, 207, 0.04)')
       wash.addColorStop(1, 'rgba(0, 0, 0, 0)')
       ctx.fillStyle = wash
+      ctx.fillRect(0, 0, w, h)
+
+      // Cursor spotlight wash (brighter signal under the pointer)
+      const spotlight = ctx.createRadialGradient(curX, curY, 8, curX, curY, 220)
+      spotlight.addColorStop(0, 'rgba(87, 196, 207, 0.16)')
+      spotlight.addColorStop(0.45, 'rgba(87, 196, 207, 0.06)')
+      spotlight.addColorStop(1, 'rgba(0, 0, 0, 0)')
+      ctx.fillStyle = spotlight
       ctx.fillRect(0, 0, w, h)
 
       // Base grid
       const grid = 56
       const ox = px * 0.35
       const oy = py * 0.35
-      ctx.strokeStyle = 'rgba(216, 212, 200, 0.04)'
+      ctx.strokeStyle = 'rgba(216, 212, 200, 0.055)'
       ctx.lineWidth = 1
       ctx.beginPath()
       for (let x = ((ox % grid) + grid) % grid; x < w; x += grid) {
@@ -146,25 +154,29 @@ export default function AmbientBackground() {
       ctx.stroke()
 
       // Cursor-reactive dots / hexes
-      const prox = 140
+      const prox = 190
       for (const cell of cells) {
         const dx = cell.x + px * 0.2 - curX
         const dy = cell.y + py * 0.2 - curY
         const d = Math.hypot(dx, dy)
         const target = d < prox ? 1 - d / prox : 0
-        cell.boost += (target - cell.boost) * (reduce ? 1 : 0.12)
-        if (cell.boost < 0.02) continue
+        cell.boost += (target - cell.boost) * (reduce ? 1 : 0.16)
+        if (cell.boost < 0.015) continue
 
-        const a = 0.08 + cell.boost * 0.55
+        const a = 0.18 + cell.boost * 0.75
         if (cell.hex) {
-          ctx.strokeStyle = `rgba(87, 196, 207, ${a * 0.85})`
-          ctx.lineWidth = 1
-          drawHex(cell.x + px * 0.2, cell.y + py * 0.2, 7 + cell.boost * 3)
+          ctx.strokeStyle = `rgba(87, 196, 207, ${Math.min(0.95, a)})`
+          ctx.lineWidth = 1.25 + cell.boost * 0.75
+          drawHex(cell.x + px * 0.2, cell.y + py * 0.2, 8 + cell.boost * 5)
           ctx.stroke()
+          if (cell.boost > 0.35) {
+            ctx.fillStyle = `rgba(87, 196, 207, ${cell.boost * 0.12})`
+            ctx.fill()
+          }
         } else {
-          ctx.fillStyle = `rgba(87, 196, 207, ${a})`
+          ctx.fillStyle = `rgba(87, 196, 207, ${Math.min(0.95, a)})`
           ctx.beginPath()
-          ctx.arc(cell.x + px * 0.2, cell.y + py * 0.2, 1.2 + cell.boost * 2.2, 0, Math.PI * 2)
+          ctx.arc(cell.x + px * 0.2, cell.y + py * 0.2, 1.6 + cell.boost * 3.2, 0, Math.PI * 2)
           ctx.fill()
         }
       }

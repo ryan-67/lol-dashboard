@@ -2471,6 +2471,8 @@ b,
 /* Sticky in-page section nav (Players, and any future tab that adopts it) */
 .section-subnav {
   position: sticky;
+  /* Sit under the sticky league/year/split filter strip */
+  top: var(--dashboard-filters-sticky-top, 0px);
   z-index: 25;
   display: flex;
   flex-wrap: wrap;
