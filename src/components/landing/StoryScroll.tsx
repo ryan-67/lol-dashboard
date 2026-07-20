@@ -76,8 +76,9 @@ export default function StoryScroll() {
           ease: 'none',
           scrollTrigger: {
             trigger: section,
-            start: 'top top',
-            end: () => `+=${getScroll() + window.innerHeight * 0.35}`,
+            // Begin pin/scrub when the section is mid-viewport (not as soon as top hits top)
+            start: 'center center',
+            end: () => `+=${getScroll() + window.innerHeight * 0.5}`,
             pin: true,
             scrub: 0.85,
             anticipatePin: 1,

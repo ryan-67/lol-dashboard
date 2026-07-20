@@ -1,11 +1,32 @@
+import { useEffect } from 'react'
 import { Outlet, useLocation } from 'react-router-dom'
 import TopBar from '../TopBar'
 import { useDashboard } from '../../context/DashboardContext'
+
+/** Nested app panes scroll — not the document. Reset on every tab/route change. */
+function scrollDashboardToTop() {
+  const duo = document.querySelector('.duo-dashboard')
+  if (duo instanceof HTMLElement) {
+    duo.scrollTop = 0
+    return
+  }
+  const frame = document.querySelector('.dashboard-frame--scroll')
+  if (frame instanceof HTMLElement) {
+    frame.scrollTop = 0
+  }
+}
 
 export default function DashboardFrame() {
   const { loading, error } = useDashboard()
   const location = useLocation()
   const inDuo = location.pathname.startsWith('/duo')
+
+  useEffect(() => {
+    scrollDashboardToTop()
+    // After layout/filters mount, ensure we're still at top
+    const id = window.requestAnimationFrame(() => scrollDashboardToTop())
+    return () => window.cancelAnimationFrame(id)
+  }, [location.pathname])
 
   const isEntityPage =
     /\/(players|teams|champions|tournaments)\/[^/]+/.test(location.pathname) ||

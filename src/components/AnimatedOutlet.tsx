@@ -23,7 +23,14 @@ export default function AnimatedOutlet({ children }: { children: React.ReactNode
 
     tabContentSwap(
       el,
-      () => setDisplayed(childrenRef.current),
+      () => {
+        setDisplayed(childrenRef.current)
+        const duo = document.querySelector('.duo-dashboard')
+        const frame = document.querySelector('.dashboard-frame--scroll')
+        if (duo instanceof HTMLElement) duo.scrollTop = 0
+        else if (frame instanceof HTMLElement) frame.scrollTop = 0
+        else window.scrollTo(0, 0)
+      },
       () => ref.current,
     )
   }, [location.pathname])

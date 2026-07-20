@@ -1,4 +1,4 @@
-import { useRef } from 'react'
+import { useMemo, useRef } from 'react'
 import { useGSAP } from '@gsap/react'
 import type { Champion } from '../../hooks/useDashboardData'
 import {
@@ -22,9 +22,10 @@ function StatPill({
 }: {
   label: string
   value: string
+  /** 0–1 fill amount relative to the category max / 100% ceiling */
   ratio: number
 }) {
-  const width = Math.min(100, Math.max(0, ratio * 100))
+  const width = Math.min(100, Math.max(4, ratio * 100))
   return (
     <div className="op-stat-pill">
       <div className="op-stat-pill-label">{label}</div>
@@ -36,20 +37,22 @@ function StatPill({
   )
 }
 
-function relativeRatio(value: number, average: number): number {
-  if (!average) return 0.5
-  return value / average
+/** Percent stats: fill = value / 100. Other stats: fill = value / maxInFilter. */
+function barRatio(value: number, max: number, kind: 'pct' | 'max'): number {
+  if (kind === 'pct') return Math.min(1, Math.max(0, value / 100))
+  if (!max || max <= 0) return 0
+  return Math.min(1, Math.max(0, value / max))
 }
 
 function SpotlightCard({
   entry,
-  roleAverages,
+  maxKda,
 }: {
   entry: OpChampionEntry
-  roleAverages: ReturnType<typeof computeOpScores>['roleAverages']
+  maxKda: number
 }) {
   const { champion, role, opScore } = entry
-  const avg = roleAverages[role]
+  const ban = getBanRate(champion)
 
   return (
     <div className="op-spotlight card">
@@ -67,22 +70,22 @@ function SpotlightCard({
         <StatPill
           label="Presence"
           value={`${champion.presence.toFixed(1)}%`}
-          ratio={relativeRatio(champion.presence, avg?.presence ?? champion.presence)}
+          ratio={barRatio(champion.presence, 100, 'pct')}
         />
         <StatPill
           label="Win Rate"
           value={`${champion.winrate.toFixed(1)}%`}
-          ratio={relativeRatio(champion.winrate, avg?.winrate ?? champion.winrate)}
+          ratio={barRatio(champion.winrate, 100, 'pct')}
         />
         <StatPill
           label="Ban Rate"
-          value={`${getBanRate(champion).toFixed(1)}%`}
-          ratio={relativeRatio(getBanRate(champion), avg?.banRate ?? getBanRate(champion))}
+          value={`${ban.toFixed(1)}%`}
+          ratio={barRatio(ban, 100, 'pct')}
         />
         <StatPill
           label="KDA"
           value={champion.avgKda.toFixed(2)}
-          ratio={relativeRatio(champion.avgKda, avg?.kda ?? champion.avgKda)}
+          ratio={barRatio(champion.avgKda, maxKda, 'max')}
         />
       </div>
     </div>
@@ -91,7 +94,15 @@ function SpotlightCard({
 
 export default function MostOpChampion({ champions }: MostOpChampionProps) {
   const sectionRef = useRef<HTMLDivElement>(null)
-  const { top, runners, roleAverages } = computeOpScores(champions)
+  const { top, runners } = computeOpScores(champions)
+
+  const maxKda = useMemo(() => {
+    let max = 0
+    for (const c of champions) {
+      if (c.avgKda > max) max = c.avgKda
+    }
+    return max > 0 ? max : 1
+  }, [champions])
 
   useGSAP(
     () => {
@@ -111,7 +122,7 @@ export default function MostOpChampion({ champions }: MostOpChampionProps) {
       <h2 className="card-title">Most OP Champion</h2>
       <p className="card-subtitle">Composite z-score across presence, win rate, ban rate, and KDA within role</p>
       <div className="op-spotlight-layout">
-        <SpotlightCard entry={top} roleAverages={roleAverages} />
+        <SpotlightCard entry={top} maxKda={maxKda} />
         <div className="op-runners card">
           <h3 className="card-title">Runner Ups</h3>
           <ul className="op-runner-list">

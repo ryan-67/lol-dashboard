@@ -239,13 +239,13 @@
 .landing-hero::before {
   content: 'nucky';
   position: absolute;
-  left: -0.05em;
-  top: 14%;
-  font-size: clamp(5rem, 18vw, 12rem);
+  left: -0.08em;
+  top: 8%;
+  font-size: clamp(7.5rem, 28vw, 18rem);
   font-weight: 700;
-  letter-spacing: -0.06em;
-  line-height: 0.85;
-  color: color-mix(in oklab, var(--text-primary) 6%, transparent);
+  letter-spacing: -0.07em;
+  line-height: 0.8;
+  color: color-mix(in oklab, var(--text-primary) 12%, transparent);
   pointer-events: none;
   user-select: none;
   z-index: 0;
@@ -796,12 +796,16 @@
 }
 
 .landing-footer {
+  /* Must sit above landing-main (z-index:1) — otherwise the fixed ambient wash covers footer text */
   position: relative;
+  z-index: 2;
   margin-top: auto;
   border-top: 1px solid var(--border-subtle);
   padding: 3.5rem clamp(1.25rem, 3vw, 2rem) 0;
   overflow: hidden;
   isolation: isolate;
+  background: var(--bg-base);
+  color: var(--text-primary);
 }
 
 .landing-footer-grid {
@@ -816,19 +820,19 @@
 .landing-footer-blurb {
   margin: 1rem 0 0;
   max-width: 34ch;
-  font-size: 0.88rem;
+  font-size: 0.92rem;
   line-height: 1.55;
-  color: color-mix(in oklab, var(--text-primary) 72%, var(--text-secondary));
+  color: var(--text-secondary);
 }
 
 .landing-footer-meta {
   margin: 1.1rem 0 0;
-  font-size: 0.78rem;
-  color: color-mix(in oklab, var(--text-primary) 55%, var(--text-secondary));
+  font-size: 0.8rem;
+  color: var(--text-secondary);
 }
 
 .landing-footer-heading {
-  font-size: 0.7rem;
+  font-size: 0.72rem;
   letter-spacing: 0.14em;
   text-transform: uppercase;
   color: var(--text-primary);
@@ -852,17 +856,19 @@
   background: transparent;
   padding: 0;
   font-family: inherit;
-  font-size: 0.88rem;
-  color: color-mix(in oklab, var(--text-primary) 78%, var(--text-secondary));
+  font-size: 0.92rem;
+  color: var(--text-primary);
   text-decoration: none;
   cursor: pointer;
   text-align: left;
   transition: color 160ms ease-out;
+  opacity: 0.88;
 }
 
 .landing-footer-col a:hover,
 .landing-footer-col button:hover {
   color: var(--accent);
+  opacity: 1;
 }
 
 .landing-footer-disclaimer {
@@ -871,9 +877,9 @@
   max-width: 1120px;
   margin: 2.5rem auto 0;
   padding-bottom: 0.35rem;
-  font-size: 0.74rem;
+  font-size: 0.78rem;
   line-height: 1.5;
-  color: color-mix(in oklab, var(--text-primary) 48%, var(--text-secondary));
+  color: var(--text-secondary);
 }
 
 /* folk.com-style brand watermark — bleeds off the bottom edge */
@@ -882,17 +888,17 @@
   z-index: 0;
   display: block;
   width: 100%;
-  margin: 1.25rem 0 0;
+  margin: 1.5rem 0 0;
   padding: 0;
   text-align: center;
-  font-size: clamp(6.5rem, 26vw, 16rem);
+  font-size: clamp(8rem, 32vw, 20rem);
   font-weight: 700;
-  line-height: 0.78;
+  line-height: 0.76;
   letter-spacing: -0.07em;
-  color: color-mix(in oklab, var(--text-primary) 14%, transparent);
+  color: color-mix(in oklab, var(--text-primary) 18%, transparent);
   user-select: none;
   pointer-events: none;
-  transform: translateY(28%);
+  transform: translateY(30%);
   white-space: nowrap;
 }
 
@@ -1207,7 +1213,7 @@
 
 .landing-story-title {
   margin: 0;
-  font-size: clamp(2.4rem, 7vw, 5.2rem);
+  font-size: clamp(2.8rem, 8vw, 5.8rem);
   font-weight: 700;
   line-height: 0.98;
   letter-spacing: -0.05em;
@@ -1224,7 +1230,7 @@
 .landing-story-body {
   margin: 1.25rem 0 0;
   max-width: 36ch;
-  font-size: clamp(0.95rem, 1.6vw, 1.1rem);
+  font-size: clamp(1rem, 1.7vw, 1.15rem);
   line-height: 1.55;
   color: var(--text-secondary);
 }
