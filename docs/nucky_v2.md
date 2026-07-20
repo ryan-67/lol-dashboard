@@ -44,7 +44,20 @@
 - Power rankings footer surfaces OE-ahead lag when >2 days
 - Still need a **successful** full refresh to bake EWC into Elo/player ratings
 
-**Ops TODO:** inspect recent Refresh runs for soft-failed ML; re-run workflow_dispatch until `chore(ml): refresh nuckyAI model artifacts` lands; consider hard-fail ML on scheduled runs once stable.
+### Model publish path (clarified 2026-07-20)
+
+Your mental model of Refresh Dashboard Data is correct, with one important nuance:
+
+| Step | What it updates on nucky.gg |
+| --- | --- |
+| OE ingest → CDN shards + Supabase | Dashboard stats, weekly recaps, series pages (raw OE) |
+| ML retrain + `export_artifacts.py` | Writes `agent-chat/ml/*` + copies key JSON under `public/data/` |
+| **Publish + git commit** | **Landing scorecard, power rankings, team Elo boards, model dates** — via `public/data/*.json` after Pages rebuild |
+| **`supabase functions deploy agent-chat`** | **Live chat / prediction packets** — was previously manual only |
+
+So there *was* a publish step for the static site (commit `public/data/player_ratings.json` etc.), but it was easy to miss because (1) it was named like an internal ML commit, (2) soft-fail often skipped new rankings while OE still advanced, and (3) the edge function never auto-deployed.
+
+**Changes 2026-07-20:** explicit `publish_model_to_site.py` step; commit message `chore(ml): publish model artifacts to nucky.gg`; optional auto-deploy of `agent-chat` when `SUPABASE_ACCESS_TOKEN` is set; hard-fail ML on manual `workflow_dispatch`; canonical `model_metadata.json` on `/data/` for update stamps.
 
 ### Series-grain scoring (2026-07-20)
 

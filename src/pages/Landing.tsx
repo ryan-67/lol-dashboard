@@ -18,6 +18,8 @@ import {
   formatScorecardUpdated,
   type AccuracyScorecard,
 } from '../lib/accuracyScorecard'
+import { formatModelUpdatedDate } from '../lib/format'
+import { fetchModelMetadata } from '../lib/loadModelMetadata'
 import { startStripeCheckout } from '../lib/billing'
 import { animateCounter, scrollEntrance, scrollEntranceStagger } from '../theme/animations'
 import { useAuth } from '../context/AuthContext'
@@ -92,6 +94,7 @@ export default function Landing() {
   const location = useLocation()
   const rootRef = useRef<HTMLDivElement>(null)
   const [scorecard, setScorecard] = useState<AccuracyScorecard | null>(null)
+  const [modelUpdatedIso, setModelUpdatedIso] = useState<string | null>(null)
   const [showAuth, setShowAuth] = useState(false)
   const [authView, setAuthView] = useState<AuthView>('signin')
   const [checkoutError, setCheckoutError] = useState<string | null>(null)
@@ -102,6 +105,10 @@ export default function Landing() {
     const load = (force = false) => {
       void fetchAccuracyScorecard({ force }).then((data) => {
         if (alive) setScorecard(data)
+      })
+      void fetchModelMetadata({ force }).then((meta) => {
+        if (!alive) return
+        if (meta?.exported_at) setModelUpdatedIso(meta.exported_at)
       })
     }
     load()
@@ -221,7 +228,9 @@ export default function Landing() {
   const baseAcc = scorecard?.aggregate.baseline.accuracy ?? 0.6209
   const holdout = scorecard?.holdoutRows ?? 718
   const dateRange = scorecard?.dateRange ?? ['2026-02-09', '2026-07-11']
-  const scorecardUpdated = formatScorecardUpdated(scorecard?.generatedAt)
+  const scorecardUpdated = formatModelUpdatedDate(
+    modelUpdatedIso ?? scorecard?.generatedAt,
+  ) || formatScorecardUpdated(scorecard?.generatedAt)
 
   return (
     <div className="landing-page" ref={rootRef}>

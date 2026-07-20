@@ -324,7 +324,21 @@ The model's only data source was a human-maintained local `lol/*.csv` folder —
 | — | `pip install -r scripts/requirements-ml.txt` + the whole ML retrain block are wrapped in `continue-on-error: true` (gated behind `if: steps.<prev>.outcome == 'success'`), so a bug or transient failure in the ML pipeline never blocks the live dashboard refresh (CDN shards / Supabase seed / weekly recaps still complete normally) — it just skips that run's model refresh and retries on the next Drive change. |
 | ML history backfill left every historical year shard in `public/data/` and the git publish step tried to push them — most exceed GitHub's 100 MB/file limit (e.g. `oe_slices_2025.json` at 211 MB) | `ingest_csv.py` now respects `OE_DOWNLOAD_YEARS` for dashboard ingest (CI: `current` only) while ML still reads all of `lol/*.csv`. New `scripts/publish_oe_cdn_to_git.py` commits only `OE_CDN_PUBLISH_YEARS=current` shards to git; multi-year history stays in Supabase `oe_slices`, which is already the dashboard's primary data path. |
 
-**Deploying the retrained model to the live edge function remains a deliberate manual step** (`npx supabase functions deploy agent-chat --use-api`, or via CI if you want that automated too — see below) — this Action only regenerates and commits the artifact JSON, it does not push to Supabase's edge runtime. That's intentional: this session alone found and fixed several real accuracy bugs (GPR overweighting, opponent-blind recent form, wrong jungle-centric detection) purely from smoke-testing outputs before they went live, and auto-deploying a freshly retrained model straight to production chat on every Drive update would remove that human checkpoint. Deploying is a 10-second command whenever you're ready to ship a retrain — happy to also automate that step (needs a `SUPABASE_ACCESS_TOKEN` repo secret) if you'd rather not do it manually.
+**Deploying the retrained model to the live edge function** used to be a deliberate
+manual step (`npx supabase functions deploy agent-chat --use-api`). As of 2026-07-20
+the Refresh workflow:
+
+1. Runs `scripts/ml/publish_model_to_site.py` after a successful retrain (copies
+   rankings/scorecard/`model_metadata` into `public/data/` + freshness stamp).
+2. Commits those files + `supabase/functions/agent-chat/ml/` as
+   `chore(ml): publish model artifacts to nucky.gg` — this is what updates
+   **landing + dashboard rankings** after GitHub Pages rebuilds.
+3. Optionally deploys `agent-chat` when repo secret `SUPABASE_ACCESS_TOKEN` is set
+   (parses project ref from `SUPABASE_URL`). Without that secret, static rankings
+   still update via git; chat stays on the last manual edge deploy.
+
+Manual dispatch hard-fails ML (no soft-fail) so a broken retrain cannot silently
+leave OE fresh and rankings frozen. Cron keeps soft-fail so OE never blocks on ML.
 
 **Result:** the model's data source is now the exact same pipeline as the live dashboard (same Drive folder, same `download_oe_csv.py`, same change-detection gate) — no separate manually-refreshed CSV copy exists anymore. `docs/nuckyAI_model.md`/`scripts/ml/README.md`'s "manually-refreshed copy" caveat is resolved.
 

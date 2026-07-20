@@ -7,6 +7,7 @@ public/data/*
 !public/data/accuracy_scorecard.json
 !public/data/player_ratings.json
 !public/data/region_strength.json
+!public/data/model_metadata.json
 !public/data/ml_freshness.json
 !public/data/live-mock
 !public/data/live-mock/**

@@ -63,15 +63,7 @@ def _read_json(path: Path) -> dict:
         return {}
 
 
-def main() -> None:
-    parser = argparse.ArgumentParser()
-    parser.add_argument(
-        "--outcome",
-        default="unknown",
-        help="CI step outcome: success | failure | skipped | unknown",
-    )
-    args = parser.parse_args()
-
+def write_freshness(outcome: str = "unknown") -> dict:
     meta = _read_json(AGENT_ML / "model_metadata.json")
     ratings = _read_json(PUBLIC / "player_ratings.json") or _read_json(AGENT_ML / "player_ratings.json")
     scorecard = _read_json(PUBLIC / "accuracy_scorecard.json")
@@ -95,21 +87,34 @@ def main() -> None:
 
     payload = {
         "generatedAt": datetime.now(timezone.utc).isoformat(),
-        "retrainOutcome": args.outcome,
+        "retrainOutcome": outcome,
         "oeDataThrough": oe_max,
         "modelExportedAt": model_exported,
         "modelHoldoutEnd": holdout_end,
         "oeAheadOfModelDays": lag_days,
         "note": (
             "Team Elo + player ratings only update when ML retrain commits successfully. "
-            "OE shards can advance while model artifacts stay frozen if retrain soft-fails."
+            "OE shards can advance while model artifacts stay frozen if retrain soft-fails. "
+            "Static site reads public/data/*; agent-chat needs supabase functions deploy."
         ),
     }
 
     PUBLIC.mkdir(parents=True, exist_ok=True)
     out = PUBLIC / "ml_freshness.json"
     out.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
-    print(f"Wrote {out.relative_to(ROOT)} — retrain={args.outcome} oe={oe_max} holdout_end={holdout_end}")
+    print(f"Wrote {out.relative_to(ROOT)} — retrain={outcome} oe={oe_max} holdout_end={holdout_end}")
+    return payload
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--outcome",
+        default="unknown",
+        help="CI step outcome: success | failure | skipped | unknown",
+    )
+    args = parser.parse_args()
+    write_freshness(args.outcome)
 
 
 if __name__ == "__main__":

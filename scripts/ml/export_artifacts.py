@@ -204,6 +204,8 @@ PUBLIC_DASHBOARD_ARTIFACTS = frozenset({
     "accuracy_scorecard.json",
     "player_ratings.json",
     "region_strength.json",
+    "model_metadata.json",
+    "ml_freshness.json",
 })
 
 
