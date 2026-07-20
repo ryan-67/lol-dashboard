@@ -69,6 +69,13 @@ const FALLBACK: AccuracyScorecard = {
   ],
 }
 
+let cache: AccuracyScorecard | null = null
+let cacheAt = 0
+let inflight: Promise<AccuracyScorecard> | null = null
+
+/** Re-fetch after model retrain exports land on CDN. */
+const ARTIFACT_TTL_MS = 5 * 60_000
+
 export function formatPct(rate: number, digits = 1): string {
   return `${(rate * 100).toFixed(digits)}%`
 }
@@ -77,12 +84,37 @@ export function formatLL(value: number): string {
   return value.toFixed(3)
 }
 
-export async function fetchAccuracyScorecard(): Promise<AccuracyScorecard> {
-  try {
-    const res = await fetch('/data/accuracy_scorecard.json', { cache: 'no-cache' })
-    if (!res.ok) return FALLBACK
-    return (await res.json()) as AccuracyScorecard
-  } catch {
-    return FALLBACK
-  }
+export function formatScorecardUpdated(iso: string | undefined | null): string {
+  if (!iso) return ''
+  const d = new Date(iso)
+  if (Number.isNaN(d.getTime())) return ''
+  return d.toLocaleDateString(undefined, { year: 'numeric', month: 'numeric', day: 'numeric' })
+}
+
+export function invalidateAccuracyScorecardCache(): void {
+  cache = null
+  cacheAt = 0
+}
+
+export async function fetchAccuracyScorecard(opts?: {
+  force?: boolean
+}): Promise<AccuracyScorecard> {
+  const stale = !cache || Date.now() - cacheAt > ARTIFACT_TTL_MS
+  if (cache && !stale && !opts?.force) return cache
+  if (inflight) return inflight
+
+  inflight = fetch(`/data/accuracy_scorecard.json?t=${Date.now()}`, { cache: 'no-store' })
+    .then(async (res) => {
+      if (!res.ok) return cache ?? FALLBACK
+      const data = (await res.json()) as AccuracyScorecard
+      cache = data
+      cacheAt = Date.now()
+      return data
+    })
+    .catch(() => cache ?? FALLBACK)
+    .finally(() => {
+      inflight = null
+    })
+
+  return inflight
 }

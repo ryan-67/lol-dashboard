@@ -66,13 +66,21 @@ export default function PowerRankingsPanel({
 
   useEffect(() => {
     let alive = true
-    void fetchPlayerRatings().then((data) => {
-      if (!alive) return
-      setBundle(data)
-      setLoading(false)
-    })
+    const load = (force = false) => {
+      void fetchPlayerRatings({ force }).then((data) => {
+        if (!alive) return
+        setBundle(data)
+        setLoading(false)
+      })
+    }
+    load()
+    const onVis = () => {
+      if (document.visibilityState === 'visible') load(true)
+    }
+    document.addEventListener('visibilitychange', onVis)
     return () => {
       alive = false
+      document.removeEventListener('visibilitychange', onVis)
     }
   }, [])
 
@@ -145,7 +153,7 @@ export default function PowerRankingsPanel({
 
       {bundle?.generatedAt ? (
         <p className="power-rankings-footer">
-          model v{bundle.version} · {new Date(bundle.generatedAt).toLocaleDateString()}
+          model v{bundle.version} · updated {new Date(bundle.generatedAt).toLocaleDateString()}
         </p>
       ) : null}
     </section>

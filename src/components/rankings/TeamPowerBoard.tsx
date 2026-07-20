@@ -108,7 +108,7 @@ export default function TeamPowerBoard({ teams, limit = 8 }: TeamPowerBoardProps
       </ol>
       {bundle?.generatedAt ? (
         <p className="power-rankings-footer">
-          model · {new Date(bundle.generatedAt).toLocaleDateString()}
+          model · updated {new Date(bundle.generatedAt).toLocaleDateString()}
         </p>
       ) : null}
     </section>

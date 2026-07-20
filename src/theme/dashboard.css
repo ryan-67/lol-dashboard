@@ -701,8 +701,9 @@
 
 .power-rankings-footer {
   margin: 0.75rem 0 0;
-  font-size: 0.68rem;
-  color: var(--text-tertiary);
+  font-size: 0.72rem;
+  letter-spacing: 0.02em;
+  color: color-mix(in oklab, var(--text-primary) 58%, var(--text-secondary));
 }
 
 @media (min-width: 900px) {

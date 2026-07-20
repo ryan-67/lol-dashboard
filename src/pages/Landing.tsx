@@ -13,6 +13,7 @@ import {
   fetchAccuracyScorecard,
   formatLL,
   formatPct,
+  formatScorecardUpdated,
   type AccuracyScorecard,
 } from '../lib/accuracyScorecard'
 import { startStripeCheckout } from '../lib/billing'
@@ -96,11 +97,19 @@ export default function Landing() {
 
   useEffect(() => {
     let alive = true
-    void fetchAccuracyScorecard().then((data) => {
-      if (alive) setScorecard(data)
-    })
+    const load = (force = false) => {
+      void fetchAccuracyScorecard({ force }).then((data) => {
+        if (alive) setScorecard(data)
+      })
+    }
+    load()
+    const onVis = () => {
+      if (document.visibilityState === 'visible') load(true)
+    }
+    document.addEventListener('visibilitychange', onVis)
     return () => {
       alive = false
+      document.removeEventListener('visibilitychange', onVis)
     }
   }, [])
 
@@ -210,6 +219,7 @@ export default function Landing() {
   const baseAcc = scorecard?.aggregate.baseline.accuracy ?? 0.6209
   const holdout = scorecard?.holdoutRows ?? 718
   const dateRange = scorecard?.dateRange ?? ['2026-02-09', '2026-07-11']
+  const scorecardUpdated = formatScorecardUpdated(scorecard?.generatedAt)
 
   return (
     <div className="landing-page" ref={rootRef}>
@@ -307,6 +317,9 @@ export default function Landing() {
                 {dateRange[0]} → {dateRange[1]}
               </span>
             </div>
+            {scorecardUpdated ? (
+              <div className="landing-readout-updated">model updated {scorecardUpdated}</div>
+            ) : null}
           </aside>
         </section>
       </div>
@@ -525,8 +538,9 @@ export default function Landing() {
 
         <p className="landing-model-note">
           Probabilities come from nucky&apos;s proprietary scoring stack. The scorecard refreshes with
-          the model pipeline so this page reports evaluated performance, not a hand-picked marketing
-          number.
+          every model retrain
+          {scorecardUpdated ? ` (last export ${scorecardUpdated})` : ''} so this page reports
+          evaluated performance, not a hand-picked marketing number.
         </p>
       </section>
 

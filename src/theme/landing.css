@@ -475,6 +475,15 @@
   text-align: right;
 }
 
+.landing-readout-updated {
+  margin-top: 0.65rem;
+  font-family: var(--font-mono);
+  font-size: 0.64rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+
 .landing-readout-foot {
   margin-top: 1.1rem;
   padding-top: 0.75rem;
@@ -792,9 +801,12 @@
   border-top: 1px solid var(--border-subtle);
   padding: 3.5rem clamp(1.25rem, 3vw, 2rem) 0;
   overflow: hidden;
+  isolation: isolate;
 }
 
 .landing-footer-grid {
+  position: relative;
+  z-index: 1;
   max-width: 1120px;
   margin: 0 auto;
   display: grid;
@@ -804,19 +816,19 @@
 .landing-footer-blurb {
   margin: 1rem 0 0;
   max-width: 34ch;
-  font-size: 0.82rem;
+  font-size: 0.88rem;
   line-height: 1.55;
-  color: var(--text-secondary);
+  color: color-mix(in oklab, var(--text-primary) 72%, var(--text-secondary));
 }
 
 .landing-footer-meta {
   margin: 1.1rem 0 0;
-  font-size: 0.72rem;
-  color: var(--text-tertiary);
+  font-size: 0.78rem;
+  color: color-mix(in oklab, var(--text-primary) 55%, var(--text-secondary));
 }
 
 .landing-footer-heading {
-  font-size: 0.68rem;
+  font-size: 0.7rem;
   letter-spacing: 0.14em;
   text-transform: uppercase;
   color: var(--text-primary);
@@ -840,8 +852,8 @@
   background: transparent;
   padding: 0;
   font-family: inherit;
-  font-size: 0.82rem;
-  color: var(--text-secondary);
+  font-size: 0.88rem;
+  color: color-mix(in oklab, var(--text-primary) 78%, var(--text-secondary));
   text-decoration: none;
   cursor: pointer;
   text-align: left;
@@ -854,26 +866,34 @@
 }
 
 .landing-footer-disclaimer {
+  position: relative;
+  z-index: 1;
   max-width: 1120px;
   margin: 2.5rem auto 0;
-  padding-bottom: 1rem;
-  font-size: 0.68rem;
+  padding-bottom: 0.35rem;
+  font-size: 0.74rem;
   line-height: 1.5;
-  color: var(--text-tertiary);
+  color: color-mix(in oklab, var(--text-primary) 48%, var(--text-secondary));
 }
 
+/* folk.com-style brand watermark — bleeds off the bottom edge */
 .landing-ghost {
-  max-width: 1120px;
-  margin: 0 auto;
+  position: relative;
+  z-index: 0;
+  display: block;
+  width: 100%;
+  margin: 1.25rem 0 0;
+  padding: 0;
   text-align: center;
-  font-size: clamp(5.5rem, 22vw, 14rem);
+  font-size: clamp(6.5rem, 26vw, 16rem);
   font-weight: 700;
-  line-height: 0.82;
-  letter-spacing: -0.06em;
-  color: color-mix(in srgb, var(--text-primary) 5.5%, transparent);
+  line-height: 0.78;
+  letter-spacing: -0.07em;
+  color: color-mix(in oklab, var(--text-primary) 14%, transparent);
   user-select: none;
   pointer-events: none;
-  transform: translateY(18%);
+  transform: translateY(28%);
+  white-space: nowrap;
 }
 
 .landing-doc {
