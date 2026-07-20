@@ -5,6 +5,8 @@ import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import AuthModal from '../components/AuthModal'
 import AmbientBackground from '../components/landing/AmbientBackground'
+import EntityFlipShowcase from '../components/landing/EntityFlipShowcase'
+import NuckyKnowsTrail from '../components/landing/NuckyKnowsTrail'
 import RankTicker from '../components/landing/RankTicker'
 import StoryScroll from '../components/landing/StoryScroll'
 import UseCaseCycle from '../components/landing/UseCaseCycle'
@@ -331,6 +333,12 @@ export default function Landing() {
         onAsk={user ? undefined : () => openAuth('signup')}
         ctaTo={user ? homePath : undefined}
       />
+
+      <div className="landing-inner">
+        <EntityFlipShowcase />
+      </div>
+
+      <NuckyKnowsTrail />
 
       <div className="landing-inner">
       <section className="landing-section" id="what">

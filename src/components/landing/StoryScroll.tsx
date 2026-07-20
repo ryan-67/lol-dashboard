@@ -2,22 +2,12 @@ import { useRef } from 'react'
 import { useGSAP } from '@gsap/react'
 import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
-import { LeagueLogo } from '../entities'
+import OrbitLeagueLogos from './OrbitLeagueLogos'
 
 gsap.registerPlugin(ScrollTrigger)
 
+/** Coverage / orbit panel is first (leftmost) in the horizontal scrub. */
 const STORY_PANELS = [
-  {
-    id: 'signal',
-    kicker: 'signal in',
-    title: ['read the', 'signal'],
-    accent: 'not the noise',
-    body: 'Twelve years of match context, role-adjusted power, and walk-forward predictions — one analytics spine.',
-    chips: [
-      { label: 'model grounded', tone: 'accent' },
-      { label: 'tier-1 only', tone: 'muted' },
-    ],
-  },
   {
     id: 'leagues',
     kicker: 'coverage',
@@ -27,6 +17,17 @@ const STORY_PANELS = [
     chips: [
       { label: 'LCK → Worlds', tone: 'accent' },
       { label: 'live filters', tone: 'muted' },
+    ],
+  },
+  {
+    id: 'signal',
+    kicker: 'signal in',
+    title: ['read the', 'signal'],
+    accent: 'not the noise',
+    body: 'Twelve years of match context, role-adjusted power, and walk-forward predictions — one analytics spine.',
+    chips: [
+      { label: 'model grounded', tone: 'accent' },
+      { label: 'tier-1 only', tone: 'muted' },
     ],
   },
   {
@@ -40,17 +41,6 @@ const STORY_PANELS = [
       { label: 'auditable', tone: 'muted' },
     ],
   },
-] as const
-
-const LEAGUE_SHOWCASE = [
-  { key: 'LCK', label: 'LCK', kind: 'domestic' },
-  { key: 'LPL', label: 'LPL', kind: 'domestic' },
-  { key: 'LEC', label: 'LEC', kind: 'domestic' },
-  { key: 'LCS', label: 'LCS', kind: 'domestic' },
-  { key: 'First Stand', label: 'First Stand', kind: 'intl' },
-  { key: 'MSI', label: 'MSI', kind: 'intl' },
-  { key: 'Worlds', label: 'Worlds', kind: 'intl' },
-  { key: 'EWC', label: 'EWC', kind: 'intl' },
 ] as const
 
 export default function StoryScroll() {
@@ -76,7 +66,6 @@ export default function StoryScroll() {
           ease: 'none',
           scrollTrigger: {
             trigger: section,
-            // Begin pin/scrub when the section is mid-viewport (not as soon as top hits top)
             start: 'center center',
             end: () => `+=${getScroll() + window.innerHeight * 0.5}`,
             pin: true,
@@ -129,19 +118,18 @@ export default function StoryScroll() {
         })
 
         gsap.fromTo(
-          '.landing-league-card',
-          { opacity: 0.35, y: 40, scale: 0.94 },
+          '.landing-orbit-item',
+          { opacity: 0.4, scale: 0.9 },
           {
             opacity: 1,
-            y: 0,
             scale: 1,
             ease: 'none',
-            stagger: 0.05,
+            stagger: 0.04,
             scrollTrigger: {
-              trigger: '.landing-league-rail',
+              trigger: '.landing-orbit',
               containerAnimation: tween,
               start: 'left 80%',
-              end: 'left 30%',
+              end: 'left 35%',
               scrub: true,
             },
           },
@@ -164,18 +152,6 @@ export default function StoryScroll() {
           scrollTrigger: {
             trigger: section,
             start: 'top 75%',
-            once: true,
-          },
-        })
-        gsap.from('.landing-league-card', {
-          opacity: 0,
-          y: 18,
-          stagger: 0.05,
-          duration: 0.45,
-          ease: 'power2.out',
-          scrollTrigger: {
-            trigger: '.landing-league-rail',
-            start: 'top 85%',
             once: true,
           },
         })
@@ -219,23 +195,7 @@ export default function StoryScroll() {
                 </span>
               ))}
             </div>
-            {index === 1 ? (
-              <div className="landing-league-rail" aria-label="League and tournament coverage">
-                {LEAGUE_SHOWCASE.map((league) => (
-                  <div key={league.key} className={`landing-league-card kind-${league.kind}`}>
-                    <div className="landing-league-card-logo">
-                      <LeagueLogo league={league.key} size={28} />
-                    </div>
-                    <div className="landing-league-card-meta">
-                      <span className="landing-league-card-name">{league.label}</span>
-                      <span className="landing-league-card-kind">
-                        {league.kind === 'domestic' ? 'tier-1' : 'international'}
-                      </span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : null}
+            {panel.id === 'leagues' ? <OrbitLeagueLogos /> : null}
           </article>
         ))}
       </div>
