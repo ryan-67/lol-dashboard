@@ -1,7 +1,42 @@
 # nucky.gg v2 — Reconstruction Scope
 
-> Status: Phase 1 (model quality) **substantially complete** — proprietary ratings, live-input removal, Deno consumption, scorecard, and archetype validation shipped. Remaining deferred: player outcome-regression layer; Kalshi closing-line archive. Phases 2-4 still planning-only.
-> Last updated: 2026-07-16 (Phase 1 build log through Components 1–5 + Deno consumption + scorecard + Component 4 archetype validation)
+> Status: **Phases 1–3 complete.** Phase 4 (community hub) remains. **New follow-on work** scoped below as Phase 5 (nucky agent quality) and Phase 6 (dashboard performance + model freshness).  
+> Last updated: 2026-07-20
+
+## Progress snapshot (2026-07-20)
+
+| Phase | Scope | Status |
+| --- | --- | --- |
+| 1 | Model quality (Elo, player ratings, scorecard, live GPR/Kalshi removal) | **Done** (deferred: outcome-regression layer; Kalshi CLV archive) |
+| 2 | IA / nav / nucky-as-spine (landing, AppShell, duo/chat/dashboard) | **Done** (follow-ups: ask-nucky on every entity page; deeper tab redesign) |
+| 3 | Prediction Model tab (schedule / rankings / analysis, Kalshi board) | **Done** (gated surface live; track-record adjacent) |
+| 4 | Community hub v1 (series threads + ratings/tags) | **Not started** |
+| 5 | nucky agent quality (model grounding, chat UX, rich cards, entity resolution) | **Scoped** — partial hotfix 2026-07-20 (`nuc`⊂`nucky`) |
+| 6 | Dashboard load performance + model freshness stamps / retrain visibility | **Scoped** — partial hotfix 2026-07-20 (parallel shards, UTC stamps, holdout label) |
+
+### Hotfixes landed 2026-07-20 (pre–Phase 5/6 kickoff)
+
+1. **Agent entity resolution:** `lookupPlayersInMessage` / `resolvePlayerFromMessage` used naive `includes`, so product name **“nucky”** matched player **“nuc”** and injected an irrelevant radar into “analyze faker vs chovy”. Fixed with word-boundary token matching in `currentContext.ts` + `analystTools.ts`.
+2. **Model date display:** Landing used `accuracy_scorecard.generatedAt`; power boards used `player_ratings` / `region_strength.generatedAt` with **local** `toLocaleDateString()`, so Pacific users saw **7/17 vs 7/16** for the same CI run. Unified on **UTC calendar date** via `formatModelUpdatedDate`. Scorecard foot now labels the range as **holdout** (not “as of”).
+3. **Dashboard cold load:** Year OE shards (`~34 MB`, p01+p02) fetched **sequentially** — now `Promise.all`. Split changes no longer re-trigger fetch / loading flash (`useDashboardData`).
+
+### Model refresh investigation (side question)
+
+**Intended:** every full OE ingest in `.github/workflows/refresh-data.yml` also retrains ML and commits `player_ratings.json` / `region_strength.json` / `accuracy_scorecard.json` (+ Deno `agent-chat/ml/`).
+
+**Actual (as of 2026-07-20):**
+
+| Observation | Detail |
+| --- | --- |
+| OE data | Fresh through **EWC 2026-07-19** (finals weekend) in `oe_slices_2026_p*.json` |
+| Model artifacts | Still stamped **2026-07-17** UTC; training/holdout `date_range` ends **2026-07-11** |
+| Why gap | ML steps use `continue-on-error: true`; artifact commit only if `ml_retrain.outcome == success`. Soft-failed retrain → **fresh OE, stale model**. Cron with unchanged Drive CSV skips full refresh (scores/recaps only). |
+| Landing “7/17” vs dashboard “7/16” | Same Jul-17 pipeline, different step clocks + local TZ midnight split — **display bug**, not two retrains |
+| Scorecard `→ 2026-07-11` | Walk-forward **holdout window**, not live freshness |
+
+**Ops TODO (Phase 6):** re-run successful full refresh after EWC; add visibility/alerting when ML soft-fails while OE advances; optionally hard-fail ML on scheduled runs or a dedicated `ml-retrain.yml`.
+
+---
 
 ## Phase 1 build log — self-contained rating system
 
@@ -594,7 +629,7 @@ Hard constraint: marketing nucky as an “intelligent analyst” only tracks if 
 
 | Topic | Decision |
 | --- | --- |
-| Prediction Model tab timing | **Quality-first** — hold the tab until backtesting + accuracy scorecard exist |
+| Prediction Model tab timing | **Quality-first** — hold the tab until backtesting + accuracy scorecard exist → **shipped Phase 3 (2026-07-18)** |
 | Live Match Hub | **Remove entirely** from nav/routes until a reliable live source is secured |
 | Third-party live data (GRID / Bayes / PandaScore Enterprise) | **Stretch goal** — not a relaunch blocker |
 | Community hub ambition | **Full v1** (threads + numeric ratings + tags), but sequenced after core |
@@ -623,7 +658,7 @@ Entity pages get contextual **Ask nucky about X** chips (match \tab’s Explore�
 
 ## Phased roadmap
 
-### Phase 1 — Model quality (gate for everything premium)
+### Phase 1 — Model quality (gate for everything premium) ✅
 
 Do this before major user-facing rebuild.
 
@@ -635,7 +670,7 @@ Do this before major user-facing rebuild.
 
 **Exit criteria:** documented holdout metrics ✅; near-public scorecard ✅; known fallback bugs closed for live market bleed ✅. Deferred: outcome-regression layer; Kalshi CLV archive.
 
-### Phase 2 — IA / nav / nucky-as-spine
+### Phase 2 — IA / nav / nucky-as-spine ✅
 
 - **Marketing landing shipped early (2026-07-17):** `/` is the product landing page (Terminal Editorial); dashboard Overview moved to `/dashboard`. Features, pricing, and FAQ are anchored sections on `/`; legal routes remain `/terms` and `/private-policy`.
 - **App shell shipped (2026-07-18):** left `AppSidebar` + mode-aware nav; top Overview/nuckyAI/Live/search header removed. Modes: `/duo` (default home — chat left + dashboard right), `/chat` (full-width nucky), `/dashboard/*` (full-width analytics). Profile flyout (settings / feedback / sign out). Filters stay inside the dashboard pane only.
@@ -644,24 +679,25 @@ Do this before major user-facing rebuild.
 - Overview visual/motion pass under new shell (stat strip counters, radar draw-in, denser hover hierarchy). Other tabs: theme + shell only this ship.
 - Global matte black + matte turquoise tokens (landing + product unified).
 - **Remove Live Match Hub** from nav; `/live*` → `/dashboard`. `/nuckyai` → `/chat`.
+- Landing + dashboard motion polish through 2026-07-19 (StoryScroll, orbit logos, knows trail, SignalLoader, etc.).
 - Deferred to follow-up: ask-nucky entry points on every entity page; full Players/Teams/Champions/Matchups/Tournaments chart redesign; `/duo` resizable splitter polish.
 
 **Exit criteria (this ship):** one coherent shell ✅; chat + duo + dashboard modes ✅; entity search-from-chat ✅; no live surface in nav ✅. Follow-up: AI CTAs on every data page.
 
-### Phase 3 — Prediction Model tab
+### Phase 3 — Prediction Model tab ✅
 
-Depends on Phase 1 exit.
+Depends on Phase 1 exit. **Shipped 2026-07-18** as sidebar **nucky prediction model** (Schedule / Team / Player / Champion rankings / Analysis) with Kalshi board edge fn, model odds TTL, score caveats, EWC/schedule sync.
 
 - Upcoming series ranked by model edge vs market (Kalshi and/or books).
 - Pre-match breakdowns explaining the pick (nucky Elo, form, player power, direct matchups, draft/comp style, clutch factors, etc.).
 - Track-record / scorecard surface adjacent to picks.
 - Subscription gate (costly surface).
 
-**Exit criteria:** gated tab live only with defensible track record; empty or stub UI is not acceptable as “launch.”
+**Exit criteria:** gated tab live with defensible track record ✅. Remaining polish tracked under Phase 5/6 (agent explainability + freshness).
 
-### Phase 4 — Community hub v1
+### Phase 4 — Community hub v1 (next product surface)
 
-Depends on Phases 2–3 (or at least Phase 2) shipping first.
+Depends on Phases 2–3 (or at least Phase 2) shipping first — **both done**. Ready to kick off when prioritized vs Phases 5–6.
 
 - Threads on **series/match pages only**.
 - Post-match **1–10 player ratings** + **tags** (MVP, choke, etc.).
@@ -670,6 +706,66 @@ Depends on Phases 2–3 (or at least Phase 2) shipping first.
 
 **Exit criteria:** posting works end-to-end on series pages with basic moderation; abuse path exists.
 
+### Phase 5 — nucky agent quality (NEW)
+
+Formerly “nuckyAI”; product surface is **nucky** chat (`/chat`, duo left pane). Goal: a LoL esports analyst agent that is **smooth, grounded, and visual** — not a janky tool dump.
+
+#### 5.1 Model + data grounding
+
+- Agent must **read and cite** live prediction-model artifacts: team Elo / region strength, player power scores + rankings, champion matchups, form/trends, scorecard context — same sources as the Prediction Model tab and dashboard boards.
+- Grounding stack stays: **OE history** + **RAG** + **web search** + **prediction model**. Responses should feel natural while clearly backed by stats/model numbers.
+- Audit Deno `predictionPacket` / tool decider paths so model context is always available when the user asks about strength, rankings, matchups, or “who is better.”
+
+#### 5.2 Correctness / prompt engineering
+
+- Fix entity resolution / mention extraction so brand strings (`nucky`) and short player IGN collisions (`nuc`) never invent third parties in charts. **Partial:** word-boundary hotfix 2026-07-20; still need broader regression tests + alias list hygiene.
+- Prompt ingestion: understand compare/analyze intents; only attach charts for **explicitly mentioned** entities; refuse or ignore substring false positives.
+- End-to-end QA against known bad outputs (radar for irrelevant “nuc”, wrong split, invented roster).
+
+#### 5.3 Rich response cards (design-system parity)
+
+- Agent can emit **player/team cards**, power scores, radars, and other visuals that reuse dashboard components / tokens / motion (`PowerRankingsPanel`-class boards, radar charts, series scorecards) — not one-off chart chrome.
+- Structured message parts + renderer in chat UI; share/copy preserve grounding.
+
+#### 5.4 Chat UI/UX product polish
+
+- Current chat feels rough/janky vs modern LLM products. Upgrade streaming, layout, empty states, message actions, density, motion, and duo-pane behavior to feel premium and smooth.
+- Align with matte black + turquoise research-terminal identity (not generic SaaS chat).
+
+**Exit criteria:** agent consistently cites model + OE when relevant; no brand/substring entity bugs in golden prompts; at least player + team card types ship with dashboard visual parity; chat UX passes an internal “premium feel” review.
+
+### Phase 6 — Dashboard performance + model freshness (NEW)
+
+#### 6.1 Load time (10–15s cold / tab lag)
+
+Root causes (2026-07-20 investigation):
+
+- ~**34 MB** OE year shards downloaded on mount; historically **sequential** p01→p02 (**partially fixed:** parallel fetch).
+- Monolithic ~**1.6 MB** JS bundle — no route-level `React.lazy` / `manualChunks`.
+- Tab switches remount pages (`key={pathname}`) + GSAP opacity-0 reveals + heavy Overview merge/scoring.
+- Filter changes previously forced loading flash even when shards were cached (**partially fixed**).
+
+Prioritized backlog:
+
+| Priority | Work |
+| --- | --- |
+| P0 | Parallel shard fetch ✅; stop loading flash on split/league ✅ |
+| P1 | Lazy-split dashboard routes + Vite chunking; defer OE fetch off marketing `/` |
+| P1 | Slim / split-scoped shards; IndexedDB cache (localStorage too small for 34 MB) |
+| P2 | Keep list tabs mounted or cache outlets; soften GSAP blanking; cache weekly-hub merge |
+| P2 | Precompute Overview cohort stats once |
+
+**Exit criteria:** p95 cold dashboard interactive &lt; ~4s on broadband; tab switches feel instant (no multi-second blank).
+
+#### 6.2 Model freshness + consistent stamps
+
+- Single canonical “model updated” stamp (prefer `model_metadata.exported_at` or pipeline `completedAt`) everywhere.
+- Copy clarity: **holdout window** vs **last successful retrain** vs **OE data as-of**.
+- CI: surface soft-failed ML (alert / status badge); ensure EWC (and future events) land in ratings after OE advances — retrain must not silently stall while shards update.
+- After next successful retrain, landing scorecard + power boards + Deno ML pack should agree on one UTC date and include post-2026-07-11 series.
+
+**Exit criteria:** UI never shows conflicting calendar days for one pipeline; OE-ahead-of-model lag is visible or auto-healed within one successful refresh.
+
 ### Later / stretch
 
 - Paid live data evaluation (GRID / Bayes / PandaScore Enterprise sales motions).
@@ -677,6 +773,7 @@ Depends on Phases 2–3 (or at least Phase 2) shipping first.
 - AI-assisted moderation once volume justifies cost.
 - Broader discussion surfaces (players/teams) only after series-only v1 proves engagement.
 - Public API / MCP — optional competitive response to \tab, not required for v2 thesis.
+- Phase 1 leftovers: player outcome-regression layer; Kalshi closing-line archive.
 
 ---
 
@@ -718,9 +815,11 @@ Note: nucky already ships GSAP helpers (`animateCounter`, `animateRadarDraw`, `s
 
 1. Exact placement of conversation history (`nucky` vs dedicated `chats`).
 2. Free vs paid boundaries for nucky chat once the product spine moves to the home surface.
-3. Whether the accuracy scorecard is fully public on day one of Phase 3 or Pro-only with a lighter public teaser.
+3. Whether the accuracy scorecard is fully public on day one of Phase 3 or Pro-only with a lighter public teaser. *(Phase 3 shipped — teaser already on landing; revisit depth.)*
 4. Community reputation / anti-brigading rules beyond the strict gate.
 5. Whether Hub stays named “hub” or rebrands (e.g. Overview / Pulse).
+6. **Phase 5 sequencing vs Phase 4:** agent quality vs community hub — which ships next?
+7. **Phase 6 ML soft-fail policy:** keep `continue-on-error` (dashboard never blocked) vs hard-fail + alerting?
 
 ---
 

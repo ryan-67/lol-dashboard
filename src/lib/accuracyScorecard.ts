@@ -1,3 +1,5 @@
+import { formatModelUpdatedDate } from './format'
+
 export interface ScorecardMetrics {
   log_loss: number
   brier: number
@@ -84,11 +86,9 @@ export function formatLL(value: number): string {
   return value.toFixed(3)
 }
 
+/** @deprecated Prefer formatModelUpdatedDate — kept as alias for landing imports. */
 export function formatScorecardUpdated(iso: string | undefined | null): string {
-  if (!iso) return ''
-  const d = new Date(iso)
-  if (Number.isNaN(d.getTime())) return ''
-  return d.toLocaleDateString(undefined, { year: 'numeric', month: 'numeric', day: 'numeric' })
+  return formatModelUpdatedDate(iso)
 }
 
 export function invalidateAccuracyScorecardCache(): void {

@@ -88,6 +88,22 @@ export function formatRefreshTimestamp(
   })
 }
 
+/**
+ * Calendar date for model artifact stamps (`generatedAt` / `exported_at`).
+ * Always uses UTC so landing + dashboard never disagree across local midnights.
+ */
+export function formatModelUpdatedDate(iso: string | undefined | null): string {
+  if (!iso) return ''
+  const d = new Date(iso)
+  if (Number.isNaN(d.getTime())) return ''
+  return d.toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'numeric',
+    day: 'numeric',
+    timeZone: 'UTC',
+  })
+}
+
 /** Profile / subscription renewal dates. */
 export function formatProfileDate(value: string | Date | null | undefined): string | null {
   if (!value) return null

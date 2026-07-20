@@ -316,11 +316,11 @@ export default function Landing() {
             <div className="landing-readout-foot">
               <span>log-loss {formatLL(ll)}</span>
               <span>
-                {dateRange[0]} → {dateRange[1]}
+                holdout {dateRange[0]} → {dateRange[1]}
               </span>
             </div>
             {scorecardUpdated ? (
-              <div className="landing-readout-updated">model updated {scorecardUpdated}</div>
+              <div className="landing-readout-updated">model updated {scorecardUpdated} UTC</div>
             ) : null}
           </aside>
         </section>

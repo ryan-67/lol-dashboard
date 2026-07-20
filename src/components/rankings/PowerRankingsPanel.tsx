@@ -8,7 +8,7 @@ import {
   type RatingRole,
 } from '../../lib/loadPlayerRatings'
 import { EntityLink } from '../entities'
-import { formatNum } from '../../lib/format'
+import { formatModelUpdatedDate, formatNum } from '../../lib/format'
 import { powerScoreTo100 } from '../../lib/scoreNormalize'
 import { staggerListReveal, tabTransitionIn } from '../../theme/animations'
 
@@ -153,7 +153,7 @@ export default function PowerRankingsPanel({
 
       {bundle?.generatedAt ? (
         <p className="power-rankings-footer">
-          model v{bundle.version} · updated {new Date(bundle.generatedAt).toLocaleDateString()}
+          model v{bundle.version} · updated {formatModelUpdatedDate(bundle.generatedAt)} UTC
         </p>
       ) : null}
     </section>

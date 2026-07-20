@@ -135,9 +135,13 @@ async function loadYearSlices(
   }
 
   const slices: Record<string, DashboardSlice> = {}
-  for (const filename of filenames) {
-    const url = `${import.meta.env.BASE_URL}data/${filename}`
-    const body = await fetchJson<YearShardPayload>(url)
+  const bodies = await Promise.all(
+    filenames.map(async (filename) => {
+      const url = `${import.meta.env.BASE_URL}data/${filename}`
+      return fetchJson<YearShardPayload>(url)
+    }),
+  )
+  for (const body of bodies) {
     if (body?.slices) Object.assign(slices, body.slices)
   }
   if (!Object.keys(slices).length) return {}

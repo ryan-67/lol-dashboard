@@ -587,17 +587,25 @@ function extractChampionFromMessage(message: string, champions: SliceBundle["cha
   return null;
 }
 
+function messageMentionsToken(message: string, token: string): boolean {
+  const t = token.trim().toLowerCase();
+  if (!t) return false;
+  const escaped = t.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const re = new RegExp(`(?:^|[^a-z0-9_])${escaped}(?:[^a-z0-9_]|$)`, "i");
+  return re.test(message);
+}
+
 function resolvePlayerFromMessage(message: string, players: MergedPlayer[]): MergedPlayer | null {
-  const lower = message.toLowerCase();
   for (const [alias, canonical] of Object.entries(PLAYER_ALIASES)) {
-    if (lower.includes(alias)) {
+    if (messageMentionsToken(message, alias)) {
       const p = resolvePlayer(canonical, players);
       if (p) return p;
     }
   }
-  for (const p of players) {
+  const sorted = [...players].sort((a, b) => b.name.length - a.name.length);
+  for (const p of sorted) {
     if (p.games < 1) continue;
-    if (lower.includes(p.name.toLowerCase())) return p;
+    if (messageMentionsToken(message, p.name)) return p;
   }
   return null;
 }

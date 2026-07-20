@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import type { OEStore, OEStoreMeta } from '../lib/mergeSlices'
 import {
   buildStoreFromSliceRows,
@@ -261,9 +261,13 @@ export function useDashboardData(): UseDashboardDataReturn {
   const [selectedYears, setSelectedYearsState] = useState<string[]>(['2026'])
   const [selectedSplits, setSelectedSplitsState] = useState<string[]>([DEFAULT_SPLIT])
   const [selectedLeagues, setSelectedLeagues] = useState<string[]>(DEFAULT_LEAGUES)
+  const hasStoreRef = useRef(false)
 
   const fetchData = useCallback(async () => {
-    setLoading(true)
+    // Only blank the UI on cold load. League filters rebuild from cached shards;
+    // split changes merge in context and never hit this fetch.
+    const cold = !hasStoreRef.current
+    if (cold) setLoading(true)
     setError(null)
 
     try {
@@ -281,15 +285,18 @@ export function useDashboardData(): UseDashboardDataReturn {
         catalogSplits: meta.splits,
       })
       const nextStore = buildStoreFromSliceRows(meta, rows)
+      hasStoreRef.current = true
       setStore(nextStore)
       setLastUpdated(new Date(nextStore.meta.generated_at))
     } catch (err) {
+      hasStoreRef.current = false
       setStore(null)
       setError(sanitizeUserFacingError(err))
     } finally {
       setLoading(false)
     }
-  }, [catalog, selectedYears, selectedSplits, selectedLeagues])
+    // selectedSplits intentionally omitted — fetch always uses splits: ['ALL'].
+  }, [catalog, selectedYears, selectedLeagues])
 
   useEffect(() => {
     void fetchData()

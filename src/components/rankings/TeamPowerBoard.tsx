@@ -5,7 +5,7 @@ import { eloTo100 } from '../../lib/scoreNormalize'
 import { resolveTeamCanonicalName } from '../../lib/entities/slugs'
 import { EntityLink, TeamLogo } from '../entities'
 import SignalLoader from '../ui/SignalLoader'
-import { formatNum } from '../../lib/format'
+import { formatModelUpdatedDate, formatNum } from '../../lib/format'
 
 interface TeamPowerBoardProps {
   teams: Team[]
@@ -109,7 +109,7 @@ export default function TeamPowerBoard({ teams, limit = 8 }: TeamPowerBoardProps
       </ol>
       {bundle?.generatedAt ? (
         <p className="power-rankings-footer">
-          model · updated {new Date(bundle.generatedAt).toLocaleDateString()}
+          model · updated {formatModelUpdatedDate(bundle.generatedAt)} UTC
         </p>
       ) : null}
     </section>
