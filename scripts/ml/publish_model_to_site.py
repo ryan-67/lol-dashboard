@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import argparse
 import shutil
+import sys
 from pathlib import Path
 
 SCRIPTS_DIR = Path(__file__).resolve().parent
