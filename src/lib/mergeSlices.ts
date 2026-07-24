@@ -64,6 +64,24 @@ export function isTier1Player(p: { league?: string | null }): boolean {
   return isTier1League(p.league)
 }
 
+/**
+ * Overview spotlight eligibility (player/team of the week/month).
+ * Prefer domestic tier-1 (LCK/LPL/LEC/LCS). Minor-region / guest orgs only qualify
+ * when they actually played an international event (MSI/Worlds/EWC/…) in the
+ * spotlight window — never from pure LFL/LCP/etc. domestic box scores.
+ */
+export function isOverviewSpotlightPlayer(
+  player: { league?: string | null },
+  windowLogs: Array<{ league?: string | null }>,
+): boolean {
+  if (isTier1League(player.league)) return true
+  return windowLogs.some((g) => isInternationalLeagueKey(g.league))
+}
+
+export function isOverviewSpotlightTeam(team: { league?: string | null }): boolean {
+  return isTier1League(team.league) || isInternationalLeagueKey(team.league)
+}
+
 function sliceLeaguesForMerge(leagues: string[]): string[] {
   // "All Tier 1" must include internationals (MSI / Worlds / First Stand / EWC).
   // Without this, overview recaps and weekly hub silently drop finished EWC series.

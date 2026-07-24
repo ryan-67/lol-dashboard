@@ -26,6 +26,12 @@ import { radarColorForPlayer } from '../lib/entities/teamBrandColor'
 import { teamMatchesCanonical } from '../lib/entities/slugs'
 import { aggregateAdvancedFromGameLog } from '../lib/advancedStats'
 import { findTeamByName } from '../lib/teamAnalytics'
+import {
+  isOverviewSpotlightPlayer,
+  isTier1Player,
+  isTier1Team,
+  isInternationalLeagueKey,
+} from '../lib/mergeSlices'
 import TeamRadarChart from '../components/teams/TeamRadarChart'
 import { EntityLink, ChampionEntityInline } from '../components/entities'
 import WeeklyRecap from '../components/overview/WeeklyRecap'
@@ -237,6 +243,8 @@ function getWeeklyPlayers(
     if (!role) continue
     const logs = (player.gameLog ?? []).filter((g) => inHubWindow(g, window))
     if (!logs.length) continue
+    // Tier-1 focused hub: drop pure minor-region domestic standouts (e.g. LFL).
+    if (!isOverviewSpotlightPlayer(player, logs)) continue
     const weekly = createWeeklyPlayerSnapshot(player, logs)
     const cohort = playersForRole(players, role)
     const scoreAvg = avg(
@@ -257,6 +265,32 @@ function getWeeklyPlayers(
     out.push(...row)
   }
   return out
+}
+
+/** Prefer tier-1 for each role slot; only fall back to intl guests if no tier-1 candidate. */
+function pickBestByRolePreferTier1(weeklyPlayers: WeeklyPlayer[]): WeeklyPlayer[] {
+  return ROLES.map((role) => {
+    const rolePlayers = weeklyPlayers.filter((p) => p.role === role)
+    const tier1 = rolePlayers
+      .filter((p) => isTier1Player(p.base))
+      .sort((a, b) => b.scoreAvg - a.scoreAvg)
+    if (tier1[0]) return tier1[0]
+    const intlGuest = rolePlayers
+      .filter((p) => p.weeklyGames.some((g) => isInternationalLeagueKey(g.league)))
+      .sort((a, b) => b.scoreAvg - a.scoreAvg)
+    return intlGuest[0] ?? null
+  }).filter((p): p is WeeklyPlayer => p !== null)
+}
+
+function pickPlayerOfPeriodPreferTier1(weeklyPlayers: WeeklyPlayer[]): WeeklyPlayer | null {
+  const tier1 = weeklyPlayers
+    .filter((p) => isTier1Player(p.base))
+    .sort((a, b) => b.scoreAvg - a.scoreAvg)
+  if (tier1[0]) return tier1[0]
+  const intlGuest = weeklyPlayers
+    .filter((p) => p.weeklyGames.some((g) => isInternationalLeagueKey(g.league)))
+    .sort((a, b) => b.scoreAvg - a.scoreAvg)
+  return intlGuest[0] ?? null
 }
 
 function gameLogKey(team: string, log: PlayerGameLog): string {
@@ -551,24 +585,26 @@ export default function Overview() {
     [weeklyHubPlayers, hubWindow],
   )
 
-  const playerOfWeek = useMemo(() => {
-    if (!weeklyPlayers.length) return null
-    return [...weeklyPlayers].sort((a, b) => b.scoreAvg - a.scoreAvg)[0] ?? null
-  }, [weeklyPlayers])
-
-  const teamOfWeek = useMemo(() => {
-    return ROLES.map((role) => {
-      const best = [...weeklyPlayers]
-        .filter((p) => p.role === role)
-        .sort((a, b) => b.scoreAvg - a.scoreAvg)[0]
-      return best ?? null
-    }).filter((p): p is WeeklyPlayer => p !== null)
-  }, [weeklyPlayers])
-
-  const hottestTeams = useMemo(
-    () => calculateHottestTeams(weeklyPlayers, weeklyHubTeams.map((t) => ({ name: t.name, winrate: t.winrate }))),
-    [weeklyPlayers, weeklyHubTeams],
+  const playerOfWeek = useMemo(
+    () => pickPlayerOfPeriodPreferTier1(weeklyPlayers),
+    [weeklyPlayers],
   )
+
+  const teamOfWeek = useMemo(
+    () => pickBestByRolePreferTier1(weeklyPlayers),
+    [weeklyPlayers],
+  )
+
+  const hottestTeams = useMemo(() => {
+    const tier1Weekly = weeklyPlayers.filter((p) => isTier1Player(p.base))
+    const pool = tier1Weekly.length ? tier1Weekly : weeklyPlayers
+    const tier1Teams = weeklyHubTeams.filter((t) => isTier1Team(t))
+    const teamPool = tier1Teams.length ? tier1Teams : weeklyHubTeams
+    return calculateHottestTeams(
+      pool,
+      teamPool.map((t) => ({ name: t.name, winrate: t.winrate })),
+    )
+  }, [weeklyPlayers, weeklyHubTeams])
   const hottestTeam = hottestTeams[0] ?? null
   const hottestTeamEntity = useMemo(
     () => (hottestTeam ? findTeamByName(weeklyHubTeams, hottestTeam.team) : null),

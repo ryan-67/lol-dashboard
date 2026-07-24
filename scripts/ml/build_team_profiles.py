@@ -238,7 +238,7 @@ def infer_team_home_region(player_df: pd.DataFrame, team: str) -> str | None:
     sub = player_df[player_df["team"] == team]
     if sub.empty:
         return None
-    domestic = sub[~sub["league"].isin({"MSI", "WLDs", "FST"})]
+    domestic = sub[~sub["league"].isin({"MSI", "WLDs", "FST", "EWC"})]
     src = domestic if not domestic.empty else sub
     regions = src["league"].map(region_for_league_code).dropna()
     if regions.empty:

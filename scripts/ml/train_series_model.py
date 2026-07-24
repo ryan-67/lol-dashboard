@@ -203,11 +203,30 @@ def calibration_curve(y_true: np.ndarray, proba: np.ndarray, n_bins: int = 10) -
 
 
 def shap_importance(model, X: pd.DataFrame, algo: str) -> pd.Series:
+    """Mean |SHAP| per feature for pruning.
+
+    XGBoost is trained with ``enable_categorical=True``, but SHAP's TreeExplainer
+    builds a fresh ``DMatrix`` that does *not* inherit that flag — pandas
+    ``category`` columns then crash with KeyError/ValueError. Convert
+    categoricals to codes for the SHAP pass only (importance ranking still
+    ranks those columns; the production model keeps native categoricals).
+    """
     import shap
+
+    X_shap = X.copy()
+    for c in CATEGORICAL_COLS:
+        if c in X_shap.columns and isinstance(X_shap[c].dtype, pd.CategoricalDtype):
+            X_shap[c] = X_shap[c].cat.codes.astype(np.float32)
+
+    # Any remaining non-numeric object/category cols (defensive).
+    for c in list(X_shap.columns):
+        dtype = X_shap[c].dtype
+        if isinstance(dtype, pd.CategoricalDtype) or dtype == object:
+            X_shap[c] = pd.Categorical(X_shap[c]).codes.astype(np.float32)
 
     booster = model.get_booster() if algo == "xgboost" else model.booster_
     explainer = shap.TreeExplainer(booster)
-    shap_values = explainer.shap_values(X)
+    shap_values = explainer.shap_values(X_shap)
     if isinstance(shap_values, list):
         shap_values = shap_values[1]
     shap_values = np.asarray(shap_values)

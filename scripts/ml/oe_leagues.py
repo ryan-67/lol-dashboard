@@ -40,6 +40,11 @@ INTERNATIONAL_LEAGUE_CODES: dict[str, str] = {
     "MSI": "MSI",
     "WLDs": "Worlds",
     "FST": "First Stand",
+    # Esports World Cup — OE tags the 2026 event as "EWC" (also seen as overview
+    # split "2026 EWC" on the dashboard). Required so DK/GEN/T1 EWC series enter
+    # the feature mart + Elo timeline; without it, retrain silently ends before
+    # the tournament despite OE CSV containing those rows.
+    "EWC": "EWC",
 }
 
 TIER1_REGIONS = tuple(REGION_LEAGUE_CODES.keys())
