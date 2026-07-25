@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-07-25T06:55:31.201944+00:00",
+  "generatedAt": "2026-07-25T07:34:52.288885+00:00",
   "methodology": "Same-role matrix: direct-lane champ-vs-champ win rate + avg GD@15 delta, min 6 meetings. Draft-order reconstruction uses OE's firstPick flag + the standard competitive ban/pick slot pattern to recover true reveal order (not column order) for the counter-pick validation. Cross-role lift validates hand-curated archetype tag interactions against realized win rates, not assumed.",
   "sameRoleMatchups": {
     "top": {
@@ -10,9 +10,9 @@
           "avgGd15Delta": -813.3
         },
         "Rumble": {
-          "games": 158,
-          "winrate": 42.4,
-          "avgGd15Delta": -188.7
+          "games": 159,
+          "winrate": 42.1,
+          "avgGd15Delta": -190.3
         },
         "Jax": {
           "games": 19,
@@ -137,9 +137,9 @@
           "avgGd15Delta": -688.2
         },
         "Ambessa": {
-          "games": 47,
-          "winrate": 57.4,
-          "avgGd15Delta": 62.3
+          "games": 46,
+          "winrate": 56.5,
+          "avgGd15Delta": 59.0
         },
         "Yorick": {
           "games": 27,
@@ -152,19 +152,19 @@
           "avgGd15Delta": -220.9
         },
         "Vayne": {
-          "games": 15,
-          "winrate": 46.7,
-          "avgGd15Delta": -696.0
+          "games": 16,
+          "winrate": 50.0,
+          "avgGd15Delta": -693.5
         },
         "Rumble": {
-          "games": 9,
-          "winrate": 33.3,
-          "avgGd15Delta": 764.8
+          "games": 10,
+          "winrate": 30.0,
+          "avgGd15Delta": 768.4
         },
         "Twisted Fate": {
-          "games": 10,
-          "winrate": 40.0,
-          "avgGd15Delta": -481.2
+          "games": 11,
+          "winrate": 36.4,
+          "avgGd15Delta": -856.4
         },
         "Tristana": {
           "games": 8,
@@ -189,9 +189,9 @@
           "avgGd15Delta": -424.0
         },
         "K'Sante": {
-          "games": 158,
-          "winrate": 57.6,
-          "avgGd15Delta": 188.7
+          "games": 159,
+          "winrate": 57.9,
+          "avgGd15Delta": 190.3
         },
         "Galio": {
           "games": 81,
@@ -244,9 +244,9 @@
           "avgGd15Delta": -65.8
         },
         "Gnar": {
-          "games": 9,
-          "winrate": 66.7,
-          "avgGd15Delta": -764.8
+          "games": 10,
+          "winrate": 70.0,
+          "avgGd15Delta": -768.4
         },
         "Ryze": {
           "games": 6,
@@ -606,9 +606,9 @@
           "avgGd15Delta": 195.5
         },
         "Gnar": {
-          "games": 47,
-          "winrate": 42.6,
-          "avgGd15Delta": -62.3
+          "games": 46,
+          "winrate": 43.5,
+          "avgGd15Delta": -59.0
         },
         "Shen": {
           "games": 10,
@@ -1127,9 +1127,9 @@
       },
       "Vayne": {
         "Gnar": {
-          "games": 15,
-          "winrate": 53.3,
-          "avgGd15Delta": 696.0
+          "games": 16,
+          "winrate": 50.0,
+          "avgGd15Delta": 693.5
         },
         "Ambessa": {
           "games": 6,
@@ -1149,9 +1149,9 @@
       },
       "Twisted Fate": {
         "Gnar": {
-          "games": 10,
-          "winrate": 60.0,
-          "avgGd15Delta": 481.2
+          "games": 11,
+          "winrate": 63.6,
+          "avgGd15Delta": 856.4
         }
       },
       "Tristana": {
@@ -1302,9 +1302,9 @@
           "avgGd15Delta": -21.8
         },
         "Jarvan IV": {
-          "games": 44,
-          "winrate": 36.4,
-          "avgGd15Delta": 60.5
+          "games": 45,
+          "winrate": 37.8,
+          "avgGd15Delta": 134.6
         },
         "Qiyana": {
           "games": 9,
@@ -1441,9 +1441,9 @@
           "avgGd15Delta": -314.0
         },
         "Naafiri": {
-          "games": 23,
-          "winrate": 52.2,
-          "avgGd15Delta": -259.5
+          "games": 24,
+          "winrate": 54.2,
+          "avgGd15Delta": -260.3
         },
         "Jarvan IV": {
           "games": 52,
@@ -1699,9 +1699,9 @@
           "avgGd15Delta": 9.9
         },
         "Xin Zhao": {
-          "games": 161,
-          "winrate": 52.8,
-          "avgGd15Delta": 98.4
+          "games": 162,
+          "winrate": 53.1,
+          "avgGd15Delta": 137.5
         },
         "Zyra": {
           "games": 8,
@@ -1724,9 +1724,9 @@
           "avgGd15Delta": -1550.0
         },
         "Naafiri": {
-          "games": 66,
-          "winrate": 57.6,
-          "avgGd15Delta": -168.9
+          "games": 68,
+          "winrate": 58.8,
+          "avgGd15Delta": -71.3
         },
         "Skarner": {
           "games": 31,
@@ -1786,9 +1786,9 @@
           "avgGd15Delta": -597.0
         },
         "Xin Zhao": {
-          "games": 31,
-          "winrate": 51.6,
-          "avgGd15Delta": 493.9
+          "games": 32,
+          "winrate": 50.0,
+          "avgGd15Delta": 483.7
         },
         "Nocturne": {
           "games": 15,
@@ -1843,9 +1843,9 @@
           "avgGd15Delta": -169.2
         },
         "Vi": {
-          "games": 161,
-          "winrate": 47.2,
-          "avgGd15Delta": -98.4
+          "games": 162,
+          "winrate": 46.9,
+          "avgGd15Delta": -137.5
         },
         "Wukong": {
           "games": 153,
@@ -1858,9 +1858,9 @@
           "avgGd15Delta": -1321.5
         },
         "Lee Sin": {
-          "games": 31,
-          "winrate": 48.4,
-          "avgGd15Delta": -493.9
+          "games": 32,
+          "winrate": 50.0,
+          "avgGd15Delta": -483.7
         },
         "Jax": {
           "games": 14,
@@ -2152,9 +2152,9 @@
       },
       "Naafiri": {
         "Vi": {
-          "games": 66,
-          "winrate": 42.4,
-          "avgGd15Delta": 168.9
+          "games": 68,
+          "winrate": 41.2,
+          "avgGd15Delta": 71.3
         },
         "Nocturne": {
           "games": 18,
@@ -2202,14 +2202,14 @@
           "avgGd15Delta": -315.5
         },
         "Jarvan IV": {
-          "games": 28,
-          "winrate": 42.9,
-          "avgGd15Delta": 87.2
+          "games": 27,
+          "winrate": 44.4,
+          "avgGd15Delta": 75.0
         },
         "Wukong": {
-          "games": 23,
-          "winrate": 47.8,
-          "avgGd15Delta": 259.5
+          "games": 24,
+          "winrate": 45.8,
+          "avgGd15Delta": 260.3
         },
         "Maokai": {
           "games": 7,
@@ -2234,9 +2234,9 @@
           "avgGd15Delta": -393.3
         },
         "Naafiri": {
-          "games": 28,
-          "winrate": 57.1,
-          "avgGd15Delta": -87.2
+          "games": 27,
+          "winrate": 55.6,
+          "avgGd15Delta": -75.0
         },
         "Wukong": {
           "games": 52,
@@ -2264,9 +2264,9 @@
           "avgGd15Delta": 1030.0
         },
         "Nocturne": {
-          "games": 44,
-          "winrate": 63.6,
-          "avgGd15Delta": -60.5
+          "games": 45,
+          "winrate": 62.2,
+          "avgGd15Delta": -134.6
         },
         "Maokai": {
           "games": 6,
@@ -2663,9 +2663,9 @@
           "avgGd15Delta": 865.0
         },
         "Yone": {
-          "games": 7,
-          "winrate": 71.4,
-          "avgGd15Delta": 910.0
+          "games": 8,
+          "winrate": 62.5,
+          "avgGd15Delta": 647.2
         },
         "Annie": {
           "games": 35,
@@ -2693,9 +2693,9 @@
           "avgGd15Delta": 45.4
         },
         "Cassiopeia": {
-          "games": 7,
-          "winrate": 57.1,
-          "avgGd15Delta": 1066.9
+          "games": 8,
+          "winrate": 62.5,
+          "avgGd15Delta": 1036.5
         }
       },
       "Yone": {
@@ -2755,9 +2755,9 @@
           "avgGd15Delta": 156.9
         },
         "Orianna": {
-          "games": 7,
-          "winrate": 28.6,
-          "avgGd15Delta": -910.0
+          "games": 8,
+          "winrate": 37.5,
+          "avgGd15Delta": -647.2
         },
         "Taliyah": {
           "games": 28,
@@ -3050,9 +3050,9 @@
           "avgGd15Delta": -155.3
         },
         "Syndra": {
-          "games": 6,
-          "winrate": 50.0,
-          "avgGd15Delta": -627.0
+          "games": 7,
+          "winrate": 42.9,
+          "avgGd15Delta": -537.2
         },
         "Hwei": {
           "games": 24,
@@ -3323,14 +3323,14 @@
           "avgGd15Delta": 1024.0
         },
         "Cassiopeia": {
-          "games": 8,
-          "winrate": 50.0,
-          "avgGd15Delta": 126.3
+          "games": 9,
+          "winrate": 55.6,
+          "avgGd15Delta": 435.2
         },
         "Viktor": {
-          "games": 6,
-          "winrate": 50.0,
-          "avgGd15Delta": 627.0
+          "games": 7,
+          "winrate": 57.1,
+          "avgGd15Delta": 537.2
         }
       },
       "LeBlanc": {
@@ -3434,9 +3434,9 @@
           "avgGd15Delta": 89.4
         },
         "Annie": {
-          "games": 66,
-          "winrate": 57.6,
-          "avgGd15Delta": 432.5
+          "games": 67,
+          "winrate": 56.7,
+          "avgGd15Delta": 480.4
         },
         "Cassiopeia": {
           "games": 77,
@@ -3454,9 +3454,9 @@
           "avgGd15Delta": -500.3
         },
         "Anivia": {
-          "games": 79,
-          "winrate": 50.6,
-          "avgGd15Delta": -35.5
+          "games": 80,
+          "winrate": 51.2,
+          "avgGd15Delta": -28.4
         },
         "Malzahar": {
           "games": 6,
@@ -3600,9 +3600,9 @@
       },
       "Annie": {
         "Ryze": {
-          "games": 66,
-          "winrate": 42.4,
-          "avgGd15Delta": -432.5
+          "games": 67,
+          "winrate": 43.3,
+          "avgGd15Delta": -480.4
         },
         "Orianna": {
           "games": 35,
@@ -3697,9 +3697,9 @@
           "avgGd15Delta": 164.4
         },
         "Syndra": {
-          "games": 8,
-          "winrate": 50.0,
-          "avgGd15Delta": -126.3
+          "games": 9,
+          "winrate": 44.4,
+          "avgGd15Delta": -435.2
         },
         "Anivia": {
           "games": 16,
@@ -3742,9 +3742,9 @@
           "avgGd15Delta": 104.6
         },
         "Orianna": {
-          "games": 7,
-          "winrate": 42.9,
-          "avgGd15Delta": -1066.9
+          "games": 8,
+          "winrate": 37.5,
+          "avgGd15Delta": -1036.5
         }
       },
       "Twisted Fate": {
@@ -3830,9 +3830,9 @@
       },
       "Anivia": {
         "Ryze": {
-          "games": 79,
-          "winrate": 49.4,
-          "avgGd15Delta": 35.5
+          "games": 80,
+          "winrate": 48.8,
+          "avgGd15Delta": 28.4
         },
         "Cassiopeia": {
           "games": 16,
@@ -4305,9 +4305,9 @@
           "avgGd15Delta": -313.7
         },
         "Ziggs": {
-          "games": 8,
-          "winrate": 62.5,
-          "avgGd15Delta": -556.7
+          "games": 9,
+          "winrate": 55.6,
+          "avgGd15Delta": -494.3
         },
         "Caitlyn": {
           "games": 63,
@@ -4692,9 +4692,9 @@
           "avgGd15Delta": 415.5
         },
         "Ezreal": {
-          "games": 8,
-          "winrate": 37.5,
-          "avgGd15Delta": 556.7
+          "games": 9,
+          "winrate": 44.4,
+          "avgGd15Delta": 494.3
         },
         "Lucian": {
           "games": 8,
@@ -4759,9 +4759,9 @@
           "avgGd15Delta": 864.4
         },
         "Lucian": {
-          "games": 28,
-          "winrate": 71.4,
-          "avgGd15Delta": 1257.4
+          "games": 29,
+          "winrate": 72.4,
+          "avgGd15Delta": 1243.5
         },
         "Ezreal": {
           "games": 63,
@@ -4930,9 +4930,9 @@
           "avgGd15Delta": 110.6
         },
         "Caitlyn": {
-          "games": 28,
-          "winrate": 28.6,
-          "avgGd15Delta": -1257.4
+          "games": 29,
+          "winrate": 27.6,
+          "avgGd15Delta": -1243.5
         },
         "Miss Fortune": {
           "games": 23,
@@ -5275,9 +5275,9 @@
           "avgGd15Delta": 378.6
         },
         "Elise": {
-          "games": 12,
-          "winrate": 58.3,
-          "avgGd15Delta": -178.8
+          "games": 13,
+          "winrate": 61.5,
+          "avgGd15Delta": -98.2
         },
         "Rakan": {
           "games": 49,
@@ -5992,9 +5992,9 @@
           "avgGd15Delta": 582.0
         },
         "Neeko": {
-          "games": 12,
-          "winrate": 41.7,
-          "avgGd15Delta": 178.8
+          "games": 13,
+          "winrate": 38.5,
+          "avgGd15Delta": 98.2
         },
         "Renata Glasc": {
           "games": 7,
@@ -6317,7 +6317,7 @@
         "Camille": {
           "games": 11,
           "winrate": 45.5,
-          "avgGd15Delta": 285.3
+          "avgGd15Delta": 72.7
         }
       },
       "Gragas": {
@@ -6343,7 +6343,7 @@
         "Shen": {
           "games": 11,
           "winrate": 54.5,
-          "avgGd15Delta": -285.3
+          "avgGd15Delta": -72.7
         },
         "Leona": {
           "games": 12,
@@ -6354,9 +6354,9 @@
     }
   },
   "counterPickSignal": {
-    "sampleGames": 7430,
-    "gamesWithAnyCounterPick": 2281,
-    "gamesWithZeroCounterPicks": 5149,
+    "sampleGames": 7440,
+    "gamesWithAnyCounterPick": 2287,
+    "gamesWithZeroCounterPicks": 5153,
     "winrateWithAnyCounterPick": 54.6,
     "winrateWithZeroCounterPicks": 48.0,
     "note": "counterRate = share of a team's picks that matched the same-role matrix's definition of a favorable (>=55% WR, min sample) response to the enemy's most recently revealed champion at pick time (true reconstructed draft order, not column order). Zero-inflated distribution (landing >=1 matrix-defined counter is uncommon), so split is 'any counter-pick' vs 'none', gated at 40 games minimum before trusting the split. This is a retrospective correlation, NOT yet wired into the trained model as a feature \u2014 doing so safely requires a walk-forward (prior-games-only) version of the matchup matrix to avoid leakage, same discipline as region_elo.py's Elo lookups.",
@@ -6368,29 +6368,29 @@
       "defenderTag": "cc_heavy",
       "label": "Mobility escapes hard-CC/engage",
       "status": "validated",
-      "gamesWithCondition": 5477,
+      "gamesWithCondition": 5484,
       "winrateWithCondition": 50.1,
-      "gamesWithout": 140,
-      "winrateWithout": 52.1,
-      "liftPp": -2.0
+      "gamesWithout": 142,
+      "winrateWithout": 52.8,
+      "liftPp": -2.7
     },
     {
       "attackerTag": "mobility_high",
       "defenderTag": "engage",
       "label": "Mobility escapes engage comps",
       "status": "validated",
-      "gamesWithCondition": 5326,
+      "gamesWithCondition": 5332,
       "winrateWithCondition": 50.4,
-      "gamesWithout": 291,
-      "winrateWithout": 45.7,
-      "liftPp": 4.7
+      "gamesWithout": 294,
+      "winrateWithout": 45.9,
+      "liftPp": 4.5
     },
     {
       "attackerTag": "tank",
       "defenderTag": "burst",
       "label": "Tanks blunt burst-heavy comps",
       "status": "validated",
-      "gamesWithCondition": 3670,
+      "gamesWithCondition": 3676,
       "winrateWithCondition": 49.5,
       "gamesWithout": 1614,
       "winrateWithout": 48.1,
@@ -6401,7 +6401,7 @@
       "defenderTag": "dive",
       "label": "Poke checks dive comps before they close",
       "status": "validated",
-      "gamesWithCondition": 5716,
+      "gamesWithCondition": 5724,
       "winrateWithCondition": 49.4,
       "gamesWithout": 384,
       "winrateWithout": 50.0,
@@ -6412,18 +6412,18 @@
       "defenderTag": "engage",
       "label": "Split push punishes comps lacking wave clear/pull-back (proxy: engage-heavy)",
       "status": "validated",
-      "gamesWithCondition": 1041,
-      "winrateWithCondition": 49.8,
+      "gamesWithCondition": 1042,
+      "winrateWithCondition": 49.7,
       "gamesWithout": 40,
       "winrateWithout": 50.0,
-      "liftPp": -0.2
+      "liftPp": -0.3
     },
     {
       "attackerTag": "anti_dive",
       "defenderTag": "dive",
       "label": "Peel/anti-dive protects into dive comps",
       "status": "validated",
-      "gamesWithCondition": 3956,
+      "gamesWithCondition": 3959,
       "winrateWithCondition": 50.6,
       "gamesWithout": 279,
       "winrateWithout": 47.0,
