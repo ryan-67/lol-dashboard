@@ -7,7 +7,9 @@ import AuthModal from '../components/AuthModal'
 import AmbientBackground from '../components/landing/AmbientBackground'
 import EntityFlipShowcase from '../components/landing/EntityFlipShowcase'
 import NuckyKnowsTrail from '../components/landing/NuckyKnowsTrail'
+import ProductPillars from '../components/landing/ProductPillars'
 import RankTicker from '../components/landing/RankTicker'
+import SignalManifesto from '../components/landing/SignalManifesto'
 import StoryScroll from '../components/landing/StoryScroll'
 import UseCaseCycle from '../components/landing/UseCaseCycle'
 import { useViewPreference } from '../context/ViewPreferenceContext'
@@ -64,7 +66,7 @@ const FAQ_ITEMS = [
   {
     question: 'what data does nucky know?',
     answer:
-      'The analytics pipeline ingests tier-1 professional match data, while the retrieval-augmented knowledge base reaches across twelve years of historical match records and indexed esports context. Current dashboard coverage focuses on LCK, LPL, LEC, LCS, MSI, Worlds, and First Stand.',
+      'The analytics pipeline ingests tier-1 professional match data, while the retrieval-augmented knowledge base reaches across twelve years of historical match records and indexed esports context. Current dashboard coverage focuses on LCK, LPL, LEC, LCS, MSI, Worlds, First Stand, and EWC.',
   },
   {
     question: 'how is nucky different from a normal AI chatbot?',
@@ -134,7 +136,6 @@ export default function Landing() {
     return () => window.cancelAnimationFrame(frame)
   }, [location.hash])
 
-  // Hero choreography + section reveals — runs exactly once on mount
   useGSAP(
     () => {
       const root = rootRef.current
@@ -142,26 +143,27 @@ export default function Landing() {
       const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches
 
       if (!reduce) {
-        // Masked line reveal, then supporting copy + model readout
         const tl = gsap.timeline({ defaults: { ease: 'power3.out' } })
-        tl.from(root.querySelectorAll('.landing-hero-line-inner'), {
-          yPercent: 110,
-          duration: 0.85,
-          stagger: 0.09,
+        tl.from(root.querySelector('.landing-hero-brand'), {
+          opacity: 0,
+          y: 28,
+          duration: 0.9,
         })
           .from(
-            root.querySelectorAll('.landing-brand-signal, .landing-hero-sub, .landing-hero-actions, .landing-hero-leagues'),
-            { opacity: 0, y: 14, duration: 0.6, stagger: 0.07 },
-            '-=0.5',
-          )
-          .from(
-            root.querySelector('.landing-hero-readout'),
-            { opacity: 0, y: 18, duration: 0.65 },
+            root.querySelectorAll('.landing-hero-line-inner'),
+            { yPercent: 110, duration: 0.8, stagger: 0.08 },
             '-=0.45',
           )
-        root.querySelectorAll<HTMLElement>('.landing-readout-bar-fill').forEach((bar) => {
-          gsap.from(bar, { scaleX: 0, transformOrigin: 'left center', duration: 1.1, ease: 'power2.out', delay: 0.7 })
-        })
+          .from(
+            root.querySelectorAll('.landing-hero-sub, .landing-hero-actions, .landing-hero-leagues'),
+            { opacity: 0, y: 14, duration: 0.55, stagger: 0.06 },
+            '-=0.4',
+          )
+          .from(
+            root.querySelector('.landing-hero-plane'),
+            { opacity: 0, scale: 0.98, duration: 1.0 },
+            '-=0.85',
+          )
       }
 
       root.querySelectorAll<HTMLElement>('.landing-section').forEach((section) => {
@@ -172,18 +174,12 @@ export default function Landing() {
     { scope: rootRef },
   )
 
-  // Counters — re-run when scorecard data arrives
   useGSAP(
     () => {
       const root = rootRef.current
       if (!root || !scorecard) return
       if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
 
-      animateCounter(root.querySelector('[data-counter="hero-acc"]'), scorecard.aggregate.model.accuracy * 100, {
-        duration: 1.6,
-        decimals: 1,
-        suffix: '%',
-      })
       animateCounter(root.querySelector('[data-counter="accuracy"]'), scorecard.aggregate.model.accuracy * 100, {
         duration: 1.4,
         decimals: 1,
@@ -197,6 +193,15 @@ export default function Landing() {
         duration: 1.4,
         decimals: 1,
         suffix: '%',
+      })
+      root.querySelectorAll<HTMLElement>('.landing-readout-bar-fill').forEach((bar) => {
+        gsap.from(bar, {
+          scaleX: 0,
+          transformOrigin: 'left center',
+          duration: 1.0,
+          ease: 'power2.out',
+          scrollTrigger: { trigger: bar, start: 'top 90%', once: true },
+        })
       })
     },
     { scope: rootRef, dependencies: [scorecard] },
@@ -228,45 +233,39 @@ export default function Landing() {
   const baseAcc = scorecard?.aggregate.baseline.accuracy ?? 0.6209
   const holdout = scorecard?.holdoutRows ?? 718
   const dateRange = scorecard?.dateRange ?? ['2026-02-09', '2026-07-11']
-  const scorecardUpdated = formatModelUpdatedDate(
-    modelUpdatedIso ?? scorecard?.generatedAt,
-  ) || formatScorecardUpdated(scorecard?.generatedAt)
+  const scorecardUpdated =
+    formatModelUpdatedDate(modelUpdatedIso ?? scorecard?.generatedAt) ||
+    formatScorecardUpdated(scorecard?.generatedAt)
 
   return (
     <div className="landing-page" ref={rootRef}>
       <AmbientBackground />
 
       <div className="landing-inner">
-        <section className="landing-hero">
+        <section className="landing-hero landing-hero--brand">
           <div className="landing-hero-copy">
-            <div className="landing-brand-signal" aria-hidden="true">
-              <span className="landing-brand-signal-name">nucky</span>
-              <span className="landing-brand-signal-mark" />
-            </div>
-            <h1 className="landing-hero-title">
-              <span className="landing-hero-line">
-                <span className="landing-hero-line-inner">ratings, trends,</span>
-              </span>
+            <h1 className="landing-hero-brand" aria-label="nucky">
+              <span className="landing-hero-brand-name">nucky</span>
+              <span className="landing-hero-brand-dot" aria-hidden="true" />
+            </h1>
+            <p className="landing-hero-title">
               <span className="landing-hero-line">
                 <span className="landing-hero-line-inner">
-                  and <em>predictions</em>
+                  the instrument for <em>LoL esports</em> signal.
                 </span>
               </span>
-              <span className="landing-hero-line">
-                <span className="landing-hero-line-inner">grounded in</span>
-              </span>
-              <span className="landing-hero-line">
-                <span className="landing-hero-line-inner">match data.</span>
-              </span>
-            </h1>
+            </p>
             <p className="landing-hero-sub">
-              Proprietary model scores over thousands of tier-1 games — then a dashboard and analyst
-              that speak the same evidence.
+              Ratings, trends, and auditable predictions — then an analyst that speaks the same
+              evidence.
             </p>
             <div className="landing-hero-actions">
               {user ? (
                 <Link className="landing-btn landing-btn-primary" to={homePath}>
                   open app
+                  <span className="landing-btn-icon" aria-hidden="true">
+                    →
+                  </span>
                 </Link>
               ) : (
                 <button
@@ -275,26 +274,150 @@ export default function Landing() {
                   onClick={() => openAuth('signup')}
                 >
                   create account
+                  <span className="landing-btn-icon" aria-hidden="true">
+                    →
+                  </span>
                 </button>
               )}
               <a className="landing-btn landing-btn-ghost" href="#features">
-                see features
+                see the product
               </a>
             </div>
             <div className="landing-hero-leagues" aria-label="League coverage">
-              {['LCK', 'LPL', 'LEC', 'LCS', 'MSI', 'Worlds', 'First Stand', 'EWC'].map((league) => (
+              {['LCK', 'LPL', 'LEC', 'LCS', 'First Stand', 'MSI', 'EWC', 'Worlds'].map((league) => (
                 <span key={league}>{league}</span>
               ))}
             </div>
           </div>
 
-          <aside className="landing-hero-readout" aria-label="Model scorecard">
+          <div className="landing-hero-plane" aria-hidden="true">
+            <div className="landing-hero-plane-ring" />
+            <div className="landing-hero-plane-ring is-delay" />
+            <div className="landing-hero-plane-core">
+              <span className="landing-hero-plane-glyph">Σ</span>
+              <span className="landing-hero-plane-caption">signal field</span>
+            </div>
+            <div className="landing-hero-plane-scan" />
+          </div>
+        </section>
+      </div>
+
+      <SignalManifesto />
+      <StoryScroll />
+      <RankTicker />
+
+      <UseCaseCycle
+        ctaLabel={user ? 'open chat' : 'create account to ask'}
+        onAsk={user ? undefined : () => openAuth('signup')}
+        ctaTo={user ? homePath : undefined}
+      />
+
+      <div className="landing-inner">
+        <EntityFlipShowcase />
+      </div>
+
+      <NuckyKnowsTrail />
+
+      <div className="landing-inner">
+        <ProductPillars />
+
+        <section className="landing-section" id="difference">
+          <div className="landing-section-head">
+            <h2 className="landing-section-title">not a raw table. not a general chatbot.</h2>
+            <p className="landing-section-lead">
+              nucky connects structured statistics, proprietary models, and domain retrieval so every
+              surface answers with the same evidence.
+            </p>
+          </div>
+          <div className="landing-compare">
+            <div className="landing-compare-col landing-reveal">
+              <h3>raw stats / general AI</h3>
+              <ul>
+                <li>box scores without interpretation</li>
+                <li>manual digging across players, teams, and patches</li>
+                <li>broad training memory with thin LoL esports grounding</li>
+                <li>confident prose without a transparent prediction system</li>
+              </ul>
+            </div>
+            <div className="landing-compare-col is-nucky landing-reveal">
+              <h3>nucky</h3>
+              <ul>
+                <li>dashboard with form, radar, and matchup context</li>
+                <li>twelve-year knowledge base with retrieval</li>
+                <li>team, player, and champion ratings on real match history</li>
+                <li>auditable predictions with a published walk-forward scorecard</li>
+              </ul>
+            </div>
+          </div>
+        </section>
+
+        <section className="landing-section" id="features">
+          <div className="landing-section-head">
+            <h2 className="landing-section-title">one analytics spine, six ways in</h2>
+            <p className="landing-section-lead">
+              Explore visually, ask for an explanation, or inspect how the model performed.
+            </p>
+          </div>
+          <div className="landing-feature-list">
+            {FEATURES.map((feature) => (
+              <article key={feature.title} className="landing-feature-row landing-reveal">
+                <h3>{feature.title}</h3>
+                <p>{feature.body}</p>
+              </article>
+            ))}
+          </div>
+        </section>
+
+        <section className="landing-section" id="use">
+          <div className="landing-section-head">
+            <h2 className="landing-section-title">from stat line to series lean</h2>
+            <p className="landing-section-lead">
+              Start free on the dashboard, follow a signal, then ask nucky to connect the matchup.
+            </p>
+          </div>
+          <div className="landing-usecases">
+            <article className="landing-usecase landing-reveal">
+              <h3>pre-series research</h3>
+              <p>
+                Compare team form, lane profiles, opponent quality, and style clashes before the
+                series starts.
+              </p>
+            </article>
+            <article className="landing-usecase landing-reveal">
+              <h3>player and meta tracking</h3>
+              <p>
+                Follow role-adjusted form, champion comfort, rising picks, and opponent-specific
+                patterns.
+              </p>
+            </article>
+            <article className="landing-usecase landing-reveal">
+              <h3>grounded questions</h3>
+              <p>
+                Ask for a comparison or series lean. Retrieval supplies context; tools supply the
+                numbers.
+              </p>
+            </article>
+          </div>
+        </section>
+
+        <section className="landing-section" id="model">
+          <div className="landing-section-head">
+            <p className="landing-section-label">prediction model</p>
+            <h2 className="landing-section-title">walk-forward track record</h2>
+            <p className="landing-section-lead">
+              Out-of-fold predictions on {holdout.toLocaleString()} holdout games ({dateRange[0]} to{' '}
+              {dateRange[1]}). The ship gate requires lower log-loss than a naive baseline. It is
+              currently {(scorecard?.aggregate.beatsBaseline ?? true) ? 'passing' : 'failing'}.
+            </p>
+          </div>
+
+          <aside className="landing-hero-readout landing-reveal" aria-label="Model scorecard">
             <div className="landing-readout-head">
               <span className="signal-dot" aria-hidden="true" />
               <span>model scorecard</span>
               <span className="landing-readout-tag">walk-forward</span>
             </div>
-            <div className="landing-readout-value" data-counter="hero-acc">
+            <div className="landing-readout-value" data-counter="accuracy">
               {formatPct(acc)}
             </div>
             <div className="landing-readout-caption">
@@ -332,347 +455,177 @@ export default function Landing() {
               <div className="landing-readout-updated">model updated {scorecardUpdated} UTC</div>
             ) : null}
           </aside>
-        </section>
-      </div>
 
-      <StoryScroll />
-      <RankTicker />
-      <UseCaseCycle
-        ctaLabel={user ? 'open chat' : 'create account to ask'}
-        onAsk={user ? undefined : () => openAuth('signup')}
-        ctaTo={user ? homePath : undefined}
-      />
-
-      <div className="landing-inner">
-        <EntityFlipShowcase />
-      </div>
-
-      <NuckyKnowsTrail />
-
-      <div className="landing-inner">
-      <section className="landing-section" id="what">
-        <div className="landing-section-head">
-          <p className="landing-section-label">what nucky is</p>
-          <h2 className="landing-section-title">a statistics product with an analyst built in</h2>
-          <p className="landing-section-lead">
-            The dashboard, knowledge base, ratings, and conversational experience all share the same
-            LoL esports-specific data foundation.
-          </p>
-        </div>
-        <div className="landing-steps">
-          <article className="landing-step landing-reveal">
-            <div className="landing-step-num">01</div>
-            <div>
-              <h3>ingest twelve years of context</h3>
-              <p>
-                Historical match records and indexed esports sources form a retrieval-augmented
-                knowledge base. New tier-1 results, drafts, patches, and form signals keep the active
-                analytics layer current.
-              </p>
+          <div className="landing-score-grid">
+            <div className="landing-score-card landing-reveal">
+              <div className="landing-score-card-label">model accuracy</div>
+              <div className="landing-score-card-value is-accent">{formatPct(acc)}</div>
+              <div className="landing-score-card-meta">walk-forward out-of-fold</div>
             </div>
-          </article>
-          <article className="landing-step landing-reveal">
-            <div className="landing-step-num">02</div>
-            <div>
-              <h3>score players, teams, and champions</h3>
-              <p>
-                Proprietary team strength, role-based player power, and champion matchup systems learn
-                from thousands of historical match records to rank performance in context.
-              </p>
+            <div className="landing-score-card landing-reveal">
+              <div className="landing-score-card-label">model log-loss</div>
+              <div className="landing-score-card-value" data-counter="logloss">
+                {formatLL(ll)}
+              </div>
+              <div className="landing-score-card-meta">
+                baseline {formatLL(scorecard?.aggregate.baseline.log_loss ?? 0.703)}
+              </div>
             </div>
-          </article>
-          <article className="landing-step landing-reveal">
-            <div className="landing-step-num">03</div>
-            <div>
-              <h3>recognize patterns and styles</h3>
-              <p>
-                nucky surfaces player form, champion comfort, team tempo, scaling, objective control,
-                lane pressure, and matchup-specific tendencies that raw totals can hide.
-              </p>
-            </div>
-          </article>
-          <article className="landing-step landing-reveal">
-            <div className="landing-step-num">04</div>
-            <div>
-              <h3>explain and predict</h3>
-              <p>
-                Structured model packets give the conversational analyst probabilities, drivers,
-                trends, and uncertainty. The prose explains the evidence; it does not invent the score.
-              </p>
-            </div>
-          </article>
-        </div>
-      </section>
-
-      <section className="landing-section" id="difference">
-        <div className="landing-section-head">
-          <h2 className="landing-section-title">not a raw table. not a general chatbot.</h2>
-          <p className="landing-section-lead">
-            nucky connects structured statistics, proprietary models, and domain retrieval so every
-            surface can answer the same question with the same evidence.
-          </p>
-        </div>
-        <div className="landing-compare">
-          <div className="landing-compare-col landing-reveal">
-            <h3>raw stat sites / general AI</h3>
-            <ul>
-              <li>box scores without interpretation</li>
-              <li>manual digging across players, teams, and patches</li>
-              <li>broad training memory with limited current LoL esports context</li>
-              <li>confident prose without a transparent prediction system</li>
-              <li>no shared analytics layer between dashboard and chat</li>
-            </ul>
-          </div>
-          <div className="landing-compare-col is-nucky landing-reveal">
-            <h3>nucky</h3>
-            <ul>
-              <li>statistics-backed dashboard with form, radar, and matchup context</li>
-              <li>twelve-year historical knowledge base with retrieval</li>
-              <li>team, player, and champion ratings trained on thousands of matches</li>
-              <li>style and trend recognition across roles, patches, and opponents</li>
-              <li>auditable predictions with a published walk-forward scorecard</li>
-            </ul>
-          </div>
-        </div>
-      </section>
-
-      <section className="landing-section" id="features">
-        <div className="landing-section-head">
-          <h2 className="landing-section-title">one analytics spine, six ways in</h2>
-          <p className="landing-section-lead">
-            Explore the evidence visually, ask for an explanation, or inspect how the model performed.
-          </p>
-        </div>
-        <div className="landing-feature-list">
-          {FEATURES.map((feature) => (
-            <article key={feature.title} className="landing-feature-row landing-reveal">
-              <h3>{feature.title}</h3>
-              <p>{feature.body}</p>
-            </article>
-          ))}
-        </div>
-      </section>
-
-      <section className="landing-section" id="use">
-        <div className="landing-section-head">
-          <h2 className="landing-section-title">move from stat to context</h2>
-          <p className="landing-section-lead">
-            Start with the free dashboard, follow a player or team signal, then ask nucky to connect
-            the matchup evidence.
-          </p>
-        </div>
-        <div className="landing-usecases">
-          <article className="landing-usecase landing-reveal">
-            <div className="landing-usecase-kicker">use case 01</div>
-            <h3>pre-series research</h3>
-            <p>
-              Compare team form, lane profiles, opponent quality, and style clashes before deciding
-              what should matter in the series.
-            </p>
-          </article>
-          <article className="landing-usecase landing-reveal">
-            <div className="landing-usecase-kicker">use case 02</div>
-            <h3>player and meta tracking</h3>
-            <p>
-              Follow role-adjusted player form, champion comfort, rising picks, patch shifts, and
-              opponent-specific matchup patterns.
-            </p>
-          </article>
-          <article className="landing-usecase landing-reveal">
-            <div className="landing-usecase-kicker">use case 03</div>
-            <h3>grounded questions</h3>
-            <p>
-              Ask nucky for a comparison or series lean. Retrieval supplies LoL esports context while
-              structured tools supply the current statistics.
-            </p>
-          </article>
-        </div>
-      </section>
-
-      <section className="landing-section" id="model">
-        <div className="landing-section-head">
-          <p className="landing-section-label">the prediction model</p>
-          <h2 className="landing-section-title">walk-forward track record</h2>
-          <p className="landing-section-lead">
-            Out-of-fold predictions on {holdout.toLocaleString()} holdout games ({dateRange[0]} to{' '}
-            {dateRange[1]}). The ship gate requires lower log-loss than a naive baseline. It is
-            currently {(scorecard?.aggregate.beatsBaseline ?? true) ? ' passing' : ' failing'}.
-          </p>
-        </div>
-
-        <div className="landing-score-grid">
-          <div className="landing-score-card landing-reveal">
-            <div className="landing-score-card-label">model accuracy</div>
-            <div className="landing-score-card-value is-accent" data-counter="accuracy">
-              {formatPct(acc)}
-            </div>
-            <div className="landing-score-card-meta">walk-forward out-of-fold</div>
-          </div>
-          <div className="landing-score-card landing-reveal">
-            <div className="landing-score-card-label">model log-loss</div>
-            <div className="landing-score-card-value" data-counter="logloss">
-              {formatLL(ll)}
-            </div>
-            <div className="landing-score-card-meta">
-              baseline {formatLL(scorecard?.aggregate.baseline.log_loss ?? 0.703)}
+            <div className="landing-score-card landing-reveal">
+              <div className="landing-score-card-label">naive baseline accuracy</div>
+              <div className="landing-score-card-value" data-counter="baseline">
+                {formatPct(baseAcc)}
+              </div>
+              <div className="landing-score-card-meta">comparison benchmark</div>
             </div>
           </div>
-          <div className="landing-score-card landing-reveal">
-            <div className="landing-score-card-label">naive baseline accuracy</div>
-            <div className="landing-score-card-value" data-counter="baseline">
-              {formatPct(baseAcc)}
-            </div>
-            <div className="landing-score-card-meta">comparison benchmark</div>
-          </div>
-        </div>
 
-        <div className="landing-reveal" style={{ overflowX: 'auto' }}>
-          <table className="landing-league-table">
-            <thead>
-              <tr>
-                <th>league</th>
-                <th>n</th>
-                <th>model acc</th>
-                <th>model ll</th>
-                <th>vs baseline</th>
-              </tr>
-            </thead>
-            <tbody>
-              {(scorecard?.byLeague ?? []).map((row) => (
-                <tr key={row.key}>
-                  <td>{row.key}</td>
-                  <td>{row.n}</td>
-                  <td>{formatPct(row.model.accuracy)}</td>
-                  <td>{formatLL(row.model.log_loss)}</td>
-                  <td className={row.beatsBaseline ? 'is-good' : ''}>
-                    {row.beatsBaseline ? 'beats' : 'miss'}
-                  </td>
+          <div className="landing-reveal" style={{ overflowX: 'auto' }}>
+            <table className="landing-league-table">
+              <thead>
+                <tr>
+                  <th>league</th>
+                  <th>n</th>
+                  <th>model acc</th>
+                  <th>model ll</th>
+                  <th>vs baseline</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody>
+                {(scorecard?.byLeague ?? []).map((row) => (
+                  <tr key={row.key}>
+                    <td>{row.key}</td>
+                    <td>{row.n}</td>
+                    <td>{formatPct(row.model.accuracy)}</td>
+                    <td>{formatLL(row.model.log_loss)}</td>
+                    <td className={row.beatsBaseline ? 'is-good' : ''}>
+                      {row.beatsBaseline ? 'beats' : 'miss'}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
 
-        <p className="landing-model-note">
-          Probabilities come from nucky&apos;s proprietary scoring stack. The scorecard refreshes with
-          every model retrain
-          {scorecardUpdated ? ` (last export ${scorecardUpdated})` : ''} so this page reports
-          evaluated performance, not a hand-picked marketing number.
-        </p>
-      </section>
-
-      <section className="landing-section" id="pricing">
-        <div className="landing-section-head">
-          <h2 className="landing-section-title">free analytics. paid analyst.</h2>
-          <p className="landing-section-lead">
-            Browse the statistics dashboard without an account. Subscribe when you want retrieval,
-            model explanations, and conversational analysis.
+          <p className="landing-model-note">
+            Probabilities come from nucky&apos;s proprietary scoring stack. The scorecard refreshes
+            with every model retrain
+            {scorecardUpdated ? ` (last export ${scorecardUpdated})` : ''} so this page reports
+            evaluated performance, not a hand-picked marketing number.
           </p>
-        </div>
-        <div className="landing-pricing-grid">
-          <article className="landing-price-card landing-reveal">
-            <div className="landing-price-name">dashboard</div>
-            <div className="landing-price-amount">
-              $0 <span>/ forever</span>
-            </div>
-            <p className="landing-price-desc">
-              Tier-1 analytics across players, teams, champions, matchups, and tournaments.
+        </section>
+
+        <section className="landing-section" id="pricing">
+          <div className="landing-section-head">
+            <h2 className="landing-section-title">free analytics. paid analyst.</h2>
+            <p className="landing-section-lead">
+              Browse the statistics dashboard without an account. Subscribe when you want retrieval,
+              model explanations, and conversational analysis.
             </p>
-            <ul className="landing-price-list">
-              <li>league, year, and split filters</li>
-              <li>radars, form charts, rankings, and trends</li>
-              <li>auto-refreshing professional match data</li>
-              <li>no account required to browse</li>
-            </ul>
-            <Link className="landing-btn landing-btn-ghost" to="/dashboard">
+          </div>
+          <div className="landing-pricing-grid">
+            <article className="landing-price-card landing-reveal">
+              <div className="landing-price-name">dashboard</div>
+              <div className="landing-price-amount">
+                $0 <span>/ forever</span>
+              </div>
+              <p className="landing-price-desc">
+                Tier-1 analytics across players, teams, champions, matchups, and tournaments.
+              </p>
+              <ul className="landing-price-list">
+                <li>league, year, and split filters</li>
+                <li>radars, form charts, rankings, and trends</li>
+                <li>auto-refreshing professional match data</li>
+                <li>no account required to browse</li>
+              </ul>
+              <Link className="landing-btn landing-btn-ghost" to="/dashboard">
+                open dashboard
+              </Link>
+            </article>
+
+            <article className="landing-price-card is-featured landing-reveal">
+              <div className="landing-price-name">nucky beta</div>
+              <div className="landing-price-amount">
+                $3.99 <span>/ month</span>
+              </div>
+              <p className="landing-price-desc">
+                Retrieval-augmented conversation, grounded analyses, and structured series
+                predictions. Full launch pricing is planned at $5 per month.
+              </p>
+              <ul className="landing-price-list">
+                <li>LoL esports-specific retrieval and tools</li>
+                <li>prediction packets with model drivers</li>
+                <li>usage caps during active beta</li>
+                <li>cancel anytime through Stripe</li>
+              </ul>
+              <button
+                type="button"
+                className="landing-btn landing-btn-primary"
+                disabled={checkoutLoading}
+                onClick={() => void handleSubscribe()}
+              >
+                {checkoutLoading ? 'redirecting…' : user ? 'subscribe' : 'create account to subscribe'}
+              </button>
+              {checkoutError ? <p className="landing-checkout-error">{checkoutError}</p> : null}
+            </article>
+          </div>
+        </section>
+
+        <section className="landing-section" id="faq">
+          <div className="landing-section-head">
+            <h2 className="landing-section-title">questions, answered</h2>
+          </div>
+          <div className="landing-faq-list">
+            {FAQ_ITEMS.map((item) => (
+              <article key={item.question} className="landing-faq-item landing-reveal">
+                <h3>{item.question}</h3>
+                <p>{item.answer}</p>
+              </article>
+            ))}
+          </div>
+        </section>
+
+        <section className="landing-section" id="about">
+          <div className="landing-section-head">
+            <h2 className="landing-section-title">built for better LoL esports questions</h2>
+            <p className="landing-section-lead">
+              Hi, I&apos;m geonbu, a LoL esports fan and solo developer. I built nucky because I
+              wanted cleaner access to statistics that matter in professional play, plus an analyst
+              with enough real context to surface useful insights and predictions.
+            </p>
+            <p className="landing-section-lead">
+              Contact: <a href="mailto:geonbu@nucky.gg">geonbu@nucky.gg</a>
+            </p>
+          </div>
+        </section>
+
+        <section className="landing-cta">
+          <div>
+            <h2>start with the statistics</h2>
+            <p>
+              Browse the free dashboard. Create an account when you want nucky to retrieve, connect,
+              and explain the evidence.
+            </p>
+          </div>
+          <div className="landing-cta-actions">
+            <Link className="landing-btn landing-btn-primary" to="/dashboard">
               open dashboard
             </Link>
-          </article>
-
-          <article className="landing-price-card is-featured landing-reveal">
-            <div className="landing-price-name">nucky beta</div>
-            <div className="landing-price-amount">
-              $3.99 <span>/ month</span>
-            </div>
-            <p className="landing-price-desc">
-              Retrieval-augmented conversation, grounded analyses, and structured series predictions.
-              Full launch pricing is planned at $5 per month.
-            </p>
-            <ul className="landing-price-list">
-              <li>LoL esports-specific retrieval and tools</li>
-              <li>prediction packets with model drivers</li>
-              <li>usage caps during active beta</li>
-              <li>cancel anytime through Stripe</li>
-            </ul>
-            <button
-              type="button"
-              className="landing-btn landing-btn-primary"
-              disabled={checkoutLoading}
-              onClick={() => void handleSubscribe()}
-            >
-              {checkoutLoading ? 'redirecting…' : user ? 'subscribe' : 'create account to subscribe'}
-            </button>
-            {checkoutError ? <p className="landing-checkout-error">{checkoutError}</p> : null}
-          </article>
-        </div>
-      </section>
-
-      <section className="landing-section" id="faq">
-        <div className="landing-section-head">
-          <h2 className="landing-section-title">questions, answered</h2>
-        </div>
-        <div className="landing-faq-list">
-          {FAQ_ITEMS.map((item) => (
-            <article key={item.question} className="landing-faq-item landing-reveal">
-              <h3>{item.question}</h3>
-              <p>{item.answer}</p>
-            </article>
-          ))}
-        </div>
-      </section>
-
-      <section className="landing-section" id="about">
-        <div className="landing-section-head">
-          <h2 className="landing-section-title">built for better LoL esports questions</h2>
-          <p className="landing-section-lead">
-            Hi, I&apos;m geonbu, a LoL esports fan and solo developer. I built nucky because I wanted
-            cleaner, more visual access to statistics that matter in professional play, plus an
-            analyst with enough real context to surface useful insights, analyses, and predictions.
-          </p>
-          <p className="landing-section-lead">
-            Contact: <a href="mailto:geonbu@nucky.gg">geonbu@nucky.gg</a>
-          </p>
-        </div>
-      </section>
-
-      <section className="landing-cta">
-        <div>
-          <h2>start with the statistics</h2>
-          <p>
-            Browse the free dashboard. Create an account when you want nucky to retrieve, connect, and
-            explain the evidence.
-          </p>
-        </div>
-        <div className="landing-cta-actions">
-          <Link className="landing-btn landing-btn-primary" to="/dashboard">
-            open dashboard
-          </Link>
-          {!user ? (
-            <button
-              type="button"
-              className="landing-btn landing-btn-ghost"
-              onClick={() => openAuth('signup')}
-            >
-              create account
-            </button>
-          ) : (
-            <a className="landing-btn landing-btn-ghost" href="#pricing">
-              view pricing
-            </a>
-          )}
-        </div>
-      </section>
-
+            {!user ? (
+              <button
+                type="button"
+                className="landing-btn landing-btn-ghost"
+                onClick={() => openAuth('signup')}
+              >
+                create account
+              </button>
+            ) : (
+              <a className="landing-btn landing-btn-ghost" href="#pricing">
+                view pricing
+              </a>
+            )}
+          </div>
+        </section>
       </div>
 
       <AuthModal open={showAuth} onClose={() => setShowAuth(false)} initialView={authView} />

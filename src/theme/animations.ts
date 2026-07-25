@@ -317,6 +317,58 @@ export function refreshScrollTrigger() {
   ScrollTrigger.refresh()
 }
 
+/** Soft press feedback for instrument buttons (returns cleanup). */
+export function bindPressScale(
+  elements: NodeListOf<Element> | Element[],
+  scale = 0.97,
+) {
+  if (reducedMotion()) return () => {}
+
+  const cleanups: Array<() => void> = []
+  elements.forEach((el) => {
+    const down = () => {
+      gsap.to(el, { scale, duration: 0.12, ease: 'power2.out', overwrite: 'auto' })
+    }
+    const up = () => {
+      gsap.to(el, { scale: 1, duration: 0.18, ease: 'power2.out', overwrite: 'auto' })
+    }
+    el.addEventListener('pointerdown', down)
+    el.addEventListener('pointerup', up)
+    el.addEventListener('pointerleave', up)
+    el.addEventListener('pointercancel', up)
+    cleanups.push(() => {
+      el.removeEventListener('pointerdown', down)
+      el.removeEventListener('pointerup', up)
+      el.removeEventListener('pointerleave', up)
+      el.removeEventListener('pointercancel', up)
+    })
+  })
+  return () => cleanups.forEach((fn) => fn())
+}
+
+/** One-shot opacity/y entrance for chat/duo surfaces (no scroll trigger). */
+export function mountSurfaceEntrance(root: Element | null, childSelector: string) {
+  if (!root) return
+  const children = root.querySelectorAll(childSelector)
+  if (!children.length) return
+  if (reducedMotion()) {
+    gsap.set(children, { opacity: 1, y: 0 })
+    return
+  }
+  gsap.fromTo(
+    children,
+    { opacity: 0, y: 12 },
+    {
+      opacity: 1,
+      y: 0,
+      duration: 0.42,
+      stagger: 0.05,
+      ease: 'power3.out',
+      clearProps: 'transform',
+    },
+  )
+}
+
 /** Compact list/row stagger for dense dashboard surfaces (power rankings, tables). */
 export function staggerListReveal(
   parent: Element | null,

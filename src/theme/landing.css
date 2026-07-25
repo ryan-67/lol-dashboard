@@ -235,34 +235,39 @@
 }
 
 .landing-hero {
-  min-height: min(100dvh, 880px);
+  min-height: min(100dvh, 920px);
   display: grid;
   align-content: center;
   align-items: center;
-  gap: 3rem;
-  padding: 4rem 0 5rem;
+  gap: clamp(2.5rem, 5vw, 4.5rem);
+  padding: clamp(4.5rem, 10vh, 7rem) 0 clamp(4rem, 8vh, 6rem);
   position: relative;
 }
 
+.landing-hero--brand {
+  grid-template-columns: 1fr;
+}
+
 @media (min-width: 960px) {
-  .landing-hero {
-    grid-template-columns: minmax(0, 1.5fr) minmax(300px, 1fr);
+  .landing-hero--brand {
+    grid-template-columns: minmax(0, 1.35fr) minmax(280px, 0.85fr);
   }
 }
 
 .landing-hero::before {
   content: 'nucky';
   position: absolute;
-  left: -0.08em;
-  top: 8%;
-  font-size: clamp(7.5rem, 28vw, 18rem);
+  left: -0.06em;
+  bottom: 4%;
+  font-size: clamp(9rem, 32vw, 22rem);
   font-weight: 700;
-  letter-spacing: -0.07em;
-  line-height: 0.8;
-  color: color-mix(in oklab, var(--text-primary) 12%, transparent);
+  letter-spacing: -0.08em;
+  line-height: 0.75;
+  color: color-mix(in oklab, var(--text-primary) 9%, transparent);
   pointer-events: none;
   user-select: none;
   z-index: 0;
+  mask-image: linear-gradient(180deg, transparent 0%, black 35%, black 70%, transparent 100%);
 }
 
 /* blueprint grid behind the hero — fades out downward */
@@ -283,6 +288,36 @@
 .landing-hero-copy {
   position: relative;
   z-index: 1;
+  max-width: 38rem;
+}
+
+.landing-hero-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.65rem;
+  margin: 0 0 1.35rem;
+  line-height: 1;
+}
+
+.landing-hero-brand-name {
+  font-family: var(--font-sans);
+  font-size: clamp(3.6rem, 9vw, 6.4rem);
+  font-weight: 700;
+  letter-spacing: -0.06em;
+  color: var(--text-primary);
+  text-wrap: balance;
+}
+
+.landing-hero-brand-dot {
+  width: 0.72rem;
+  height: 0.72rem;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow:
+    0 0 0 5px var(--accent-bg),
+    0 0 28px color-mix(in oklab, var(--accent) 45%, transparent);
+  transform: translateY(0.18em);
+  flex-shrink: 0;
 }
 
 .landing-brand-signal {
@@ -318,11 +353,272 @@
 }
 
 .landing-hero-title {
-  font-size: clamp(2.65rem, 6.4vw, 4.9rem);
-  font-weight: 700;
-  line-height: 1.02;
-  letter-spacing: -0.045em;
+  font-size: clamp(1.55rem, 3.2vw, 2.35rem);
+  font-weight: 500;
+  line-height: 1.2;
+  letter-spacing: -0.03em;
   margin: 0;
+  max-width: 22ch;
+  color: var(--text-primary);
+  text-wrap: balance;
+}
+
+.landing-btn-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.45rem;
+  height: 1.45rem;
+  margin-left: 0.45rem;
+  border-radius: 999px;
+  background: color-mix(in oklab, var(--bg-base) 22%, transparent);
+  font-size: 0.85rem;
+  transition: transform 220ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+.landing-btn-primary:hover .landing-btn-icon {
+  transform: translateX(2px);
+}
+
+/* Hero signal field — dominant visual plane (no stats) */
+.landing-hero-plane {
+  position: relative;
+  z-index: 1;
+  width: min(100%, 380px);
+  aspect-ratio: 1;
+  justify-self: end;
+  display: grid;
+  place-items: center;
+  isolation: isolate;
+}
+
+.landing-hero-plane-ring {
+  position: absolute;
+  inset: 8%;
+  border-radius: 50%;
+  border: 1px solid color-mix(in oklab, var(--accent) 35%, transparent);
+  opacity: 0.55;
+  animation: landing-plane-spin 48s linear infinite;
+}
+
+.landing-hero-plane-ring.is-delay {
+  inset: 18%;
+  border-color: color-mix(in oklab, var(--text-tertiary) 40%, transparent);
+  animation-duration: 72s;
+  animation-direction: reverse;
+  opacity: 0.4;
+}
+
+.landing-hero-plane-core {
+  position: relative;
+  z-index: 2;
+  width: 46%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  gap: 0.2rem;
+  background:
+    radial-gradient(circle at 35% 30%, color-mix(in oklab, var(--accent) 28%, transparent), transparent 55%),
+    color-mix(in oklab, var(--bg-surface) 88%, transparent);
+  border: 1px solid var(--border-accent);
+  box-shadow:
+    inset 0 1px 0 color-mix(in oklab, var(--text-primary) 8%, transparent),
+    0 24px 60px color-mix(in oklab, #000 55%, transparent);
+}
+
+.landing-hero-plane-glyph {
+  font-family: var(--font-mono);
+  font-size: clamp(1.8rem, 4vw, 2.6rem);
+  color: var(--accent);
+  line-height: 1;
+}
+
+.landing-hero-plane-caption {
+  font-family: var(--font-mono);
+  font-size: 0.58rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+}
+
+.landing-hero-plane-scan {
+  position: absolute;
+  inset: 22%;
+  border-radius: 50%;
+  background: conic-gradient(
+    from 210deg,
+    transparent 0deg,
+    color-mix(in oklab, var(--accent) 22%, transparent) 48deg,
+    transparent 110deg
+  );
+  animation: landing-plane-spin 14s linear infinite;
+  pointer-events: none;
+  z-index: 1;
+  mask-image: radial-gradient(circle, transparent 42%, black 43%, black 68%, transparent 70%);
+}
+
+@keyframes landing-plane-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .landing-hero-plane-ring,
+  .landing-hero-plane-scan {
+    animation: none;
+  }
+}
+
+@media (max-width: 959px) {
+  .landing-hero-plane {
+    justify-self: start;
+    width: min(72vw, 280px);
+    margin-top: 0.5rem;
+  }
+}
+
+/* Scrubbed manifesto chapter */
+.landing-manifesto {
+  position: relative;
+  min-height: 100dvh;
+  display: flex;
+  align-items: center;
+  padding: clamp(3rem, 8vh, 6rem) clamp(1.25rem, 3vw, 2rem);
+  border-top: 1px solid var(--border-subtle);
+  border-bottom: 1px solid var(--border-subtle);
+  background:
+    radial-gradient(ellipse 70% 50% at 20% 40%, oklch(0.78 0.12 195 / 0.07), transparent 60%),
+    var(--bg-base);
+}
+
+.landing-manifesto-inner {
+  max-width: 1120px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.landing-manifesto-kicker {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin: 0 0 1.75rem;
+}
+
+.landing-manifesto-mark {
+  width: 0.45rem;
+  height: 0.45rem;
+  border-radius: 50%;
+  background: var(--accent);
+  opacity: 0.35;
+  transform: scale(0.85);
+  box-shadow: 0 0 0 4px var(--accent-bg);
+}
+
+.landing-manifesto-lines {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.landing-manifesto-line {
+  margin: 0;
+  font-size: clamp(1.65rem, 4.2vw, 3.1rem);
+  font-weight: 600;
+  letter-spacing: -0.035em;
+  line-height: 1.18;
+  max-width: 18ch;
+  text-wrap: balance;
+}
+
+.landing-manifesto-word {
+  display: inline;
+  will-change: opacity;
+}
+
+/* Product pillars — pin + scrub chapters */
+.landing-pillars {
+  padding-top: clamp(4rem, 10vh, 7rem);
+}
+
+.landing-pillars-layout {
+  display: grid;
+  gap: 2.5rem;
+}
+
+@media (min-width: 900px) {
+  .landing-pillars-layout {
+    grid-template-columns: minmax(240px, 0.9fr) minmax(0, 1.4fr);
+    gap: 3.5rem;
+    align-items: start;
+  }
+}
+
+.landing-pillars-pin {
+  position: sticky;
+  top: 5.5rem;
+  align-self: start;
+}
+
+.landing-pillars-pin .landing-section-title {
+  max-width: 12ch;
+}
+
+.landing-pillars-chapters {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.landing-pillar {
+  padding: 1.6rem 1.5rem 1.5rem;
+  border: 1px solid var(--border-subtle);
+  background:
+    linear-gradient(135deg, color-mix(in oklab, var(--accent) 6%, transparent), transparent 42%),
+    color-mix(in oklab, var(--bg-surface) 80%, transparent);
+  transition:
+    border-color 220ms cubic-bezier(0.23, 1, 0.32, 1),
+    transform 220ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+.landing-pillar:hover {
+  border-color: var(--border-accent);
+}
+
+.landing-pillar-label {
+  display: inline-block;
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 0.75rem;
+}
+
+.landing-pillar h3 {
+  margin: 0 0 0.65rem;
+  font-size: clamp(1.25rem, 2.2vw, 1.55rem);
+  letter-spacing: -0.03em;
+  font-weight: 600;
+}
+
+.landing-pillar p {
+  margin: 0;
+  color: var(--text-secondary);
+  line-height: 1.55;
+  max-width: 48ch;
+}
+
+.landing-hero-readout {
+  margin: 0 0 2rem;
+  max-width: 32rem;
+  justify-self: stretch;
 }
 
 .landing-hero-line {

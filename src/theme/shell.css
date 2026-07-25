@@ -66,13 +66,21 @@
   padding: 0.6rem 0.75rem;
   text-align: left;
   cursor: pointer;
-  transition: border-color 160ms ease, background 160ms ease, color 160ms ease;
+  transition:
+    border-color var(--dur-fast) var(--ease-out),
+    background var(--dur-fast) var(--ease-out),
+    color var(--dur-fast) var(--ease-out),
+    transform var(--dur-fast) var(--ease-out);
 }
 
 .app-sidebar-new-chat:hover:not(:disabled) {
   border-color: var(--border-focus);
   background: var(--bg-elevated);
   color: var(--text-primary);
+}
+
+.app-sidebar-new-chat:active:not(:disabled) {
+  transform: scale(0.98);
 }
 
 .app-sidebar-new-chat:disabled {
@@ -691,7 +699,8 @@
 }
 
 .duo-chat {
-  border-right: 1px solid var(--border-subtle);
+  border-right: 1px solid color-mix(in oklab, var(--border-subtle) 88%, var(--accent) 12%);
+  box-shadow: inset -1px 0 0 color-mix(in oklab, var(--accent) 7%, transparent);
 }
 
 .duo-dashboard {
@@ -788,7 +797,9 @@
   overflow-y: auto;
   overscroll-behavior: contain;
   background:
-    radial-gradient(520px 280px at 50% 22%, var(--accent-bg), transparent 70%);
+    radial-gradient(560px 300px at 50% 18%, color-mix(in oklab, var(--accent) 14%, transparent), transparent 72%),
+    radial-gradient(420px 220px at 78% 70%, color-mix(in oklab, var(--accent) 5%, transparent), transparent 70%),
+    var(--bg-base);
 }
 
 /* blueprint grid — fades toward the edges, only on the empty state */
@@ -810,19 +821,29 @@
 }
 
 .chat-empty-greeting {
-  font-size: clamp(1.9rem, 3.4vw, 2.6rem);
+  font-size: clamp(2rem, 3.6vw, 2.75rem);
   font-weight: 700;
-  letter-spacing: -0.04em;
+  letter-spacing: -0.045em;
   margin: 0 0 0.55rem;
   text-align: center;
   color: var(--text-primary);
+}
+
+.chat-empty-greeting::after {
+  content: '';
+  display: block;
+  width: 2rem;
+  height: 2px;
+  margin: 0.85rem auto 0;
+  background: linear-gradient(90deg, transparent, var(--accent), transparent);
+  border-radius: 999px;
 }
 
 .chat-empty-sub {
   font-size: 0.92rem;
   color: var(--text-secondary);
   text-align: center;
-  max-width: 38ch;
+  max-width: 40ch;
   margin: 0 0 1.85rem;
   line-height: 1.55;
 }
@@ -889,6 +910,10 @@
   transform: translateY(-1px);
 }
 
+.chat-empty-prompt:active {
+  transform: scale(0.985);
+}
+
 .chat-empty-prompt-slash {
   color: var(--accent);
   font-family: var(--font-mono);
@@ -899,6 +924,13 @@
   margin-left: auto;
   opacity: 0.45;
   color: var(--text-tertiary);
+  transition: transform var(--dur-fast) var(--ease-out), opacity var(--dur-fast) var(--ease-out);
+}
+
+.chat-empty-prompt:hover .chat-empty-prompt-chevron {
+  opacity: 0.9;
+  color: var(--accent);
+  transform: translateX(2px);
 }
 
 .chat-input-wrap {

@@ -87,8 +87,8 @@ export default function ChatWindow({
         <div className="chat-empty" data-lenis-prevent ref={emptyRef}>
           <h1 className="chat-empty-greeting chat-empty-reveal">{greetingForNow(displayName)}</h1>
           <p className="chat-empty-sub chat-empty-reveal">
-            Ask about players, teams, drafts, and statistics of LoL esports — or search an identity
-            to open it in the dashboard.
+            Ask nucky about players, teams, drafts, and series lean — grounded in the same ratings
+            and match evidence as the dashboard.
           </p>
           <div className="chat-empty-input-slot chat-empty-reveal">
             <ChatInput
