@@ -77,7 +77,7 @@ const ROLE_METRICS: Record<RoleKey, Array<{ key: RadarMetricKey; label: string }
     { key: "kp", label: "Kill Participation" },
     { key: "visionScore", label: "Vision Score" },
     { key: "kda", label: "KDA" },
-    { key: "dmgShare", label: "Damage %" },
+    // Damage % intentionally omitted — meaningless for support evaluation.
   ],
 };
 
@@ -353,20 +353,54 @@ function resolvePlayerName(token: string, players: MergedPlayer[]): MergedPlayer
   );
 }
 
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+/**
+ * Whole-token match after stripping agent self-name ("hey nucky …").
+ * Prevents LEC mid "nuc" matching inside product name "nucky".
+ */
+function mentionsPlayerToken(message: string, token: string): boolean {
+  const t = token.trim();
+  if (!t) return false;
+  if (/^nucky(?:ai|\.gg)?$/i.test(t)) return false;
+  // Mask agent self-mentions so short names cannot substring-hit "nucky".
+  const haystack = message.replace(
+    /\b(?:hey\s+|hi\s+|yo\s+|hello\s+|sup\s+)?nucky(?:ai|\.gg)?\b/gi,
+    (m) => " ".repeat(m.length),
+  );
+  const re = new RegExp(`(?:^|[^a-z0-9_])${escapeRegExp(t)}(?:[^a-z0-9_]|$)`, "i");
+  return re.test(haystack);
+}
+
 export function extractComparePlayers(message: string, players: MergedPlayer[]): MergedPlayer[] {
   const lower = message.toLowerCase();
   if (!/\b(compare|vs\.?|versus|head.?to.?head|h2h|analyze|analysis)\b/.test(lower)) return [];
 
   const found = new Map<string, MergedPlayer>();
   for (const [alias, canonical] of Object.entries(PLAYER_ALIASES)) {
-    if (lower.includes(alias)) {
+    if (mentionsPlayerToken(message, alias)) {
       const player = resolvePlayerName(canonical, players);
       if (player) found.set(`${player.name}|${player.team}|${player.league}`, player);
     }
   }
-  for (const player of players) {
-    if (lower.includes(player.name.toLowerCase())) {
+  // Longer names first so short tokens can't steal partial hits.
+  const sorted = [...players].sort((a, b) => b.name.length - a.name.length);
+  for (const player of sorted) {
+    if (mentionsPlayerToken(message, player.name)) {
       found.set(`${player.name}|${player.team}|${player.league}`, player);
+    }
+  }
+  // Prefer exact two-entity "A vs B" when present.
+  const vsPair = message.match(
+    /\b([A-Za-z][\w.'-]{1,24})\s+vs\.?\s+([A-Za-z][\w.'-]{1,24})\b/i,
+  );
+  if (vsPair) {
+    const a = resolvePlayerName(vsPair[1]!, players);
+    const b = resolvePlayerName(vsPair[2]!, players);
+    if (a && b) {
+      return [a, b];
     }
   }
   return [...found.values()].slice(0, 4);

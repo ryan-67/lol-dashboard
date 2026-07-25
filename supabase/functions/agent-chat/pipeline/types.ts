@@ -66,6 +66,7 @@ export interface Evidence {
   subjectiveIntent: boolean;
   playerChampionIntent: boolean;
   worldsHistoryIntent: boolean;
+  identityIntent: boolean;
   chatOnly: boolean;
 
   // grounded context

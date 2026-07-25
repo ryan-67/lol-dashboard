@@ -32,6 +32,7 @@ import {
   buildPredictionPacket,
   isMlAnalysisQuestion,
 } from "../helpers/predictionPacket.ts";
+import { isAgentIdentityAsk, isAgentGreetingOnly } from "../helpers/agentIdentity.ts";
 import { isCareerQuestion, isPlayerChampionPerformanceAsk, isRosterDepthQuestion } from "../helpers/scope.ts";
 import {
   isPlayerWorldsTitleQuestion,
@@ -288,6 +289,8 @@ export async function decideAndFetch(deps: DecideDeps): Promise<Evidence> {
   const curatedPlayerWorldsTitle = isPlayerWorldsTitleQuestion(message);
   // Curated player Worlds title table answers "how many worlds has X?" — do not
   // treat as open-ended career RAG (stale web often says Faker has 4).
+  const identityIntent = isAgentIdentityAsk(message) || isAgentGreetingOnly(message);
+
   const careerIntent =
     (isCareerQuestion(message) || (thread.isFollowUp && inheritedCareer)) &&
     !curatedPlayerWorldsTitle;
@@ -306,10 +309,11 @@ export async function decideAndFetch(deps: DecideDeps): Promise<Evidence> {
       ? isWorldsHistoryQuestion(thread.inheritedTopic)
       : false);
 
-  let runTools = scope.needs_tools && !careerIntent;
+  let runTools = scope.needs_tools && !careerIntent && !identityIntent;
   if (subjectiveIntent || playerChampionIntent || worldsHistoryIntent) runTools = true;
   if (thread.isClarification) runTools = true;
-  const runRag = scope.needs_rag;
+  if (identityIntent) runTools = false;
+  const runRag = scope.needs_rag && !identityIntent;
 
   const sources = { oracleElixir: false, rag: false, cito: false, web: false, schedule: false, kalshi: false, sentiment: false, mlPrediction: false };
   let matchStats: Record<string, unknown> = {};
@@ -371,6 +375,7 @@ export async function decideAndFetch(deps: DecideDeps): Promise<Evidence> {
       /\b(compare|vs\.?|versus|radar|head.?to.?head|h2h)\b/i.test(message) ||
       (/\banaly[sz]e\b/i.test(message) && /\bvs\.?\b/i.test(message));
     const blockChart =
+      identityIntent ||
       thread.followUpType === "roster_follow_up" ||
       isRosterDepthQuestion(message) ||
       isCareerQuestion(message);
@@ -643,6 +648,7 @@ export async function decideAndFetch(deps: DecideDeps): Promise<Evidence> {
     subjectiveIntent,
     playerChampionIntent,
     worldsHistoryIntent,
+    identityIntent,
     chatOnly,
     worldBlock,
     worldRulesBlock,

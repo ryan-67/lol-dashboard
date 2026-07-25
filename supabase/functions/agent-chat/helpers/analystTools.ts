@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { messageMentionsPlayerToken } from "./agentIdentity.ts";
 import {
   type SliceBundle,
   buildStatSnapshot,
@@ -105,6 +106,7 @@ function normalizeRole(position: string): string | null {
 import {
   adcCarryScore,
   playerScoreForRanking,
+  roleRelevantStats,
   scoringNote,
 } from "./playerScoring.ts";
 
@@ -478,24 +480,18 @@ export function runPlayerRankings(
         role: roleFilter ?? "all",
         ranking: "fraud_overrated_contextual",
         scoring:
-          "fraud/overrated = mid/upper-table team + individual score lagging role-peer mean (expectation gap). Bottom teams / clearly weak sides are NOT frauds just for bad box scores.",
-        note: "Label carefully — tank players and utility supports can look worse on raw KDA/DPM without being frauds. Prefer dmgShare/goldShare/GD@15 context.",
+          "fraud/overrated = mid/upper-table team + ROLE-AWARE individual score lagging role-peer mean. Role lenses: top=laning diffs; jungle=KP/early; mid=laning+dmg; adc=DPM/dmg%/gold%; support=KP/KDA/vision ONLY (never dmg/dpm/dmg-gold). Bottom teams are NOT frauds just for bad box scores.",
+        note:
+          "Cite only roleRelevantStats for each player. NEVER call a support a fraud for low dmgShare/dpm/dmgGoldRatio — those metrics are irrelevant for support.",
         players: slice.map((p) => ({
-          name: p.name,
-          team: p.team,
-          league: p.league,
-          position: p.position,
-          games: p.games,
-          kda: p.kda,
-          gd15: p.gd15,
-          dpm: p.dpm,
-          dmgShare: p.dmgShare,
-          goldShare: p.goldShare,
-          dmgGoldRatio: p.dmgGoldRatio,
+          ...roleRelevantStats(p),
           teamWinrate: p.teamWinrate,
           fraudGap: Math.round(p.fraudGap * 1000) / 1000,
           score: Math.round(p.score * 1000) / 1000,
-          carryScore: Math.round(p.carryScore * 1000) / 1000,
+          // ADC-only carryScore; omit misleading carry framing for other roles.
+          ...(normalizeRole(p.position) === "adc"
+            ? { carryScore: Math.round(p.carryScore * 1000) / 1000 }
+            : {}),
         })),
       },
     };
@@ -772,11 +768,7 @@ function extractChampionFromMessage(message: string, champions: SliceBundle["cha
 }
 
 function messageMentionsToken(message: string, token: string): boolean {
-  const t = token.trim().toLowerCase();
-  if (!t) return false;
-  const escaped = t.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  const re = new RegExp(`(?:^|[^a-z0-9_])${escaped}(?:[^a-z0-9_]|$)`, "i");
-  return re.test(message);
+  return messageMentionsPlayerToken(message, token);
 }
 
 function resolvePlayerFromMessage(message: string, players: MergedPlayer[]): MergedPlayer | null {

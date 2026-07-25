@@ -1,3 +1,4 @@
+import { messageMentionsPlayerToken, stripAgentSelfMentions } from "./agentIdentity.ts";
 import type { MergedPlayer } from "./oeData.ts";
 
 export const PLAYER_ALIASES: Record<string, string> = {
@@ -39,13 +40,10 @@ const TEAM_ALIASES: Record<string, string> = {
   t1: "T1",
 };
 
-function escapeRegExp(value: string): string {
-  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-}
-
-function wordMatch(lower: string, token: string): boolean {
+function wordMatch(message: string, token: string): boolean {
   if (!token) return false;
-  return new RegExp(`\\b${escapeRegExp(token)}\\b`, "i").test(lower);
+  // Agent self-name stripped + whole-token match (blocks "nuc" ⊂ "nucky").
+  return messageMentionsPlayerToken(message, token);
 }
 
 export function resolvePlayer(
@@ -71,15 +69,15 @@ export function resolvePlayer(
 }
 
 export function extractMentionedPlayerNames(message: string, players: MergedPlayer[]): string[] {
-  const lower = message.toLowerCase();
+  const searchable = stripAgentSelfMentions(message);
   const names = new Set<string>();
 
   for (const [alias, canonical] of Object.entries(PLAYER_ALIASES)) {
-    if (wordMatch(lower, alias)) names.add(canonical);
+    if (wordMatch(searchable, alias)) names.add(canonical);
   }
 
   for (const player of players) {
-    if (wordMatch(lower, player.name.toLowerCase())) {
+    if (wordMatch(searchable, player.name)) {
       names.add(player.name);
     }
   }
@@ -92,7 +90,7 @@ export function extractPlayers(
   players: MergedPlayer[],
   leagueFilter?: string,
 ): MergedPlayer[] {
-  const lower = message.toLowerCase();
+  const searchable = stripAgentSelfMentions(message);
   const found = new Map<string, MergedPlayer>();
 
   for (const name of extractMentionedPlayerNames(message, players)) {
@@ -101,7 +99,7 @@ export function extractPlayers(
   }
 
   for (const [teamAlias, teamName] of Object.entries(TEAM_ALIASES)) {
-    if (!wordMatch(lower, teamAlias)) continue;
+    if (!wordMatch(searchable, teamAlias)) continue;
     for (const name of extractMentionedPlayerNames(message, players)) {
       const onTeam = players.filter(
         (p) =>

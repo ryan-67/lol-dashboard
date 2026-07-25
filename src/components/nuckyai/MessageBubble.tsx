@@ -111,12 +111,17 @@ function inlineBold(text: string): React.ReactNode[] {
   })
 }
 
-function renderText(content: string) {
+function renderText(content: string, opts: { isAssistant?: boolean } = {}) {
   // Hide leaked tool dumps / match-stats blocks if the model echoes them.
-  const cleaned = content
-    .replace(/\[MATCH_STATS\][\s\S]*?(?=\[[A-Z_]+\]|```|$)/gi, '')
-    .replace(/^\s*hey\s+nucky[.!]?\s*/i, '')
-    .trim()
+  // Only strip self-greets from assistant text — never mutate the user's typed message
+  // ("hey nucky analyze…" must stay intact in the bubble).
+  let cleaned = content.replace(/\[MATCH_STATS\][\s\S]*?(?=\[[A-Z_]+\]|```|$)/gi, '')
+  if (opts.isAssistant) {
+    cleaned = cleaned
+      .replace(/^\s*hey\s+nucky[.!]?\s*/i, '')
+      .replace(/^\s*hi\s+nucky[.!]?\s*/i, '')
+  }
+  cleaned = cleaned.trim()
   const lines = cleaned.split('\n')
   const nodes: React.ReactNode[] = []
   let i = 0
@@ -323,7 +328,9 @@ export default function MessageBubble({
           <>
         {blocks.map((block, idx) => {
           if (block.type === 'text') {
-            return <div key={`t-${idx}`}>{renderText(block.content)}</div>
+            return (
+              <div key={`t-${idx}`}>{renderText(block.content, { isAssistant })}</div>
+            )
           }
           if (block.type === 'chart') {
             return <ChartBlock key={`c-${idx}`} json={block.content} />

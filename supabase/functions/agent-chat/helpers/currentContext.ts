@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { messageMentionsPlayerToken, stripAgentSelfMentions } from "./agentIdentity.ts";
 import { buildTemporalContext, type TemporalContext } from "./worldContext.ts";
 import {
   fetchSliceBundle,
@@ -175,11 +176,7 @@ foreign_entity_rule: If the user names a champion/hero from another game (e.g. I
  * Avoids false hits like player "nuc" matching inside product name "nucky".
  */
 export function messageMentionsToken(message: string, token: string): boolean {
-  const t = token.trim().toLowerCase();
-  if (!t) return false;
-  const escaped = t.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  const re = new RegExp(`(?:^|[^a-z0-9_])${escaped}(?:[^a-z0-9_]|$)`, "i");
-  return re.test(message);
+  return messageMentionsPlayerToken(message, token);
 }
 
 /** Resolve players mentioned in the user message against verified roster index */
@@ -189,6 +186,8 @@ export function lookupPlayersInMessage(
 ): PlayerTeamRecord[] {
   const found: PlayerTeamRecord[] = [];
   const seen = new Set<string>();
+  // Drop agent self-name first so "hey nucky analyze…" never surfaces player "nuc".
+  const searchable = stripAgentSelfMentions(message);
 
   // Longer names first so "ShowMaker" wins over accidental short substrings.
   const entries = Object.values(index).sort((a, b) => b.name.length - a.name.length);
@@ -196,7 +195,8 @@ export function lookupPlayersInMessage(
   for (const info of entries) {
     const key = info.name.toLowerCase();
     if (seen.has(key)) continue;
-    if (messageMentionsToken(message, info.name)) {
+    if (key === "nucky" || key === "nuckyai") continue;
+    if (messageMentionsToken(searchable, info.name)) {
       seen.add(key);
       found.push(info);
     }

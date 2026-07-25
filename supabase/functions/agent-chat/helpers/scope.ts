@@ -6,6 +6,7 @@ import { HISTORY_WINDOW } from "./historyWindow.ts";
 import { resolveThreadIntent, shouldTreatAsLolesports } from "./threadIntent.ts";
 import { isWorldsHistoryQuestion } from "./worldsHistory.ts";
 import { isChampionMatchupAsk } from "./championMatchupTool.ts";
+import { isAgentGreetingOnly, isAgentIdentityAsk } from "./agentIdentity.ts";
 
 export type ConversationScope =
   | "off_topic"
@@ -108,6 +109,18 @@ export function isGameTheoryQuestion(message: string): boolean {
 }
 
 function heuristicScope(message: string): ScopePlan {
+  // Agent identity / pure greetings — chat only, no tools/charts (and never entity-extract "nuc").
+  if (isAgentIdentityAsk(message) || isAgentGreetingOnly(message)) {
+    return {
+      scope: "lolesports_chat",
+      needs_tools: false,
+      needs_rag: false,
+      needs_charts: false,
+      needs_snapshot: false,
+      reason: "agent identity / greeting — chat only",
+    };
+  }
+
   // SERIES is checked BEFORE compare: "what happened in T1 vs Gen.G series?" contains
   // "vs" but is a recap, not a radar comparison. Compare only wins without series intent.
   if (SERIES.test(message)) {
@@ -274,6 +287,11 @@ export async function classifyScope(
   history: OpenRouterChatMessage[] = [],
   usageTracker?: UsageTracker,
 ): Promise<ScopePlan> {
+  // Identity / greeting always wins — even mid-thread ("what can you do?").
+  if (isAgentIdentityAsk(message) || isAgentGreetingOnly(message)) {
+    return heuristicScope(message);
+  }
+
   const thread = resolveThreadIntent(message, history);
 
   if (thread.isFollowUp) {

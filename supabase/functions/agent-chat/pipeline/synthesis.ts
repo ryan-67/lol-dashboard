@@ -6,6 +6,7 @@
 //   3. After streaming, writes verified facts to pgvector (never reddit/sentiment snippets).
 
 import type { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { isAgentIdentityAsk, isAgentGreetingOnly } from "../helpers/agentIdentity.ts";
 import {
   chatOnlyMessages,
   detectAnalysisIntent,
@@ -111,6 +112,10 @@ export async function synthesize(deps: SynthesisDeps): Promise<SynthesisResult> 
     citoContext: evidence.citoContext,
     lowConfidenceWeb,
     careerIntent: evidence.careerIntent,
+    identityIntent:
+      evidence.identityIntent ||
+      isAgentIdentityAsk(message) ||
+      isAgentGreetingOnly(message),
     analysisIntent,
     subjectiveIntent: evidence.subjectiveIntent,
     playerChampionIntent: evidence.playerChampionIntent,
