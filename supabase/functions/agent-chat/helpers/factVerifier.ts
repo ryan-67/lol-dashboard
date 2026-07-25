@@ -26,7 +26,7 @@ export interface VerifiedFact {
 const EXTRACT_SYSTEM = `You extract atomic, checkable factual claims from web snippets to answer a LoL esports question.
 Return ONLY compact JSON: {"facts":[{"fact": "...", "entityType": "player"|"team"|"other", "entityId": "lowercase canonical name", "factKind": "career"|"roster"|"fact"}]}
 Rules:
-- Each fact must be a single verifiable statement (e.g. "Faker has won 4 League of Legends World Championships").
+- Each fact must be a single verifiable statement (e.g. "Faker has won 6 League of Legends World Championships").
 - Only include facts directly supported by the snippets. Do not infer or add outside knowledge.
 - factKind "career" = titles/championships/awards; "roster" = current team/role/sub; "fact" = other hard facts.
 - Max 4 facts. If nothing checkable, return {"facts":[]}.`;

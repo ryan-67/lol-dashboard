@@ -14,8 +14,8 @@ const DOMESTIC_CODES: Record<Exclude<PredictionLeagueFilter, 'all'>, Set<string>
   LCK: new Set(['LCK']),
   LPL: new Set(['LPL']),
   LEC: new Set(['LEC']),
-  // LTA / LTA N are the 2025+ Americas rebrand of LCS.
-  LCS: new Set(['LCS', 'LTA', 'LTA N', 'LTA S']),
+  // LTA / LTA N = 2025 NA rebrand of LCS. LTA S = CBLOL/LLA merge — NOT LCS.
+  LCS: new Set(['LCS', 'LTA', 'LTA N']),
 }
 
 const INTERNATIONAL_LEAGUE_CODES = new Set([

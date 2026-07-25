@@ -15,6 +15,7 @@ import type { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { buildAnalystContext, mergeToolResults } from "../helpers/analystTools.ts";
 import { chartMarkdownBlock, runTeamCompare } from "../helpers/teamCompare.ts";
 import { runPlayerCompare } from "../helpers/playerCompare.ts";
+import { runChampionMatchupLookup } from "../helpers/championMatchupTool.ts";
 import { routeTools } from "../helpers/toolRouter.ts";
 import { classifyIntent } from "../helpers/classify.ts";
 import { sqlQuery, vectorSearch } from "../helpers/tools.ts";
@@ -32,7 +33,11 @@ import {
   isMlAnalysisQuestion,
 } from "../helpers/predictionPacket.ts";
 import { isCareerQuestion, isPlayerChampionPerformanceAsk, isRosterDepthQuestion } from "../helpers/scope.ts";
-import { isWorldsHistoryQuestion, lookupWorldsHistory } from "../helpers/worldsHistory.ts";
+import {
+  isPlayerWorldsTitleQuestion,
+  isWorldsHistoryQuestion,
+  lookupWorldsHistory,
+} from "../helpers/worldsHistory.ts";
 import {
   buildCurrentWorldContext,
   formatMentionedRosterBlock,
@@ -280,7 +285,12 @@ export async function decideAndFetch(deps: DecideDeps): Promise<Evidence> {
 
   // --- Intent flags (career/roster are never answered from current-split OE stats) ---
   const inheritedCareer = thread.inheritedTopic ? isCareerQuestion(thread.inheritedTopic) : false;
-  const careerIntent = isCareerQuestion(message) || (thread.isFollowUp && inheritedCareer);
+  const curatedPlayerWorldsTitle = isPlayerWorldsTitleQuestion(message);
+  // Curated player Worlds title table answers "how many worlds has X?" — do not
+  // treat as open-ended career RAG (stale web often says Faker has 4).
+  const careerIntent =
+    (isCareerQuestion(message) || (thread.isFollowUp && inheritedCareer)) &&
+    !curatedPlayerWorldsTitle;
   const rosterDepthIntent =
     isRosterDepthQuestion(message) || thread.followUpType === "roster_follow_up";
   const subjectiveIntent = isSubjectiveDebate(message) ||
@@ -356,11 +366,10 @@ export async function decideAndFetch(deps: DecideDeps): Promise<Evidence> {
       resolvedSplit = String(analystCtx.tools[0].data.split);
     }
 
-    // Compare radar only on explicit compare intent — never on roster/sub/career follow-ups.
-    const compareIntentText = `${message} ${thread.inheritedTopic ?? ""}`;
-    const hasCompareIntent = /\b(compare|vs\.?|versus|radar|head.?to.?head|h2h)\b/i.test(
-      compareIntentText,
-    );
+    // Compare charts — current user turn only (never inherited topic entities).
+    const hasCompareIntent =
+      /\b(compare|vs\.?|versus|radar|head.?to.?head|h2h)\b/i.test(message) ||
+      (/\banaly[sz]e\b/i.test(message) && /\bvs\.?\b/i.test(message));
     const blockChart =
       thread.followUpType === "roster_follow_up" ||
       isRosterDepthQuestion(message) ||
@@ -369,9 +378,6 @@ export async function decideAndFetch(deps: DecideDeps): Promise<Evidence> {
       !blockChart && (scope.scope === "lolesports_compare" || hasCompareIntent);
 
     if (wantsCompare) {
-      // Extract entities from the CURRENT user turn only. Using queryForTools (which
-      // embeds the prior topic on parallel follow-ups) caused wrong charts — e.g.
-      // "analyze canyon vs oner" after a T1 vs Gen.G thread still drew the team radar.
       const compareQuery = message;
       const playerCompare = await runPlayerCompare(
         serviceClient,
@@ -389,6 +395,18 @@ export async function decideAndFetch(deps: DecideDeps): Promise<Evidence> {
         chartPrefix = `${compareResult.chartMarkdown || chartMarkdownBlock(compareResult.chart)}\n\n`;
         resolvedSplit = String(compareResult.data.split ?? resolvedSplit);
       }
+    }
+
+    // Champion H2H chart (Sylas vs Akali, etc.) — independent of team/player compare.
+    const champMu = runChampionMatchupLookup(message);
+    if (champMu) {
+      matchStats.champion_matchup_h2h = champMu.data;
+      if (champMu.chartMarkdown && !chartPrefix.trim()) {
+        chartPrefix = `${champMu.chartMarkdown}\n\n`;
+      } else if (champMu.chartMarkdown) {
+        chartPrefix = `${chartPrefix}${champMu.chartMarkdown}\n\n`;
+      }
+      sources.oracleElixir = true;
     }
   }
 
@@ -408,7 +426,7 @@ export async function decideAndFetch(deps: DecideDeps): Promise<Evidence> {
   }
 
   // ---- Source 2: RAG knowledge base (career/roster always vector-search) ----
-  const forceVector = careerIntent || rosterDepthIntent;
+  const forceVector = (careerIntent || rosterDepthIntent) && !curatedPlayerWorldsTitle;
   const factualScope = scope.scope !== "lolesports_chat";
   if (
     (runRag &&

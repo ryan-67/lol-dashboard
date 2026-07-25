@@ -55,8 +55,19 @@ export function narrowFiltersFromMessage(
         ? filters.selectedYears[0]!
         : message.match(/\b(20\d{2})\b/)?.[1] ?? String(new Date().getFullYear());
     if (season === "worlds" || season === "msi" || season === "ewc") {
-      filters.split = season === "ewc" ? "EWC" : capitalizeSeason(season);
+      // OE split labels are "2026 EWC" / "2026 MSI" / "2026 Worlds" (not bare "EWC").
+      const label =
+        season === "ewc" ? "EWC" : season === "msi" ? "MSI" : "Worlds";
+      filters.split = `${year} ${label}`;
       filters.selectedSplits = [filters.split];
+      filters.year = year;
+      filters.selectedYears = [year];
+      // International rows live under league=EWC/MSI/WLDs — keep All Tier 1 so
+      // leaguesForFilter expands to domestics + internationals.
+      if (!filters.league || filters.league === "All Tier 1") {
+        filters.league = "All Tier 1";
+        filters.selectedLeagues = ["All Tier 1"];
+      }
     } else {
       filters.split = `${year} ${capitalizeSeason(season)}`;
       filters.selectedSplits = [filters.split];

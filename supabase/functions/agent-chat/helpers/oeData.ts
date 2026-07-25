@@ -135,8 +135,16 @@ function avgWeighted(items: Array<{ value: number; weight: number }>): number {
   return items.reduce((s, i) => s + i.value * i.weight, 0) / total;
 }
 
-function leaguesForFilter(league: string): string[] {
-  if (!league || league === "All Tier 1") return [...TIER1];
+/** Tier-1 domestics + internationals so EWC/MSI/Worlds slices are fetchable. */
+export function leaguesForFilter(league: string): string[] {
+  if (!league || league === "All Tier 1") {
+    return [...TIER1, "EWC", "MSI", "WLDs", "Worlds", "FST", "First Stand"];
+  }
+  const upper = league.trim();
+  if (upper === "EWC") return ["EWC"];
+  if (upper === "MSI") return ["MSI"];
+  if (upper === "Worlds" || upper === "WLDs") return ["WLDs", "Worlds"];
+  if (upper === "First Stand" || upper === "FST") return ["FST", "First Stand"];
   return [league];
 }
 

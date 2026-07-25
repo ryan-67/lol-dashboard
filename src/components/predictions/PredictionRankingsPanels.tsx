@@ -25,7 +25,7 @@ const REGION_FILTERS: { id: RegionFilter; label: string }[] = [
 function regionMatch(homeRegion: string | undefined, filter: RegionFilter): boolean {
   if (filter === 'all') return true
   const r = (homeRegion ?? '').toUpperCase()
-  if (filter === 'LCS') return r === 'LCS' || r === 'LTA' || r.startsWith('LTA')
+  if (filter === 'LCS') return r === 'LCS' || r === 'LTA' || r === 'LTA N'
   return r === filter
 }
 

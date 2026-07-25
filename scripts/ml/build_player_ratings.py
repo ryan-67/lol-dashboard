@@ -783,6 +783,8 @@ def build_ratings(top_n: int) -> dict[str, pd.DataFrame]:
     df = add_opponents(df)
     print(f"  {len(df)} player-game rows", file=sys.stderr)
 
+    from home_region_overrides import NON_TIER1_HOME_ORGS, resolve_home_region
+
     strength = load_json("region_strength.json")
     team_rating = {t: v.get("rating") for t, v in strength.get("teams", {}).items()}
     region_rating = strength.get("regions", {})
@@ -790,8 +792,10 @@ def build_ratings(top_n: int) -> dict[str, pd.DataFrame]:
     global_avg_team_rating = float(np.mean(list(team_rating.values()))) if team_rating else 1500.0
 
     # A team's home region from the strength snapshot — used to decide if the
-    # player's *current* team is tier-1 (exclude TSW/FURIA from rankings).
+    # player's *current* team is tier-1 (exclude TSW/FURIA / CBLOL guests).
     team_home = {t: v.get("homeRegion") for t, v in strength.get("teams", {}).items()}
+    for org in NON_TIER1_HOME_ORGS:
+        team_home[org] = None
 
     df["date"] = pd.to_datetime(df["date"], errors="coerce")
     df = df.dropna(subset=["date"])
@@ -850,8 +854,11 @@ def build_ratings(top_n: int) -> dict[str, pd.DataFrame]:
             if player in overridden_inactive:
                 continue
             current_team = current_team_by_player.get(player) or infer_current_team(grp)
-            # Must be on a tier-1 org right now
-            home = team_home.get(current_team) or infer_home_region(grp, current_team)
+            # Must be on a tier-1 org right now (CBLOL/LLA guests never qualify).
+            if current_team in NON_TIER1_HOME_ORGS:
+                continue
+            inferred = team_home.get(current_team) or infer_home_region(grp, current_team)
+            home = resolve_home_region(current_team, inferred)
             if home not in TIER1_REGIONS:
                 continue
             # Must be a majority-of-recent-games starter on that team
@@ -863,6 +870,14 @@ def build_ratings(top_n: int) -> dict[str, pd.DataFrame]:
                 continue
 
             on_current = (valid["team"] == current_team).astype(float)
+            # Require meaningful domestic tier-1 sample — intl-only guests with a
+            # handful of EWC games must not climb global boards on soft SoS.
+            domestic_t1 = valid[
+                (valid["team"] == current_team) & (valid["region"].isin(TIER1_REGIONS))
+            ]
+            if len(domestic_t1) < 6 and float(valid["recency_weight"].sum()) < 12.0:
+                continue
+
             valid["weight"] = (
                 valid["recency_weight"]
                 * valid["sos_multiplier"]

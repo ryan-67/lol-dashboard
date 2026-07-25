@@ -70,6 +70,8 @@ KEY_TEAM_STATS = ("golddiffat15", "golddiffat20", "dpm", "xpdiffat15", "csdiffat
 
 def infer_home_regions(team_games: pd.DataFrame) -> dict[str, str]:
     """Canonical home region per team from domestic league history."""
+    from home_region_overrides import resolve_home_region
+
     domestic = team_games[~team_games["is_international"].fillna(False)]
     if domestic.empty:
         return {}
@@ -80,7 +82,13 @@ def infer_home_regions(team_games: pd.DataFrame) -> dict[str, str]:
         .sort_values(["canonical_team", "n"], ascending=[True, False])
     )
     top = counts.drop_duplicates("canonical_team", keep="first")
-    return dict(zip(top["canonical_team"], top["region"]))
+    raw = dict(zip(top["canonical_team"], top["region"]))
+    out: dict[str, str] = {}
+    for team, region in raw.items():
+        resolved = resolve_home_region(str(team), str(region) if region is not None else None)
+        if resolved:
+            out[str(team)] = resolved
+    return out
 
 
 def _expected(score_a: float, score_b: float) -> float:

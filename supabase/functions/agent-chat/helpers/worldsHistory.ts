@@ -1,4 +1,4 @@
-/** Verified Worlds winners + Finals MVP (Season 8 → present). Source: Liquipedia / Riot official records. */
+/** Verified Worlds winners + Finals MVP + player title counts. Source: Liquipedia / Riot. */
 
 export interface WorldsChampionEntry {
   year: number;
@@ -20,18 +20,66 @@ export const WORLDS_CHAMPIONS: WorldsChampionEntry[] = [
   { year: 2025, season: 15, team: "T1", finalsMvp: "Gumayusi", region: "LCK" },
 ];
 
+/**
+ * Player World Championship title counts (summoner's cup as a starter).
+ * Keep curated — career title asks must NOT fall back to stale LLM memory.
+ */
+export const PLAYER_WORLDS_TITLES: Record<
+  string,
+  { player: string; count: number; years: number[]; note?: string }
+> = {
+  faker: {
+    player: "Faker",
+    count: 6,
+    years: [2013, 2015, 2016, 2023, 2024, 2025],
+    note: "Six World Championships with T1 / SKT (2013, 2015, 2016, 2023, 2024, 2025).",
+  },
+  canyon: { player: "Canyon", count: 1, years: [2020] },
+  showmaker: { player: "ShowMaker", count: 1, years: [2020] },
+  scout: { player: "Scout", count: 1, years: [2021] },
+  kingen: { player: "Kingen", count: 1, years: [2022] },
+  zeus: { player: "Zeus", count: 2, years: [2023, 2024] },
+  oner: { player: "Oner", count: 3, years: [2023, 2024, 2025] },
+  gumayusi: { player: "Gumayusi", count: 3, years: [2023, 2024, 2025] },
+  keria: { player: "Keria", count: 3, years: [2023, 2024, 2025] },
+  doran: { player: "Doran", count: 1, years: [2025] },
+};
+
 const WORLDS_HISTORY =
   /\b(worlds|world championship|worlds championship)\b/i;
 
 const WORLDS_LIST_INTENT =
   /\b(list|every team|all teams|each year|since season|from season|season \d|winners?|won worlds|world champions?|finals mvp|fmvp|mvp for each|champion.*mvp)\b/i;
 
+const PLAYER_TITLE_INTENT =
+  /\b(how many|titles?|championships?|cups?|trophy|trophies|times?)\b/i;
+
 /** User wants a Worlds winner / Finals MVP historical list (not current-split stats). */
 export function isWorldsHistoryQuestion(message: string): boolean {
   if (!WORLDS_HISTORY.test(message)) return false;
+  if (isPlayerWorldsTitleQuestion(message)) return true;
   return WORLDS_LIST_INTENT.test(message) ||
     /\bwho won\b/i.test(message) ||
     /\bwhich team won\b/i.test(message);
+}
+
+/** "how many worlds has faker won?" */
+export function isPlayerWorldsTitleQuestion(message: string): boolean {
+  if (!WORLDS_HISTORY.test(message) && !/\bworld championships?\b/i.test(message)) {
+    return false;
+  }
+  if (!PLAYER_TITLE_INTENT.test(message) && !/\bhas .+ won\b/i.test(message)) {
+    return false;
+  }
+  return Boolean(extractTitlePlayerKey(message));
+}
+
+function extractTitlePlayerKey(message: string): string | null {
+  const lower = message.toLowerCase();
+  for (const key of Object.keys(PLAYER_WORLDS_TITLES)) {
+    if (lower.includes(key)) return key;
+  }
+  return null;
 }
 
 function parseSeasonFloor(message: string): number {
@@ -41,7 +89,7 @@ function parseSeasonFloor(message: string): number {
   if (from) return parseInt(from[1]!, 10);
   const s8 = message.match(/\bseason\s*8\b/i);
   if (s8) return 8;
-  return 8; // default "worlds since S8" colloquial baseline
+  return 8;
 }
 
 function parseYearFloor(message: string): number | null {
@@ -53,6 +101,22 @@ export function lookupWorldsHistory(message: string): {
   tool: string;
   data: Record<string, unknown>;
 } {
+  const playerKey = extractTitlePlayerKey(message);
+  if (playerKey && isPlayerWorldsTitleQuestion(message)) {
+    const row = PLAYER_WORLDS_TITLES[playerKey]!;
+    return {
+      tool: "player_worlds_titles",
+      data: {
+        source: "verified_worlds_records",
+        player: row.player,
+        worldsTitles: row.count,
+        years: row.years,
+        note: row.note ??
+          `Cite worldsTitles=${row.count} and years exactly. Do not invent additional cups.`,
+      },
+    };
+  }
+
   const seasonFloor = parseSeasonFloor(message);
   const yearFloor = parseYearFloor(message);
 
@@ -66,7 +130,7 @@ export function lookupWorldsHistory(message: string): {
     data: {
       source: "verified_worlds_records",
       note:
-        "Finals MVP is the official OPPO/Riot Finals MVP award — NOT the best-performing star by eye test (e.g. 2019 MVP is Tian not Doinb; 2022 MVP is Kingen not Zeka).",
+        "Finals MVP is the official OPPO/Riot Finals MVP award — NOT the best-performing star by eye test (e.g. 2019 MVP is Tian not Doinb; 2022 MVP is Kingen not Zeka). Player title counts (e.g. Faker = 6) use player_worlds_titles when asked.",
       seasonFloor,
       yearFloor,
       champions: rows.map((e) => ({

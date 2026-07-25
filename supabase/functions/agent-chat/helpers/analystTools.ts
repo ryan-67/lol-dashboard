@@ -8,6 +8,7 @@ import {
   type MergedTeam,
 } from "./oeData.ts";
 import { getPlayerRatings } from "./mlArtifacts.ts";
+import { runChampionMatchupLookup } from "./championMatchupTool.ts";
 
 const TEAM_ALIASES: Record<string, string> = {
   t1: "T1",
@@ -289,6 +290,9 @@ export function runMlPlayerPowerRankings(message: string): ToolResult | null {
 
   const snap = getPlayerRatings();
   const allRoles = ["top", "jungle", "mid", "adc", "support"] as const;
+  /** Match dashboard powerScoreTo100 (floor -0.25, ceiling 0.55). */
+  const to100 = (powerScore: number) =>
+    Math.round(Math.max(0, Math.min(100, ((powerScore - -0.25) / 0.8) * 100)) * 10) / 10;
 
   if (roleFilter) {
     const ranked = (snap.roles[roleFilter] ?? []).slice(0, topN);
@@ -301,7 +305,7 @@ export function runMlPlayerPowerRankings(message: string): ToolResult | null {
         methodology: snap.methodology,
         role: roleFilter,
         ranking: "top_by_power_score",
-        note: "nucky player power model — cite powerScore/rank/team exactly; model form across recent tier-1 activity",
+        note: "Cite powerScore100 (/100, dashboard scale) + rank/team/region. Tier-1 domestic orgs only — never call CBLOL/LLA players LCS.",
         players: ranked.map((e) => ({
           rank: e.rank,
           player: e.player,
@@ -310,6 +314,7 @@ export function runMlPlayerPowerRankings(message: string): ToolResult | null {
           role: roleFilter,
           games: e.games,
           powerScore: e.powerScore,
+          powerScore100: to100(e.powerScore),
         })),
       },
     };
@@ -330,6 +335,7 @@ export function runMlPlayerPowerRankings(message: string): ToolResult | null {
       role: e.role,
       games: e.games,
       powerScore: e.powerScore,
+      powerScore100: to100(e.powerScore),
     }));
 
   return {
@@ -340,7 +346,7 @@ export function runMlPlayerPowerRankings(message: string): ToolResult | null {
       methodology: snap.methodology,
       role: wantOverall || wantsPower ? "all" : "all",
       ranking: "top_by_power_score",
-      note: "nucky player power model — cite powerScore/rank/team exactly; model form across recent tier-1 activity",
+      note: "Cite powerScore100 (/100, dashboard scale) + rank/team/region. Tier-1 domestic orgs only.",
       players: slice,
     },
   };
@@ -401,17 +407,107 @@ export function runPlayerRankings(
 
   if (pool.length < 2) return null;
 
-  const wantBottom =
-    /\b(overrated|worst|bottom|flop|underperform|fraudulent|fraud|frauds?|bum|bums|inters?|trash|exposed)\b/i
-      .test(message);
+  const wantFraud =
+    /\b(overrated|fraudulent|fraud|frauds?|exposed|cosplay)\b/i.test(message);
+  const wantWorst =
+    !wantFraud &&
+    /\b(worst|bottom|flop|underperform|bum|bums|inters?|trash)\b/i.test(message);
+
+  // Fraud/overrated ≠ "worst stats on bad teams". Restrict to players on
+  // mid/upper table teams whose individual impact lags role + team expectation.
+  if (wantFraud) {
+    const teamByName = new Map(bundle.teams.map((t) => [t.name, t]));
+    const leaguePools = new Map<string, MergedTeam[]>();
+    for (const t of bundle.teams) {
+      const arr = leaguePools.get(t.league) ?? [];
+      arr.push(t);
+      leaguePools.set(t.league, arr);
+    }
+    const medianWr = (league: string): number => {
+      const rows = [...(leaguePools.get(league) ?? [])].sort((a, b) => a.winrate - b.winrate);
+      if (!rows.length) return 50;
+      return rows[Math.floor(rows.length / 2)]!.winrate;
+    };
+
+    const scored = pool
+      .map((p) => {
+        const team = teamByName.get(p.team);
+        const teamWr = team?.winrate ?? 0;
+        const med = medianWr(p.league);
+        const rolePeers = pool.filter((x) => normalizeRole(x.position) === normalizeRole(p.position));
+        const peerScores = rolePeers.map((x) => playerScoreForRanking(x, roleFilter, false));
+        const peerMean = peerScores.length
+          ? peerScores.reduce((a, b) => a + b, 0) / peerScores.length
+          : 0;
+        const playerScore = playerScoreForRanking(p, roleFilter, false);
+        const teamExpect = (teamWr - med) / 25; // ~+/- band from median WR
+        const gap = teamExpect - (playerScore - peerMean); // high = underperforms expectation
+        return {
+          ...p,
+          score: playerScore,
+          carryScore: adcCarryScore(p),
+          teamWinrate: teamWr,
+          fraudGap: gap,
+          eligible: teamWr >= med - 2 && (team?.games ?? 0) >= 8,
+        };
+      })
+      .filter((p) => p.eligible && p.fraudGap > 0.05)
+      .sort((a, b) => b.fraudGap - a.fraudGap);
+
+    const slice = scored.slice(0, 8);
+    if (slice.length < 2) {
+      return {
+        tool: "player_rankings",
+        data: {
+          split: bundle.split,
+          league: bundle.league,
+          role: roleFilter ?? "all",
+          ranking: "fraud_overrated_contextual",
+          note:
+            "No clear fraud/overrated candidates under contextual rules (need mid/upper-table teams with individual underperformance vs role peers). Do NOT list bottom-feeders on last-place teams as frauds.",
+          players: [],
+        },
+      };
+    }
+
+    return {
+      tool: "player_rankings",
+      data: {
+        split: bundle.split,
+        league: bundle.league,
+        role: roleFilter ?? "all",
+        ranking: "fraud_overrated_contextual",
+        scoring:
+          "fraud/overrated = mid/upper-table team + individual score lagging role-peer mean (expectation gap). Bottom teams / clearly weak sides are NOT frauds just for bad box scores.",
+        note: "Label carefully — tank players and utility supports can look worse on raw KDA/DPM without being frauds. Prefer dmgShare/goldShare/GD@15 context.",
+        players: slice.map((p) => ({
+          name: p.name,
+          team: p.team,
+          league: p.league,
+          position: p.position,
+          games: p.games,
+          kda: p.kda,
+          gd15: p.gd15,
+          dpm: p.dpm,
+          dmgShare: p.dmgShare,
+          goldShare: p.goldShare,
+          dmgGoldRatio: p.dmgGoldRatio,
+          teamWinrate: p.teamWinrate,
+          fraudGap: Math.round(p.fraudGap * 1000) / 1000,
+          score: Math.round(p.score * 1000) / 1000,
+          carryScore: Math.round(p.carryScore * 1000) / 1000,
+        })),
+      },
+    };
+  }
 
   const ranked = [...pool]
     .map((p) => ({
       ...p,
-      score: playerScoreForRanking(p, roleFilter, wantBottom),
+      score: playerScoreForRanking(p, roleFilter, wantWorst),
       carryScore: adcCarryScore(p),
     }))
-    .sort((a, b) => (wantBottom ? a.score - b.score : b.score - a.score));
+    .sort((a, b) => (wantWorst ? a.score - b.score : b.score - a.score));
 
   const slice = ranked.slice(0, 10);
 
@@ -421,14 +517,14 @@ export function runPlayerRankings(
       split: bundle.split,
       league: bundle.league,
       role: roleFilter ?? "all",
-      ranking: wantBottom ? "bottom_by_role_score" : "top_by_role_score",
+      ranking: wantWorst ? "bottom_by_role_score" : "top_by_role_score",
       top_teams_filter: topTeamsFilter,
       top_teams_standings: topTeamsMeta,
       top_teams_definition: topTeamsFilter
         ? `top ${topTeamsFilter.length} teams by winrate in ${rankingLeague} standings`
         : null,
-      scoring: scoringNote(roleFilter, wantBottom),
-      note: "use team field exactly; for ADC fraud lean on dmgShare and goldShare in output",
+      scoring: scoringNote(roleFilter, wantWorst),
+      note: "use team field exactly; for ADC impact lean on dmgShare and goldShare in output",
       players: slice.map((p) => ({
         name: p.name,
         team: p.team,
@@ -839,7 +935,15 @@ export function runTeamStat(message: string, bundle: SliceBundle): ToolResult | 
 }
 
 export function runTeamRankings(message: string, bundle: SliceBundle): ToolResult | null {
-  if (!/\b(best|worst|top|rank|objective|control|economy)\b/i.test(message) || !/\bteam/i.test(message)) {
+  const wantsStrongest =
+    /\b(strongest|best|dominant|looked\s+best|who\s+(?:looked|was)\s+strong)\b/i.test(message);
+  if (
+    !wantsStrongest &&
+    (!/\b(best|worst|top|rank|objective|control|economy)\b/i.test(message) || !/\bteam/i.test(message))
+  ) {
+    return null;
+  }
+  if (wantsStrongest && /\b(player|mid|jungle|adc|support)\b/i.test(message) && !/\bteam/i.test(message)) {
     return null;
   }
 
@@ -1088,6 +1192,8 @@ export async function buildAnalystContext(
   const snapshot = options.includeSnapshot ? buildStatSnapshot(bundle) : null;
   const tools: ToolResult[] = [];
 
+  const champMatchup = runChampionMatchupLookup(message);
+
   const candidates = [
     runTeamRoleShareCompare(message, bundle),
     runPlayerChampionStat(message, bundle),
@@ -1100,6 +1206,9 @@ export async function buildAnalystContext(
     runSeriesRecap(message, bundle),
     runChampionPoolCompare(message, bundle),
     runMatchupLookup(message, bundle),
+    champMatchup
+      ? { tool: champMatchup.tool, data: champMatchup.data }
+      : null,
     runMlPlayerPowerRankings(message),
     runPlayerRankings(message, bundle),
     runChampionMeta(message, bundle),

@@ -30,6 +30,8 @@ REGION_LEAGUE_CODES: dict[str, set[str]] = {
     "LEC": {"LEC"},
     # LTA N succeeded LCS for the 2025 season only; LTA S is the LLA/CBLOL
     # merger and is NOT continuous with historic LCS, so it's excluded.
+    # Bare "LTA" is kept for 2025 NA rows, but southern orgs that also appear
+    # under "LTA" are excluded via home_region_overrides.NON_TIER1_HOME_ORGS.
     "LCS": {"LCS", "LTA", "LTA N"},
 }
 

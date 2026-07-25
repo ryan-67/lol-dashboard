@@ -27,7 +27,8 @@ export type PowerRegionFilter = 'all' | 'LCK' | 'LPL' | 'LEC' | 'LCS'
 function regionMatch(homeRegion: string | undefined, filter: PowerRegionFilter): boolean {
   if (filter === 'all') return true
   const r = (homeRegion ?? '').toUpperCase()
-  if (filter === 'LCS') return r === 'LCS' || r === 'LTA' || r.startsWith('LTA')
+  // LTA N / bare LTA = 2025 NA. LTA S = CBLOL/LLA — never treat as LCS.
+  if (filter === 'LCS') return r === 'LCS' || r === 'LTA' || r === 'LTA N'
   return r === filter
 }
 

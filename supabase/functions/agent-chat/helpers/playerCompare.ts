@@ -254,7 +254,12 @@ function mergePlayersFromSlices(
 }
 
 function leaguesForFilter(league: string): string[] {
-  if (!league || league === "All Tier 1") return [...TIER1];
+  if (!league || league === "All Tier 1") {
+    return [...TIER1, "EWC", "MSI", "WLDs", "Worlds", "FST", "First Stand"];
+  }
+  if (league === "EWC") return ["EWC"];
+  if (league === "MSI") return ["MSI"];
+  if (league === "Worlds" || league === "WLDs") return ["WLDs", "Worlds"];
   return [league];
 }
 

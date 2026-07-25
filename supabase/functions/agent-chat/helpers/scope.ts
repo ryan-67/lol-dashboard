@@ -5,6 +5,7 @@ import type { UsageTracker } from "./usageTracker.ts";
 import { HISTORY_WINDOW } from "./historyWindow.ts";
 import { resolveThreadIntent, shouldTreatAsLolesports } from "./threadIntent.ts";
 import { isWorldsHistoryQuestion } from "./worldsHistory.ts";
+import { isChampionMatchupAsk } from "./championMatchupTool.ts";
 
 export type ConversationScope =
   | "off_topic"
@@ -97,6 +98,8 @@ export function isPlayerChampionPerformanceAsk(message: string): boolean {
 export function isGameTheoryQuestion(message: string): boolean {
   if (!GAME_THEORY.test(message)) return false;
   if (COMPARE.test(message) && /\b(vs\.?|versus|compare|radar)\b/i.test(message)) return false;
+  // Champ vs champ with pro H2H available — use tools/charts, not pure theory.
+  if (isChampionMatchupAsk(message)) return false;
   if (SERIES.test(message)) return false;
   if (OPINION.test(message)) return false;
   if (STAT_NUMBERS.test(message)) return false;
@@ -126,6 +129,17 @@ function heuristicScope(message: string): ScopePlan {
       needs_charts: true,
       needs_snapshot: false,
       reason: "compare heuristic",
+    };
+  }
+
+  if (isChampionMatchupAsk(message)) {
+    return {
+      scope: "lolesports_stats",
+      needs_tools: true,
+      needs_rag: false,
+      needs_charts: true,
+      needs_snapshot: false,
+      reason: "champion matchup H2H — champ_matchups artifact",
     };
   }
 

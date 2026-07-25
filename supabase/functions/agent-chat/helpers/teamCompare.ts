@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { getH2hLookup } from "./mlArtifacts.ts";
 
 const TIER1 = ["LCK", "LPL", "LEC", "LCS"] as const;
 
@@ -189,7 +190,12 @@ function mergeTeamsFromSlices(rows: Array<{ league: string; data: { teams?: Team
 }
 
 function leaguesForFilter(league: string): string[] {
-  if (!league || league === "All Tier 1") return [...TIER1];
+  if (!league || league === "All Tier 1") {
+    return [...TIER1, "EWC", "MSI", "WLDs", "Worlds", "FST", "First Stand"];
+  }
+  if (league === "EWC") return ["EWC"];
+  if (league === "MSI") return ["MSI"];
+  if (league === "Worlds" || league === "WLDs") return ["WLDs", "Worlds"];
   return [league];
 }
 
@@ -381,12 +387,28 @@ export function buildTeamCompareSummary(
   teams: MergedTeam[],
   split: string,
   league: string,
+  headToHead?: {
+    games: number;
+    winsA: number;
+    winsB: number;
+    source: string;
+    note?: string;
+  } | null,
 ): Record<string, unknown> {
   return {
     tool: "team_compare",
     split,
     league,
     assumption: "stats are for the selected split unless the user explicitly names another split",
+    critical:
+      "teams[].games / wins / losses / winrate are EACH TEAM's split totals — NOT head-to-head. Never add two teams' game counts and call it H2H. Only cite headToHead when present.",
+    headToHead: headToHead ?? {
+      games: 0,
+      winsA: 0,
+      winsB: 0,
+      source: "none",
+      note: "No verified H2H series scoreline in this block — do NOT invent one (e.g. never invent 28-24 / 52 games).",
+    },
     teams: teams.map((t) => ({
       name: t.name,
       league: t.league,
@@ -445,7 +467,36 @@ export async function runTeamCompare(
 
   const radar = buildRadarChartPayload(compareTeams, teams, resolvedSplit, resolvedLeague);
   const bars = buildTeamCompareBars(compareTeams, resolvedSplit, resolvedLeague);
-  const data = buildTeamCompareSummary(compareTeams, resolvedSplit, resolvedLeague);
+
+  const [a, b] = compareTeams;
+  const h2hTable = getH2hLookup();
+  const keyAb = `${a.name}|${b.name}`;
+  const keyBa = `${b.name}|${a.name}`;
+  const h2hRow = h2hTable[keyAb] ?? h2hTable[keyBa];
+  let headToHead: {
+    games: number;
+    winsA: number;
+    winsB: number;
+    source: string;
+    note?: string;
+  } | null = null;
+  if (h2hRow && h2hRow.games > 0) {
+    // Decayed model H2H — winrate is from A's perspective when key is A|B.
+    const fromA = Boolean(h2hTable[keyAb]);
+    const wrA = fromA ? h2hRow.winrate : 1 - h2hRow.winrate;
+    const winsA = Math.round(wrA * h2hRow.games);
+    const winsB = Math.max(0, h2hRow.games - winsA);
+    headToHead = {
+      games: h2hRow.games,
+      winsA,
+      winsB,
+      source: "ml_h2h_lookup_decayed",
+      note:
+        "Decayed multi-year model H2H (not a single-split series tally). Cite games + approximate W-L; do not invent different totals.",
+    };
+  }
+
+  const data = buildTeamCompareSummary(compareTeams, resolvedSplit, resolvedLeague, headToHead);
   const chartMarkdown = [bars ? chartMarkdownBlock(bars) : "", chartMarkdownBlock(radar)]
     .filter(Boolean)
     .join("\n\n");
