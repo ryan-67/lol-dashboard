@@ -1,4 +1,4 @@
-import { useMemo, useRef } from 'react'
+import { useEffect, useMemo, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import { useGSAP } from '@gsap/react'
 import { useDashboard } from '../context/DashboardContext'
@@ -15,8 +15,16 @@ function formatDuration(minutes: number | null): string {
 }
 
 export default function Tournaments() {
-  const { data, league, split, year, loading } = useDashboard()
+  const { data, league, split, year, loading, setSplit } = useDashboard()
   const ref = useRef<HTMLDivElement>(null)
+  const defaultedSplit = useRef(false)
+
+  // Tournaments overview should show the full competitive year by default.
+  useEffect(() => {
+    if (defaultedSplit.current) return
+    defaultedSplit.current = true
+    setSplit('ALL')
+  }, [setSplit])
 
   const tournaments = useMemo(() => (data ? buildTournamentSummaries(data) : []), [data])
 

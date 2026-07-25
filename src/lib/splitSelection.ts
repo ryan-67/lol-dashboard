@@ -67,8 +67,14 @@ export function splitHasGameData(store: OEStore, split: string, year = DEFAULT_Y
     for (const league of TIER1_LEAGUES) {
       const slice = store.slices[sliceKey(label, league)]
       if (!slice) continue
-      if ((slice.players ?? []).some((p) => (p.gameLog?.length ?? 0) > 0)) return true
+      if ((slice.players ?? []).some((p) => (p.games ?? 0) > 0 || (p.gameLog?.length ?? 0) > 0)) {
+        return true
+      }
       if ((slice.teams ?? []).some((t) => (t.games ?? 0) > 0)) return true
+      // Early-week slices may only have rosterDepth / weeklyTeamGames until
+      // players clear the old sample floor — still count as "has data".
+      if ((slice.rosterDepth ?? []).some((r) => (r.games ?? 0) > 0)) return true
+      if (Object.keys(slice.weeklyTeamGames ?? {}).length > 0) return true
     }
   }
   // Fall back to the broader key selector only for non-year-prefixed filters.
@@ -78,8 +84,12 @@ export function splitHasGameData(store: OEStore, split: string, year = DEFAULT_Y
       if (key.endsWith('|INT')) continue
       const slice = store.slices[key]
       if (!slice) continue
-      if ((slice.players ?? []).some((p) => (p.gameLog?.length ?? 0) > 0)) return true
+      if ((slice.players ?? []).some((p) => (p.games ?? 0) > 0 || (p.gameLog?.length ?? 0) > 0)) {
+        return true
+      }
       if ((slice.teams ?? []).some((t) => (t.games ?? 0) > 0)) return true
+      if ((slice.rosterDepth ?? []).some((r) => (r.games ?? 0) > 0)) return true
+      if (Object.keys(slice.weeklyTeamGames ?? {}).length > 0) return true
     }
   }
   return false

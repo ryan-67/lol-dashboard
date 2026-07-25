@@ -861,11 +861,16 @@ def compile_slice(store, split_key: str = "", bucket_league: str = ""):
     backfill_game_log_opponents(store["players"], store["game_teams"])
     backfill_game_log_turret_plates(store["players"], store["game_team_meta"])
     finalize_team_fb_victims(store)
+    # Always keep games>=1 rows in the published slice so early-split weeks
+    # (e.g. LEC Summer week 1 with 1–2 games/player) still surface in
+    # tournaments, weekly hub, and entity gameLogs. Leaderboard UIs apply their
+    # own sample floors (mergeSlices / isDisplayable*).
+    # International + guest buckets stay at the same floor (explicit for clarity).
     intl = is_international_split_key(split_key)
     guest = bucket_league == MINOR_LEAGUE
     sparse = intl or guest
-    min_player = 1 if sparse else MIN_PLAYER_GAMES
-    min_team = 1 if sparse else MIN_TEAM_GAMES
+    min_player = 1
+    min_team = 1
     min_champ = 1 if sparse else MIN_CHAMP_PICKS
     return {
         "players": compile_players(store["players"], min_games=min_player),

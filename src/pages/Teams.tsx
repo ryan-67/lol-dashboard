@@ -23,7 +23,11 @@ export default function Teams() {
   const [showTable, setShowTable] = useState(true)
 
   const teams = useMemo(
-    () => filteredTeams.filter(isDisplayableTeam).filter(isTier1Team),
+    () =>
+      filteredTeams
+        .filter(isDisplayableTeam)
+        .filter(isTier1Team)
+        .filter((t) => t.games >= 3),
     [filteredTeams],
   )
 

@@ -10,6 +10,7 @@ import {
   tournamentYearFromGame,
   type TournamentIdentity,
 } from './tournamentCatalog'
+import { GUEST_LEAGUE, isInternationalLeagueKey, isTier1League } from './mergeSlices'
 import { isDisplayablePlayer } from './playerRadar'
 import { isDisplayableTeam } from './teamAnalytics'
 import {
@@ -88,6 +89,15 @@ function collectGamesFromPlayers(players: Player[]): PlayerGameLog[] {
   return games
 }
 
+/** Tier-1 domestic + real internationals only — never minor-region INT Summer/Split pages. */
+function isDashboardTournament(identity: TournamentIdentity): boolean {
+  if (isInternationalSeason(identity.season) || isInternationalLeagueKey(identity.league)) {
+    return true
+  }
+  if (identity.league === GUEST_LEAGUE || identity.league === 'IN') return false
+  return isTier1League(identity.league)
+}
+
 export function buildTournamentSummaries(data: DashboardData): TournamentSummary[] {
   const players = data.players.filter(isDisplayablePlayer)
   const games = collectGamesFromPlayers(players)
@@ -98,6 +108,7 @@ export function buildTournamentSummaries(data: DashboardData): TournamentSummary
     if (!split) continue
 
     const identity = buildTournamentIdentityFromGame(game)
+    if (!isDashboardTournament(identity)) continue
     const existing = map.get(identity.id)
     const duration = game.gameLength ?? null
 

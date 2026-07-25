@@ -363,7 +363,9 @@ function mergePlayers(slices: DashboardSlice[]): Player[] {
         championPool: mergeChampionPoolEntries(p.championPool),
       } satisfies Player
     })
-    .filter((p) => p.games >= 5)
+    // Keep early-split players (1–4 games) so new Summer weeks appear in
+    // tournaments / weekly hub / entity logs. Ranking panels apply their own floors.
+    .filter((p) => p.games >= 1)
     .sort((a, b) => b.kda - a.kda)
 }
 
@@ -506,7 +508,7 @@ function mergeTeams(slices: DashboardSlice[]): Team[] {
           : undefined,
       } satisfies Team
     })
-    .filter((t) => t.games >= 3)
+    .filter((t) => t.games >= 1)
     .sort((a, b) => b.winrate - a.winrate)
 }
 

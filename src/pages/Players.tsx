@@ -42,7 +42,13 @@ export default function Players() {
   const [showTable, setShowTable] = useState(false)
 
   const players = useMemo(
-    () => filteredPlayers.filter(isDisplayablePlayer).filter((p) => (TIER1_LEAGUES as readonly string[]).includes(p.league)),
+    () =>
+      filteredPlayers
+        .filter(isDisplayablePlayer)
+        .filter((p) => (TIER1_LEAGUES as readonly string[]).includes(p.league))
+        // Ranking boards keep a sample floor; early-split players still exist in
+        // merged data for tournaments / entity pages / weekly hub.
+        .filter((p) => p.games >= 5),
     [filteredPlayers],
   )
 
