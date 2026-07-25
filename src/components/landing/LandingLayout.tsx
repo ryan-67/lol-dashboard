@@ -7,6 +7,7 @@ import { useViewPreference } from '../../context/ViewPreferenceContext'
 type AuthView = 'signin' | 'signup'
 
 const MARKETING_NAV = [
+  { to: '/dashboard', label: 'dashboard' },
   { to: '/#features', label: 'features' },
   { to: '/#faq', label: 'faq' },
   { to: '/#pricing', label: 'pricing' },
@@ -25,6 +26,7 @@ export default function LandingLayout({ children }: LandingLayoutProps) {
   const [menuOpen, setMenuOpen] = useState(false)
 
   const FOOTER_PRODUCT = [
+    { to: '/dashboard', label: 'dashboard' },
     { to: '/#features', label: 'features' },
     { to: '/#faq', label: 'faq' },
     { to: '/#pricing', label: 'pricing' },

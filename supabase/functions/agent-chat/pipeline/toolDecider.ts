@@ -369,20 +369,24 @@ export async function decideAndFetch(deps: DecideDeps): Promise<Evidence> {
       !blockChart && (scope.scope === "lolesports_compare" || hasCompareIntent);
 
     if (wantsCompare) {
-      const teamCompare = await runTeamCompare(
+      // Extract entities from the CURRENT user turn only. Using queryForTools (which
+      // embeds the prior topic on parallel follow-ups) caused wrong charts — e.g.
+      // "analyze canyon vs oner" after a T1 vs Gen.G thread still drew the team radar.
+      const compareQuery = message;
+      const playerCompare = await runPlayerCompare(
         serviceClient,
-        queryForTools,
+        compareQuery,
         filters.league,
         filters.split,
       );
-      const playerCompare = teamCompare
+      const teamCompare = playerCompare
         ? null
-        : await runPlayerCompare(serviceClient, queryForTools, filters.league, filters.split);
-      const compareResult = teamCompare ?? playerCompare;
+        : await runTeamCompare(serviceClient, compareQuery, filters.league, filters.split);
+      const compareResult = playerCompare ?? teamCompare;
       if (compareResult) {
         matchStats.compare = compareResult.data;
         isCompare = true;
-        chartPrefix = `${chartMarkdownBlock(compareResult.chart)}\n\n`;
+        chartPrefix = `${compareResult.chartMarkdown || chartMarkdownBlock(compareResult.chart)}\n\n`;
         resolvedSplit = String(compareResult.data.split ?? resolvedSplit);
       }
     }

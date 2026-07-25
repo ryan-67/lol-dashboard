@@ -1,5 +1,7 @@
 import type { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
 import {
+  type AgentChartPayload,
+  type CompareChartPayload,
   type RadarChartPayload,
   chartMarkdownBlock,
 } from "./teamCompare.ts";
@@ -348,7 +350,7 @@ function resolvePlayerName(token: string, players: MergedPlayer[]): MergedPlayer
 
 export function extractComparePlayers(message: string, players: MergedPlayer[]): MergedPlayer[] {
   const lower = message.toLowerCase();
-  if (!/\b(compare|vs\.?|versus|head.?to.?head|h2h)\b/.test(lower)) return [];
+  if (!/\b(compare|vs\.?|versus|head.?to.?head|h2h|analyze|analysis)\b/.test(lower)) return [];
 
   const found = new Map<string, MergedPlayer>();
   for (const [alias, canonical] of Object.entries(PLAYER_ALIASES)) {
@@ -425,12 +427,43 @@ function buildPlayerRadarChartPayload(
   return { type: "radar", title, split, league, teams: seriesPlayers };
 }
 
+function buildPlayerCompareBars(
+  comparePlayers: MergedPlayer[],
+  role: RoleKey,
+  split: string,
+  league: string,
+): CompareChartPayload | null {
+  if (comparePlayers.length < 2) return null;
+  const [a, b] = comparePlayers;
+  const round = (n: number, d = 2) => Math.round(n * 10 ** d) / 10 ** d;
+  return {
+    type: "compare",
+    title: `${a.name} vs ${b.name}`,
+    subtitle: `${role.toUpperCase()} · ${split}${league !== "All Tier 1" ? ` · ${league}` : ""}`,
+    left: { name: a.name, meta: a.team },
+    right: { name: b.name, meta: b.team },
+    metrics: [
+      { label: "Games", left: a.games, right: b.games, higherIsBetter: true },
+      { label: "KDA", left: round(a.kda), right: round(b.kda), higherIsBetter: true },
+      { label: "GD@15", left: round(a.gd15, 1), right: round(b.gd15, 1), higherIsBetter: true },
+      { label: "CS/diff@15", left: round(a.csd15, 1), right: round(b.csd15, 1), higherIsBetter: true },
+      { label: "DPM", left: round(a.dpm, 0), right: round(b.dpm, 0), higherIsBetter: true },
+      {
+        label: "Dmg%",
+        left: round(a.dmgShare ?? 0, 1),
+        right: round(b.dmgShare ?? 0, 1),
+        higherIsBetter: true,
+      },
+    ],
+  };
+}
+
 export async function runPlayerCompare(
   service: SupabaseClient,
   message: string,
   league: string | undefined,
   split: string | undefined,
-): Promise<{ data: Record<string, unknown>; chart: RadarChartPayload } | null> {
+): Promise<{ data: Record<string, unknown>; chart: AgentChartPayload; chartMarkdown: string } | null> {
   const { players, split: resolvedSplit, league: resolvedLeague } = await fetchMergedPlayers(
     service,
     league ?? "All Tier 1",
@@ -447,7 +480,8 @@ export async function runPlayerCompare(
   if (uniqueRoles.size !== 1) return null;
 
   const role = roles[0]!;
-  const chart = buildPlayerRadarChartPayload(comparePlayers, players, role, resolvedSplit, resolvedLeague);
+  const radar = buildPlayerRadarChartPayload(comparePlayers, players, role, resolvedSplit, resolvedLeague);
+  const bars = buildPlayerCompareBars(comparePlayers, role, resolvedSplit, resolvedLeague);
   const data = {
     tool: "player_compare",
     split: resolvedSplit,
@@ -469,7 +503,11 @@ export async function runPlayerCompare(
     })),
   };
 
-  return { data, chart };
+  const chartMarkdown = [bars ? chartMarkdownBlock(bars) : "", chartMarkdownBlock(radar)]
+    .filter(Boolean)
+    .join("\n\n");
+
+  return { data, chart: bars ?? radar, chartMarkdown };
 }
 
 export { chartMarkdownBlock };

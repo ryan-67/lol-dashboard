@@ -76,6 +76,23 @@ export interface RadarChartPayload {
   }>;
 }
 
+/** Tabesports-style head-to-head bars for chat. */
+export interface CompareChartPayload {
+  type: "compare";
+  title: string;
+  subtitle?: string;
+  left: { name: string; meta?: string };
+  right: { name: string; meta?: string };
+  metrics: Array<{
+    label: string;
+    left: number;
+    right: number;
+    higherIsBetter?: boolean;
+  }>;
+}
+
+export type AgentChartPayload = RadarChartPayload | CompareChartPayload;
+
 function round(n: number, d = 1): number {
   const p = 10 ** d;
   return Math.round(n * p) / p;
@@ -248,7 +265,7 @@ function resolveTeamName(token: string, teams: MergedTeam[]): MergedTeam | null 
 
 export function extractCompareTeams(message: string, teams: MergedTeam[]): MergedTeam[] {
   const lower = message.toLowerCase();
-  if (!/\b(compare|vs\.?|versus|head.?to.?head|h2h)\b/.test(lower)) {
+  if (!/\b(compare|vs\.?|versus|head.?to.?head|h2h|analyze|analysis)\b/.test(lower)) {
     return [];
   }
 
@@ -387,12 +404,36 @@ export function buildTeamCompareSummary(
   };
 }
 
+export function buildTeamCompareBars(
+  teams: MergedTeam[],
+  split: string,
+  league: string,
+): CompareChartPayload | null {
+  if (teams.length < 2) return null;
+  const [a, b] = teams;
+  return {
+    type: "compare",
+    title: `${a.name} vs ${b.name}`,
+    subtitle: `${split}${league !== "All Tier 1" ? ` · ${league}` : ""}`,
+    left: { name: a.name, meta: a.league },
+    right: { name: b.name, meta: b.league },
+    metrics: [
+      { label: "Games", left: a.games, right: b.games, higherIsBetter: true },
+      { label: "Winrate", left: round(a.winrate, 1), right: round(b.winrate, 1), higherIsBetter: true },
+      { label: "KDA", left: round(a.avgKda, 2), right: round(b.avgKda, 2), higherIsBetter: true },
+      { label: "GD@15", left: round(a.avgGd15, 1), right: round(b.avgGd15, 1), higherIsBetter: true },
+      { label: "Gold/min", left: round(a.goldPerMin, 1), right: round(b.goldPerMin, 1), higherIsBetter: true },
+      { label: "Obj/game", left: round(a.objPerGame, 2), right: round(b.objPerGame, 2), higherIsBetter: true },
+    ],
+  };
+}
+
 export async function runTeamCompare(
   service: SupabaseClient,
   message: string,
   league: string | undefined,
   split: string | undefined,
-): Promise<{ data: Record<string, unknown>; chart: RadarChartPayload } | null> {
+): Promise<{ data: Record<string, unknown>; chart: AgentChartPayload; chartMarkdown: string } | null> {
   const { teams, split: resolvedSplit, league: resolvedLeague } = await fetchMergedTeams(
     service,
     league ?? "All Tier 1",
@@ -402,12 +443,16 @@ export async function runTeamCompare(
   const compareTeams = extractCompareTeams(message, teams);
   if (compareTeams.length < 2) return null;
 
-  const chart = buildRadarChartPayload(compareTeams, teams, resolvedSplit, resolvedLeague);
+  const radar = buildRadarChartPayload(compareTeams, teams, resolvedSplit, resolvedLeague);
+  const bars = buildTeamCompareBars(compareTeams, resolvedSplit, resolvedLeague);
   const data = buildTeamCompareSummary(compareTeams, resolvedSplit, resolvedLeague);
+  const chartMarkdown = [bars ? chartMarkdownBlock(bars) : "", chartMarkdownBlock(radar)]
+    .filter(Boolean)
+    .join("\n\n");
 
-  return { data, chart };
+  return { data, chart: bars ?? radar, chartMarkdown };
 }
 
-export function chartMarkdownBlock(chart: RadarChartPayload): string {
+export function chartMarkdownBlock(chart: AgentChartPayload): string {
   return `\`\`\`chart\n${JSON.stringify(chart)}\n\`\`\``;
 }

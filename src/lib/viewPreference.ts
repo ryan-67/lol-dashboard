@@ -1,7 +1,8 @@
 export type DefaultView = 'duo' | 'chat' | 'dashboard'
 
 export const VIEW_PREF_STORAGE_KEY = 'nucky-default-view'
-export const DEFAULT_VIEW: DefaultView = 'duo'
+/** Guests / free users land on dashboard; duo/chat are subscriber surfaces. */
+export const DEFAULT_VIEW: DefaultView = 'dashboard'
 
 export function isDefaultView(value: unknown): value is DefaultView {
   return value === 'duo' || value === 'chat' || value === 'dashboard'
@@ -11,6 +12,24 @@ export function pathForView(view: DefaultView): string {
   if (view === 'chat') return '/chat'
   if (view === 'dashboard') return '/dashboard'
   return '/duo'
+}
+
+/** Duo and full-chat modes require an active subscription. */
+export function viewRequiresSubscription(view: DefaultView): boolean {
+  return view === 'duo' || view === 'chat'
+}
+
+/**
+ * Resolve the effective home view: free users cannot default to duo/chat.
+ * Subscribers keep their saved preference.
+ */
+export function effectiveHomeView(
+  preferred: DefaultView,
+  isSubscribed: boolean,
+): DefaultView {
+  if (isSubscribed) return preferred
+  if (viewRequiresSubscription(preferred)) return 'dashboard'
+  return preferred
 }
 
 export function readLocalViewPreference(): DefaultView {

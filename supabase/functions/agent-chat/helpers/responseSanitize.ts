@@ -124,12 +124,22 @@ function stripSourceFootnotes(text: string): string {
 /** Final persisted / returned text — sanitize once after stream completes, not per token. */
 export function sanitizeAssistantText(
   text: string,
-  opts: { chartInjected?: boolean; allowSources?: boolean } = {},
+  opts: { stripCharts?: boolean; allowSources?: boolean } = {},
 ): string {
   let out = opts.allowSources ? text : stripSourceFootnotes(text);
   out = stripDataSourceMentions(out);
 
-  if (opts.chartInjected) {
+  // Never leak prompt scaffolding / self-greets into the UI.
+  out = out
+    .replace(/^\s*hey\s+nucky[.!]?\s*/i, "")
+    .replace(/^\s*hi\s+nucky[.!]?\s*/i, "")
+    .replace(/\[MATCH_STATS\][\s\S]*?(?=\[|$)/gi, "")
+    .replace(/\[WORLD_CONTEXT\][\s\S]*?(?=\[|$)/gi, "")
+    .replace(/\[EXTERNAL_CONTEXT\][\s\S]*?(?=\[|$)/gi, "")
+    .replace(/\[WEB_VERIFIED\][\s\S]*?(?=\[|$)/gi, "")
+    .replace(/\[PREDICTION_PACKET\][\s\S]*?(?=\[|$)/gi, "");
+
+  if (opts.stripCharts) {
     out = out.replace(/```chart[\s\S]*?```/gi, "");
   }
 

@@ -25,7 +25,7 @@ const TEAM_ENTITY =
  * topic and wrongly draw a radar chart.
  */
 const FRESH_TOPIC =
-  /\b(what happened|series|recap|game by game|who won|which team won|winner of|world champion|roster|line-?up|standings|schedule|when does|favored|favou?rite to win|odds|titles?|championships?)\b/i;
+  /\b(what happened|series|recap|game by game|who won|which team won|winner of|world champion|roster|line-?up|standings|schedule|when does|favored|favou?rite to win|odds|titles?|championships?|compare|versus|vs\.?|analyze|analysis|power\s*rank(?:ing)?s?|matchup|preview|break\s*down|breakdown)\b/i;
 
 export type FollowUpType = "none" | "clarification" | "parallel" | "roster_follow_up";
 

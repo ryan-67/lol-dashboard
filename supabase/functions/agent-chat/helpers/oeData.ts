@@ -140,6 +140,19 @@ function leaguesForFilter(league: string): string[] {
   return [league];
 }
 
+const INTERNATIONAL_LEAGUES = new Set([
+  "MSI",
+  "EWC",
+  "Worlds",
+  "WLDs",
+  "First Stand",
+  "FST",
+]);
+
+function isShowcaseLeague(league: string): boolean {
+  return (TIER1 as readonly string[]).includes(league) || INTERNATIONAL_LEAGUES.has(league);
+}
+
 export async function resolveSplit(
   service: SupabaseClient,
   split: string | undefined,
@@ -152,20 +165,29 @@ export async function resolveSplit(
     return `${year} ${trimmed}`;
   }
 
-  // Prefer newest split that has at least one tier-1 league row. INT-only
+  // Prefer newest split with showcase coverage (tier-1 or intl). INT-only
   // leftovers (e.g. "2026 Summer" with only FURIA) must not become the default.
   const { data } = await service.from("oe_slices").select("split,league").limit(3000);
   const rows = (data ?? []) as Array<{ split?: string; league?: string }>;
-  const tier1BySplit = new Map<string, boolean>();
+  const showcaseBySplit = new Map<string, boolean>();
+  const tier1LeagueCount = new Map<string, Set<string>>();
+  const rowCountBySplit = new Map<string, number>();
   for (const row of rows) {
     const s = String(row.split ?? "");
     if (!s) continue;
-    const isTier1 = (TIER1 as readonly string[]).includes(String(row.league ?? ""));
-    tier1BySplit.set(s, Boolean(tier1BySplit.get(s)) || isTier1);
+    const league = String(row.league ?? "");
+    const usable = isShowcaseLeague(league);
+    showcaseBySplit.set(s, Boolean(showcaseBySplit.get(s)) || usable);
+    rowCountBySplit.set(s, (rowCountBySplit.get(s) ?? 0) + 1);
+    if ((TIER1 as readonly string[]).includes(league)) {
+      const set = tier1LeagueCount.get(s) ?? new Set<string>();
+      set.add(league);
+      tier1LeagueCount.set(s, set);
+    }
   }
 
-  const splits = [...tier1BySplit.keys()]
-    .filter((s) => tier1BySplit.get(s))
+  const splits = [...showcaseBySplit.keys()]
+    .filter((s) => showcaseBySplit.get(s))
     .sort((a, b) => {
       const ka = splitSortKey(a);
       const kb = splitSortKey(b);
@@ -189,6 +211,25 @@ export async function resolveSplit(
     return null;
   };
 
+  const seasonOf = (s: string): string => {
+    const space = s.indexOf(" ");
+    return space >= 0 ? s.slice(space + 1).replace(/ Playoffs$/, "") : s;
+  };
+
+  /** Thin early-Summer (e.g. only LEC week 1) must not beat Spring/EWC for "current form". */
+  const isAdequateDefault = (s: string): boolean => {
+    const season = seasonOf(s);
+    const tier1Count = tier1LeagueCount.get(s)?.size ?? 0;
+    const rowsForSplit = rowCountBySplit.get(s) ?? 0;
+    if (season === "Summer") {
+      return tier1Count >= 3 || rowsForSplit >= 40;
+    }
+    if (season === "EWC" || season === "MSI") {
+      return rowsForSplit >= 4;
+    }
+    return tier1Count >= 1 || rowsForSplit >= 8;
+  };
+
   if (widenForSeries) {
     const regional = splits
       .filter((s) => s.startsWith(`${year} `))
@@ -197,13 +238,21 @@ export async function resolveSplit(
     if (regional.length) return regional[0]!;
   }
 
+  // Agent default: prefer the newest *adequate* showcase split as-is (keep EWC/MSI labels
+  // so current-form answers cite recent internationals instead of empty Summer).
   const yearSplits = splits.filter((s) => s.startsWith(`${year} `));
   for (const s of yearSplits) {
+    if (isAdequateDefault(s)) return s;
+  }
+
+  for (const s of yearSplits) {
     const leader = toRegionalLeader(s);
+    if (leader && isAdequateDefault(leader)) return leader;
     if (leader) return leader;
   }
 
   for (const s of splits) {
+    if (isAdequateDefault(s)) return s;
     const leader = toRegionalLeader(s);
     if (leader) return leader;
   }

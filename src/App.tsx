@@ -14,6 +14,7 @@ import AppShell from './components/shell/AppShell'
 import DuoLayout from './components/shell/DuoLayout'
 import DashboardFrame from './components/shell/DashboardFrame'
 import ChatPane from './components/shell/ChatPane'
+import SubscriberGate from './components/shell/SubscriberGate'
 import Landing from './pages/Landing'
 import Overview from './pages/Overview'
 import Players from './pages/Players'
@@ -171,7 +172,14 @@ function AppRoutes() {
           </ChatSessionProvider>
         }
       >
-        <Route path="/duo" element={<DuoLayout />}>
+        <Route
+          path="/duo"
+          element={
+            <SubscriberGate>
+              <DuoLayout />
+            </SubscriberGate>
+          }
+        >
           <Route index element={<Overview />} />
           <Route path="players" element={<Players />} />
           <Route path="teams" element={<Teams />} />
@@ -187,7 +195,14 @@ function AppRoutes() {
           <Route path="series/:seriesId" element={<SeriesPage />} />
         </Route>
 
-        <Route path="/chat" element={<ChatPane />} />
+        <Route
+          path="/chat"
+          element={
+            <SubscriberGate>
+              <ChatPane />
+            </SubscriberGate>
+          }
+        />
 
         <Route path="/dashboard" element={<DashboardFrame />}>
           <Route index element={<Overview />} />

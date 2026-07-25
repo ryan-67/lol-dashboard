@@ -7,6 +7,7 @@ import {
   type MergedPlayer,
   type MergedTeam,
 } from "./oeData.ts";
+import { getPlayerRatings } from "./mlArtifacts.ts";
 
 const TEAM_ALIASES: Record<string, string> = {
   t1: "T1",
@@ -255,6 +256,96 @@ export function runTeamRoleShareCompare(
   };
 }
 
+/** Resolve role from message without mistaking "top 10" for the top lane. */
+function roleFromMessage(message: string): string | null {
+  if (/\b(jungle|jng)\b/i.test(message)) return "jungle";
+  if (/\bmid(?:\s*laners?)?\b/i.test(message)) return "mid";
+  if (/\b(adcs?|bot(?:\s*laners?)?)\b/i.test(message)) return "adc";
+  if (/\b(support|sup)\b/i.test(message)) return "support";
+  // "top laners" / "top lane" — not "top 10"
+  if (/\btop\s*(?:lane|laners?|side)\b/i.test(message)) return "top";
+  if (/\btop\b/i.test(message) && !/\btop\s*\d+/i.test(message)) return "top";
+  return null;
+}
+
+/** nucky prediction-model role power rankings (player_ratings artifact). */
+export function runMlPlayerPowerRankings(message: string): ToolResult | null {
+  const wantsPower = /\bpower\s*rank(?:ing)?s?\b/i.test(message);
+  const wantsTopN = /\btop\s*\d+\b/i.test(message);
+  const wantsBest =
+    /\b(best\s+(?:mid|jungle|jng|top|adc|bot|support|sup|player)|who'?s?\s+been\s+the\s+best)\b/i.test(
+      message,
+    );
+  if (!wantsPower && !wantsBest && !(wantsTopN && roleFromMessage(message))) {
+    return null;
+  }
+
+  const roleFilter = roleFromMessage(message);
+  const wantOverall =
+    /\b(best\s+player|who'?s?\s+been\s+the\s+best)\b/i.test(message) && !roleFilter;
+
+  const topNMatch = message.match(/\btop\s*(\d+)\b/i);
+  const topN = Math.min(Math.max(Number(topNMatch?.[1] ?? 10), 3), 25);
+
+  const snap = getPlayerRatings();
+  const allRoles = ["top", "jungle", "mid", "adc", "support"] as const;
+
+  if (roleFilter) {
+    const ranked = (snap.roles[roleFilter] ?? []).slice(0, topN);
+    if (!ranked.length) return null;
+    return {
+      tool: "ml_player_power",
+      data: {
+        version: snap.version,
+        generatedAt: snap.generatedAt,
+        methodology: snap.methodology,
+        role: roleFilter,
+        ranking: "top_by_power_score",
+        note: "nucky player power model — cite powerScore/rank/team exactly; model form across recent tier-1 activity",
+        players: ranked.map((e) => ({
+          rank: e.rank,
+          player: e.player,
+          team: e.team,
+          region: e.region,
+          role: roleFilter,
+          games: e.games,
+          powerScore: e.powerScore,
+        })),
+      },
+    };
+  }
+
+  const entries = allRoles.flatMap((role) =>
+    (snap.roles[role] ?? []).map((e) => ({ ...e, role })),
+  );
+  if (!entries.length) return null;
+  const slice = [...entries]
+    .sort((a, b) => b.powerScore - a.powerScore)
+    .slice(0, topN)
+    .map((e, idx) => ({
+      rank: idx + 1,
+      player: e.player,
+      team: e.team,
+      region: e.region,
+      role: e.role,
+      games: e.games,
+      powerScore: e.powerScore,
+    }));
+
+  return {
+    tool: "ml_player_power",
+    data: {
+      version: snap.version,
+      generatedAt: snap.generatedAt,
+      methodology: snap.methodology,
+      role: wantOverall || wantsPower ? "all" : "all",
+      ranking: "top_by_power_score",
+      note: "nucky player power model — cite powerScore/rank/team exactly; model form across recent tier-1 activity",
+      players: slice,
+    },
+  };
+}
+
 export function runPlayerRankings(
   message: string,
   bundle: SliceBundle,
@@ -262,16 +353,13 @@ export function runPlayerRankings(
   if (isTeamShareCompareAsk(message, bundle)) return null;
 
   if (
-    !/\b(overrated|underrated|best|worst|top|rank|mvp|goat|fraudulent|fraud|frauds?|bum|bums|inters?|trash|flop|underperform|exposed|mid\b|adc|bot|support|jungle)\b/i
+    !/\b(overrated|underrated|best|worst|top|rank|mvp|goat|power\s*rank|fraudulent|fraud|frauds?|bum|bums|inters?|trash|flop|underperform|exposed|mid\b|adc|bot|support|jungle)\b/i
       .test(message)
   ) {
     return null;
   }
 
-  let roleFilter: string | null = null;
-  const roleMatch = message.match(/\b(top|jungle|jng|mid|adcs?|bot|support|sup)\b/i);
-  if (roleMatch) roleFilter = normalizeRole(roleMatch[1]!);
-  if (!roleFilter && /\badcs?\b/i.test(message)) roleFilter = "adc";
+  const roleFilter = roleFromMessage(message);
 
   let pool = bundle.players.filter((p) => p.games >= 5);
   if (roleFilter) {
@@ -1012,6 +1100,7 @@ export async function buildAnalystContext(
     runSeriesRecap(message, bundle),
     runChampionPoolCompare(message, bundle),
     runMatchupLookup(message, bundle),
+    runMlPlayerPowerRankings(message),
     runPlayerRankings(message, bundle),
     runChampionMeta(message, bundle),
     runTeamForm(message, bundle),

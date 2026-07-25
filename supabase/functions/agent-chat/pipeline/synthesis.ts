@@ -19,6 +19,7 @@ import { extractCandidateFacts, verifyFact, type VerifiedFact } from "../helpers
 import { writeBackVerifiedFacts, writeBackCitoFacts } from "../helpers/ragWriteback.ts";
 import { isSentimentDomain, rankSnippets } from "../helpers/tavilySearch.ts";
 import { shouldRefuseForeignEntity, foreignEntityRefusal } from "../helpers/entityGuard.ts";
+import { sanitizeAssistantText } from "../helpers/responseSanitize.ts";
 import type { Evidence, HistoryMessage, SynthesisResult } from "./types.ts";
 import type { UsageTracker } from "../helpers/usageTracker.ts";
 
@@ -149,9 +150,14 @@ export async function synthesize(deps: SynthesisDeps): Promise<SynthesisResult> 
     usageTracker,
   });
 
-  let assistantText = chartPrefix + answer;
+  // Strip model-re-emitted chart fences from the streamed answer only; keep chartPrefix.
+  const cleanedAnswer = sanitizeAssistantText(answer, {
+    stripCharts: Boolean(chartPrefix.trim()),
+  });
+  let assistantText = sanitizeAssistantText(`${chartPrefix}${cleanedAnswer}`);
   if (!assistantText.trim()) {
-    assistantText = "i couldn't determine an accurate answer for that — try narrowing the league, split, or rephrasing.";
+    assistantText =
+      "I couldn't determine an accurate answer for that — try narrowing the league, split, or rephrasing.";
   }
 
   if (evidence.citoFacts.length) {

@@ -58,8 +58,31 @@ export interface RadarChartPayload {
   }>
 }
 
-export type AnyChartPayload = ChartPayload | RadarChartPayload
+export interface CompareChartPayload {
+  type: 'compare'
+  title: string
+  subtitle?: string
+  left: { name: string; meta?: string }
+  right: { name: string; meta?: string }
+  metrics: Array<{
+    label: string
+    left: number
+    right: number
+    higherIsBetter?: boolean
+  }>
+}
+
+export type AnyChartPayload = ChartPayload | RadarChartPayload | CompareChartPayload
 
 export function isRadarChartPayload(payload: AnyChartPayload): payload is RadarChartPayload {
   return payload.type === 'radar' && Array.isArray((payload as RadarChartPayload).teams)
+}
+
+export function isCompareChartPayload(payload: AnyChartPayload): payload is CompareChartPayload {
+  return (
+    payload.type === 'compare' &&
+    Array.isArray((payload as CompareChartPayload).metrics) &&
+    Boolean((payload as CompareChartPayload).left?.name) &&
+    Boolean((payload as CompareChartPayload).right?.name)
+  )
 }

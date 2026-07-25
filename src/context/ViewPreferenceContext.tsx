@@ -3,13 +3,16 @@ import {
   useCallback,
   useContext,
   useEffect,
+  useMemo,
   useState,
   type ReactNode,
 } from 'react'
 import { useAuth } from './AuthContext'
 import { supabase } from '../lib/supabaseClient'
+import { fetchSubscriptionState } from '../lib/subscription'
 import {
   DEFAULT_VIEW,
+  effectiveHomeView,
   isDefaultView,
   pathForView,
   readLocalViewPreference,
@@ -18,17 +21,22 @@ import {
 } from '../lib/viewPreference'
 
 interface ViewPreferenceContextValue {
+  /** Saved preference (may be duo/chat even for free users). */
+  preferredView: DefaultView
+  /** Effective default after subscription gating. */
   defaultView: DefaultView
   setDefaultView: (view: DefaultView) => Promise<void>
   homePath: string
   loading: boolean
+  isSubscribed: boolean
 }
 
 const ViewPreferenceContext = createContext<ViewPreferenceContextValue | null>(null)
 
 export function ViewPreferenceProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth()
-  const [defaultView, setDefaultViewState] = useState<DefaultView>(readLocalViewPreference)
+  const [preferredView, setPreferredView] = useState<DefaultView>(readLocalViewPreference)
+  const [isSubscribed, setIsSubscribed] = useState(false)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -36,25 +44,26 @@ export function ViewPreferenceProvider({ children }: { children: ReactNode }) {
     async function load() {
       if (!user) {
         if (mounted) {
-          setDefaultViewState(readLocalViewPreference())
+          setPreferredView(readLocalViewPreference())
+          setIsSubscribed(false)
           setLoading(false)
         }
         return
       }
       setLoading(true)
-      const { data } = await supabase
-        .from('profiles')
-        .select('default_view')
-        .eq('id', user.id)
-        .maybeSingle()
+      const [{ data }, subState] = await Promise.all([
+        supabase.from('profiles').select('default_view').eq('id', user.id).maybeSingle(),
+        fetchSubscriptionState(user.id),
+      ])
       if (!mounted) return
       const fromDb = data?.default_view
       if (isDefaultView(fromDb)) {
-        setDefaultViewState(fromDb)
+        setPreferredView(fromDb)
         writeLocalViewPreference(fromDb)
       } else {
-        setDefaultViewState(readLocalViewPreference())
+        setPreferredView(readLocalViewPreference())
       }
+      setIsSubscribed(subState.isSubscribed)
       setLoading(false)
     }
     void load()
@@ -65,7 +74,7 @@ export function ViewPreferenceProvider({ children }: { children: ReactNode }) {
 
   const setDefaultView = useCallback(
     async (view: DefaultView) => {
-      setDefaultViewState(view)
+      setPreferredView(view)
       writeLocalViewPreference(view)
       if (!user) return
       const { error } = await supabase
@@ -79,13 +88,20 @@ export function ViewPreferenceProvider({ children }: { children: ReactNode }) {
     [user],
   )
 
+  const defaultView = useMemo(
+    () => effectiveHomeView(preferredView, Boolean(user && isSubscribed)),
+    [preferredView, user, isSubscribed],
+  )
+
   return (
     <ViewPreferenceContext.Provider
       value={{
+        preferredView,
         defaultView,
         setDefaultView,
         homePath: pathForView(defaultView),
         loading,
+        isSubscribed: Boolean(user && isSubscribed),
       }}
     >
       {children}

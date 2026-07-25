@@ -267,7 +267,7 @@ export default function AppSidebar() {
 
         <nav className="app-sidebar-nav" aria-label="Primary">
           {showNuckyLink ? (
-            <NavLink to={homePath || pathForView(defaultView)} className="app-sidebar-link">
+            <NavLink to="/duo" className="app-sidebar-link" title={!chat?.isSubscribed ? 'subscribe for nucky chat' : undefined}>
               nucky
             </NavLink>
           ) : null}

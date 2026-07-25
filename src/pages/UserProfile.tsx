@@ -59,7 +59,7 @@ export default function UserProfile() {
   const { user } = useAuth()
   const { filteredPlayers, filteredTeams } = useDashboard()
   const { timezone, setTimezone, timezoneOptions } = useTimezone()
-  const { defaultView, setDefaultView } = useViewPreference()
+  const { preferredView, setDefaultView, isSubscribed: viewSubbed } = useViewPreference()
   const { applyLocalProfile, refreshProfile } = useProfile()
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [loading, setLoading] = useState(false)
@@ -76,7 +76,7 @@ export default function UserProfile() {
   const [savedMsg, setSavedMsg] = useState<string | null>(null)
   const [billingMsg, setBillingMsg] = useState<string | null>(null)
   const [agentUsage, setAgentUsage] = useState<AgentUsageMonthly | null>(null)
-  const [homeView, setHomeView] = useState<DefaultView>(defaultView)
+  const [homeView, setHomeView] = useState<DefaultView>(preferredView)
 
   const playerOptions = useMemo(() => {
     return Array.from(new Set(filteredPlayers.map((player) => player.name).filter(Boolean))).sort((a, b) =>
@@ -575,7 +575,9 @@ export default function UserProfile() {
                 ))}
               </div>
               <p className="text-xs text-[var(--text-secondary)]">
-                where you land after sign-in. current mode still follows the URL you open.
+                where you land after sign-in. duo and chat require an active subscription —
+                free accounts always open on dashboard.
+                {!viewSubbed ? ' subscribe to unlock duo / chat as your home.' : ''}
               </p>
             </div>
 

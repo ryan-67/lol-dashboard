@@ -85,9 +85,9 @@ function ewcStatus(now: Date): string {
 function summerSplitStatus(now: Date): string {
   const hint = new Date(`${LCK_SUMMER_2026_HINT_START}T00:00:00Z`);
   if (now < hint) {
-    return "LCK/LPL/LEC/LCS 2026 Summer has NOT started yet (post-MSI/EWC window). NEVER invent Summer win rates, game counts, or draft tendencies. If MATCH_STATS lacks Summer games, say so and use the latest split that has data (usually 2026 Spring).";
+    return "LCK/LPL/LCS 2026 Summer has NOT started yet (post-MSI/EWC window; LEC may have early games). NEVER invent Summer win rates, game counts, or draft tendencies for empty regions. DEFAULT CURRENT FORM = latest adequate split in MATCH_STATS (often 2026 EWC and/or 2026 Spring / Spring Playoffs) — not an empty Summer. If MATCH_STATS lacks Summer games, say so and answer from EWC/MSI/Spring data that IS present.";
   }
-  return "Regional 2026 Summer may be underway — still only cite splits/games present in MATCH_STATS. Empty Summer → say you don't have verified Summer games yet.";
+  return "Regional 2026 Summer may be underway — still only cite splits/games present in MATCH_STATS. Empty Summer for a region → fall back to EWC/MSI/Spring for that region's current form.";
 }
 
 export function buildTemporalContext(clientNow?: string): TemporalContext {

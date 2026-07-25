@@ -12,8 +12,9 @@ import {
   YAxis,
 } from 'recharts'
 import type { AnyChartPayload, ChartPayload, MessageRow } from './types'
-import { isRadarChartPayload } from './types'
+import { isCompareChartPayload, isRadarChartPayload } from './types'
 import NuckyRadarChart from './NuckyRadarChart'
+import NuckyCompareChart from './NuckyCompareChart'
 import ShareableChart from '../ui/ShareableChart'
 import ClipboardToast from '../ui/ClipboardToast'
 import { extractPlainTextFromAssistantMessage } from '../../lib/extractPlainTextFromMessage'
@@ -111,11 +112,29 @@ function inlineBold(text: string): React.ReactNode[] {
 }
 
 function renderText(content: string) {
-  const lines = content.trim().split('\n')
+  // Hide leaked tool dumps / match-stats blocks if the model echoes them.
+  const cleaned = content
+    .replace(/\[MATCH_STATS\][\s\S]*?(?=\[[A-Z_]+\]|```|$)/gi, '')
+    .replace(/^\s*hey\s+nucky[.!]?\s*/i, '')
+    .trim()
+  const lines = cleaned.split('\n')
   const nodes: React.ReactNode[] = []
   let i = 0
   while (i < lines.length) {
     const line = lines[i]
+    // Section headers like "Verdict:" or "**Verdict**"
+    if (/^\s*(\*\*)?(Verdict|TL;DR|Take|Summary)(\*\*)?\s*:?\s*$/i.test(line.trim())) {
+      nodes.push(
+        <p
+          key={`h-${i}`}
+          className="text-xs uppercase tracking-wide text-[var(--accent)] mt-3 mb-1 font-medium"
+        >
+          {line.replace(/\*\*/g, '').replace(/:$/, '').trim()}
+        </p>,
+      )
+      i += 1
+      continue
+    }
     if (/^\s*[-*]\s+/.test(line)) {
       const items: string[] = []
       while (i < lines.length && /^\s*[-*]\s+/.test(lines[i])) {
@@ -180,6 +199,10 @@ function ChartBlock({ json }: { json: string }) {
 
   if (isRadarChartPayload(payload)) {
     return <NuckyRadarChart payload={payload} />
+  }
+
+  if (isCompareChartPayload(payload)) {
+    return <NuckyCompareChart payload={payload} />
   }
 
   const barPayload = payload as ChartPayload
