@@ -17,98 +17,98 @@
 
 | # | Player | Team | Region | Games (eff) | Box-score z | Region shift | Power score |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| 1 | Kiin | Gen.G | LCK | 233 (36.5) | +0.357 | +0.086 | +0.443 |
-| 2 | Zeus | Hanwha Life Esports | LCK | 222 (47.3) | +0.283 | +0.086 | +0.369 |
-| 3 | Naak Nako | Team Vitality | LEC | 100 (17.2) | +0.305 | -0.054 | +0.251 |
-| 4 | Bin | Bilibili Gaming | LPL | 298 (61.5) | +0.141 | +0.016 | +0.157 |
-| 5 | PerfecT | KT Rolster | LCK | 177 (32.1) | +0.049 | +0.086 | +0.135 |
-| 6 | Zika | Weibo Gaming | LPL | 134 (27.6) | +0.079 | +0.016 | +0.096 |
-| 7 | Thanatos | Cloud9 | LCS | 110 (20.7) | +0.144 | -0.048 | +0.095 |
-| 8 | HOYA | Ninjas in Pyjamas | LPL | 165 (24.4) | +0.072 | +0.016 | +0.088 |
-| 9 | Siwoo | Dplus Kia | LCK | 216 (35.8) | -0.006 | +0.086 | +0.080 |
-| 10 | Rooster | Shifters | LEC | 45 (11.5) | +0.127 | -0.054 | +0.073 |
-| 11 | Flandre | Anyone's Legend | LPL | 259 (33.3) | +0.011 | +0.016 | +0.027 |
-| 12 | Breathe | Invictus Gaming | LPL | 177 (19.6) | +0.010 | +0.016 | +0.026 |
-| 13 | sheer | LNG Esports | LPL | 154 (13.5) | +0.003 | +0.016 | +0.019 |
-| 14 | Gakgos | FlyQuest | LCS | 50 (20.6) | +0.050 | -0.048 | +0.002 |
-| 15 | Burdol | LGD Gaming | LPL | 31 (17.8) | -0.021 | +0.016 | -0.005 |
+| 1 | Kiin | Gen.G | LCK | 253 (46.0) | +0.357 | +0.115 | +0.471 |
+| 2 | Zeus | Hanwha Life Esports | LCK | 250 (63.0) | +0.218 | +0.115 | +0.332 |
+| 3 | Naak Nako | Team Vitality | LEC | 108 (18.9) | +0.290 | -0.066 | +0.224 |
+| 4 | Bin | Bilibili Gaming | LPL | 311 (67.7) | +0.206 | +0.009 | +0.215 |
+| 5 | Siwoo | Dplus Kia | LCK | 242 (57.4) | +0.044 | +0.115 | +0.159 |
+| 6 | PerfecT | KT Rolster | LCK | 181 (30.8) | +0.038 | +0.115 | +0.152 |
+| 7 | Thanatos | Cloud9 | LCS | 118 (20.8) | +0.195 | -0.058 | +0.138 |
+| 8 | Zika | Weibo Gaming | LPL | 134 (24.7) | +0.087 | +0.009 | +0.096 |
+| 9 | HOYA | Ninjas in Pyjamas | LPL | 165 (21.9) | +0.083 | +0.009 | +0.092 |
+| 10 | Doran | T1 | LCK | 280 (71.7) | -0.024 | +0.115 | +0.091 |
+| 11 | Rooster | Shifters | LEC | 52 (13.6) | +0.149 | -0.066 | +0.083 |
+| 12 | Gakgos | FlyQuest | LCS | 65 (24.6) | +0.129 | -0.058 | +0.071 |
+| 13 | Xiaoxu | JD Gaming | LPL | 208 (44.5) | +0.047 | +0.009 | +0.056 |
+| 14 | Morgan | Team Liquid | LCS | 176 (40.6) | +0.106 | -0.058 | +0.048 |
+| 15 | sheer | LNG Esports | LPL | 154 (12.1) | +0.026 | +0.009 | +0.035 |
 
 ## Jungle
 
 | # | Player | Team | Region | Games (eff) | Box-score z | Region shift | Power score |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| 1 | Kanavi | Hanwha Life Esports | LCK | 258 (47.5) | +0.163 | +0.086 | +0.249 |
-| 2 | Canyon | Gen.G | LCK | 233 (36.5) | +0.123 | +0.086 | +0.209 |
-| 3 | Xun | Bilibili Gaming | LPL | 266 (60.9) | +0.173 | +0.016 | +0.189 |
-| 4 | Lucid | Dplus Kia | LCK | 213 (33.5) | -0.001 | +0.086 | +0.085 |
-| 5 | Oner | T1 | LCK | 255 (60.2) | -0.003 | +0.086 | +0.083 |
-| 6 | Tarzan | Anyone's Legend | LPL | 259 (33.3) | +0.053 | +0.016 | +0.070 |
-| 7 | Croco | LNG Esports | LPL | 103 (13.5) | +0.050 | +0.016 | +0.066 |
-| 8 | Razork | Fnatic | LEC | 123 (12.8) | +0.050 | -0.054 | -0.004 |
-| 9 | Elyoya | Movistar KOI | LEC | 160 (23.5) | +0.034 | -0.054 | -0.020 |
-| 10 | SkewMond | G2 Esports | LEC | 191 (47.1) | +0.031 | -0.054 | -0.023 |
-| 11 | Raptor | FearX | LCK | 188 (29.9) | -0.110 | +0.086 | -0.024 |
-| 12 | Sponge | Nongshim RedForce | LCK | 159 (25.0) | -0.111 | +0.086 | -0.025 |
-| 13 | Cuzz | KT Rolster | LCK | 196 (32.1) | -0.118 | +0.086 | -0.032 |
-| 14 | Willer | DRX | LCK | 77 (28.5) | -0.124 | +0.086 | -0.038 |
-| 15 | Josedeodo | Team Liquid | LCS | 66 (39.6) | +0.005 | -0.048 | -0.043 |
+| 1 | Kanavi | Hanwha Life Esports | LCK | 281 (63.2) | +0.263 | +0.115 | +0.377 |
+| 2 | Canyon | Gen.G | LCK | 253 (46.0) | +0.202 | +0.115 | +0.316 |
+| 3 | Xun | Bilibili Gaming | LPL | 276 (67.1) | +0.238 | +0.009 | +0.247 |
+| 4 | Lucid | Dplus Kia | LCK | 239 (55.4) | +0.124 | +0.115 | +0.239 |
+| 5 | Oner | T1 | LCK | 280 (71.7) | +0.059 | +0.115 | +0.173 |
+| 6 | Tarzan | Anyone's Legend | LPL | 272 (33.8) | +0.096 | +0.009 | +0.105 |
+| 7 | Croco | LNG Esports | LPL | 103 (12.1) | +0.076 | +0.009 | +0.086 |
+| 8 | Raptor | FearX | LCK | 195 (30.5) | -0.084 | +0.115 | +0.031 |
+| 9 | Cuzz | KT Rolster | LCK | 200 (30.8) | -0.089 | +0.115 | +0.025 |
+| 10 | Josedeodo | Team Liquid | LCS | 78 (40.1) | +0.056 | -0.058 | -0.002 |
+| 11 | Razork | Fnatic | LEC | 130 (14.5) | +0.051 | -0.066 | -0.015 |
+| 12 | Sponge | Nongshim RedForce | LCK | 168 (27.5) | -0.129 | +0.115 | -0.015 |
+| 13 | SkewMond | G2 Esports | LEC | 213 (52.2) | +0.045 | -0.066 | -0.021 |
+| 14 | Willer | DRX | LCK | 80 (26.9) | -0.148 | +0.115 | -0.033 |
+| 15 | JunJia | JD Gaming | LPL | 156 (43.9) | -0.061 | +0.009 | -0.051 |
 
 ## Mid
 
 | # | Player | Team | Region | Games (eff) | Box-score z | Region shift | Power score |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| 1 | Chovy | Gen.G | LCK | 233 (36.5) | +0.448 | +0.086 | +0.534 |
-| 2 | Zeka | Hanwha Life Esports | LCK | 222 (47.3) | +0.209 | +0.086 | +0.295 |
-| 3 | Knight | Bilibili Gaming | LPL | 298 (61.5) | +0.272 | +0.016 | +0.288 |
-| 4 | HongQ | JD Gaming | LPL | 146 (38.9) | +0.244 | +0.016 | +0.260 |
-| 5 | Bdd | KT Rolster | LCK | 196 (32.1) | +0.118 | +0.086 | +0.204 |
-| 6 | DARKWINGS | Sentinels | LCS | 69 (14.5) | +0.248 | -0.048 | +0.200 |
-| 7 | Caps | G2 Esports | LEC | 191 (47.1) | +0.250 | -0.054 | +0.196 |
-| 8 | Creme | Top Esports | LPL | 278 (44.6) | +0.173 | +0.016 | +0.189 |
-| 9 | Heru | ThunderTalk Gaming | LPL | 42 (18.2) | +0.121 | +0.016 | +0.137 |
-| 10 | Quid | Team Liquid | LCS | 137 (40.2) | +0.181 | -0.048 | +0.133 |
-| 11 | Shanks | Anyone's Legend | LPL | 259 (33.3) | +0.097 | +0.016 | +0.113 |
-| 12 | Quad | FlyQuest | LCS | 131 (21.4) | +0.143 | -0.048 | +0.095 |
-| 13 | Saint | Lyon Gaming | LCS | 111 (44.5) | +0.142 | -0.048 | +0.094 |
-| 14 | BuLLDoG | LNG Esports | LPL | 115 (13.4) | +0.055 | +0.016 | +0.071 |
-| 15 | ShowMaker | Dplus Kia | LCK | 216 (35.8) | -0.022 | +0.086 | +0.064 |
+| 1 | Chovy | Gen.G | LCK | 253 (46.0) | +0.396 | +0.115 | +0.511 |
+| 2 | Zeka | Hanwha Life Esports | LCK | 250 (63.0) | +0.278 | +0.115 | +0.393 |
+| 3 | Knight | Bilibili Gaming | LPL | 311 (67.7) | +0.347 | +0.009 | +0.356 |
+| 4 | ShowMaker | Dplus Kia | LCK | 242 (57.4) | +0.161 | +0.115 | +0.276 |
+| 5 | Bdd | KT Rolster | LCK | 200 (30.8) | +0.109 | +0.115 | +0.223 |
+| 6 | Caps | G2 Esports | LEC | 213 (52.2) | +0.258 | -0.066 | +0.191 |
+| 7 | Creme | Top Esports | LPL | 278 (40.0) | +0.177 | +0.009 | +0.186 |
+| 8 | Quid | Team Liquid | LCS | 149 (40.7) | +0.243 | -0.058 | +0.185 |
+| 9 | HongQ | JD Gaming | LPL | 156 (43.9) | +0.157 | +0.009 | +0.166 |
+| 10 | Heru | ThunderTalk Gaming | LPL | 42 (16.3) | +0.114 | +0.009 | +0.123 |
+| 11 | BuLLDoG | LNG Esports | LPL | 115 (12.0) | +0.081 | +0.009 | +0.090 |
+| 12 | DARKWINGS | Sentinels | LCS | 84 (22.6) | +0.140 | -0.058 | +0.083 |
+| 13 | Saint | Lyon Gaming | LCS | 124 (49.2) | +0.133 | -0.058 | +0.075 |
+| 14 | Shanks | Anyone's Legend | LPL | 273 (34.8) | +0.061 | +0.009 | +0.070 |
+| 15 | Scout | Nongshim RedForce | LCK | 216 (27.9) | -0.044 | +0.115 | +0.070 |
 
 ## Adc
 
 | # | Player | Team | Region | Games (eff) | Box-score z | Region shift | Power score |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| 1 | Peyz | T1 | LCK | 238 (59.1) | +0.277 | +0.086 | +0.363 |
-| 2 | 1xn | LNG Esports | LPL | 137 (13.3) | +0.112 | +0.016 | +0.128 |
-| 3 | Gumayusi | Hanwha Life Esports | LCK | 213 (47.6) | +0.036 | +0.086 | +0.122 |
-| 4 | Viper | Bilibili Gaming | LPL | 268 (60.8) | +0.074 | +0.016 | +0.091 |
-| 5 | Taeyoon | FearX | LCK | 188 (21.6) | -0.007 | +0.086 | +0.079 |
-| 6 | Berserker | Lyon Gaming | LCS | 166 (44.7) | +0.117 | -0.048 | +0.069 |
-| 7 | Bvoy | Shopify Rebellion | LCS | 87 (10.9) | +0.110 | -0.048 | +0.061 |
-| 8 | Ruler | Gen.G | LCK | 233 (36.5) | -0.058 | +0.086 | +0.028 |
-| 9 | Zven | Cloud9 | LCS | 110 (20.7) | +0.073 | -0.048 | +0.025 |
-| 10 | Elk | Weibo Gaming | LPL | 261 (28.5) | -0.008 | +0.016 | +0.008 |
-| 11 | FBI | Dignitas | LCS | 96 (9.4) | +0.051 | -0.048 | +0.003 |
-| 12 | Smash | Dplus Kia | LCK | 109 (34.7) | -0.111 | +0.086 | -0.025 |
-| 13 | Ahn | ThunderTalk Gaming | LPL | 84 (16.4) | -0.046 | +0.016 | -0.030 |
-| 14 | JackeyLove | Top Esports | LPL | 235 (37.7) | -0.049 | +0.016 | -0.033 |
-| 15 | Aiming | KT Rolster | LCK | 194 (29.4) | -0.126 | +0.086 | -0.040 |
+| 1 | Peyz | T1 | LCK | 256 (70.6) | +0.238 | +0.115 | +0.353 |
+| 2 | Gumayusi | Hanwha Life Esports | LCK | 243 (63.3) | +0.103 | +0.115 | +0.217 |
+| 3 | Smash | Dplus Kia | LCK | 135 (56.4) | +0.070 | +0.115 | +0.185 |
+| 4 | 1xn | LNG Esports | LPL | 137 (11.9) | +0.140 | +0.009 | +0.149 |
+| 5 | Taeyoon | FearX | LCK | 195 (23.1) | +0.005 | +0.115 | +0.120 |
+| 6 | Viper | Bilibili Gaming | LPL | 283 (67.1) | +0.101 | +0.009 | +0.111 |
+| 7 | Ruler | Gen.G | LCK | 253 (46.0) | -0.028 | +0.115 | +0.087 |
+| 8 | Berserker | Lyon Gaming | LCS | 179 (49.4) | +0.083 | -0.058 | +0.025 |
+| 9 | Zven | Cloud9 | LCS | 118 (20.8) | +0.079 | -0.058 | +0.021 |
+| 10 | Elk | Weibo Gaming | LPL | 264 (25.5) | -0.001 | +0.009 | +0.008 |
+| 11 | Aiming | KT Rolster | LCK | 198 (28.4) | -0.120 | +0.115 | -0.005 |
+| 12 | JackeyLove | Top Esports | LPL | 235 (33.8) | -0.040 | +0.009 | -0.031 |
+| 13 | Leave | EDward Gaming | LPL | 155 (16.5) | -0.041 | +0.009 | -0.032 |
+| 14 | Ahn | ThunderTalk Gaming | LPL | 84 (14.6) | -0.048 | +0.009 | -0.039 |
+| 15 | Assum | Ninjas in Pyjamas | LPL | 145 (21.7) | -0.053 | +0.009 | -0.044 |
 
 ## Support
 
 | # | Player | Team | Region | Games (eff) | Box-score z | Region shift | Power score |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| 1 | Delight | Hanwha Life Esports | LCK | 219 (45.2) | +0.319 | +0.086 | +0.405 |
-| 2 | Duro | Gen.G | LCK | 233 (36.5) | +0.304 | +0.086 | +0.390 |
-| 3 | ON | Bilibili Gaming | LPL | 298 (61.5) | +0.297 | +0.016 | +0.313 |
-| 4 | Keria | T1 | LCK | 255 (60.2) | +0.164 | +0.086 | +0.250 |
-| 5 | Career | Dplus Kia | LCK | 85 (34.7) | +0.133 | +0.086 | +0.219 |
-| 6 | Zhuo | Ninjas in Pyjamas | LPL | 152 (24.9) | +0.176 | +0.016 | +0.192 |
-| 7 | Kael | Anyone's Legend | LPL | 259 (33.3) | +0.152 | +0.016 | +0.168 |
-| 8 | Effort | KT Rolster | LCK | 49 (28.3) | +0.078 | +0.086 | +0.164 |
-| 9 | Isles | Lyon Gaming | LCS | 117 (44.5) | +0.199 | -0.048 | +0.150 |
-| 10 | Vampire | JD Gaming | LPL | 235 (39.1) | +0.131 | +0.016 | +0.147 |
-| 11 | Fleshy | Team Vitality | LEC | 65 (17.2) | +0.137 | -0.054 | +0.083 |
-| 12 | MISSING | LNG Esports | LPL | 122 (13.1) | +0.060 | +0.016 | +0.076 |
-| 13 | Alvaro | Movistar KOI | LEC | 160 (23.5) | +0.129 | -0.054 | +0.075 |
-| 14 | Erha | Team WE | LPL | 145 (37.7) | +0.042 | +0.016 | +0.059 |
-| 15 | Cryogen | FlyQuest | LCS | 45 (20.5) | +0.095 | -0.048 | +0.047 |
+| 1 | Career | Dplus Kia | LCK | 111 (56.4) | +0.367 | +0.115 | +0.482 |
+| 2 | Delight | Hanwha Life Esports | LCK | 247 (61.2) | +0.360 | +0.115 | +0.474 |
+| 3 | Duro | Gen.G | LCK | 253 (46.0) | +0.335 | +0.115 | +0.450 |
+| 4 | Keria | T1 | LCK | 280 (71.7) | +0.211 | +0.115 | +0.326 |
+| 5 | ON | Bilibili Gaming | LPL | 311 (67.7) | +0.308 | +0.009 | +0.317 |
+| 6 | Effort | KT Rolster | LCK | 53 (27.4) | +0.089 | +0.115 | +0.204 |
+| 7 | Zhuo | Ninjas in Pyjamas | LPL | 152 (22.2) | +0.178 | +0.009 | +0.187 |
+| 8 | Vampire | JD Gaming | LPL | 242 (44.1) | +0.174 | +0.009 | +0.183 |
+| 9 | Kael | Anyone's Legend | LPL | 272 (33.8) | +0.155 | +0.009 | +0.164 |
+| 10 | Ackerman | LØS | LCS | 22 (17.6) | +0.205 | -0.058 | +0.147 |
+| 11 | Fleshy | Team Vitality | LEC | 73 (18.9) | +0.190 | -0.066 | +0.124 |
+| 12 | Isles | Lyon Gaming | LCS | 130 (49.2) | +0.147 | -0.058 | +0.090 |
+| 13 | MISSING | LNG Esports | LPL | 122 (11.8) | +0.077 | +0.009 | +0.086 |
+| 14 | Cryogen | FlyQuest | LCS | 60 (24.5) | +0.132 | -0.058 | +0.074 |
+| 15 | CoreJJ | Team Liquid | LCS | 141 (40.4) | +0.118 | -0.058 | +0.060 |

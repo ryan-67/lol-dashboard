@@ -1,13 +1,13 @@
 # nucky accuracy scorecard
 
-> Generated `2026-07-17T07:02:08.535837+00:00` · algo `xgboost` · 718 holdout rows (2026-02-09 → 2026-07-11)
+> Generated `2026-07-25T06:58:20.231135+00:00` · algo `xgboost` · 898 holdout rows (2026-02-16 → 2026-07-19)
 
 ## Aggregate (walk-forward)
 
 | | log-loss | Brier | accuracy |
 | --- | --- | --- | --- |
-| **nucky model** | 0.5648 | 0.1907 | 0.715 |
-| naive baseline | 0.7031 | 0.2440 | 0.621 |
+| **nucky model** | 0.6086 | 0.2097 | 0.678 |
+| naive baseline | 0.7068 | 0.2474 | 0.604 |
 
 Ship gate (beats baseline on log-loss): **PASS**
 
@@ -15,36 +15,40 @@ Ship gate (beats baseline on log-loss): **PASS**
 
 | League | n | Model LL | Baseline LL | Acc | Beats baseline |
 | --- | --- | --- | --- | --- | --- |
-| LPL | 216 | 0.6702 | 0.7431 | 0.621 | yes |
-| LCK | 210 | 0.4931 | 0.6609 | 0.786 | yes |
-| LEC | 134 | 0.5266 | 0.6959 | 0.726 | yes |
-| LCS | 94 | 0.5296 | 0.6791 | 0.707 | yes |
+| EWC | 204 | 0.6601 | 0.7336 | 0.614 | yes |
+| LPL | 204 | 0.6631 | 0.7427 | 0.650 | yes |
+| LCK | 202 | 0.5107 | 0.6510 | 0.765 | yes |
+| LEC | 134 | 0.5875 | 0.6716 | 0.714 | yes |
+| LCS | 88 | 0.6355 | 0.6644 | 0.635 | yes |
+| MSI | 40 | 0.5428 | 0.7270 | 0.749 | yes |
 
 ## By confidence bucket
 
 | Bucket | n | Model LL | Acc | Beats baseline |
 | --- | --- | --- | --- | --- |
-| strong_>=25pp | 368 | 0.4812 | 0.807 | yes |
-| clear_15_25pp | 127 | 0.6771 | 0.625 | yes |
-| lean_8_15pp | 112 | 0.6419 | 0.669 | yes |
-| coin_flip_<8pp | 111 | 0.7004 | 0.483 | yes |
+| strong_>=25pp | 443 | 0.5224 | 0.783 | yes |
+| clear_15_25pp | 197 | 0.7167 | 0.569 | yes |
+| lean_8_15pp | 132 | 0.6515 | 0.637 | yes |
+| coin_flip_<8pp | 126 | 0.6936 | 0.528 | yes |
 
 ## By patch bucket (top by n)
 
 | Patch | n | Model LL | Acc | Beats baseline |
 | --- | --- | --- | --- | --- |
-| 16.07 | 134 | 0.6821 | 0.633 | yes |
-| 16.09 | 128 | 0.5916 | 0.690 | yes |
-| 16.08 | 122 | 0.4470 | 0.811 | yes |
-| 16.1 | 104 | 0.4878 | 0.765 | yes |
-| 16.03 | 82 | 0.6436 | 0.664 | yes |
+| 16.09 | 184 | 0.6592 | 0.641 | yes |
+| 16.08 | 162 | 0.4936 | 0.793 | yes |
+| 16.07 | 146 | 0.6684 | 0.650 | yes |
+| 16.1 | 122 | 0.5793 | 0.740 | yes |
+| 16.13 | 94 | 0.5709 | 0.651 | yes |
+| 16.03 | 68 | 0.6339 | 0.641 | yes |
+| 16.11 | 46 | 0.7995 | 0.569 | yes |
 
 ## Offline GPR rank benchmark
 
 - Status: `ok`
-- Shared teams: 36
-- Spearman ρ: 0.645
-- Top-10 overlap: 9
+- Shared teams: 33
+- Spearman ρ: 0.643
+- Top-10 overlap: 8
 - Note: Comparison benchmark only — GPR has 0% weight in live scoring.
 
 ## Kalshi closing-line benchmark
@@ -56,13 +60,13 @@ Ship gate (beats baseline on log-loss): **PASS**
 
 | Bin | n | Predicted mean | Actual rate |
 | --- | --- | --- | --- |
-| 0.0-0.1 | 70 | 0.063 | 0.100 |
-| 0.1-0.2 | 74 | 0.152 | 0.203 |
-| 0.2-0.3 | 74 | 0.248 | 0.338 |
-| 0.3-0.4 | 70 | 0.352 | 0.371 |
-| 0.4-0.5 | 62 | 0.445 | 0.452 |
-| 0.5-0.6 | 77 | 0.548 | 0.584 |
-| 0.6-0.7 | 82 | 0.645 | 0.585 |
-| 0.7-0.8 | 60 | 0.753 | 0.650 |
-| 0.8-0.9 | 82 | 0.848 | 0.768 |
-| 0.9-1.0 | 67 | 0.936 | 0.910 |
+| 0.0-0.1 | 65 | 0.067 | 0.123 |
+| 0.1-0.2 | 116 | 0.150 | 0.224 |
+| 0.2-0.3 | 102 | 0.258 | 0.392 |
+| 0.3-0.4 | 89 | 0.353 | 0.382 |
+| 0.4-0.5 | 88 | 0.449 | 0.443 |
+| 0.5-0.6 | 82 | 0.556 | 0.573 |
+| 0.6-0.7 | 84 | 0.649 | 0.595 |
+| 0.7-0.8 | 104 | 0.751 | 0.654 |
+| 0.8-0.9 | 97 | 0.848 | 0.742 |
+| 0.9-1.0 | 71 | 0.931 | 0.887 |
