@@ -15,9 +15,10 @@ import { scrollEntranceStagger, refreshScrollTrigger } from '../theme/animations
 import PageHeader from '../components/ui/PageHeader'
 import TeamPowerBoard from '../components/rankings/TeamPowerBoard'
 import SectionSubnav from '../components/ui/SectionSubnav'
+import { powerRegionsFromSelectedLeagues } from '../lib/powerRegionFilter'
 
 export default function Teams() {
-  const { filteredTeams, filteredPlayers, league, split } =
+  const { filteredTeams, filteredPlayers, league, split, selectedLeagues } =
     useDashboard()
   const [scope, setScope] = useState<TeamScope>('top')
   const [showTable, setShowTable] = useState(true)
@@ -29,6 +30,11 @@ export default function Teams() {
         .filter(isTier1Team)
         .filter((t) => t.games >= 3),
     [filteredTeams],
+  )
+
+  const powerRegions = useMemo(
+    () => powerRegionsFromSelectedLeagues(selectedLeagues),
+    [selectedLeagues],
   )
 
   const allTier1Selected = league === 'All Tier 1'
@@ -64,7 +70,7 @@ export default function Teams() {
       />
 
       <section id="teams-rankings" className="players-section">
-        <TeamPowerBoard teams={teams} />
+        <TeamPowerBoard regions={powerRegions} />
       </section>
 
       <section id="teams-radar" className="players-section">

@@ -11,6 +11,7 @@ import { EntityLink } from '../entities'
 import { formatModelUpdatedDate, formatNum } from '../../lib/format'
 import { fetchMlFreshness, type MlFreshness } from '../../lib/loadMlFreshness'
 import { fetchModelMetadata } from '../../lib/loadModelMetadata'
+import { matchPowerRegion, type PowerRegions } from '../../lib/powerRegionFilter'
 import { powerScoreTo100 } from '../../lib/scoreNormalize'
 import { staggerListReveal, tabTransitionIn } from '../../theme/animations'
 
@@ -24,14 +25,6 @@ const ROLE_LABEL: Record<RatingRole, string> = {
 
 export type PowerRegionFilter = 'all' | 'LCK' | 'LPL' | 'LEC' | 'LCS'
 
-function regionMatch(homeRegion: string | undefined, filter: PowerRegionFilter): boolean {
-  if (filter === 'all') return true
-  const r = (homeRegion ?? '').toUpperCase()
-  // LTA N / bare LTA = 2025 NA. LTA S = CBLOL/LLA — never treat as LCS.
-  if (filter === 'LCS') return r === 'LCS' || r === 'LTA' || r === 'LTA N'
-  return r === filter
-}
-
 interface PowerRankingsPanelProps {
   /** Limit rows per role */
   limit?: number
@@ -43,7 +36,12 @@ interface PowerRankingsPanelProps {
   onRoleChange?: (role: RatingRole) => void
   /** Hide the built-in role tablist — pass `role` from the parent instead. */
   hideRoleTabs?: boolean
-  /** Filter model board rows by home region (LCS includes LTA). */
+  /**
+   * Filter model board rows by home region(s). Prefer `regions` from the dashboard
+   * LEAGUE filter; `region` is a single-region shorthand (predictions tabs).
+   */
+  regions?: PowerRegions
+  /** @deprecated Prefer `regions`. Single-region shorthand. */
   region?: PowerRegionFilter
 }
 
@@ -54,6 +52,7 @@ export default function PowerRankingsPanel({
   role: roleProp,
   onRoleChange,
   hideRoleTabs = false,
+  regions,
   region = 'all',
 }: PowerRankingsPanelProps) {
   const listRef = useRef<HTMLOListElement>(null)
@@ -97,11 +96,16 @@ export default function PowerRankingsPanel({
     }
   }, [])
 
+  const effectiveRegions: PowerRegions = regions ?? (region === 'all' ? 'all' : [region])
+
   const rows: PlayerPowerRow[] = useMemo(() => {
     const all = bundle?.roles?.[role] ?? []
-    const filtered = region === 'all' ? all : all.filter((r) => regionMatch(r.region, region))
+    const filtered =
+      effectiveRegions === 'all'
+        ? all
+        : all.filter((r) => matchPowerRegion(r.region, effectiveRegions))
     return filtered.slice(0, limit)
-  }, [bundle, role, region, limit])
+  }, [bundle, role, effectiveRegions, limit])
 
   useGSAP(
     () => {
@@ -109,7 +113,7 @@ export default function PowerRankingsPanel({
       staggerListReveal(listRef.current, '.power-rankings-row')
       tabTransitionIn(listRef.current)
     },
-    { dependencies: [loading, role, region, rows.length, bundle?.generatedAt] },
+    { dependencies: [loading, role, effectiveRegions, rows.length, bundle?.generatedAt] },
   )
 
   return (
@@ -167,8 +171,9 @@ export default function PowerRankingsPanel({
       {bundle?.generatedAt ? (
         <p className="power-rankings-footer">
           model v{bundle.version} · updated{' '}
-          {formatModelUpdatedDate(modelExportedAt ?? freshness?.modelExportedAt ?? bundle.generatedAt)}{' '}
-          UTC
+          {formatModelUpdatedDate(
+            modelExportedAt ?? freshness?.modelExportedAt ?? bundle.generatedAt,
+          )}
           {freshness?.oeAheadOfModelDays != null && freshness.oeAheadOfModelDays > 2 ? (
             <span className="power-rankings-stale">
               {' '}

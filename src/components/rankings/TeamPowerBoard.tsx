@@ -1,19 +1,27 @@
 import { useEffect, useMemo, useState } from 'react'
-import type { Team } from '../../hooks/useDashboardData'
 import { fetchRegionStrength, type RegionStrengthBundle } from '../../lib/loadRegionStrength'
 import { eloTo100 } from '../../lib/scoreNormalize'
-import { resolveTeamCanonicalName } from '../../lib/entities/slugs'
+import {
+  isTier1HomeRegion,
+  matchPowerRegion,
+  type PowerRegions,
+} from '../../lib/powerRegionFilter'
 import { EntityLink, TeamLogo } from '../entities'
 import SignalLoader from '../ui/SignalLoader'
 import { formatModelUpdatedDate, formatNum } from '../../lib/format'
 
 interface TeamPowerBoardProps {
-  teams: Team[]
   limit?: number
+  /**
+   * Model-board region filter from the dashboard LEAGUE control.
+   * Defaults to all tier-1 — never gated by OE split membership (empty Summer LCK
+   * must not hide LCK teams from the Elo board).
+   */
+  regions?: PowerRegions
 }
 
 /** Global team power board from Component 1 Elo (region_strength.json), display-normalized /100. */
-export default function TeamPowerBoard({ teams, limit = 8 }: TeamPowerBoardProps) {
+export default function TeamPowerBoard({ limit = 8, regions = 'all' }: TeamPowerBoardProps) {
   const [bundle, setBundle] = useState<RegionStrengthBundle | null>(null)
   const [loading, setLoading] = useState(true)
 
@@ -31,41 +39,20 @@ export default function TeamPowerBoard({ teams, limit = 8 }: TeamPowerBoardProps
 
   const ranked = useMemo(() => {
     if (!bundle) return []
-    const filterNames = new Set(
-      teams.map((t) => resolveTeamCanonicalName(t.name).toLowerCase()),
-    )
-    const useFilter = filterNames.size > 0
 
-    const rows = Object.entries(bundle.teams)
+    return Object.entries(bundle.teams)
       .map(([name, row]) => ({
         name,
         region: row.homeRegion,
         rating: row.rating,
         score100: eloTo100(row.rating),
       }))
-      .filter((row) => {
-        if (!useFilter) return true
-        return filterNames.has(resolveTeamCanonicalName(row.name).toLowerCase())
-      })
+      .filter((row) => isTier1HomeRegion(row.region))
+      .filter((row) => matchPowerRegion(row.region, regions))
       .sort((a, b) => b.rating - a.rating)
       .slice(0, limit)
       .map((row, idx) => ({ ...row, rank: idx + 1 }))
-
-    // If filter is so narrow nothing matches, fall back to global top.
-    if (!rows.length && useFilter) {
-      return Object.entries(bundle.teams)
-        .map(([name, row]) => ({
-          name,
-          region: row.homeRegion,
-          rating: row.rating,
-          score100: eloTo100(row.rating),
-        }))
-        .sort((a, b) => b.rating - a.rating)
-        .slice(0, limit)
-        .map((row, idx) => ({ ...row, rank: idx + 1 }))
-    }
-    return rows
-  }, [bundle, teams, limit])
+  }, [bundle, regions, limit])
 
   if (loading) {
     return (
@@ -75,7 +62,18 @@ export default function TeamPowerBoard({ teams, limit = 8 }: TeamPowerBoardProps
     )
   }
 
-  if (!ranked.length) return null
+  if (!ranked.length) {
+    return (
+      <section className="card power-rankings-panel">
+        <div className="power-rankings-head">
+          <div>
+            <h2 className="card-title">nucky team power</h2>
+            <p className="card-subtitle mb-0">No tier-1 teams match the current league filter.</p>
+          </div>
+        </div>
+      </section>
+    )
+  }
 
   return (
     <section className="card power-rankings-panel">
@@ -84,7 +82,7 @@ export default function TeamPowerBoard({ teams, limit = 8 }: TeamPowerBoardProps
           <h2 className="card-title">nucky team power</h2>
           <p className="card-subtitle mb-0">
             Component 1 Elo (0.8×team + 0.2×region) — scores shown out of 100 for dashboard
-            consistency.
+            consistency. Board follows the LEAGUE filter; All Tier 1 shows every region.
           </p>
         </div>
       </div>
@@ -109,7 +107,7 @@ export default function TeamPowerBoard({ teams, limit = 8 }: TeamPowerBoardProps
       </ol>
       {bundle?.generatedAt ? (
         <p className="power-rankings-footer">
-          model · updated {formatModelUpdatedDate(bundle.generatedAt)} UTC
+          model · updated {formatModelUpdatedDate(bundle.generatedAt)}
         </p>
       ) : null}
     </section>

@@ -250,7 +250,7 @@
 
 @media (min-width: 960px) {
   .landing-hero--brand {
-    grid-template-columns: minmax(0, 1.35fr) minmax(280px, 0.85fr);
+    grid-template-columns: minmax(0, 1.5fr) minmax(300px, 1fr);
   }
 }
 
@@ -615,10 +615,17 @@
   max-width: 48ch;
 }
 
-.landing-hero-readout {
-  margin: 0 0 2rem;
-  max-width: 32rem;
-  justify-self: stretch;
+.landing-hero--brand .landing-hero-readout {
+  margin: 0;
+  max-width: 26rem;
+  justify-self: end;
+  width: 100%;
+}
+
+@media (max-width: 959px) {
+  .landing-hero--brand .landing-hero-readout {
+    justify-self: start;
+  }
 }
 
 .landing-hero-line {

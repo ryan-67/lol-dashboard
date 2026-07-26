@@ -26,6 +26,7 @@ import PageHeader from '../components/ui/PageHeader'
 import PowerRankingsPanel from '../components/rankings/PowerRankingsPanel'
 import SectionSubnav, { type SectionSubnavItem } from '../components/ui/SectionSubnav'
 import type { RatingRole } from '../lib/loadPlayerRatings'
+import { powerRegionsFromSelectedLeagues } from '../lib/powerRegionFilter'
 
 const SUBNAV_ITEMS: SectionSubnavItem[] = [
   { id: 'players-rankings', label: 'Rankings' },
@@ -36,10 +37,15 @@ const SUBNAV_ITEMS: SectionSubnavItem[] = [
 
 export default function Players() {
   const { user } = useAuth()
-  const { filteredPlayers, league, split } = useDashboard()
+  const { filteredPlayers, league, split, selectedLeagues } = useDashboard()
   const [roleFilter, setRoleFilter] = useState<RoleFilter>('all')
   const [selectedPlayerKeys, setSelectedPlayerKeys] = useState<string[]>([])
   const [showTable, setShowTable] = useState(false)
+
+  const powerRegions = useMemo(
+    () => powerRegionsFromSelectedLeagues(selectedLeagues),
+    [selectedLeagues],
+  )
 
   const players = useMemo(
     () =>
@@ -155,7 +161,12 @@ export default function Players() {
       />
 
       <section id="players-rankings" className="players-section">
-        <PowerRankingsPanel limit={8} role={powerRankingsRole} hideRoleTabs />
+        <PowerRankingsPanel
+          limit={8}
+          role={powerRankingsRole}
+          hideRoleTabs
+          regions={powerRegions}
+        />
       </section>
 
       <section id="players-radar" className="players-section">

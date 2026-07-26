@@ -3,7 +3,6 @@ import { useDashboard } from '../../context/DashboardContext'
 import PowerRankingsPanel from '../rankings/PowerRankingsPanel'
 import TeamPowerBoard from '../rankings/TeamPowerBoard'
 import ScoreCaveat from '../ui/ScoreCaveat'
-import { isTier1Team } from '../../lib/mergeSlices'
 import { computeOpScores, isDisplayableChampion } from '../../lib/championAnalytics'
 import { ChampionEntityInline } from '../entities'
 import { formatNum, formatPct } from '../../lib/format'
@@ -22,21 +21,9 @@ const REGION_FILTERS: { id: RegionFilter; label: string }[] = [
   { id: 'LCS', label: 'LCS' },
 ]
 
-function regionMatch(homeRegion: string | undefined, filter: RegionFilter): boolean {
-  if (filter === 'all') return true
-  const r = (homeRegion ?? '').toUpperCase()
-  if (filter === 'LCS') return r === 'LCS' || r === 'LTA' || r === 'LTA N'
-  return r === filter
-}
-
 export function PredictionTeamRankings() {
-  const { filteredTeams } = useDashboard()
   const [region, setRegion] = useState<RegionFilter>('all')
-  const teams = useMemo(() => {
-    const tier1 = filteredTeams.filter(isTier1Team)
-    if (region === 'all') return tier1
-    return tier1.filter((t) => regionMatch(t.league, region))
-  }, [filteredTeams, region])
+  const regions = region === 'all' ? ('all' as const) : ([region] as const)
 
   return (
     <div>
@@ -55,7 +42,7 @@ export function PredictionTeamRankings() {
           </button>
         ))}
       </div>
-      <TeamPowerBoard teams={teams} limit={24} />
+      <TeamPowerBoard regions={regions} limit={24} />
       <p className="text-secondary text-sm mt-2">{MODEL_POWER_RANKINGS_SUBTITLE}</p>
     </div>
   )

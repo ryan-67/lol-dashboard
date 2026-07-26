@@ -87,8 +87,11 @@ export function formatLL(value: number): string {
 }
 
 /** @deprecated Prefer formatModelUpdatedDate — kept as alias for landing imports. */
-export function formatScorecardUpdated(iso: string | undefined | null): string {
-  return formatModelUpdatedDate(iso)
+export function formatScorecardUpdated(
+  iso: string | undefined | null,
+  options?: { timeZone?: string },
+): string {
+  return formatModelUpdatedDate(iso, options)
 }
 
 export function invalidateAccuracyScorecardCache(): void {

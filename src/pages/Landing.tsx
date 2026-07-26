@@ -17,10 +17,10 @@ import {
   fetchAccuracyScorecard,
   formatLL,
   formatPct,
-  formatScorecardUpdated,
   type AccuracyScorecard,
 } from '../lib/accuracyScorecard'
 import { formatModelUpdatedDate } from '../lib/format'
+import { DEFAULT_TIMEZONE } from '../lib/timezones'
 import { fetchModelMetadata } from '../lib/loadModelMetadata'
 import { startStripeCheckout } from '../lib/billing'
 import { animateCounter, scrollEntrance, scrollEntranceStagger } from '../theme/animations'
@@ -160,9 +160,9 @@ export default function Landing() {
             '-=0.4',
           )
           .from(
-            root.querySelector('.landing-hero-plane'),
-            { opacity: 0, scale: 0.98, duration: 1.0 },
-            '-=0.85',
+            root.querySelector('.landing-hero-readout'),
+            { opacity: 0, y: 18, duration: 0.65 },
+            '-=0.45',
           )
       }
 
@@ -180,6 +180,11 @@ export default function Landing() {
       if (!root || !scorecard) return
       if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
 
+      animateCounter(root.querySelector('[data-counter="hero-acc"]'), scorecard.aggregate.model.accuracy * 100, {
+        duration: 1.6,
+        decimals: 1,
+        suffix: '%',
+      })
       animateCounter(root.querySelector('[data-counter="accuracy"]'), scorecard.aggregate.model.accuracy * 100, {
         duration: 1.4,
         decimals: 1,
@@ -194,13 +199,13 @@ export default function Landing() {
         decimals: 1,
         suffix: '%',
       })
-      root.querySelectorAll<HTMLElement>('.landing-readout-bar-fill').forEach((bar) => {
+      root.querySelectorAll<HTMLElement>('.landing-hero .landing-readout-bar-fill').forEach((bar) => {
         gsap.from(bar, {
           scaleX: 0,
           transformOrigin: 'left center',
-          duration: 1.0,
+          duration: 1.1,
           ease: 'power2.out',
-          scrollTrigger: { trigger: bar, start: 'top 90%', once: true },
+          delay: 0.55,
         })
       })
     },
@@ -233,9 +238,11 @@ export default function Landing() {
   const baseAcc = scorecard?.aggregate.baseline.accuracy ?? 0.6209
   const holdout = scorecard?.holdoutRows ?? 718
   const dateRange = scorecard?.dateRange ?? ['2026-02-09', '2026-07-11']
-  const scorecardUpdated =
-    formatModelUpdatedDate(modelUpdatedIso ?? scorecard?.generatedAt) ||
-    formatScorecardUpdated(scorecard?.generatedAt)
+  // Marketing surface always stamps Pacific (PST/PDT), independent of profile TZ.
+  const scorecardUpdated = formatModelUpdatedDate(
+    modelUpdatedIso ?? scorecard?.generatedAt,
+    { timeZone: DEFAULT_TIMEZONE },
+  )
 
   return (
     <div className="landing-page" ref={rootRef}>
@@ -290,15 +297,50 @@ export default function Landing() {
             </div>
           </div>
 
-          <div className="landing-hero-plane" aria-hidden="true">
-            <div className="landing-hero-plane-ring" />
-            <div className="landing-hero-plane-ring is-delay" />
-            <div className="landing-hero-plane-core">
-              <span className="landing-hero-plane-glyph">Σ</span>
-              <span className="landing-hero-plane-caption">signal field</span>
+          <aside className="landing-hero-readout" aria-label="Model scorecard">
+            <div className="landing-readout-head">
+              <span className="signal-dot" aria-hidden="true" />
+              <span>model scorecard</span>
+              <span className="landing-readout-tag">walk-forward</span>
             </div>
-            <div className="landing-hero-plane-scan" />
-          </div>
+            <div className="landing-readout-value" data-counter="hero-acc">
+              {formatPct(acc)}
+            </div>
+            <div className="landing-readout-caption">
+              prediction accuracy · {holdout.toLocaleString()} holdout games
+            </div>
+            <div className="landing-readout-bars">
+              <div className="landing-readout-bar">
+                <span className="landing-readout-bar-label">nucky model</span>
+                <span className="landing-readout-bar-track">
+                  <span
+                    className="landing-readout-bar-fill is-model"
+                    style={{ width: `${(acc * 100).toFixed(1)}%` }}
+                  />
+                </span>
+                <span className="landing-readout-bar-num">{formatPct(acc)}</span>
+              </div>
+              <div className="landing-readout-bar">
+                <span className="landing-readout-bar-label">naive baseline</span>
+                <span className="landing-readout-bar-track">
+                  <span
+                    className="landing-readout-bar-fill"
+                    style={{ width: `${(baseAcc * 100).toFixed(1)}%` }}
+                  />
+                </span>
+                <span className="landing-readout-bar-num">{formatPct(baseAcc)}</span>
+              </div>
+            </div>
+            <div className="landing-readout-foot">
+              <span>log-loss {formatLL(ll)}</span>
+              <span>
+                holdout {dateRange[0]} → {dateRange[1]}
+              </span>
+            </div>
+            {scorecardUpdated ? (
+              <div className="landing-readout-updated">model updated {scorecardUpdated}</div>
+            ) : null}
+          </aside>
         </section>
       </div>
 
@@ -411,55 +453,12 @@ export default function Landing() {
             </p>
           </div>
 
-          <aside className="landing-hero-readout landing-reveal" aria-label="Model scorecard">
-            <div className="landing-readout-head">
-              <span className="signal-dot" aria-hidden="true" />
-              <span>model scorecard</span>
-              <span className="landing-readout-tag">walk-forward</span>
-            </div>
-            <div className="landing-readout-value" data-counter="accuracy">
-              {formatPct(acc)}
-            </div>
-            <div className="landing-readout-caption">
-              prediction accuracy · {holdout.toLocaleString()} holdout games
-            </div>
-            <div className="landing-readout-bars">
-              <div className="landing-readout-bar">
-                <span className="landing-readout-bar-label">nucky model</span>
-                <span className="landing-readout-bar-track">
-                  <span
-                    className="landing-readout-bar-fill is-model"
-                    style={{ width: `${(acc * 100).toFixed(1)}%` }}
-                  />
-                </span>
-                <span className="landing-readout-bar-num">{formatPct(acc)}</span>
-              </div>
-              <div className="landing-readout-bar">
-                <span className="landing-readout-bar-label">naive baseline</span>
-                <span className="landing-readout-bar-track">
-                  <span
-                    className="landing-readout-bar-fill"
-                    style={{ width: `${(baseAcc * 100).toFixed(1)}%` }}
-                  />
-                </span>
-                <span className="landing-readout-bar-num">{formatPct(baseAcc)}</span>
-              </div>
-            </div>
-            <div className="landing-readout-foot">
-              <span>log-loss {formatLL(ll)}</span>
-              <span>
-                holdout {dateRange[0]} → {dateRange[1]}
-              </span>
-            </div>
-            {scorecardUpdated ? (
-              <div className="landing-readout-updated">model updated {scorecardUpdated} UTC</div>
-            ) : null}
-          </aside>
-
           <div className="landing-score-grid">
             <div className="landing-score-card landing-reveal">
               <div className="landing-score-card-label">model accuracy</div>
-              <div className="landing-score-card-value is-accent">{formatPct(acc)}</div>
+              <div className="landing-score-card-value is-accent" data-counter="accuracy">
+                {formatPct(acc)}
+              </div>
               <div className="landing-score-card-meta">walk-forward out-of-fold</div>
             </div>
             <div className="landing-score-card landing-reveal">

@@ -90,9 +90,13 @@ export function formatRefreshTimestamp(
 
 /**
  * Calendar date for model artifact stamps (`generatedAt` / `exported_at`).
- * Always uses UTC so landing + dashboard never disagree across local midnights.
+ * Uses the active user timezone (default Pacific). Pass `timeZone` to override
+ * (landing marketing surface always uses Pacific).
  */
-export function formatModelUpdatedDate(iso: string | undefined | null): string {
+export function formatModelUpdatedDate(
+  iso: string | undefined | null,
+  options?: { timeZone?: string },
+): string {
   if (!iso) return ''
   const d = new Date(iso)
   if (Number.isNaN(d.getTime())) return ''
@@ -100,7 +104,8 @@ export function formatModelUpdatedDate(iso: string | undefined | null): string {
     year: 'numeric',
     month: 'numeric',
     day: 'numeric',
-    timeZone: 'UTC',
+    timeZone: options?.timeZone ?? getTimezone(),
+    timeZoneName: 'short',
   })
 }
 

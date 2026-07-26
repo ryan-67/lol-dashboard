@@ -41,6 +41,7 @@ import PowerRankingsPanel from '../components/rankings/PowerRankingsPanel'
 import TeamPowerBoard from '../components/rankings/TeamPowerBoard'
 import ScoreCaveat from '../components/ui/ScoreCaveat'
 import { MODEL_POWER_RANKINGS_SUBTITLE } from '../lib/metricHints'
+import { powerRegionsFromSelectedLeagues } from '../lib/powerRegionFilter'
 import { buildWeeklyRecapLines } from '../lib/weeklyRecap'
 import { mergeWeeklyRecapLines } from '../lib/recapMerge'
 import { fetchCachedWeeklyRecapLines } from '../lib/loadWeeklyRecap'
@@ -565,6 +566,11 @@ export default function Overview() {
 
   const hubContentLoading = isPeriodPending || recapLoading || !recapReady
 
+  const powerRegions = useMemo(
+    () => powerRegionsFromSelectedLeagues(selectedLeagues),
+    [selectedLeagues],
+  )
+
   const handleHubPeriodChange = (period: HubPeriod) => {
     if (period === hubPeriod) return
     setHubPeriod(period)
@@ -1050,8 +1056,9 @@ export default function Overview() {
             limit={8}
             title="nucky power rankings"
             subtitle={MODEL_POWER_RANKINGS_SUBTITLE}
+            regions={powerRegions}
           />
-          <TeamPowerBoard teams={filteredTeams} limit={8} />
+          <TeamPowerBoard regions={powerRegions} limit={8} />
         </div>
 
         <section className="card overview-hub-card">
