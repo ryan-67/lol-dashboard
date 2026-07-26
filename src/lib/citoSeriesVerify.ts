@@ -198,6 +198,24 @@ function scoresFromCito(
 }
 
 /**
+ * True when the scoreline already decides the series for the known format.
+ * Schedule feeds often lag on status (still "in progress" at 0-2 Bo3).
+ */
+function seriesScoreClinches(
+  winsA: number,
+  winsB: number,
+  bestOf: number | null,
+  requiresThreeWins: boolean,
+): boolean {
+  if (!isValidSeriesScore(winsA, winsB)) return false
+  const max = Math.max(winsA, winsB)
+  if (requiresThreeWins || bestOf === 5) return max >= 3
+  if (bestOf === 3) return max >= 2
+  // Unknown best-of while status is still live: only 3-x is unambiguous.
+  return max >= 3
+}
+
+/**
  * Resolve the display/recap score for a series, preferring Cito / external schedule when available.
  */
 export function resolveSeriesScoreWithCito(
@@ -269,6 +287,17 @@ export function resolveSeriesScoreWithCito(
 
     if (inProgress) {
       const live = mapped ?? { winsA: oeWinsA, winsB: oeWinsB }
+      // Status lag: feed still says live after a clinching score (e.g. 0-2 Bo3).
+      if (seriesScoreClinches(live.winsA, live.winsB, bestOf, requiresThreeWins)) {
+        return {
+          ...pickWinner(live.winsA, live.winsB),
+          ...base,
+          complete: true,
+          source: 'cito',
+          provisional: false,
+          skipCompleted: false,
+        }
+      }
       return {
         ...pickWinner(live.winsA, live.winsB),
         ...base,
@@ -398,7 +427,8 @@ export function resolveSeriesScoreWithCito(
 
 /**
  * Recap blurbs must wait for series conclusion — never generate mid-series.
- * 2-x is only valid when best-of is explicitly 3 (never for Bo5 / finals).
+ * 2-x is accepted when resolve already marked the series complete (domestic Bo3
+ * often has null bestOf when schedule/catalog omit it). Never accept Bo5 2-x.
  */
 export function isSeriesReadyForRecap(resolved: ResolvedSeriesScore): boolean {
   if (resolved.skipCompleted || resolved.provisional || !resolved.complete) return false
@@ -406,7 +436,8 @@ export function isSeriesReadyForRecap(resolved: ResolvedSeriesScore): boolean {
   const min = Math.min(resolved.winsA, resolved.winsB)
   if (max === 3 && min <= 2) return true
   if (max === 2 && min <= 1) {
-    return resolved.bestOf === 3
+    if (resolved.bestOf === 5) return false
+    return resolved.bestOf === 3 || resolved.bestOf == null
   }
   return false
 }
