@@ -10,7 +10,7 @@
 | `supabase/functions/_shared/billingSync.ts` | Shared Stripe ↔ Supabase billing sync |
 | `scripts/rag-indexer/src/` | Weekly embedding pipeline (Liquipedia, patch notes, Reddit, Kalshi, schedules) |
 | `supabase/migrations/` (most files) | Full Postgres schema, RLS, `match_documents`, subscriptions |
-| `.github/workflows/index-rag.yml` | RAG CI (if present locally) |
+| `.github/workflows/index-rag.yml` | Public stub skips when `scripts/rag-indexer/src/` is absent; private monorepos with the indexer run it for real |
 | `.env` / service-role / Stripe secrets | Never commit |
 
 These paths are listed in `.gitignore`. README stubs under `stripe-*/README.md` remain public so the architecture is understandable without shipping handlers.

@@ -1,6 +1,6 @@
 # nucky accuracy scorecard
 
-> Generated `2026-07-25T06:58:20.231135+00:00` · algo `xgboost` · 898 holdout rows (2026-02-16 → 2026-07-19)
+> Generated `2026-07-27T08:03:09.938111+00:00` · algo `xgboost` · 898 holdout rows (2026-02-16 → 2026-07-19)
 
 ## Aggregate (walk-forward)
 
@@ -47,7 +47,7 @@ Ship gate (beats baseline on log-loss): **PASS**
 
 - Status: `ok`
 - Shared teams: 33
-- Spearman ρ: 0.643
+- Spearman ρ: 0.615
 - Top-10 overlap: 8
 - Note: Comparison benchmark only — GPR has 0% weight in live scoring.
 

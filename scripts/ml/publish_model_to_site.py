@@ -39,6 +39,11 @@ PUBLIC_REQUIRED = (
     "model_metadata.json",
 )
 
+# Optional dashboard artifacts — publish when present (Log tab holdout ledger).
+PUBLIC_OPTIONAL = (
+    "prediction_holdout_log.json",
+)
+
 
 def _prefer_src(name: str) -> Path | None:
     for base in (DEPLOY_DIR, ARTIFACTS_DIR):
@@ -56,6 +61,15 @@ def publish_public_dashboard_artifacts() -> list[str]:
         src = _prefer_src(name)
         if not src:
             missing.append(name)
+            continue
+        dest = PUBLIC_DIR / name
+        shutil.copyfile(src, dest)
+        copied.append(name)
+        print(f"  public/data/{name} <- {src.relative_to(ROOT)}")
+    for name in PUBLIC_OPTIONAL:
+        src = _prefer_src(name)
+        if not src:
+            print(f"  skip optional {name} (not built yet)")
             continue
         dest = PUBLIC_DIR / name
         shutil.copyfile(src, dest)

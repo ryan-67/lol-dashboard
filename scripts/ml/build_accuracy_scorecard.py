@@ -43,6 +43,7 @@ from train_series_model import (  # noqa: E402
 
 ARTIFACTS_DIR = ROOT / "data" / "ml" / "artifacts"
 DEFAULT_JSON_OUT = ARTIFACTS_DIR / "accuracy_scorecard.json"
+DEFAULT_HOLDOUT_LOG_OUT = ARTIFACTS_DIR / "prediction_holdout_log.json"
 DEFAULT_MD_OUT = ROOT / "docs" / "nucky_accuracy_scorecard.md"
 MIN_SLICE_N = 40
 
@@ -187,6 +188,63 @@ def slice_metrics(df: pd.DataFrame, group_col: str) -> list[dict]:
     return out
 
 
+def oof_to_holdout_log(oof: pd.DataFrame) -> dict:
+    """One entry per series (deduped team perspectives) for the Predictions Log tab."""
+    entries: list[dict] = []
+    for series_id, grp in oof.groupby("series_id", sort=False):
+        row = grp.iloc[0]
+        team = str(row["team"])
+        opp = str(row["opponent"])
+        # Alphabetical teamA/teamB for stable join with OE seriesKey.
+        if team.casefold() <= opp.casefold():
+            team_a, team_b = team, opp
+            p_a = float(row["model_proba"])
+            base_a = float(row["baseline_proba"])
+            wins_a = int(row["score_for"])
+            wins_b = int(row["score_against"])
+        else:
+            team_a, team_b = opp, team
+            p_a = 1.0 - float(row["model_proba"])
+            base_a = 1.0 - float(row["baseline_proba"])
+            wins_a = int(row["score_against"])
+            wins_b = int(row["score_for"])
+
+        winner = team_a if wins_a > wins_b else team_b
+        predicted = team_a if p_a >= 0.5 else team_b
+        date = str(pd.Timestamp(row["date"]).date())
+        series_key = f"{'|'.join(sorted([team_a, team_b], key=str.casefold))}|{date}"
+        entries.append(
+            {
+                "seriesId": str(series_id),
+                "seriesKey": series_key,
+                "date": date,
+                "league": str(row.get("league") or ""),
+                "patch": str(row.get("patch") or ""),
+                "teamA": team_a,
+                "teamB": team_b,
+                "winsA": wins_a,
+                "winsB": wins_b,
+                "winner": winner,
+                "modelProbA": round(p_a, 4),
+                "baselineProbA": round(base_a, 4),
+                "predictedWinner": predicted,
+                "correct": predicted == winner,
+                "bestOf": int(row["best_of"]) if pd.notna(row.get("best_of")) else None,
+            }
+        )
+
+    entries.sort(key=lambda e: e["date"], reverse=True)
+    correct = sum(1 for e in entries if e["correct"])
+    return {
+        "generatedAt": pd.Timestamp.utcnow().isoformat(),
+        "source": "walk_forward_oof",
+        "seriesCount": len(entries),
+        "correctCount": correct,
+        "accuracy": round(correct / len(entries), 4) if entries else None,
+        "entries": entries,
+    }
+
+
 def build_scorecard(
     mart: pd.DataFrame,
     feature_cols: list[str],
@@ -194,7 +252,7 @@ def build_scorecard(
     min_train_weeks: int,
     max_holdout_weeks: int,
     artifacts_dir: Path = ARTIFACTS_DIR,
-) -> dict:
+) -> tuple[dict, dict]:
     oof = walk_forward_oof(mart, feature_cols, algo, min_train_weeks, max_holdout_weeks)
     y = oof["team_wins_series"].to_numpy()
     p = oof["model_proba"].to_numpy()
@@ -203,7 +261,7 @@ def build_scorecard(
     model_agg = _score(y, p, w)
     baseline_agg = _score(y, b, w)
 
-    return {
+    scorecard = {
         "generatedAt": pd.Timestamp.utcnow().isoformat(),
         "algo": algo,
         "featureCount": len(feature_cols),
@@ -227,6 +285,7 @@ def build_scorecard(
             "sample-weight decayed. GPR/Kalshi sections are offline comparison only."
         ),
     }
+    return scorecard, oof_to_holdout_log(oof)
 
 
 def render_markdown(scorecard: dict) -> str:
@@ -321,6 +380,7 @@ def main() -> None:
     parser.add_argument("--min-train-weeks", type=int, default=8)
     parser.add_argument("--max-holdout-weeks", type=int, default=20)
     parser.add_argument("--json-out", type=Path, default=DEFAULT_JSON_OUT)
+    parser.add_argument("--holdout-log-out", type=Path, default=DEFAULT_HOLDOUT_LOG_OUT)
     parser.add_argument("--md-out", type=Path, default=DEFAULT_MD_OUT)
     args = parser.parse_args()
 
@@ -341,17 +401,30 @@ def main() -> None:
         f"({algo})...",
         file=sys.stderr,
     )
-    scorecard = build_scorecard(
+    scorecard, holdout_log = build_scorecard(
         mart, feature_cols, algo, args.min_train_weeks, args.max_holdout_weeks
     )
 
     args.json_out.parent.mkdir(parents=True, exist_ok=True)
     args.json_out.write_text(json.dumps(scorecard, indent=2), encoding="utf-8")
+    args.holdout_log_out.parent.mkdir(parents=True, exist_ok=True)
+    args.holdout_log_out.write_text(json.dumps(holdout_log, indent=2), encoding="utf-8")
     args.md_out.parent.mkdir(parents=True, exist_ok=True)
     args.md_out.write_text(render_markdown(scorecard), encoding="utf-8")
 
+    # Mirror into agent-chat deploy tree when present (CI publish step also copies).
+    deploy_dir = ROOT / "supabase" / "functions" / "agent-chat" / "ml"
+    if deploy_dir.exists():
+        (deploy_dir / "accuracy_scorecard.json").write_text(
+            json.dumps(scorecard, indent=2), encoding="utf-8"
+        )
+        (deploy_dir / "prediction_holdout_log.json").write_text(
+            json.dumps(holdout_log, indent=2), encoding="utf-8"
+        )
+
     agg = scorecard["aggregate"]
     print(f"Wrote {args.json_out}")
+    print(f"Wrote {args.holdout_log_out} ({holdout_log['seriesCount']} series)")
     print(f"Wrote {args.md_out}")
     print(
         f"Aggregate: model LL={agg['model']['log_loss']:.4f} "

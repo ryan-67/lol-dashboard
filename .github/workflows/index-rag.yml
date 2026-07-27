@@ -2,8 +2,13 @@
 #
 # Schedule: Monday 04:00 UTC. Manual: workflow_dispatch.
 #
-# Secrets: SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, OPENROUTER_API_KEY
-# Optional: KALSHI_API_KEY (Kalshi API key ID for market data requests)
+# The indexer source (`scripts/rag-indexer/src/`) is proprietary and gitignored on the
+# public portfolio repo — see docs/PRIVATE_COMPONENTS.md. This workflow no-ops when
+# the entrypoint is missing so public CI stays green. On a private monorepo that
+# includes the indexer, it runs for real.
+#
+# Secrets (when running): SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, OPENROUTER_API_KEY
+# Optional: KALSHI_API_KEY
 
 name: Index RAG Documents
 
@@ -25,16 +30,32 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Check for RAG indexer source
+        id: rag
+        run: |
+          if [ -f scripts/rag-indexer/src/index.ts ]; then
+            echo "available=true" >> "$GITHUB_OUTPUT"
+            echo "RAG indexer source found — will index."
+          else
+            echo "available=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::RAG indexer source is not in this checkout (proprietary / gitignored)."
+            echo "Skipping Index RAG Documents. Copy scripts/rag-indexer/src from a private backup"
+            echo "or run npm run index:rag locally. See docs/PRIVATE_COMPONENTS.md."
+          fi
+
       - name: Setup Node
+        if: steps.rag.outputs.available == 'true'
         uses: actions/setup-node@v4
         with:
           node-version: '20'
           cache: npm
 
       - name: Install dependencies
+        if: steps.rag.outputs.available == 'true'
         run: npm ci
 
       - name: Run RAG indexer
+        if: steps.rag.outputs.available == 'true'
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}

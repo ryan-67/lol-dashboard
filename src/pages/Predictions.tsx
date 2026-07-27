@@ -10,6 +10,7 @@ import {
 } from '../lib/accuracyScorecard'
 import PredictionScheduleTab from '../components/predictions/PredictionScheduleTab'
 import PredictionAnalysisTab from '../components/predictions/PredictionAnalysisTab'
+import PredictionLogTab from '../components/predictions/PredictionLogTab'
 import {
   PredictionChampionRankings,
   PredictionPlayerRankings,
@@ -18,6 +19,7 @@ import {
 
 type ModelTab =
   | 'schedule'
+  | 'log'
   | 'team-rankings'
   | 'player-rankings'
   | 'champion-rankings'
@@ -25,6 +27,7 @@ type ModelTab =
 
 const MODEL_TABS: { id: ModelTab; label: string }[] = [
   { id: 'schedule', label: 'Schedule' },
+  { id: 'log', label: 'Log' },
   { id: 'team-rankings', label: 'Team rankings' },
   { id: 'player-rankings', label: 'Player rankings' },
   { id: 'champion-rankings', label: 'Champion rankings' },
@@ -89,7 +92,7 @@ export default function Predictions() {
       <PageHeader
         eyebrow="nucky prediction model"
         title="nucky prediction model"
-        subtitle="Upcoming series with live Kalshi comparison, model odds that track retrain artifacts, and current power boards."
+        subtitle="Upcoming series, a completed-series accuracy log, model power rankings, and pre-match analysis."
       />
 
       {scorecard ? (
@@ -121,6 +124,7 @@ export default function Predictions() {
       </div>
 
       {tab === 'schedule' ? <PredictionScheduleTab /> : null}
+      {tab === 'log' ? <PredictionLogTab /> : null}
       {tab === 'team-rankings' ? <PredictionTeamRankings /> : null}
       {tab === 'player-rankings' ? <PredictionPlayerRankings /> : null}
       {tab === 'champion-rankings' ? <PredictionChampionRankings /> : null}

@@ -294,6 +294,7 @@ jobs:
             public/data/player_ratings.json \
             public/data/region_strength.json \
             public/data/accuracy_scorecard.json \
+            public/data/prediction_holdout_log.json \
             public/data/model_metadata.json \
             public/data/ml_freshness.json || true
           if ! git diff --staged --quiet; then

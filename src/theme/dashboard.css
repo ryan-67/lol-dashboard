@@ -470,6 +470,96 @@
   margin: 0 0 0.85rem;
 }
 
+.predictions-log-toggle {
+  appearance: none;
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-elevated);
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  width: 1.6rem;
+  height: 1.6rem;
+  line-height: 1;
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+}
+
+.predictions-log-toggle:hover {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+.predictions-log-hit {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.predictions-log-miss {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-secondary);
+}
+
+.predictions-log-expand-row td {
+  background: color-mix(in srgb, var(--bg-elevated) 80%, transparent);
+  padding: 0.75rem 1rem 1rem;
+}
+
+.predictions-log-expand {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.predictions-log-game-head {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem 1.25rem;
+  margin-bottom: 0.45rem;
+  font-size: 12px;
+}
+
+.predictions-log-rosters {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+@media (max-width: 720px) {
+  .predictions-log-rosters {
+    grid-template-columns: 1fr;
+  }
+}
+
+.predictions-log-side-label {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-secondary);
+  margin-bottom: 0.35rem;
+}
+
+.predictions-log-players {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.predictions-log-players li {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 12px;
+}
+
 .predictions-analysis-search {
   position: relative;
   margin: 0.75rem 0 1.25rem;
