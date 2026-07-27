@@ -28,6 +28,43 @@ const INTERNATIONAL_LEAGUE_CODES = new Set([
   'Esports World Cup',
 ])
 
+/** Non–tier-1 league codes sometimes mixed into Cito / external caches. */
+const EXCLUDED_LEAGUE_CODES = new Set([
+  'LCK CL',
+  'LCKC',
+  'LCK CHALLENGERS',
+  'LCK AS',
+  'LDL',
+  'LCS.A',
+  'LCS ACADEMY',
+  'LEC ACADEMY',
+  'CBLOL',
+  'LLA',
+  'PCS',
+  'VCS',
+  'LJL',
+  'TCL',
+  'LFL',
+  'NLC',
+  'LCO',
+  'ARAM',
+])
+
+/** Academy / Challengers / Youth orgs — Riot often nests these under LCK/LPL schedule feeds. */
+const ACADEMY_TEAM_RE = /\b(academy|challengers?|youth|ama)\b/i
+
+/** Tournament / block / league context that is never main-roster tier-1. */
+const ACADEMY_CONTEXT_RE =
+  /\b(academy|challengers?|lck\s*cl|lckc|ldl|lcs\.?a\b|youth|ama\b|development\s*league)\b/i
+
+export function isAcademyOrMinorScheduleRow(row: CitoScheduleRow): boolean {
+  if (ACADEMY_TEAM_RE.test(row.team_a) || ACADEMY_TEAM_RE.test(row.team_b)) return true
+  const code = row.league.trim().toUpperCase()
+  if (EXCLUDED_LEAGUE_CODES.has(code)) return true
+  const hay = `${row.league} ${row.tournament_name ?? ''} ${row.block_name ?? ''}`
+  return ACADEMY_CONTEXT_RE.test(hay)
+}
+
 export function isInternationalScheduleLeague(row: CitoScheduleRow): boolean {
   const hay = `${row.league} ${row.tournament_name ?? ''} ${row.block_name ?? ''}`.toLowerCase()
   return (
@@ -38,6 +75,7 @@ export function isInternationalScheduleLeague(row: CitoScheduleRow): boolean {
 
 /** Tier-1 domestics + internationals (MSI, Worlds, EWC, First Stand, future). */
 export function isTier1PredictionRow(row: CitoScheduleRow): boolean {
+  if (isAcademyOrMinorScheduleRow(row)) return false
   if (isInternationalScheduleLeague(row)) return true
   const code = row.league.trim().toUpperCase()
   return (
@@ -56,7 +94,8 @@ export function matchesPredictionLeagueFilter(
   row: CitoScheduleRow,
   filter: PredictionLeagueFilter,
 ): boolean {
-  if (filter === 'all') return isTier1PredictionRow(row)
+  if (!isTier1PredictionRow(row)) return false
+  if (filter === 'all') return true
   if (isInternationalScheduleLeague(row)) return false
   return DOMESTIC_CODES[filter].has(row.league)
 }

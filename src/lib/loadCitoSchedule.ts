@@ -1,6 +1,7 @@
 import { supabase, isSupabaseConfigured } from './supabaseClient'
 import { teamsShareEsportsSlug } from './entities/assets'
 import { resolveTeamCanonicalName, teamMatchesCanonical } from './entities/slugs'
+import { isTier1PredictionRow } from './predictions/leagueFilter'
 import type { TournamentPlacementHint } from './tournamentRank'
 
 export interface CitoScheduleRow {
@@ -178,6 +179,10 @@ export async function fetchUpcomingCitoScheduleBoard(options?: {
     .filter((row) => {
       const status = row.status.toLowerCase()
       if (!['scheduled', 'live', 'unstarted', 'tbd'].includes(status)) return false
+      // Predictions board is tier-1 only (LCK/LPL/LEC/LCS + intl). Cito's lol-lck
+      // feed often nests Challengers / Academy under league=LCK — drop those here
+      // so the limit isn't wasted on academy rows before the UI filter runs.
+      if (!isTier1PredictionRow(row)) return false
       if (isConfirmedRow(row)) return true
       // Keep upcoming international TBD slots (EWC GF / 3rd) visible under All Tier-1.
       return isInternationalScheduleRow(row) && status === 'tbd'
