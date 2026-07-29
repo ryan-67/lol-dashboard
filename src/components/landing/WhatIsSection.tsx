@@ -181,11 +181,11 @@ export default function WhatIsSection() {
       className="whatis"
       ref={rootRef}
       id="features"
-      data-companion="point-right"
-      data-companion-x="-38"
-      data-companion-y="21"
+      data-companion="point-up"
+      data-companion-x="0"
+      data-companion-y="34"
       data-companion-scale="0.38"
-      data-companion-opacity="0.8"
+      data-companion-opacity="0.85"
       aria-label="What is nucky"
     >
       <div className="section-head landing-inner">

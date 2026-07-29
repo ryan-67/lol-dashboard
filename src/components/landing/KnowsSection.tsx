@@ -278,9 +278,9 @@ export default function KnowsSection() {
       id="knows"
       data-companion="point-up"
       data-companion-x="0"
-      data-companion-y="30"
-      data-companion-scale="0.45"
-      data-companion-opacity="0.9"
+      data-companion-y="34"
+      data-companion-scale="0.4"
+      data-companion-opacity="0.85"
       aria-label="nucky knows the players, teams, and tournaments"
     >
       <div className="knows-stage">

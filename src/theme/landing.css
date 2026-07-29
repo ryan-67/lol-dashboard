@@ -17,9 +17,19 @@
 
 .landing-inner {
   width: 100%;
-  max-width: var(--max-width);
+  max-width: min(980px, var(--max-width));
   margin-inline: auto;
   padding-inline: var(--padding-x);
+}
+
+/* Content columns leave a bottom band clear for the fixed up-finger. */
+.whatis,
+.leagues,
+.track,
+.pricing,
+.faq,
+.signal {
+  padding-bottom: clamp(140px, 22vh, 240px);
 }
 
 /* Ambient depth layers (fixed, behind everything) */
@@ -204,16 +214,15 @@ html.no-motion [data-motion-text],
   inset: 0;
 }
 
-/* The pointing hand rotor — spins clockwise between section checkpoints. */
-.wf-rotor {
+/* The upward-pointing hand — visible from knows through the finale handoff. */
+.wf-hand {
   position: absolute;
   inset: 0;
-  will-change: transform, opacity;
-  transform-origin: center center;
+  will-change: opacity;
 }
 
-.wf-rotor .wf-img--hand {
-  will-change: transform, opacity;
+.wf-hand .wf-img--hand {
+  will-change: opacity;
 }
 
 .wf-glow {
@@ -279,6 +288,7 @@ html.no-motion [data-motion-text],
 .section-head {
   position: relative;
   margin-bottom: clamp(2.6rem, 6vh, 4.5rem);
+  max-width: min(720px, 100%);
 }
 
 .section-label {
@@ -822,7 +832,7 @@ html.no-motion [data-motion-text],
   grid-area: 1 / 1;
   align-self: end;
   justify-self: center;
-  margin: 0 0 16vh;
+  margin: 0 0 22vh;
   font-family: var(--font-mono);
   font-size: clamp(10.5px, 1.2vw, 13px);
   letter-spacing: 0.12em;
@@ -906,10 +916,10 @@ html.no-motion [data-motion-text],
 
 .whatis-featured {
   position: absolute;
-  top: 50%;
+  top: 42%;
   left: 50%;
   transform: translate(-50%, -50%);
-  width: min(52vw, 920px);
+  width: min(46vw, 780px);
   aspect-ratio: 16 / 9;
   z-index: 2;
   box-shadow: 0 26px 80px rgba(0, 0, 0, 0.6);
@@ -1093,7 +1103,7 @@ html.no-motion [data-motion-text],
 
 .leagues {
   position: relative;
-  padding-block: clamp(80px, 14vh, 150px) clamp(50px, 8vh, 90px);
+  padding-block: clamp(70px, 12vh, 120px) clamp(140px, 22vh, 240px);
 }
 
 .leagues .section-head {
@@ -1102,8 +1112,10 @@ html.no-motion [data-motion-text],
 
 .leagues-stage {
   position: relative;
-  height: min(86vh, 880px);
-  margin-top: -2vh;
+  height: min(62vh, 620px);
+  max-width: 860px;
+  margin-inline: auto;
+  margin-top: -1vh;
 }
 
 .leagues-core {
@@ -1141,8 +1153,8 @@ html.no-motion [data-motion-text],
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 12px;
-  width: clamp(120px, 13vw, 178px);
+  gap: 10px;
+  width: clamp(100px, 11vw, 148px);
   aspect-ratio: 1 / 1.08;
   border: 1px solid var(--border-subtle);
   border-radius: 12px;
@@ -1182,37 +1194,8 @@ html.no-motion [data-motion-text],
     position: absolute;
     top: 50%;
     left: 50%;
-    margin: calc(clamp(120px, 13vw, 178px) / -1.85) 0 0 calc(clamp(120px, 13vw, 178px) / -2);
+    margin: calc(clamp(100px, 11vw, 148px) / -1.85) 0 0 calc(clamp(100px, 11vw, 148px) / -2);
   }
-}
-
-.leagues-list {
-  list-style: none;
-  margin: clamp(30px, 6vh, 60px) auto 0;
-  padding: 0;
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 1px;
-  background: var(--border-hairline);
-  border: 1px solid var(--border-hairline);
-}
-
-.leagues-list li {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  padding: 16px 18px;
-  background: var(--bg-base);
-  font-family: var(--font-mono);
-  font-size: 13px;
-  color: var(--text-primary);
-}
-
-.leagues-list-kind {
-  font-size: 10px;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: var(--text-tertiary);
 }
 
 @media (max-width: 768px) {
@@ -1222,6 +1205,7 @@ html.no-motion [data-motion-text],
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 12px;
     padding-inline: var(--padding-x);
+    max-width: none;
   }
 
   .leagues-card {
@@ -1232,18 +1216,13 @@ html.no-motion [data-motion-text],
   .leagues-core {
     display: none;
   }
-
-  .leagues-list {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    margin-inline: 0;
-  }
 }
 
 /* ---------- track record ---------- */
 
 .track {
   position: relative;
-  padding-block: clamp(90px, 16vh, 170px) clamp(60px, 10vh, 120px);
+  padding-block: clamp(70px, 12vh, 130px) clamp(140px, 22vh, 240px);
 }
 
 .track-hero {
@@ -1444,14 +1423,14 @@ html.no-motion [data-motion-text],
 
 .pricing {
   position: relative;
-  padding-block: clamp(90px, 16vh, 170px) clamp(60px, 10vh, 120px);
+  padding-block: clamp(70px, 12vh, 130px) clamp(140px, 22vh, 240px);
 }
 
 .pricing-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 20px;
-  max-width: 980px;
+  max-width: 860px;
 }
 
 .price-card {
@@ -1577,11 +1556,11 @@ html.no-motion [data-motion-text],
 
 .faq {
   position: relative;
-  padding-block: clamp(80px, 14vh, 150px) clamp(50px, 8vh, 100px);
+  padding-block: clamp(70px, 12vh, 120px) clamp(140px, 22vh, 240px);
 }
 
 .faq-list {
-  max-width: 780px;
+  max-width: 680px;
   border-top: 1px solid var(--border-subtle);
 }
 
@@ -1693,9 +1672,10 @@ html.no-motion [data-motion-text],
 
 .signal {
   position: relative;
-  min-height: 88vh;
+  min-height: 72vh;
   display: flex;
   align-items: center;
+  padding-bottom: clamp(140px, 22vh, 240px);
 }
 
 .signal-inner {
@@ -1705,8 +1685,8 @@ html.no-motion [data-motion-text],
   flex-direction: column;
   align-items: center;
   text-align: center;
-  /* Deep bottom padding leaves room for the up-pointing finger below. */
-  padding-block: 14vh 30vh;
+  /* Bottom padding leaves room for the up-pointing finger below. */
+  padding-block: 10vh 26vh;
 }
 
 .signal-label {

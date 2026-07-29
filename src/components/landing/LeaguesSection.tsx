@@ -45,7 +45,7 @@ export default function LeaguesSection() {
 
       const radiusFor = () => {
         const size = Math.min(stage.clientWidth, stage.clientHeight)
-        return Math.max(size / 2 - 90, 150)
+        return Math.max(size / 2 - 70, 120)
       }
 
       if (reducedMotion()) {
@@ -162,11 +162,11 @@ export default function LeaguesSection() {
       className="leagues"
       ref={rootRef}
       id="coverage"
-      data-companion="point-down"
+      data-companion="point-up"
       data-companion-x="0"
-      data-companion-y="-30"
-      data-companion-scale="0.42"
-      data-companion-opacity="0.8"
+      data-companion-y="34"
+      data-companion-scale="0.38"
+      data-companion-opacity="0.85"
       aria-label="League and tournament coverage"
     >
       <div className="section-head landing-inner">
@@ -176,8 +176,8 @@ export default function LeaguesSection() {
         </h2>
       </div>
 
-      <div className="leagues-stage" aria-hidden="true">
-        <div className="leagues-core">
+      <div className="leagues-stage" aria-label="Covered leagues and tournaments">
+        <div className="leagues-core" aria-hidden="true">
           <span className="leagues-core-value">8</span>
           <span className="leagues-core-label">tier-1 circuits</span>
         </div>
@@ -191,17 +191,6 @@ export default function LeaguesSection() {
           )
         })}
       </div>
-
-      <ul className="leagues-list landing-inner" aria-label="Covered leagues and tournaments">
-        {LEAGUES.map((league) => (
-          <li key={league.key}>
-            <span>{league.label}</span>
-            <span className="leagues-list-kind">
-              {league.kind === 'league' ? 'domestic league' : 'international'}
-            </span>
-          </li>
-        ))}
-      </ul>
     </section>
   )
 }

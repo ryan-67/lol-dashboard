@@ -6,59 +6,39 @@ import { applyBlackToAlpha, blackToAlpha, reducedMotion } from './motion'
 import fakerVideo from '../assets/faker_vid.mp4'
 import frontBlack from './assets/faker-wireframe-front-black.png'
 import pointUp from './assets/faker-wireframe-point-up.png'
-import pointDown from './assets/faker-wireframe-point-down.png'
-import pointLeft from './assets/faker-wireframe-point-left.png'
-import pointRight from './assets/faker-wireframe-point-right.png'
 
 gsap.registerPlugin(ScrollTrigger, useGSAP)
 
-type HandPose = 'point-up' | 'point-right' | 'point-down' | 'point-left'
-type Pose = 'front' | HandPose | 'hide'
-
-/** Clockwise rotor angle each hand render natively represents. */
-const HAND_ANGLE: Record<HandPose, number> = {
-  'point-up': 0,
-  'point-right': 90,
-  'point-down': 180,
-  'point-left': 270,
-}
-
-const HAND_SOURCES: Record<HandPose, string> = {
-  'point-up': pointUp,
-  'point-right': pointRight,
-  'point-down': pointDown,
-  'point-left': pointLeft,
-}
+type Pose = 'front' | 'point-up' | 'hide'
 
 const VIDEO_MAX_WIDTH = 480
 
 /**
  * The persistent Faker wireframe that narrates the scroll story.
  *
- * A fixed overlay centered on the viewport (anime.js-style centerpiece).
- * All renders are processed at runtime from matte-black plates into truly
- * transparent images (luminance → alpha), so they sit seamlessly on the page.
+ * Fixed overlay, centered on the viewport (anime.js-style centerpiece).
+ * Renders are processed at runtime from matte-black plates into true alpha.
  *
- * The pointing hand lives on a rotor: each hand render is counter-rotated by
- * its native angle, so scrubbing the rotor clockwise (0° → 90° → 180° → …)
- * sweeps the finger through up → right → down → left while crossfading to the
- * dedicated render — both images always point the same direction mid-flight.
+ * Arc:
+ *   1. Hero — full front wireframe + ambient video
+ *   2. Knows onward — head dissolves, finger stays pointing UP
+ *   3. Finale — head + ambient video return over the up finger
  *
  * Sections declare checkpoints with data attributes:
- *   data-companion="point-right"    pose (front | point-* | hide)
- *   data-companion-x="-36"          stage translateX in vw (from center)
- *   data-companion-y="30"           stage translateY in vh
+ *   data-companion="point-up"       pose (front | point-up | hide)
+ *   data-companion-x="0"            stage translateX in vw (from center)
+ *   data-companion-y="32"           stage translateY in vh
  *   data-companion-scale="0.4"      stage scale
- *   data-companion-opacity="0.8"    stage opacity
+ *   data-companion-opacity="0.85"   stage opacity
  */
 export default function WireframeCompanion() {
   const rootRef = useRef<HTMLDivElement>(null)
   const stageRef = useRef<HTMLDivElement>(null)
   const headRef = useRef<HTMLDivElement>(null)
-  const rotorRef = useRef<HTMLDivElement>(null)
+  const handRef = useRef<HTMLDivElement>(null)
   const frontRef = useRef<HTMLImageElement>(null)
+  const pointUpRef = useRef<HTMLImageElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
-  const handRefs = useRef<Record<string, HTMLImageElement | null>>({})
 
   /* Process the matte-black renders into transparent images. */
   useEffect(() => {
@@ -78,9 +58,7 @@ export default function WireframeCompanion() {
     }
 
     void hydrate(frontRef.current, frontBlack)
-    ;(Object.keys(HAND_SOURCES) as HandPose[]).forEach((pose) => {
-      void hydrate(handRefs.current[pose] ?? null, HAND_SOURCES[pose])
-    })
+    void hydrate(pointUpRef.current, pointUp)
 
     return () => {
       alive = false
@@ -88,7 +66,7 @@ export default function WireframeCompanion() {
     }
   }, [])
 
-  /* Ambient hero video, black-removed per frame onto a transparent canvas. */
+  /* Ambient video on the full wireframe — hero + finale. */
   useEffect(() => {
     const canvas = canvasRef.current
     if (!canvas || reducedMotion() || !window.matchMedia('(min-width: 769px)').matches) return
@@ -104,17 +82,24 @@ export default function WireframeCompanion() {
     video.preload = 'auto'
 
     let rafId = 0
-    let heroActive = true
+    let videoActive = true
     let alive = true
-    /* Center-crop the (landscape) video to a square so it overlays the
-     * square wireframe render exactly. */
     let cropX = 0
     let cropY = 0
     let cropSize = 0
 
+    const setActive = (next: boolean) => {
+      videoActive = next
+      if (next) {
+        void video.play().catch(() => undefined)
+      } else {
+        video.pause()
+      }
+    }
+
     const renderFrame = () => {
       if (!alive) return
-      if (heroActive && !document.hidden && video.readyState >= 2 && cropSize > 0) {
+      if (videoActive && !document.hidden && video.readyState >= 2 && cropSize > 0) {
         ctx.drawImage(video, cropX, cropY, cropSize, cropSize, 0, 0, canvas.width, canvas.height)
         const frame = ctx.getImageData(0, 0, canvas.width, canvas.height)
         applyBlackToAlpha(frame.data)
@@ -135,19 +120,24 @@ export default function WireframeCompanion() {
     }
     video.addEventListener('loadedmetadata', handleMeta)
 
-    /* Only burn cycles while the hero (where the head lives) is on screen. */
+    /* Play while any full-wireframe section (hero or finale) owns the viewport. */
+    const syncVideoGate = () => {
+      const fronts = gsap.utils.toArray<HTMLElement>('[data-companion="front"]')
+      const midY = window.innerHeight * 0.5
+      const nearFront = fronts.some((el) => {
+        const rect = el.getBoundingClientRect()
+        return rect.top < midY + window.innerHeight * 0.35 && rect.bottom > midY - window.innerHeight * 0.35
+      })
+      setActive(nearFront || window.scrollY < window.innerHeight * 0.85)
+    }
+
     const gate = ScrollTrigger.create({
       start: 0,
-      end: () => window.innerHeight * 0.9,
-      onLeave: () => {
-        heroActive = false
-        video.pause()
-      },
-      onEnterBack: () => {
-        heroActive = true
-        void video.play().catch(() => undefined)
-      },
+      end: 'max',
+      onUpdate: syncVideoGate,
+      onRefresh: syncVideoGate,
     })
+    syncVideoGate()
 
     return () => {
       alive = false
@@ -163,26 +153,15 @@ export default function WireframeCompanion() {
     () => {
       const stage = stageRef.current
       const head = headRef.current
-      const rotor = rotorRef.current
-      if (!stage || !head || !rotor || reducedMotion()) return
+      const hand = handRef.current
+      if (!stage || !head || !hand || reducedMotion()) return
 
-      /* Counter-rotate each hand render so rotor angle N shows the native
-       * pose for N upright. Start hidden except the up hand. */
-      ;(Object.keys(HAND_ANGLE) as HandPose[]).forEach((pose) => {
-        const img = handRefs.current[pose]
-        if (!img) return
-        gsap.set(img, {
-          rotation: -HAND_ANGLE[pose],
-          autoAlpha: pose === 'point-up' ? 1 : 0,
-        })
-      })
-      gsap.set(rotor, { autoAlpha: 0, rotation: 0 })
+      gsap.set(hand, { autoAlpha: 0 })
 
       const mm = gsap.matchMedia()
       let master: gsap.core.Timeline | null = null
 
       mm.add('(min-width: 769px)', () => {
-        /* Ambient idle — composes additively with scroll-driven transforms. */
         const float = stage.querySelector('.wf-float')
         const floatTween = gsap.to(float, {
           y: -14,
@@ -203,7 +182,6 @@ export default function WireframeCompanion() {
           const total = Math.max(doc.scrollHeight - window.innerHeight, 1)
           const vw = window.innerWidth / 100
           const vh = window.innerHeight / 100
-          /* Transition window ≈ 0.85 viewport of scroll, normalized. */
           const fadeWin = Math.min((window.innerHeight * 0.85) / total, 0.08)
 
           master = gsap.timeline({
@@ -215,17 +193,13 @@ export default function WireframeCompanion() {
               scrub: 1.1,
             },
           })
-          /* Pad the timeline so its duration is exactly 1 normalized unit. */
           master.set({}, {}, 1)
 
           let prevPose: Pose = 'front'
-          let prevHand: HandPose = 'point-up'
-          let angle = 0
 
           sections.forEach((el, index) => {
             const rect = el.getBoundingClientRect()
             const elTop = rect.top + window.scrollY
-            /* Checkpoint lands when the section reaches viewport center. */
             const at = gsap.utils.clamp(
               0.0001,
               1 - fadeWin,
@@ -242,52 +216,27 @@ export default function WireframeCompanion() {
             master!.addLabel(`section-${index}`, at)
 
             if (pose === 'front' && prevPose !== 'front') {
-              /* The head returns over the up-pointing finger — full circle. */
-              master!.to(rotor, { autoAlpha: 0, duration: fadeWin }, at)
+              /* Head returns over the up-pointing finger — full circle. */
+              master!.to(hand, { autoAlpha: 0, duration: fadeWin }, at)
               master!.to(head, { autoAlpha: 1, duration: fadeWin * 1.4 }, at)
               prevPose = 'front'
-            } else if (pose !== 'front' && pose !== 'hide') {
+            } else if (pose === 'point-up') {
               if (prevPose === 'front') {
-                /* Head dissolves upward, leaving only the pointing finger. */
                 master!.to(
                   head,
                   { autoAlpha: 0, duration: fadeWin, ease: 'power1.in' },
                   at,
                 )
-                master!.to(rotor, { autoAlpha: 1, duration: fadeWin }, at)
+                master!.to(hand, { autoAlpha: 1, duration: fadeWin }, at)
+              } else if (prevPose === 'hide') {
+                master!.to(hand, { autoAlpha: 1, duration: fadeWin }, at)
               }
-
-              /* Strictly clockwise rotor sweep to the next direction. */
-              let target = HAND_ANGLE[pose]
-              while (target < angle) target += 360
-
-              if (target !== angle) {
-                master!.to(
-                  rotor,
-                  { rotation: target, duration: fadeWin * 1.6, ease: 'power2.inOut' },
-                  at,
-                )
-                if (pose !== prevHand) {
-                  master!.to(
-                    handRefs.current[prevHand],
-                    { autoAlpha: 0, duration: fadeWin * 1.6 },
-                    at,
-                  )
-                  master!.to(
-                    handRefs.current[pose],
-                    { autoAlpha: 1, duration: fadeWin * 1.6 },
-                    at,
-                  )
-                }
-                angle = target
-                prevHand = pose
-              }
-              prevPose = pose
+              prevPose = 'point-up'
+            } else if (pose === 'hide') {
+              /* Opacity-only fade; keep last pose in place. */
+              prevPose = 'hide'
             }
 
-            /* Positional gesture — slightly longer than the crossfade so the
-             * fade + slide read as one continuous movement. Hidden
-             * checkpoints only fade, keeping the last pose in place. */
             master!.to(
               stage,
               pose === 'hide'
@@ -298,7 +247,6 @@ export default function WireframeCompanion() {
           })
         }
 
-        /* Build after pinned sections install their spacers; rebuild on resize. */
         const buildTimer = window.setTimeout(buildMaster, 300)
         const handleLoad = () => buildMaster()
         window.addEventListener('load', handleLoad)
@@ -323,7 +271,6 @@ export default function WireframeCompanion() {
       })
 
       mm.add('(max-width: 768px)', () => {
-        /* Mobile: the companion lives in the hero only (CSS pins it there). */
         const float = stage.querySelector('.wf-float')
         const floatTween = gsap.to(float, {
           y: -10,
@@ -357,18 +304,8 @@ export default function WireframeCompanion() {
             <img className="wf-img wf-img--front" alt="" ref={frontRef} />
             {!reduce ? <canvas className="wf-video-canvas" ref={canvasRef} /> : null}
           </div>
-          <div className="wf-rotor" ref={rotorRef}>
-            {(Object.keys(HAND_SOURCES) as HandPose[]).map((pose) => (
-              <img
-                key={pose}
-                className={`wf-img wf-img--hand wf-img--${pose}`}
-                alt=""
-                ref={(el) => {
-                  handRefs.current[pose] = el
-                }}
-                style={{ opacity: 0, visibility: 'hidden' }}
-              />
-            ))}
+          <div className="wf-hand" ref={handRef}>
+            <img className="wf-img wf-img--hand" alt="" ref={pointUpRef} />
           </div>
         </div>
       </div>

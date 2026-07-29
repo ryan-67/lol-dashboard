@@ -1,7 +1,6 @@
 /**
  * "the signal" — a quiet manifesto beat between the FAQ and the finale.
- * The pointing finger returns here (pointing up, full circle) so the head
- * can dissolve back into place over it in the closing CTA.
+ * Finger stays pointing up so the head can dissolve back over it in the CTA.
  */
 export default function SignalSection() {
   return (
@@ -10,9 +9,9 @@ export default function SignalSection() {
       id="signal"
       data-companion="point-up"
       data-companion-x="0"
-      data-companion-y="14"
-      data-companion-scale="0.55"
-      data-companion-opacity="0.9"
+      data-companion-y="34"
+      data-companion-scale="0.4"
+      data-companion-opacity="0.85"
       aria-label="The nucky signal"
     >
       <div className="signal-inner landing-inner">

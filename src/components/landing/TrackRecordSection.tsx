@@ -77,9 +77,9 @@ export default function TrackRecordSection({ scorecard, updatedLabel }: TrackRec
       className="track landing-inner"
       ref={rootRef}
       id="model"
-      data-companion="point-left"
-      data-companion-x="34"
-      data-companion-y="-26"
+      data-companion="point-up"
+      data-companion-x="0"
+      data-companion-y="34"
       data-companion-scale="0.38"
       data-companion-opacity="0.85"
       aria-label="Model track record"

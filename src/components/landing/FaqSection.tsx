@@ -41,7 +41,11 @@ export default function FaqSection() {
     <section
       className="faq landing-inner"
       id="faq"
-      data-companion="hide"
+      data-companion="point-up"
+      data-companion-x="0"
+      data-companion-y="34"
+      data-companion-scale="0.38"
+      data-companion-opacity="0.85"
       aria-label="Frequently asked questions"
     >
       <div className="section-head">

@@ -20,9 +20,9 @@ export default function PricingSection({
       id="pricing"
       data-companion="point-up"
       data-companion-x="0"
-      data-companion-y="30"
-      data-companion-scale="0.4"
-      data-companion-opacity="0.8"
+      data-companion-y="34"
+      data-companion-scale="0.38"
+      data-companion-opacity="0.85"
       aria-label="Pricing"
     >
       <div className="section-head">
