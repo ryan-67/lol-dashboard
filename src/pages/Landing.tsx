@@ -11,6 +11,7 @@ import HeroSection from '../components/landing/HeroSection'
 import KnowsSection from '../components/landing/KnowsSection'
 import WhatIsSection from '../components/landing/WhatIsSection'
 import LeaguesSection from '../components/landing/LeaguesSection'
+import ModelEngineSection from '../components/landing/ModelEngineSection'
 import TrackRecordSection from '../components/landing/TrackRecordSection'
 import PricingSection from '../components/landing/PricingSection'
 import FaqSection from '../components/landing/FaqSection'
@@ -186,6 +187,8 @@ export default function Landing() {
         <WhatIsSection />
 
         <LeaguesSection />
+
+        <ModelEngineSection />
 
         <TrackRecordSection scorecard={scorecard} updatedLabel={scorecardUpdated ?? null} />
 

@@ -25,6 +25,7 @@
 /* Content columns leave a bottom band clear for the fixed up-finger. */
 .whatis,
 .leagues,
+.model-engine,
 .track,
 .pricing,
 .faq,
@@ -944,7 +945,8 @@ html.no-motion [data-motion-text],
 .whatis-text {
   position: absolute;
   top: 50%;
-  left: var(--padding-x);
+  /* Pulled inward toward the central visual — not pinned to the edge. */
+  left: clamp(56px, 10vw, 170px);
   transform: translateY(-50%);
   z-index: 3;
   width: min(21vw, 300px);
@@ -984,7 +986,8 @@ html.no-motion [data-motion-text],
 .whatis-para {
   position: absolute;
   top: 50%;
-  right: var(--padding-x);
+  /* Pulled inward toward the central visual — not pinned to the edge. */
+  right: clamp(56px, 10vw, 170px);
   transform: translateY(-50%);
   z-index: 3;
   width: min(20vw, 280px);
@@ -1218,6 +1221,126 @@ html.no-motion [data-motion-text],
   }
 }
 
+/* ---------- inside the model — text-choreography beat ---------- */
+
+.model-engine {
+  position: relative;
+  padding-block: clamp(70px, 12vh, 130px) clamp(140px, 22vh, 240px);
+}
+
+.model-manifesto {
+  margin: 0 0 clamp(3rem, 8vh, 5.5rem);
+  max-width: 30ch;
+  font-size: clamp(1.5rem, 2.7vw, 2.5rem);
+  font-weight: 550;
+  letter-spacing: -0.03em;
+  line-height: 1.28;
+  color: var(--text-primary);
+}
+
+.model-factors {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(2.4rem, 5.5vh, 4rem);
+}
+
+.model-factor {
+  position: relative;
+  display: grid;
+  grid-template-columns: 64px 1fr;
+  grid-template-areas:
+    'index keyword'
+    'index body';
+  column-gap: clamp(16px, 3vw, 40px);
+  row-gap: 12px;
+  padding-top: clamp(1.4rem, 3vh, 2.2rem);
+}
+
+.model-factor-line {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, var(--accent-dim), var(--border-hairline) 60%, transparent);
+}
+
+.model-factor-index {
+  grid-area: index;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  letter-spacing: 0.14em;
+  color: var(--accent);
+}
+
+.model-factor-keyword {
+  grid-area: keyword;
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: clamp(1.2rem, 2.2vw, 1.9rem);
+  font-weight: 550;
+  letter-spacing: -0.01em;
+  color: var(--text-primary);
+}
+
+.model-factor-body {
+  grid-area: body;
+  margin: 0;
+  max-width: 56ch;
+  font-size: clamp(0.92rem, 1.35vw, 1.05rem);
+  line-height: 1.7;
+  color: var(--text-secondary);
+}
+
+.model-outputs {
+  margin-top: clamp(3rem, 8vh, 5.5rem);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 14px 22px;
+}
+
+.model-outputs-label {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+}
+
+.model-outputs ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.model-output {
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--accent);
+  border: 1px solid var(--accent-dim);
+  border-radius: 999px;
+  padding: 8px 16px;
+  background: var(--accent-bg);
+  white-space: nowrap;
+}
+
+@media (max-width: 768px) {
+  .model-factor {
+    grid-template-columns: 1fr;
+    grid-template-areas:
+      'index'
+      'keyword'
+      'body';
+    row-gap: 8px;
+  }
+}
+
 /* ---------- track record ---------- */
 
 .track {
@@ -1298,7 +1421,7 @@ html.no-motion [data-motion-text],
   display: block;
   height: 100%;
   border-radius: 999px;
-  background: color-mix(in oklab, var(--text-tertiary) 75%, transparent);
+  background: color-mix(in oklab, var(--text-secondary) 80%, transparent);
 }
 
 .track-bar-fill.is-model {

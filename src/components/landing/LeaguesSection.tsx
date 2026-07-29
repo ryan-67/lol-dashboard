@@ -64,7 +64,7 @@ export default function LeaguesSection() {
         gsap.set(cards, { x: 0, y: 0, autoAlpha: 0 })
         gsap.set(core, { autoAlpha: 0 })
 
-        const floats: gsap.core.Tween[] = []
+        const ambient: gsap.core.Tween[] = []
 
         const tl = gsap.timeline({
           defaults: { ease: 'power3.out' },
@@ -74,19 +74,27 @@ export default function LeaguesSection() {
             once: true,
           },
           onComplete: () => {
-            /* Settled ring breathes — each card floats independently. */
-            cards.forEach((card) => {
-              floats.push(
-                gsap.to(card, {
-                  y: `+=${gsap.utils.random(-9, 9)}`,
-                  x: `+=${gsap.utils.random(-6, 6)}`,
-                  duration: gsap.utils.random(2.6, 3.8),
-                  ease: 'sine.inOut',
-                  yoyo: true,
-                  repeat: -1,
-                }),
-              )
-            })
+            /* Settled ring drifts clockwise — persistent ambient orbit.
+             * Cards travel along the circle but stay upright. */
+            const orbit = { angle: 0 }
+            ambient.push(
+              gsap.to(orbit, {
+                angle: Math.PI * 2,
+                duration: 110,
+                ease: 'none',
+                repeat: -1,
+                onUpdate: () => {
+                  const radius = radiusFor()
+                  cards.forEach((card, i) => {
+                    const theta = sliceAngle * i - Math.PI / 2 + orbit.angle
+                    gsap.set(card, {
+                      x: radius * Math.cos(theta),
+                      y: radius * Math.sin(theta),
+                    })
+                  })
+                },
+              }),
+            )
           },
         })
 
@@ -129,7 +137,7 @@ export default function LeaguesSection() {
           )
 
         return () => {
-          floats.forEach((tween) => tween.kill())
+          ambient.forEach((tween) => tween.kill())
         }
       })
 

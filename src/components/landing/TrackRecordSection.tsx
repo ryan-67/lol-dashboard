@@ -46,15 +46,25 @@ export default function TrackRecordSection({ scorecard, updatedLabel }: TrackRec
 
       if (reducedMotion()) return
 
-      gsap.utils.toArray<HTMLElement>(root.querySelectorAll('.track-bar-fill')).forEach((bar) => {
-        gsap.from(bar, {
-          scaleX: 0,
-          transformOrigin: 'left center',
+      /* Fill both bars from a single container trigger — per-bar triggers on
+       * the 7px fills computed stale positions under the pinned slider above
+       * and could leave the fills stuck at scaleX 0. */
+      gsap.fromTo(
+        root.querySelectorAll('.track-bar-fill'),
+        { scaleX: 0, transformOrigin: 'left center' },
+        {
+          scaleX: 1,
           duration: 1.2,
+          stagger: 0.18,
           ease: 'power3.out',
-          scrollTrigger: { trigger: bar, start: MOTION.revealStart, once: true },
-        })
-      })
+          scrollTrigger: {
+            trigger: root.querySelector('.track-bars'),
+            start: MOTION.revealStart,
+            once: true,
+            invalidateOnRefresh: true,
+          },
+        },
+      )
 
       gsap.fromTo(
         root.querySelectorAll('.track-table tbody tr'),
