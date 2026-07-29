@@ -8,9 +8,10 @@ type AuthView = 'signin' | 'signup'
 
 const MARKETING_NAV = [
   { to: '/dashboard', label: 'dashboard' },
-  { to: '/#features', label: 'features' },
-  { to: '/#faq', label: 'faq' },
+  { to: '/#features', label: 'product' },
+  { to: '/#model', label: 'model' },
   { to: '/#pricing', label: 'pricing' },
+  { to: '/#faq', label: 'faq' },
 ]
 
 interface LandingLayoutProps {
@@ -24,12 +25,14 @@ export default function LandingLayout({ children }: LandingLayoutProps) {
   const [showAuth, setShowAuth] = useState(false)
   const [authView, setAuthView] = useState<AuthView>('signin')
   const [menuOpen, setMenuOpen] = useState(false)
+  const [scrolled, setScrolled] = useState(false)
 
   const FOOTER_PRODUCT = [
     { to: '/dashboard', label: 'dashboard' },
-    { to: '/#features', label: 'features' },
-    { to: '/#faq', label: 'faq' },
+    { to: '/#features', label: 'product' },
+    { to: '/#model', label: 'model' },
     { to: '/#pricing', label: 'pricing' },
+    { to: '/#faq', label: 'faq' },
     { to: homePath, label: 'open app' },
     { to: '/contact', label: 'contact' },
   ]
@@ -38,6 +41,13 @@ export default function LandingLayout({ children }: LandingLayoutProps) {
     setMenuOpen(false)
   }, [location.pathname])
 
+  useEffect(() => {
+    const handleScroll = () => setScrolled(window.scrollY > 12)
+    handleScroll()
+    window.addEventListener('scroll', handleScroll, { passive: true })
+    return () => window.removeEventListener('scroll', handleScroll)
+  }, [])
+
   const openAuth = (view: AuthView) => {
     setAuthView(view)
     setShowAuth(true)
@@ -45,7 +55,7 @@ export default function LandingLayout({ children }: LandingLayoutProps) {
 
   return (
     <div className="landing-shell">
-      <header className="landing-header">
+      <header className={`landing-header${scrolled ? ' is-scrolled' : ''}`}>
         <div className="landing-header-inner">
           <Link to="/" className="landing-brand" aria-label="nucky home">
             <span className="nucky-mark nucky-mark--lg" aria-hidden>
@@ -68,7 +78,11 @@ export default function LandingLayout({ children }: LandingLayoutProps) {
                 <Link className="landing-btn landing-btn-ghost" to={homePath}>
                   open app
                 </Link>
-                <button type="button" className="landing-btn landing-btn-ghost" onClick={() => signOut()}>
+                <button
+                  type="button"
+                  className="landing-btn landing-btn-ghost"
+                  onClick={() => signOut()}
+                >
                   logout
                 </button>
               </>
@@ -102,7 +116,6 @@ export default function LandingLayout({ children }: LandingLayoutProps) {
             >
               <span />
               <span />
-              <span />
             </button>
           </div>
         </div>
@@ -119,10 +132,18 @@ export default function LandingLayout({ children }: LandingLayoutProps) {
             </Link>
             {!user ? (
               <>
-                <button type="button" className="landing-mobile-link" onClick={() => openAuth('signin')}>
+                <button
+                  type="button"
+                  className="landing-mobile-link"
+                  onClick={() => openAuth('signin')}
+                >
                   sign in
                 </button>
-                <button type="button" className="landing-mobile-link" onClick={() => openAuth('signup')}>
+                <button
+                  type="button"
+                  className="landing-mobile-link"
+                  onClick={() => openAuth('signup')}
+                >
                   create account
                 </button>
               </>
@@ -153,7 +174,7 @@ export default function LandingLayout({ children }: LandingLayoutProps) {
             <h2 className="landing-footer-heading">product</h2>
             <ul>
               {FOOTER_PRODUCT.map((item) => (
-                <li key={item.to}>
+                <li key={item.label}>
                   <Link to={item.to}>{item.label}</Link>
                 </li>
               ))}
