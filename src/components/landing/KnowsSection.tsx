@@ -242,7 +242,7 @@ export default function KnowsSection() {
           duration: 0.9,
           stagger: 0.06,
           ease: MOTION.easeOut,
-          scrollTrigger: { trigger: root, start: 'top 75%', once: true },
+          scrollTrigger: { trigger: root, start: 'top 65%', once: true },
         })
         gsap.fromTo(
           imgs,
@@ -254,7 +254,7 @@ export default function KnowsSection() {
             duration: 0.7,
             stagger: 0.05,
             ease: MOTION.easeOut,
-            scrollTrigger: { trigger: stage, start: 'top 80%', once: true },
+            scrollTrigger: { trigger: stage, start: 'top 65%', once: true },
           },
         )
         gsap.to(lead, {
@@ -276,11 +276,11 @@ export default function KnowsSection() {
       className="knows"
       ref={rootRef}
       id="knows"
-      data-companion="point-down"
-      data-companion-x="8"
-      data-companion-y="-27"
-      data-companion-scale="0.5"
-      data-companion-opacity="0.85"
+      data-companion="point-up"
+      data-companion-x="0"
+      data-companion-y="30"
+      data-companion-scale="0.45"
+      data-companion-opacity="0.9"
       aria-label="nucky knows the players, teams, and tournaments"
     >
       <div className="knows-stage">

@@ -16,7 +16,7 @@ interface HeroSectionProps {
 
 const HERO_LINES = ['the', 'lolesports', 'signal.']
 
-/** Hero — brand headline left, the wireframe companion dominates the right. */
+/** Hero — the wireframe companion is the centered centerpiece; copy overlays left. */
 export default function HeroSection({
   introDone,
   signedIn,
@@ -150,9 +150,6 @@ export default function HeroSection({
             ))}
           </div>
         </div>
-
-        {/* The wireframe companion (fixed overlay) occupies this half. */}
-        <div className="hero-visual-space" aria-hidden="true" />
       </div>
 
       <div className="hero-scroll-cue" style={{ opacity: 0 }} aria-hidden="true">

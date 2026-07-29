@@ -17,10 +17,10 @@ export default function FinalCtaSection({
       className="finale"
       id="get-started"
       data-companion="front"
-      data-companion-x="-28"
+      data-companion-x="0"
       data-companion-y="0"
-      data-companion-scale="0.92"
-      data-companion-opacity="0.85"
+      data-companion-scale="0.9"
+      data-companion-opacity="0.9"
       aria-label="Get started with nucky"
     >
       <div className="finale-inner landing-inner">

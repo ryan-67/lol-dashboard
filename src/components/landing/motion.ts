@@ -5,15 +5,16 @@ gsap.registerPlugin(ScrollTrigger)
 
 /* Shared motion language for the landing surface.
  * Tokens follow the cinematic-gsap-lenis-motion-system skill:
- * eases power3/power4/expo out, scrub 0.8–1.4, word stagger 0.035–0.07s,
- * reveal trigger "top 82%".
+ * eases power3/power4/expo out, scrub 0.8–1.4, word stagger 0.035–0.07s.
+ * Reveals fire when content reaches the middle band of the viewport
+ * ("top 60%") so every section animates at page center, not on entry.
  */
 
 export const MOTION = {
   easeOut: 'power4.out',
   easeSoft: 'power3.out',
   easeExpo: 'expo.out',
-  revealStart: 'top 82%',
+  revealStart: 'top 60%',
   scrub: 1.1,
   wordStagger: 0.05,
   lineStagger: 0.11,
@@ -235,7 +236,7 @@ export function animateStatCounter(
     ease: 'power2.out',
     scrollTrigger: {
       trigger: element,
-      start: 'top 88%',
+      start: MOTION.revealStart,
       once: true,
     },
     onUpdate: () => {
@@ -245,4 +246,89 @@ export function animateStatCounter(
       element.textContent = `${prefix}${finalValue.toFixed(decimals)}${suffix}`
     },
   })
+}
+
+const SCRAMBLE_CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789<>/\\|+=~'
+
+/** Left-to-right scramble reveal (per the animmaster_slider_5 reference). */
+export function scrambleText(
+  element: Element | null,
+  finalString: string,
+  duration = 1.2,
+): gsap.core.Tween | null {
+  if (!element) return null
+
+  if (reducedMotion()) {
+    element.textContent = finalString
+    return null
+  }
+
+  const state = { p: 0 }
+  return gsap.to(state, {
+    duration,
+    p: 1,
+    ease: 'power2.inOut',
+    onUpdate: () => {
+      const len = finalString.length
+      const revealCount = Math.floor(state.p * len)
+      let result = ''
+      for (let i = 0; i < len; i++) {
+        const char = finalString[i]!
+        result +=
+          i < revealCount || char === ' '
+            ? char
+            : SCRAMBLE_CHARS[Math.floor(Math.random() * SCRAMBLE_CHARS.length)]
+      }
+      element.textContent = result
+    },
+    onComplete: () => {
+      element.textContent = finalString
+    },
+  })
+}
+
+/**
+ * Convert a matte-black-plate render into a truly transparent PNG.
+ * Luminance becomes alpha (max channel), colors are un-premultiplied so the
+ * composite over any dark background matches the original screen-blend look.
+ * Returns a blob URL for use as an <img> src.
+ */
+export async function blackToAlpha(src: string): Promise<string> {
+  const img = new Image()
+  img.decoding = 'async'
+  img.src = src
+  await img.decode()
+
+  const canvas = document.createElement('canvas')
+  canvas.width = img.naturalWidth
+  canvas.height = img.naturalHeight
+  const ctx = canvas.getContext('2d')
+  if (!ctx) return src
+  ctx.drawImage(img, 0, 0)
+
+  const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height)
+  applyBlackToAlpha(imageData.data)
+  ctx.putImageData(imageData, 0, 0)
+
+  return new Promise((resolve) => {
+    canvas.toBlob((blob) => {
+      resolve(blob ? URL.createObjectURL(blob) : src)
+    }, 'image/png')
+  })
+}
+
+/** In-place max-channel → alpha conversion for RGBA pixel buffers. */
+export function applyBlackToAlpha(px: Uint8ClampedArray): void {
+  for (let i = 0; i < px.length; i += 4) {
+    const max = Math.max(px[i]!, px[i + 1]!, px[i + 2]!)
+    if (max === 0) {
+      px[i + 3] = 0
+      continue
+    }
+    const scale = 255 / max
+    px[i] = Math.min(255, px[i]! * scale)
+    px[i + 1] = Math.min(255, px[i + 1]! * scale)
+    px[i + 2] = Math.min(255, px[i + 2]! * scale)
+    px[i + 3] = max
+  }
 }

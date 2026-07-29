@@ -14,6 +14,7 @@ import LeaguesSection from '../components/landing/LeaguesSection'
 import TrackRecordSection from '../components/landing/TrackRecordSection'
 import PricingSection from '../components/landing/PricingSection'
 import FaqSection from '../components/landing/FaqSection'
+import SignalSection from '../components/landing/SignalSection'
 import FinalCtaSection from '../components/landing/FinalCtaSection'
 import {
   initMagnetic,
@@ -196,6 +197,8 @@ export default function Landing() {
         />
 
         <FaqSection />
+
+        <SignalSection />
 
         <FinalCtaSection
           signedIn={Boolean(user)}

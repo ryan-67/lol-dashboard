@@ -150,12 +150,15 @@ html.no-motion [data-motion-text],
   pointer-events: none;
 }
 
+/* Centered centerpiece (anime.js-style). GSAP moves the stage with x/y
+ * offsets from this centered base, so centering uses margins, not transforms. */
 .wf-stage {
   position: absolute;
-  top: 8vh;
-  bottom: 8vh;
-  right: 1vw;
-  width: min(47vw, 900px);
+  top: 6vh;
+  bottom: 6vh;
+  left: 50%;
+  width: min(44vw, 800px);
+  margin-left: calc(min(44vw, 800px) / -2);
   will-change: transform, opacity;
 }
 
@@ -165,42 +168,52 @@ html.no-motion [data-motion-text],
   will-change: transform;
 }
 
+/* Renders are converted to true transparency at runtime (black → alpha),
+ * so they sit seamlessly on the matte page with no plate edges. */
 .wf-img {
   position: absolute;
   inset: 0;
   width: 100%;
   height: 100%;
   object-fit: contain;
-  /* The renders ship on a matte-black square. GSAP transforms on ancestor
-   * layers isolate blend groups (breaking mix-blend-mode against the page),
-   * so soften the plate edges with a radial mask instead. */
-  -webkit-mask-image: radial-gradient(ellipse 72% 72% at 50% 50%, black 52%, transparent 88%);
-  mask-image: radial-gradient(ellipse 72% 72% at 50% 50%, black 52%, transparent 88%);
   user-select: none;
 }
 
-/* Hand renders occupy the center of their plate — tighten the mask so the
- * black plate never reads as a box over section content. */
-.wf-img--hand {
-  -webkit-mask-image: radial-gradient(ellipse 58% 62% at 50% 50%, black 34%, transparent 72%);
-  mask-image: radial-gradient(ellipse 58% 62% at 50% 50%, black 34%, transparent 72%);
+.wf-img:not(.is-ready) {
+  visibility: hidden;
 }
 
-.wf-video {
+/* Ambient video, black-removed per frame onto a transparent canvas.
+ * Square center-crop overlaying the square render's contain box. */
+.wf-video-canvas {
   position: absolute;
-  inset: 6% 10%;
-  width: 80%;
-  height: 88%;
-  object-fit: cover;
+  left: 0;
+  top: 50%;
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  height: auto;
+  transform: translateY(-50%);
   mix-blend-mode: screen;
-  opacity: 0.5;
-  -webkit-mask-image: radial-gradient(closest-side, black 46%, transparent 74%);
-  mask-image: radial-gradient(closest-side, black 46%, transparent 74%);
+  opacity: 0.75;
+  -webkit-mask-image: radial-gradient(closest-side, black 52%, transparent 80%);
+  mask-image: radial-gradient(closest-side, black 52%, transparent 80%);
 }
 
 .wf-head {
   position: absolute;
   inset: 0;
+}
+
+/* The pointing hand rotor — spins clockwise between section checkpoints. */
+.wf-rotor {
+  position: absolute;
+  inset: 0;
+  will-change: transform, opacity;
+  transform-origin: center center;
+}
+
+.wf-rotor .wf-img--hand {
+  will-change: transform, opacity;
 }
 
 .wf-glow {
@@ -235,12 +248,13 @@ html.no-motion [data-motion-text],
   }
 
   .wf-stage {
-    top: 4vh;
+    top: 16vh;
     bottom: auto;
-    right: -14vw;
+    left: 50%;
     width: 88vw;
-    height: 62vh;
-    opacity: 0.55;
+    margin-left: -44vw;
+    height: 66vh;
+    opacity: 0.5;
   }
 }
 
@@ -539,15 +553,21 @@ html.no-motion [data-motion-text],
   align-items: center;
 }
 
+/* Composition: the wireframe is the centered centerpiece (fixed overlay);
+ * the copy overlays it from the left, anime.js-style. */
 .hero-inner {
   width: 100%;
   max-width: var(--max-width);
   margin-inline: auto;
   padding: clamp(90px, 14vh, 150px) var(--padding-x) 60px;
-  display: grid;
-  grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr);
+  display: flex;
   align-items: center;
-  gap: 24px;
+}
+
+.hero-copy {
+  position: relative;
+  z-index: 2;
+  max-width: min(34vw, 470px);
 }
 
 .hero-eyebrow {
@@ -567,8 +587,9 @@ html.no-motion [data-motion-text],
   font-weight: 650;
   letter-spacing: -0.045em;
   line-height: 0.98;
-  font-size: clamp(3.4rem, 8.2vw, 8rem);
+  font-size: clamp(3rem, 6vw, 6.2rem);
   color: var(--text-primary);
+  text-shadow: 0 0 40px rgba(5, 7, 8, 0.85);
 }
 
 .hero-line {
@@ -656,10 +677,6 @@ html.no-motion [data-motion-text],
   border-color: var(--accent-dim);
 }
 
-.hero-visual-space {
-  min-height: 40vh;
-}
-
 .hero-scroll-cue {
   position: absolute;
   bottom: 30px;
@@ -714,17 +731,11 @@ html.no-motion [data-motion-text],
 
 @media (max-width: 768px) {
   .hero-inner {
-    grid-template-columns: 1fr;
     padding-top: 24vh;
   }
 
-  .hero-visual-space {
-    display: none;
-  }
-
   .hero-copy {
-    position: relative;
-    z-index: 2;
+    max-width: none;
   }
 }
 
@@ -787,13 +798,14 @@ html.no-motion [data-motion-text],
 .knows-title {
   grid-area: 1 / 1;
   margin: 0;
-  font-size: clamp(3rem, 8.4vw, 7.6rem);
+  font-size: clamp(2.8rem, 7.4vw, 6.8rem);
   font-weight: 650;
   letter-spacing: -0.045em;
   line-height: 1;
   color: var(--text-primary);
   display: flex;
-  gap: 0.28em;
+  /* Words are spread apart so the center image stack stays visible. */
+  gap: clamp(1.4rem, 9vw, 9rem);
   justify-content: center;
 }
 
@@ -859,95 +871,221 @@ html.no-motion [data-motion-text],
   }
 }
 
-/* ---------- what is nucky — sticky card stack ---------- */
+/* ---------- what is nucky — pinned slide deck (animmaster_slider_5) ---------- */
 
 .whatis {
   position: relative;
-  padding-block: clamp(90px, 16vh, 170px) clamp(60px, 10vh, 120px);
+  padding-top: clamp(90px, 16vh, 170px);
 }
 
-.whatis-stack {
+.whatis .section-head {
+  margin-bottom: clamp(2rem, 5vh, 3.4rem);
+}
+
+.whatis-slider {
   position: relative;
-  display: flex;
-  flex-direction: column;
-  gap: 7vh;
-  max-width: 1040px;
+  height: 100vh;
+  overflow: clip;
 }
 
-.whatis-card {
-  position: sticky;
-  top: 15vh;
-  display: grid;
-  grid-template-columns: auto 1fr;
-  gap: clamp(20px, 4vw, 56px);
-  padding: clamp(28px, 4.5vw, 58px);
+.whatis-bg {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+}
+
+.whatis-bg-img {
+  position: absolute;
+  inset: 0;
+  background-size: cover;
+  background-position: center;
+  opacity: 0;
+  filter: blur(20px) saturate(0.85);
+  transform: scale(1.06);
+}
+
+.whatis-featured {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: min(52vw, 920px);
+  aspect-ratio: 16 / 9;
+  z-index: 2;
+  box-shadow: 0 26px 80px rgba(0, 0, 0, 0.6);
+}
+
+.whatis-frame {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
   border: 1px solid var(--border-subtle);
-  border-radius: 14px;
-  background:
-    linear-gradient(165deg, color-mix(in oklab, var(--bg-elevated) 80%, transparent) 0%, transparent 46%),
-    var(--bg-surface);
-  box-shadow: var(--shadow-lift);
-  transform-origin: center top;
-  will-change: transform, opacity;
-  min-height: 46vh;
+  will-change: clip-path;
+  background: var(--bg-surface);
 }
 
-.whatis-card.is-model {
-  border-top-color: color-mix(in oklab, var(--accent) 50%, var(--border-subtle));
+.whatis-frame img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  will-change: transform;
 }
 
-.whatis-card-index {
+.whatis-text {
+  position: absolute;
+  top: 50%;
+  left: var(--padding-x);
+  transform: translateY(-50%);
+  z-index: 3;
+  width: min(21vw, 300px);
+}
+
+.whatis-number span {
   font-family: var(--font-mono);
-  font-size: clamp(1.6rem, 3vw, 2.4rem);
-  font-weight: 500;
-  color: var(--accent-dim);
-  line-height: 1;
+  font-size: 12px;
+  letter-spacing: 0.14em;
+  color: var(--accent);
 }
 
-.whatis-card-title {
-  margin: 0 0 18px;
-  font-size: clamp(1.5rem, 2.8vw, 2.35rem);
+.whatis-title-mask {
+  overflow: hidden;
+  margin-top: 12px;
+}
+
+.whatis-title {
+  margin: 0;
+  font-size: clamp(1.6rem, 2.5vw, 2.5rem);
   font-weight: 620;
   letter-spacing: -0.03em;
-  line-height: 1.12;
+  line-height: 1.06;
   color: var(--text-primary);
-  max-width: 22ch;
+  text-shadow: 0 0 30px rgba(5, 7, 8, 0.9);
 }
 
-.whatis-card-copy {
-  margin: 0 0 26px;
-  max-width: 62ch;
-  font-size: clamp(0.95rem, 1.35vw, 1.08rem);
-  line-height: 1.7;
+.whatis-desc p {
+  margin: 12px 0 0;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+}
+
+.whatis-para {
+  position: absolute;
+  top: 50%;
+  right: var(--padding-x);
+  transform: translateY(-50%);
+  z-index: 3;
+  width: min(20vw, 280px);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  text-align: right;
+}
+
+.whatis-para-line {
+  overflow: hidden;
+}
+
+.whatis-para-line span {
+  display: block;
+  font-size: clamp(13px, 1.05vw, 15.5px);
+  line-height: 1.5;
+  color: var(--text-secondary);
+  text-shadow: 0 0 24px rgba(5, 7, 8, 0.9);
+}
+
+.whatis-count {
+  position: absolute;
+  bottom: 4.5vh;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 3;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.2em;
+  color: var(--text-tertiary);
+  font-variant-numeric: tabular-nums;
+}
+
+.whatis-hint {
+  position: absolute;
+  bottom: 4.5vh;
+  right: var(--padding-x);
+  z-index: 3;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+}
+
+/* Static fallback list — mobile + reduced motion. */
+.whatis-list {
+  display: none;
+  flex-direction: column;
+  gap: 44px;
+  padding-block: 10px 60px;
+}
+
+.whatis-item {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.whatis-item-media {
+  border: 1px solid var(--border-subtle);
+  overflow: hidden;
+}
+
+.whatis-item-media img {
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+}
+
+.whatis-item-number {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  letter-spacing: 0.14em;
+  color: var(--accent);
+}
+
+.whatis-item-title {
+  margin: 8px 0 0;
+  font-size: clamp(1.4rem, 4.6vw, 1.9rem);
+  font-weight: 620;
+  letter-spacing: -0.03em;
+  color: var(--text-primary);
+}
+
+.whatis-item-desc {
+  margin: 8px 0 0;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+}
+
+.whatis-item-copy {
+  margin: 12px 0 0;
+  max-width: 58ch;
+  font-size: 0.95rem;
+  line-height: 1.65;
   color: var(--text-secondary);
 }
 
-.whatis-card-meta {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
+@media (max-width: 768px), (prefers-reduced-motion: reduce) {
+  .whatis-slider {
+    display: none;
+  }
 
-.whatis-card-meta li {
-  font-family: var(--font-mono);
-  font-size: 10.5px;
-  letter-spacing: 0.09em;
-  text-transform: uppercase;
-  color: var(--text-tertiary);
-  border: 1px solid var(--border-hairline);
-  border-radius: 999px;
-  padding: 6px 13px;
-}
-
-@media (max-width: 768px) {
-  .whatis-card {
-    grid-template-columns: 1fr;
-    gap: 14px;
-    min-height: 0;
-    top: 11vh;
+  .whatis-list {
+    display: flex;
   }
 }
 
@@ -1549,6 +1687,66 @@ html.no-motion [data-motion-text],
 
 .faq-contact a:hover {
   text-decoration: underline;
+}
+
+/* ---------- signal — quiet manifesto beat ---------- */
+
+.signal {
+  position: relative;
+  min-height: 88vh;
+  display: flex;
+  align-items: center;
+}
+
+.signal-inner {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  /* Deep bottom padding leaves room for the up-pointing finger below. */
+  padding-block: 14vh 30vh;
+}
+
+.signal-label {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin: 0 0 20px;
+}
+
+.signal-title {
+  margin: 0;
+  font-size: clamp(2rem, 5vw, 4.4rem);
+  font-weight: 650;
+  letter-spacing: -0.04em;
+  line-height: 1.04;
+  color: var(--text-primary);
+  max-width: 18ch;
+}
+
+.signal-points {
+  list-style: none;
+  margin: 34px 0 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+}
+
+.signal-points li {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+  border: 1px solid var(--border-hairline);
+  border-radius: 999px;
+  padding: 6px 14px;
 }
 
 /* ---------- finale ---------- */

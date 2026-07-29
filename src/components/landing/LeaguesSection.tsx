@@ -70,7 +70,7 @@ export default function LeaguesSection() {
           defaults: { ease: 'power3.out' },
           scrollTrigger: {
             trigger: stage,
-            start: 'top 68%',
+            start: 'top 55%',
             once: true,
           },
           onComplete: () => {
@@ -147,7 +147,7 @@ export default function LeaguesSection() {
             duration: 0.7,
             stagger: 0.06,
             ease: MOTION.easeOut,
-            scrollTrigger: { trigger: stage, start: 'top 80%', once: true },
+            scrollTrigger: { trigger: stage, start: 'top 65%', once: true },
           },
         )
       })
@@ -162,10 +162,11 @@ export default function LeaguesSection() {
       className="leagues"
       ref={rootRef}
       id="coverage"
-      data-companion="point-left"
-      data-companion-x="4"
-      data-companion-y="0"
-      data-companion-scale="0.48"
+      data-companion="point-down"
+      data-companion-x="0"
+      data-companion-y="-30"
+      data-companion-scale="0.42"
+      data-companion-opacity="0.8"
       aria-label="League and tournament coverage"
     >
       <div className="section-head landing-inner">

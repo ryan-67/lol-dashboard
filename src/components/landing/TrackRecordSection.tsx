@@ -2,7 +2,7 @@ import { useRef } from 'react'
 import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import { useGSAP } from '@gsap/react'
-import { animateStatCounter, reducedMotion } from './motion'
+import { MOTION, animateStatCounter, reducedMotion } from './motion'
 import { formatLL, formatPct, type AccuracyScorecard } from '../../lib/accuracyScorecard'
 
 gsap.registerPlugin(ScrollTrigger, useGSAP)
@@ -52,7 +52,7 @@ export default function TrackRecordSection({ scorecard, updatedLabel }: TrackRec
           transformOrigin: 'left center',
           duration: 1.2,
           ease: 'power3.out',
-          scrollTrigger: { trigger: bar, start: 'top 88%', once: true },
+          scrollTrigger: { trigger: bar, start: MOTION.revealStart, once: true },
         })
       })
 
@@ -65,7 +65,7 @@ export default function TrackRecordSection({ scorecard, updatedLabel }: TrackRec
           duration: 0.55,
           stagger: 0.06,
           ease: 'power3.out',
-          scrollTrigger: { trigger: root.querySelector('.track-table'), start: 'top 85%', once: true },
+          scrollTrigger: { trigger: root.querySelector('.track-table'), start: 'top 70%', once: true },
         },
       )
     },
@@ -77,10 +77,11 @@ export default function TrackRecordSection({ scorecard, updatedLabel }: TrackRec
       className="track landing-inner"
       ref={rootRef}
       id="model"
-      data-companion="point-right"
-      data-companion-x="-84"
-      data-companion-y="2"
-      data-companion-scale="0.46"
+      data-companion="point-left"
+      data-companion-x="34"
+      data-companion-y="-26"
+      data-companion-scale="0.38"
+      data-companion-opacity="0.85"
       aria-label="Model track record"
     >
       <div className="section-head">

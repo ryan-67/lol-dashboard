@@ -18,10 +18,11 @@ export default function PricingSection({
     <section
       className="pricing landing-inner"
       id="pricing"
-      data-companion="point-right"
-      data-companion-x="-84"
-      data-companion-y="0"
-      data-companion-scale="0.44"
+      data-companion="point-up"
+      data-companion-x="0"
+      data-companion-y="30"
+      data-companion-scale="0.4"
+      data-companion-opacity="0.8"
       aria-label="Pricing"
     >
       <div className="section-head">
