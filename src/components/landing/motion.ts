@@ -332,3 +332,77 @@ export function applyBlackToAlpha(px: Uint8ClampedArray): void {
     px[i + 3] = max
   }
 }
+
+/**
+ * Convert logo plate backgrounds (near-white or near-black) to transparent.
+ * Used for team/tournament logos that ship on solid plates.
+ */
+export async function plateToAlpha(src: string): Promise<string> {
+  const img = new Image()
+  img.crossOrigin = 'anonymous'
+  img.decoding = 'async'
+  img.src = src
+  try {
+    await img.decode()
+  } catch {
+    return src
+  }
+
+  const canvas = document.createElement('canvas')
+  canvas.width = img.naturalWidth
+  canvas.height = img.naturalHeight
+  const ctx = canvas.getContext('2d')
+  if (!ctx) return src
+
+  try {
+    ctx.drawImage(img, 0, 0)
+    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height)
+    applyPlateToAlpha(imageData.data)
+    ctx.putImageData(imageData, 0, 0)
+  } catch {
+    /* CORS-tainted canvas — keep the original asset. */
+    return src
+  }
+
+  return new Promise((resolve) => {
+    canvas.toBlob((blob) => {
+      resolve(blob ? URL.createObjectURL(blob) : src)
+    }, 'image/png')
+  })
+}
+
+/** Punch out near-white and near-black plate pixels; soften edges via alpha. */
+export function applyPlateToAlpha(px: Uint8ClampedArray): void {
+  for (let i = 0; i < px.length; i += 4) {
+    const r = px[i]!
+    const g = px[i + 1]!
+    const b = px[i + 2]!
+    const a = px[i + 3]!
+    if (a === 0) continue
+
+    const max = Math.max(r, g, b)
+    const min = Math.min(r, g, b)
+    const chroma = max - min
+
+    /* Near-white / light-gray plate (low chroma). */
+    if (min > 210 && chroma < 28) {
+      px[i + 3] = 0
+      continue
+    }
+    if (min > 175 && chroma < 18) {
+      const t = (min - 175) / 35
+      px[i + 3] = Math.round(a * (1 - t))
+      continue
+    }
+
+    /* Near-black plate. */
+    if (max < 18) {
+      px[i + 3] = 0
+      continue
+    }
+    if (max < 42 && chroma < 14) {
+      const t = 1 - max / 42
+      px[i + 3] = Math.round(a * (1 - t))
+    }
+  }
+}

@@ -1,8 +1,8 @@
-import { useMemo, useRef } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import { useGSAP } from '@gsap/react'
-import { MOTION, reducedMotion } from './motion'
+import { MOTION, plateToAlpha, reducedMotion } from './motion'
 import {
   leagueLogoUrl,
   teamLogoUrlFromName,
@@ -101,16 +101,51 @@ function buildItems(): KnowsItem[] {
 }
 
 const KNOWS_WORDS = ['nucky', 'knows']
-const ANALYSES_WORDS = ['nucky', 'analyses']
+const ANALYZES_WORDS = ['nucky', 'analyzes']
 
 /**
- * "nucky knows / nucky analyses" — pinned scattered-image reveal.
+ * "nucky knows / nucky analyzes" — pinned scattered-image reveal.
  * Images stack at center, scale up, then scatter to field positions while
  * the headline swaps. Adapted from the animmaster hero_21 reference.
  */
 export default function KnowsSection() {
   const rootRef = useRef<HTMLElement>(null)
   const items = useMemo(buildItems, [])
+  const [resolvedUrls, setResolvedUrls] = useState<Record<string, string>>({})
+
+  /* Punch solid white/black plates out of team + tournament logos so they
+   * sit as true transparent assets on the matte page. Player portraits stay
+   * as-is (photo cutouts aren't available). */
+  useEffect(() => {
+    let alive = true
+    const blobUrls: string[] = []
+
+    const run = async () => {
+      const next: Record<string, string> = {}
+      await Promise.all(
+        items.map(async (item) => {
+          if (item.kind === 'player') {
+            next[item.url] = item.url
+            return
+          }
+          try {
+            const transparent = await plateToAlpha(item.url)
+            if (transparent !== item.url) blobUrls.push(transparent)
+            next[item.url] = transparent
+          } catch {
+            next[item.url] = item.url
+          }
+        }),
+      )
+      if (alive) setResolvedUrls(next)
+    }
+
+    void run()
+    return () => {
+      alive = false
+      blobUrls.forEach((url) => URL.revokeObjectURL(url))
+    }
+  }, [items])
 
   useGSAP(
     () => {
@@ -121,7 +156,7 @@ export default function KnowsSection() {
 
       const imgs = gsap.utils.toArray<HTMLElement>(root.querySelectorAll('.knows-img'))
       const knowsWords = root.querySelectorAll('.knows-title--a .lw-word')
-      const analysesWords = root.querySelectorAll('.knows-title--b .lw-word')
+      const analyzesWords = root.querySelectorAll('.knows-title--b .lw-word')
       const lead = root.querySelector('.knows-lead')
 
       if (reducedMotion()) {
@@ -138,7 +173,7 @@ export default function KnowsSection() {
           })
         })
         gsap.set([knowsWords, lead], { autoAlpha: 1, yPercent: 0 })
-        gsap.set(analysesWords, { autoAlpha: 0 })
+        gsap.set(analyzesWords, { autoAlpha: 0 })
         return
       }
 
@@ -154,7 +189,7 @@ export default function KnowsSection() {
           autoAlpha: 0,
         })
         gsap.set(knowsWords, { yPercent: 118 })
-        gsap.set(analysesWords, { yPercent: 118 })
+        gsap.set(analyzesWords, { yPercent: 118 })
         gsap.set(lead, { autoAlpha: 0, y: 18 })
 
         const tl = gsap.timeline({
@@ -205,14 +240,14 @@ export default function KnowsSection() {
           0.34,
         )
 
-        /* Phase D — headline swap: knows → analyses. */
+        /* Phase D — headline swap: knows → analyzes. */
         tl.to(
           knowsWords,
           { yPercent: -118, duration: 0.08, stagger: 0.02, ease: 'power2.in' },
           0.62,
         )
         tl.to(
-          analysesWords,
+          analyzesWords,
           { yPercent: 0, duration: 0.09, stagger: 0.03, ease: 'power3.out' },
           0.68,
         )
@@ -234,7 +269,7 @@ export default function KnowsSection() {
         /* Mobile: no pin — headline reveal + staggered grid fade. */
         gsap.set(imgs, { clearProps: 'all' })
         gsap.set(knowsWords, { yPercent: 118 })
-        gsap.set(analysesWords, { yPercent: 0, autoAlpha: 0 })
+        gsap.set(analyzesWords, { yPercent: 0, autoAlpha: 0 })
         gsap.set(lead, { autoAlpha: 0, y: 14 })
 
         gsap.to(knowsWords, {
@@ -284,11 +319,16 @@ export default function KnowsSection() {
       aria-label="nucky knows the players, teams, and tournaments"
     >
       <div className="knows-stage">
-        {items.map((item, i) => (
-          <div key={`${item.url}-${i}`} className={`knows-img is-${item.kind}`} aria-hidden="true">
-            <div className="knows-img-inner" style={{ backgroundImage: `url(${item.url})` }} />
-          </div>
-        ))}
+        {items.map((item, i) => {
+          const src = resolvedUrls[item.url] ?? item.url
+          return (
+            <div key={`${item.url}-${i}`} className={`knows-img is-${item.kind}`} aria-hidden="true">
+              <div className="knows-img-inner">
+                <img src={src} alt="" loading="lazy" decoding="async" />
+              </div>
+            </div>
+          )
+        })}
 
         <div className="knows-heading">
           <h2 className="knows-title knows-title--a" aria-label="nucky knows">
@@ -298,8 +338,8 @@ export default function KnowsSection() {
               </span>
             ))}
           </h2>
-          <h2 className="knows-title knows-title--b" aria-label="nucky analyses">
-            {ANALYSES_WORDS.map((word) => (
+          <h2 className="knows-title knows-title--b" aria-label="nucky analyzes">
+            {ANALYZES_WORDS.map((word) => (
               <span className="lw-mask" key={word} aria-hidden="true">
                 <span className="lw-word">{word}</span>
               </span>
