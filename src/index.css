@@ -2,6 +2,7 @@
 @import './theme/landing.css';
 @import './theme/shell.css';
 @import './theme/dashboard.css';
+@import './theme/instrument.css';
 @import 'lenis/dist/lenis.css';
 
 /* App shell uses nested overflow panes — disable document scroll bounce */

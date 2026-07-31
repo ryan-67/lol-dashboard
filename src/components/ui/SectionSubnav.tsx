@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import { getAppScrollScroller } from '../../theme/animations'
+import { scrollAppToElement } from '../../lib/appScroll'
 
 export interface SectionSubnavItem {
   id: string
@@ -120,7 +121,11 @@ export default function SectionSubnav({
     setActiveId(id)
     clickLockRef.current = true
     window.clearTimeout(unlockTimeoutRef.current)
-    el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    const offset =
+      Number.parseFloat(
+        getComputedStyle(document.documentElement).getPropertyValue('--section-subnav-offset'),
+      ) || 0
+    scrollAppToElement(el, offset)
     unlockTimeoutRef.current = window.setTimeout(() => {
       clickLockRef.current = false
     }, 700)

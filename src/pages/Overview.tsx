@@ -62,6 +62,7 @@ import {
   animateRadarDraw,
 } from '../theme/animations'
 import AnimatedCounter from '../components/ui/AnimatedCounter'
+import KpiTile from '../components/ui/KpiTile'
 import { formatGameDate, formatNum, formatPct, formatRefreshTimestamp } from '../lib/format'
 import {
   PolarAngleAxis,
@@ -705,6 +706,15 @@ export default function Overview() {
     [weeklyPlayers],
   )
 
+  /** Per-game KDA trace behind the top-performer readout — context, not decoration. */
+  const topPerformerSpark = useMemo(() => {
+    if (!playerOfWeek || playerOfWeek.weeklyGames.length < 3) return undefined
+    return playerOfWeek.weeklyGames
+      .slice()
+      .reverse()
+      .map((game) => game.kda ?? 0)
+  }, [playerOfWeek])
+
   useGSAP(
     () => {
       scrollEntranceStagger(rootRef.current, '.overview-hub-card')
@@ -766,6 +776,7 @@ export default function Overview() {
       <section id="overview-recap" className="overview-section">
       <section className="card overview-hub-card overview-hub-hero">
         <div className="overview-hub-hero-copy">
+          <p className="page-header-eyebrow">tier-1 signal</p>
           <h2 className="card-title">{copy.hubTitle}</h2>
           <p className="card-subtitle">
             League: <span className="text-accent">{league}</span> · Split:{' '}
@@ -777,34 +788,37 @@ export default function Overview() {
             {lastUpdated ? ` · Refreshed ${formatRefreshTimestamp(lastUpdated)}` : ''}
           </p>
         </div>
-        <div className="overview-stat-strip" aria-label="Hub snapshot">
-          <div className="overview-stat-cell">
-            <span className="overview-stat-label">active players</span>
-            <AnimatedCounter className="overview-stat-value" value={weeklyPlayers.length} decimals={0} />
-          </div>
-          <div className="overview-stat-cell">
-            <span className="overview-stat-label">game rows</span>
-            <AnimatedCounter className="overview-stat-value" value={sampleGames} decimals={0} />
-          </div>
-          <div className="overview-stat-cell">
-            <span className="overview-stat-label">top perf</span>
-            <AnimatedCounter
-              className="overview-stat-value"
-              value={playerOfWeek ? playerOfWeek.scoreAvg * 100 : 0}
-              decimals={1}
-            />
-          </div>
-          <div className="overview-stat-cell">
-            <span className="overview-stat-label">hottest wr</span>
-            <AnimatedCounter
-              className="overview-stat-value"
-              value={hottestTeam?.weeklyWinrate ?? 0}
-              decimals={0}
-              suffix="%"
-            />
-          </div>
-        </div>
       </section>
+
+      <div className="dash-kpi-grid" aria-label="Hub snapshot">
+        <KpiTile
+          label="active players"
+          value={weeklyPlayers.length}
+          meta={`${copy.periodDays}d window`}
+        />
+        <KpiTile
+          label="game rows"
+          value={sampleGames}
+          meta={hubWindow?.label ?? 'current window'}
+        />
+        <KpiTile
+          label="top perf"
+          value={playerOfWeek ? playerOfWeek.scoreAvg * 100 : 0}
+          decimals={1}
+          accent
+          gauge={playerOfWeek ? playerOfWeek.scoreAvg : 0}
+          spark={topPerformerSpark}
+          meta={playerOfWeek ? playerOfWeek.base.name : '—'}
+        />
+        <KpiTile
+          label="hottest wr"
+          value={hottestTeam?.weeklyWinrate ?? 0}
+          suffix="%"
+          accent
+          gauge={(hottestTeam?.weeklyWinrate ?? 0) / 100}
+          meta={hottestTeam?.team ?? '—'}
+        />
+      </div>
 
       {hubWindow && (
         <WeeklyRecap

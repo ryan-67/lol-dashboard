@@ -13,7 +13,7 @@ import { fetchMlFreshness, type MlFreshness } from '../../lib/loadMlFreshness'
 import { fetchModelMetadata } from '../../lib/loadModelMetadata'
 import { matchPowerRegion, type PowerRegions } from '../../lib/powerRegionFilter'
 import { powerScoreTo100 } from '../../lib/scoreNormalize'
-import { staggerListReveal, tabTransitionIn } from '../../theme/animations'
+import { animateMeterFill, staggerListReveal, tabTransitionIn } from '../../theme/animations'
 
 const ROLE_LABEL: Record<RatingRole, string> = {
   top: 'top',
@@ -107,10 +107,25 @@ export default function PowerRankingsPanel({
     return filtered.slice(0, limit)
   }, [bundle, role, effectiveRegions, limit])
 
+  const scored = useMemo(() => {
+    const values = rows.map((r) => powerScoreTo100(r.powerScore))
+    const top = Math.max(...values, 1)
+    const floor = Math.min(...values, 0)
+    const span = Math.max(top - floor, 1)
+    return rows.map((row, i) => ({
+      row,
+      score: values[i],
+      // Bars measure distance from the bottom of the visible board, so the
+      // spread between #1 and #8 is legible instead of eight near-full bars.
+      fill: 0.18 + 0.82 * ((values[i] - floor) / span),
+    }))
+  }, [rows])
+
   useGSAP(
     () => {
       if (!listRef.current || loading || !rows.length) return
       staggerListReveal(listRef.current, '.power-rankings-row')
+      animateMeterFill(listRef.current, '.power-rankings-bar i', { stagger: 0.045 })
       tabTransitionIn(listRef.current)
     },
     { dependencies: [loading, role, effectiveRegions, rows.length, bundle?.generatedAt] },
@@ -151,17 +166,26 @@ export default function PowerRankingsPanel({
         <p className="text-secondary text-sm">rankings unavailable.</p>
       ) : (
         <ol className="power-rankings-list" ref={listRef}>
-          {rows.map((row) => (
-            <li key={`${row.player}-${row.team}-${row.rank}`} className="power-rankings-row">
-              <span className="power-rankings-rank">#{row.rank}</span>
+          {scored.map(({ row, score, fill }) => (
+            <li
+              key={`${row.player}-${row.team}-${row.rank}`}
+              className="power-rankings-row"
+              data-podium={row.rank <= 3 ? row.rank : undefined}
+            >
+              <span className="power-rankings-rank">
+                <b>{row.rank}</b>
+              </span>
               <span className="power-rankings-player">
                 <EntityLink type="player" name={row.player} showIcon={false} />
                 <span className="power-rankings-meta">
                   <EntityLink type="team" name={row.team} showIcon /> · {row.region}
                 </span>
               </span>
+              <span className="power-rankings-bar" aria-hidden="true">
+                <i style={{ ['--fill' as string]: fill }} />
+              </span>
               <span className="power-rankings-score" title="power score /100">
-                {formatNum(powerScoreTo100(row.powerScore), 1)}
+                {formatNum(score, 1)}
               </span>
             </li>
           ))}

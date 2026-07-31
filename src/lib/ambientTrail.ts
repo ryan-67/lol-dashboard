@@ -1,4 +1,9 @@
-/** Opt-in ambient cursor trail preference for the app shell (desktop fine pointers only). */
+/**
+ * Ambient cursor trail preference for the app shell.
+ *
+ * On by default for desktop fine pointers — the trail is part of the product's
+ * identity, not an easter egg. Stored preference only ever opts *out*.
+ */
 
 const STORAGE_KEY = 'nucky-ambient-trail'
 export const AMBIENT_TRAIL_EVENT = 'nucky:ambient-trail-change'
@@ -11,11 +16,11 @@ export function ambientTrailSupported(): boolean {
 }
 
 export function ambientTrailEnabled(): boolean {
-  if (typeof window === 'undefined') return false
+  if (!ambientTrailSupported()) return false
   try {
-    return window.localStorage.getItem(STORAGE_KEY) === '1' && ambientTrailSupported()
+    return window.localStorage.getItem(STORAGE_KEY) !== '0'
   } catch {
-    return false
+    return true
   }
 }
 

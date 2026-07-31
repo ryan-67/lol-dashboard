@@ -1,6 +1,7 @@
 import { Suspense, lazy, useEffect, useState } from 'react'
 import { Outlet, useLocation } from 'react-router-dom'
 import AppSidebar from './AppSidebar'
+import AmbientField from './AmbientField'
 import { AMBIENT_TRAIL_EVENT, ambientTrailEnabled } from '../../lib/ambientTrail'
 import '../../theme/shell.css'
 
@@ -24,6 +25,7 @@ export default function AppShell() {
 
   return (
     <div className={`app-shell-v2 app-shell-v2--${mode}`}>
+      <AmbientField />
       <AppSidebar />
       <main className="app-shell-v2-main">
         <Outlet />
