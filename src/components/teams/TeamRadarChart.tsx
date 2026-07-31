@@ -1,5 +1,3 @@
-import { useRef } from 'react'
-import { useGSAP } from '@gsap/react'
 import {
   Radar,
   RadarChart,
@@ -13,10 +11,8 @@ import type { Team } from '../../hooks/useDashboardData'
 import { buildTeamRadarSeries } from '../../lib/teamAnalytics'
 import { radarColorForTeam } from '../../lib/entities/teamBrandColor'
 import { makeChartTooltipContent } from '../ui/ChartTooltip'
-import ShareableChart from '../ui/ShareableChart'
-import { animateRadarDraw } from '../../theme/animations'
+import ChartFrame, { ChartReadout } from '../ui/ChartFrame'
 import { CHART } from '../../theme/chartTheme'
-
 import { EntityLink, TeamLogo, LeagueLogo } from '../entities'
 
 interface TeamRadarChartProps {
@@ -32,7 +28,6 @@ export default function TeamRadarChart({
   highlighted = false,
   compact = false,
 }: TeamRadarChartProps) {
-  const chartRef = useRef<HTMLDivElement>(null)
   const color = radarColorForTeam(team.name, team.league)
   const data = buildTeamRadarSeries(team, cohort)
 
@@ -52,36 +47,40 @@ export default function TeamRadarChart({
     },
   )
 
-  useGSAP(
-    () => {
-      animateRadarDraw(chartRef.current)
-    },
-    { scope: chartRef, dependencies: [team.name, team.league] },
-  )
-
   return (
-    <ShareableChart
+    <ChartFrame
       className={`radar-card${highlighted ? ' radar-card-favorite' : ''}${compact ? ' radar-card-compact' : ''}`}
-    >
-      {!compact ? (
-        <div className="radar-card-header">
-          <h3 className="radar-card-title entity-title-row">
+      kind="radar"
+      drawKey={`${team.name}-${team.league}-${compact}`}
+      title={
+        compact ? (
+          'Team Radar'
+        ) : (
+          <span className="entity-title-row">
             <TeamLogo name={team.name} size={24} />
             <EntityLink type="team" name={team.name} showIcon={false} />
-          </h3>
-          <p className="radar-card-subtitle entity-subtitle">
+          </span>
+        )
+      }
+      subtitle={
+        compact ? undefined : (
+          <span className="entity-subtitle">
             <LeagueLogo league={team.league} size={16} />
             <span className="radar-card-league">{team.league}</span>
             <span className="radar-card-record">
               {' '}
               · {team.winrate.toFixed(1)}% WR · {team.wins}W-{team.losses}L
             </span>
-          </p>
-        </div>
-      ) : (
-        <h3 className="card-title">Team Radar</h3>
-      )}
-      <div ref={chartRef} className="radar-chart-wrap">
+          </span>
+        )
+      }
+      meta={
+        compact ? undefined : (
+          <ChartReadout label="wr" value={`${team.winrate.toFixed(1)}%`} accent />
+        )
+      }
+    >
+      <div className="radar-chart-wrap">
         <ResponsiveContainer width="100%" height={compact ? 200 : 260}>
           <RadarChart data={data} cx="50%" cy="50%" outerRadius="72%">
             <PolarGrid stroke={CHART.grid} />
@@ -105,12 +104,12 @@ export default function TeamRadarChart({
               dataKey="valueNorm"
               stroke={color}
               fill={color}
-              fillOpacity={0.12}
-              strokeWidth={2}
+              fillOpacity={0.18}
+              strokeWidth={2.25}
             />
           </RadarChart>
         </ResponsiveContainer>
       </div>
-    </ShareableChart>
+    </ChartFrame>
   )
 }

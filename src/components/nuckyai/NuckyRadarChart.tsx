@@ -64,7 +64,7 @@ export default function NuckyRadarChart({ payload }: { payload: RadarChartPayloa
   const data = buildRadarRows(payload)
 
   return (
-    <ShareableChart className="border border-[var(--border-subtle)] bg-[var(--bg-base)] p-3 my-2">
+    <ShareableChart bare className="border border-[var(--border-subtle)] bg-[var(--bg-base)] p-3 my-2">
       <div className="text-xs text-[var(--text-secondary)] mb-2">{payload.title}</div>
       <div className="h-72">
         <ResponsiveContainer width="100%" height="100%">

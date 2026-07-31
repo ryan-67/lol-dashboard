@@ -47,6 +47,7 @@ import TeamGoldGraph from '../../components/entities/TeamGoldGraph'
 import TeamObjectivesGraph from '../../components/entities/TeamObjectivesGraph'
 import SectionSubnav from '../../components/ui/SectionSubnav'
 import KpiTile from '../../components/ui/KpiTile'
+import EntityHeroField from '../../components/ui/EntityHeroField'
 import { roleLabel } from '../../lib/championAnalytics'
 
 const TEAM_STATS_SECTIONS = [
@@ -318,6 +319,7 @@ export default function TeamPage() {
       </ShellLink>
 
       <header className="entity-hero">
+        <EntityHeroField />
         <div>
           <p className="page-header-eyebrow">team</p>
           <h1 className="entity-hero-name entity-title-row">

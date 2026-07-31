@@ -452,25 +452,33 @@ export function animateMeterFill(
 
 export function tabTransitionOut(element: Element | null): gsap.core.Tween {
   if (!element) return gsap.to({}, { duration: 0 })
+  if (reducedMotion()) {
+    gsap.set(element, { opacity: 0, y: 0, filter: 'none' })
+    return gsap.to({}, { duration: 0 })
+  }
   return gsap.to(element, {
     opacity: 0,
-    y: -10,
-    filter: 'blur(3px)',
-    duration: 0.18,
+    y: -14,
+    filter: 'blur(4px)',
+    duration: 0.22,
     ease: 'power2.in',
   })
 }
 
 export function tabTransitionIn(element: Element | null): gsap.core.Tween {
   if (!element) return gsap.to({}, { duration: 0 })
+  if (reducedMotion()) {
+    gsap.set(element, { opacity: 1, y: 0, filter: 'none' })
+    return gsap.to({}, { duration: 0 })
+  }
   return gsap.fromTo(
     element,
-    { opacity: 0, y: 18, filter: 'blur(4px)' },
+    { opacity: 0, y: 22, filter: 'blur(5px)' },
     {
       opacity: 1,
       y: 0,
       filter: 'blur(0px)',
-      duration: 0.42,
+      duration: 0.48,
       ease: EASE.out,
       clearProps: 'filter,transform',
     },

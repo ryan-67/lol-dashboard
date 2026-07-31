@@ -82,7 +82,8 @@ export default function AmbientField() {
       const offsetY = (t * 1.1) % CELL
 
       ctx.lineWidth = 1
-      ctx.strokeStyle = 'rgba(87, 196, 207, 0.055)'
+      // Felt, not invisible — carrier layer must read in a 10s glance.
+      ctx.strokeStyle = 'rgba(87, 196, 207, 0.11)'
       ctx.beginPath()
       for (let x = -CELL + offsetX; x < width + CELL; x += CELL) {
         ctx.moveTo(Math.round(x) + 0.5, 0)
@@ -98,7 +99,7 @@ export default function AmbientField() {
       const bandY = ((t % 14) / 14) * (height + 320) - 160
       const band = ctx.createLinearGradient(0, bandY - 160, 0, bandY + 160)
       band.addColorStop(0, 'rgba(87, 196, 207, 0)')
-      band.addColorStop(0.5, 'rgba(87, 196, 207, 0.045)')
+      band.addColorStop(0.5, 'rgba(87, 196, 207, 0.09)')
       band.addColorStop(1, 'rgba(87, 196, 207, 0)')
       ctx.fillStyle = band
       ctx.fillRect(0, bandY - 160, width, 320)
@@ -119,15 +120,15 @@ export default function AmbientField() {
         const life = Math.sin(age * Math.PI)
         const radius = 2 + life * 16
         const glow = ctx.createRadialGradient(blip.x, blip.y, 0, blip.x, blip.y, radius)
-        glow.addColorStop(0, `rgba(120, 224, 232, ${0.16 * life})`)
+        glow.addColorStop(0, `rgba(120, 224, 232, ${0.28 * life})`)
         glow.addColorStop(1, 'rgba(120, 224, 232, 0)')
         ctx.fillStyle = glow
         ctx.beginPath()
         ctx.arc(blip.x, blip.y, radius, 0, Math.PI * 2)
         ctx.fill()
 
-        ctx.fillStyle = `rgba(160, 236, 242, ${0.4 * life})`
-        ctx.fillRect(blip.x - 1, blip.y - 1, 2, 2)
+        ctx.fillStyle = `rgba(160, 236, 242, ${0.62 * life})`
+        ctx.fillRect(blip.x - 1.5, blip.y - 1.5, 3, 3)
       }
     }
 

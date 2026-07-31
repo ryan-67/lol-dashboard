@@ -23,6 +23,7 @@ import PlayerModelCard from '../../components/players/PlayerModelCard'
 import PlayerGameExplorer from '../../components/players/PlayerGameExplorer'
 import SectionSubnav from '../../components/ui/SectionSubnav'
 import KpiTile from '../../components/ui/KpiTile'
+import EntityHeroField from '../../components/ui/EntityHeroField'
 import {
   EntityFilterBar,
   EntityLink,
@@ -143,6 +144,7 @@ export default function PlayerPage() {
       </ShellLink>
 
       <header className="entity-hero">
+        <EntityHeroField />
         <div>
           <p className="page-header-eyebrow">player</p>
           <h1 className="entity-hero-name">{player.name}</h1>

@@ -1,5 +1,4 @@
-import { useMemo, useRef } from 'react'
-import { useGSAP } from '@gsap/react'
+import { useMemo } from 'react'
 import {
   CartesianGrid,
   ComposedChart,
@@ -12,10 +11,9 @@ import {
 } from 'recharts'
 import type { Player } from '../../hooks/useDashboardData'
 import { makeChartTooltipContent } from '../ui/ChartTooltip'
-import ShareableChart from '../ui/ShareableChart'
+import ChartFrame, { ChartReadout } from '../ui/ChartFrame'
 import { buildFormTrajectorySeries, type FormTrajectorySeries } from '../../lib/playerAnalytics'
-import { animateChartDraw } from '../../theme/animations'
-import { CHART } from '../../theme/chartTheme'
+import { AXIS_PROPS, CHART, GRID_PROPS } from '../../theme/chartTheme'
 import { unitIntervalTo100 } from '../../lib/scoreNormalize'
 
 interface PlayerFormChartProps {
@@ -44,7 +42,6 @@ const formTooltip = makeChartTooltipContent(
 )
 
 export default function PlayerFormChart({ players, cohortPlayers }: PlayerFormChartProps) {
-  const sectionRef = useRef<HTMLDivElement>(null)
   const series = useMemo<FormTrajectorySeries[]>(() => {
     const raw = buildFormTrajectorySeries(players, cohortPlayers, 20)
     return raw.map((s) => ({
@@ -58,13 +55,6 @@ export default function PlayerFormChart({ players, cohortPlayers }: PlayerFormCh
     }))
   }, [players, cohortPlayers])
 
-  useGSAP(
-    () => {
-      animateChartDraw(sectionRef.current)
-    },
-    { scope: sectionRef, dependencies: [series.length] },
-  )
-
   if (!series.length || series.every((s) => !s.points.length)) {
     return (
       <div className="card player-chart-card">
@@ -75,21 +65,22 @@ export default function PlayerFormChart({ players, cohortPlayers }: PlayerFormCh
   }
 
   return (
-    <ShareableChart ref={sectionRef} className="card player-chart-card">
-      <h3 className="card-title">Form Trajectory</h3>
-      <p className="card-subtitle">
-        0–100 performance score (composite, role-normalized) · 3-game rolling average · dotted
-        trend
-      </p>
+    <ChartFrame
+      className="player-chart-card"
+      kind="series"
+      drawKey={series.map((s) => s.playerKey).join(',')}
+      title="Form Trajectory"
+      subtitle="0–100 performance score (composite, role-normalized) · 3-game rolling average · dotted trend"
+      meta={<ChartReadout label="n" value={String(series.length)} accent />}
+    >
       <div className="player-chart-body">
         <ResponsiveContainer width="100%" height="100%">
           <ComposedChart margin={{ top: 8, right: 16, left: 8, bottom: 8 }}>
-            <CartesianGrid stroke={CHART.grid} strokeDasharray="3 3" />
+            <CartesianGrid {...GRID_PROPS} />
             <XAxis
               dataKey="game"
               type="number"
-              stroke={CHART.axis}
-              tick={{ fill: CHART.tick, fontSize: CHART.fontSize, fontFamily: CHART.fontFamily }}
+              {...AXIS_PROPS}
               label={{
                 value: 'Game',
                 position: 'insideBottom',
@@ -101,9 +92,8 @@ export default function PlayerFormChart({ players, cohortPlayers }: PlayerFormCh
             />
             <YAxis
               domain={[0, 100]}
-              stroke={CHART.axis}
-              tick={{ fill: CHART.tick, fontSize: CHART.fontSize, fontFamily: CHART.fontFamily }}
-              tickFormatter={(v) => v.toFixed(0)}
+              {...AXIS_PROPS}
+              tickFormatter={(v: number) => v.toFixed(0)}
             />
             <Tooltip content={formTooltip} />
             <Legend
@@ -121,8 +111,9 @@ export default function PlayerFormChart({ players, cohortPlayers }: PlayerFormCh
                 type="monotone"
                 dataKey="rollingScore"
                 stroke={s.color}
-                strokeWidth={2}
+                strokeWidth={2.25}
                 dot={false}
+                activeDot={{ r: 4, strokeWidth: 0 }}
               />
             ))}
             {series.map((s) => (
@@ -142,6 +133,6 @@ export default function PlayerFormChart({ players, cohortPlayers }: PlayerFormCh
           </ComposedChart>
         </ResponsiveContainer>
       </div>
-    </ShareableChart>
+    </ChartFrame>
   )
 }

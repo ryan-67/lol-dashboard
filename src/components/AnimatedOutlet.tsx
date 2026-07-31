@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useLocation } from 'react-router-dom'
 import { tabContentSwap, tabTransitionIn } from '../theme/animations'
+import { scrollAppToTop } from '../lib/appScroll'
 
 export default function AnimatedOutlet({ children }: { children: React.ReactNode }) {
   const location = useLocation()
@@ -25,11 +26,7 @@ export default function AnimatedOutlet({ children }: { children: React.ReactNode
       el,
       () => {
         setDisplayed(childrenRef.current)
-        const duo = document.querySelector('.duo-dashboard')
-        const frame = document.querySelector('.dashboard-frame--scroll')
-        if (duo instanceof HTMLElement) duo.scrollTop = 0
-        else if (frame instanceof HTMLElement) frame.scrollTop = 0
-        else window.scrollTo(0, 0)
+        scrollAppToTop()
       },
       () => ref.current,
     )
@@ -37,6 +34,7 @@ export default function AnimatedOutlet({ children }: { children: React.ReactNode
 
   return (
     <div ref={ref} className="tab-content">
+      <span className="tab-content-scanline" aria-hidden="true" />
       {displayed}
     </div>
   )

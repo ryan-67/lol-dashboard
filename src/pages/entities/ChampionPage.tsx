@@ -30,6 +30,7 @@ import {
 import ChampionLaneMatchups from '../../components/entities/ChampionLaneMatchups'
 import ChampionMatchHistoryTable from '../../components/champions/ChampionMatchHistoryTable'
 import KpiTile from '../../components/ui/KpiTile'
+import EntityHeroField from '../../components/ui/EntityHeroField'
 
 export default function ChampionPage() {
   const { slug = '' } = useParams<{ slug: string }>()
@@ -134,6 +135,7 @@ export default function ChampionPage() {
       </ShellLink>
 
       <header className="entity-hero">
+        <EntityHeroField />
         <div>
           <p className="page-header-eyebrow">champion</p>
           <h1 className="entity-hero-name entity-title-row">

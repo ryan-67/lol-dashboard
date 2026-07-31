@@ -541,6 +541,23 @@
   padding: 1.05rem 1.15rem 1rem;
 }
 
+.shareable-chart--bare {
+  padding: 0;
+  border: none;
+  background: transparent;
+  box-shadow: none;
+}
+
+.shareable-chart--bare::before,
+.shareable-chart--bare::after {
+  display: none;
+}
+
+.shareable-chart.chart-frame {
+  /* Avoid double padding when ShareableChart also carries chart-frame */
+  padding: 1.15rem 1.25rem 1.05rem;
+}
+
 .radar-card,
 .player-chart-card {
   padding: 1.05rem 1.15rem 1rem;
@@ -980,6 +997,58 @@
   }
 }
 
+/* Dedicated instrument field layered behind entity copy */
+.entity-hero {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+}
+
+.entity-hero-field,
+.entity-hero-sweep {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.entity-hero-field {
+  background-image:
+    linear-gradient(color-mix(in oklab, var(--accent) 14%, transparent) 1px, transparent 1px),
+    linear-gradient(90deg, color-mix(in oklab, var(--accent) 14%, transparent) 1px, transparent 1px);
+  background-size: 28px 28px;
+  mask-image: radial-gradient(ellipse 70% 80% at 18% 40%, #000 0%, transparent 72%);
+  opacity: 0.55;
+  will-change: transform;
+}
+
+.entity-hero-sweep {
+  background: linear-gradient(
+    105deg,
+    transparent 0%,
+    color-mix(in oklab, var(--accent) 10%, transparent) 42%,
+    transparent 68%
+  );
+  background-size: 220% 100%;
+  animation: hero-sweep 9s ease-in-out infinite;
+  opacity: 0.7;
+}
+
+@keyframes hero-sweep {
+  0%,
+  100% {
+    background-position: 120% 0;
+  }
+  50% {
+    background-position: -20% 0;
+  }
+}
+
+.entity-hero > *:not(.entity-hero-field):not(.entity-hero-sweep) {
+  position: relative;
+  z-index: 1;
+}
+
 /* ---------- Model / signal chips ---------- */
 
 .signal-dot {
@@ -1077,6 +1146,281 @@
   filter: drop-shadow(0 0 6px var(--accent-glow));
 }
 
+/* ---------- Overview hub ---------- */
+
+.overview-hub-hero {
+  display: block;
+  padding: 1.15rem 1.35rem 1.2rem;
+}
+
+.overview-hub-hero .page-header-eyebrow {
+  margin-bottom: 0.5rem;
+  font-size: 0.6rem;
+}
+
+.overview-hub-hero .card-title {
+  font-size: 1.15rem;
+  letter-spacing: -0.03em;
+}
+
+.overview-stat-tile {
+  position: relative;
+  border-color: var(--panel-border);
+  background: var(--panel-bg);
+  overflow: hidden;
+}
+
+.overview-stat-tile::before {
+  content: '';
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 4px;
+  background-image: repeating-linear-gradient(90deg, var(--tick-line) 0 1px, transparent 1px 8px);
+  opacity: 0.5;
+}
+
+/* ---------- Recap: series storytelling blocks ---------- */
+
+.overview-recap-list {
+  gap: 0.7rem;
+}
+
+.overview-recap-item {
+  position: relative;
+  grid-template-columns: 4.25rem 1fr;
+  gap: 0.95rem;
+  padding: 0.9rem 1.05rem 0.95rem;
+  border: 1px solid var(--border-hairline);
+  border-radius: var(--radius-sm);
+  background: color-mix(in oklab, var(--bg-inset) 55%, transparent);
+  font-family: var(--font-sans);
+  overflow: hidden;
+  transition:
+    border-color var(--dur-hover) var(--ease-signal),
+    background var(--dur-hover) var(--ease-signal),
+    transform var(--dur-hover) var(--ease-signal);
+}
+
+/* leading signal rail — draws up on hover */
+.overview-recap-item::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: var(--accent);
+  transform: scaleY(0);
+  transform-origin: bottom center;
+  transition: transform 260ms var(--ease-signal);
+}
+
+.overview-recap-item:hover {
+  border-color: var(--panel-border-hot);
+  background: color-mix(in oklab, var(--accent) 3.5%, var(--bg-elevated));
+  transform: translateX(2px);
+}
+
+.overview-recap-item:hover::before {
+  transform: scaleY(1);
+}
+
+.overview-recap-date {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  align-self: start;
+  padding: 0.25rem 0.4rem;
+  border: 1px solid var(--border-hairline);
+  border-radius: 3px;
+  background: color-mix(in oklab, var(--bg-base) 70%, transparent);
+  font-family: var(--font-mono);
+  font-size: 0.64rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+}
+
+.overview-recap-score {
+  padding-bottom: 0.55rem;
+  border-bottom: 1px solid var(--border-hairline);
+}
+
+.overview-recap-score-main {
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+}
+
+.overview-recap-score-mid {
+  padding: 0.1rem 0.42rem;
+  border: 1px solid color-mix(in oklab, var(--accent) 35%, var(--border-subtle));
+  border-radius: 3px;
+  background: var(--accent-bg);
+  color: var(--accent);
+  font-weight: 500;
+}
+
+.overview-recap-summary {
+  font-family: var(--font-sans);
+  font-size: 0.82rem;
+  line-height: 1.62;
+  max-width: 92ch;
+}
+
+.overview-recap-series-link {
+  opacity: 0.55;
+  transition: opacity var(--dur-hover) var(--ease-signal);
+}
+
+.overview-recap-item:hover .overview-recap-series-link {
+  opacity: 1;
+}
+
+/* ---------- Recharts: one chrome for every chart in the product ---------- */
+
+.recharts-cartesian-grid-horizontal line,
+.recharts-cartesian-grid-vertical line {
+  stroke: color-mix(in oklab, var(--accent) 9%, transparent);
+  stroke-dasharray: 2 6;
+}
+
+/* verticals are structure, not data — keep them well under the horizontals */
+.recharts-cartesian-grid-vertical line {
+  stroke: color-mix(in oklab, var(--border-subtle) 42%, transparent);
+}
+
+.recharts-cartesian-axis-line,
+.recharts-cartesian-axis-tick-line {
+  stroke: color-mix(in oklab, var(--border-subtle) 85%, transparent);
+}
+
+.recharts-cartesian-axis-tick text,
+.recharts-polar-angle-axis-tick text {
+  fill: var(--text-tertiary);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.05em;
+}
+
+.recharts-label,
+.recharts-legend-item-text {
+  fill: var(--text-secondary) !important;
+  color: var(--text-secondary) !important;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.recharts-reference-line line {
+  stroke: color-mix(in oklab, var(--accent) 40%, transparent);
+  stroke-dasharray: 4 4;
+}
+
+/* Custom tooltip surface */
+.chart-tooltip {
+  border-radius: var(--radius-sm) !important;
+  border: 1px solid color-mix(in oklab, var(--accent) 30%, var(--border-subtle)) !important;
+  background: color-mix(in srgb, var(--bg-inset) 94%, transparent) !important;
+  backdrop-filter: blur(12px);
+  box-shadow: 0 16px 40px oklch(0.05 0.01 220 / 0.6);
+  animation: tooltip-in 140ms var(--ease-signal);
+}
+
+@keyframes tooltip-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.chart-tooltip-name {
+  margin-bottom: 0.3rem;
+  padding-bottom: 0.3rem;
+  border-bottom: 1px solid var(--border-hairline);
+  color: var(--text-primary);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  font-size: 0.62rem;
+}
+
+.chart-tooltip-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1.1rem;
+  padding: 0.08rem 0;
+}
+
+.chart-tooltip-key {
+  color: var(--text-tertiary);
+}
+
+.chart-tooltip-val {
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+/* series read as light on dark, not flat strokes */
+.recharts-line-curve,
+.recharts-radar-polygon {
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+
+/* ---------- Radar surfaces ---------- */
+
+.radar-card-header {
+  padding-bottom: 0.6rem;
+  margin-bottom: 0.55rem;
+  border-bottom: 1px solid var(--rail-line);
+}
+
+.radar-chart-wrap {
+  position: relative;
+}
+
+/* faint concentric halo behind the mesh so it reads as an instrument dial */
+.radar-chart-wrap::before {
+  content: '';
+  position: absolute;
+  inset: 8% 0 12%;
+  pointer-events: none;
+  background: radial-gradient(
+    closest-side circle at 50% 50%,
+    color-mix(in oklab, var(--accent) 7%, transparent) 0%,
+    transparent 72%
+  );
+}
+
+.recharts-polar-grid-concentric path,
+.recharts-polar-grid-concentric polygon {
+  stroke: color-mix(in oklab, var(--border-subtle) 70%, transparent);
+}
+
+.recharts-polar-grid-angle line {
+  stroke: color-mix(in oklab, var(--border-subtle) 55%, transparent);
+  stroke-dasharray: 2 4;
+}
+
+.recharts-polar-angle-axis-tick text {
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.recharts-radar-polygon {
+  transition: fill-opacity var(--dur-hover) var(--ease-signal);
+}
+
+.radar-card:hover .recharts-radar-polygon,
+.chart-frame--radar:hover .recharts-radar-polygon {
+  fill-opacity: 0.2;
+}
+
 /* ---------- Reduced motion ---------- */
 
 @media (prefers-reduced-motion: reduce) {
@@ -1087,8 +1431,14 @@
 
   .tab-content-scanline,
   .empty-state-scan,
-  .app-sidebar-link-tag::after {
+  .app-sidebar-link-tag::after,
+  .entity-hero-sweep,
+  .entity-hero-field {
     display: none !important;
+  }
+
+  .chart-tooltip {
+    animation: none !important;
   }
 
   .instrument-swap,
@@ -1120,8 +1470,14 @@
   .card:hover,
   .dash-kpi:hover,
   .page-header-readout:hover,
-  .section-subnav-link:hover {
+  .section-subnav-link:hover,
+  .overview-recap-item:hover {
     transform: none !important;
+  }
+
+  .overview-recap-item,
+  .overview-recap-item::before {
+    transition: none !important;
   }
 
   .dash-kpi-gauge i,

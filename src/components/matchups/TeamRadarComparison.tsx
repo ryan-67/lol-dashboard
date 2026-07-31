@@ -11,11 +11,11 @@ import {
 } from 'recharts'
 import type { Team } from '../../hooks/useDashboardData'
 import { makeChartTooltipContent } from '../ui/ChartTooltip'
-import ShareableChart from '../ui/ShareableChart'
+import ChartFrame from '../ui/ChartFrame'
 import { TeamLogo } from '../entities'
 import { buildComparisonRadarData } from '../../lib/teamAnalytics'
 import { formatGameLength } from '../../lib/matchupAnalytics'
-import { animateRadarDraw, scrollEntrance } from '../../theme/animations'
+import { scrollEntrance } from '../../theme/animations'
 import { CHART } from '../../theme/chartTheme'
 import { radarColorForTeam } from '../../lib/entities/teamBrandColor'
 
@@ -63,7 +63,6 @@ const teamRadarTooltip = makeChartTooltipContent(
 
 export default function TeamRadarComparison({ teamA, teamB, cohort }: TeamRadarComparisonProps) {
   const sectionRef = useRef<HTMLDivElement>(null)
-  const chartRef = useRef<HTMLDivElement>(null)
   const data = buildComparisonRadarData([teamA, teamB], cohort)
   const colorA = radarColorForTeam(teamA.name, teamA.league)
   const colorB = radarColorForTeam(teamB.name, teamB.league)
@@ -75,94 +74,89 @@ export default function TeamRadarComparison({ teamA, teamB, cohort }: TeamRadarC
     { scope: sectionRef, dependencies: [teamA.name, teamB.name] },
   )
 
-  useGSAP(
-    () => {
-      animateRadarDraw(chartRef.current)
-    },
-    { scope: chartRef, dependencies: [teamA.name, teamB.name] },
-  )
-
   return (
-    <div ref={sectionRef} className="card page-section">
-      <ShareableChart>
-        <h2 className="card-title">Team Radar Comparison</h2>
-        <p className="card-subtitle entity-inline-row">
-          <TeamLogo name={teamA.name} size={20} />
-          <span>{teamA.name}</span>
-          <span className="text-secondary"> vs </span>
-          <TeamLogo name={teamB.name} size={20} />
-          <span>{teamB.name}</span>
-          <span className="text-secondary"> — dashed line is cohort average</span>
-        </p>
-        <div ref={chartRef} className="radar-chart-wrap" style={{ minHeight: 360 }}>
-        <ResponsiveContainer width="100%" height={360}>
-          <RadarChart data={data} cx="50%" cy="50%" outerRadius="75%">
-            <PolarGrid stroke={CHART.grid} />
-            <PolarAngleAxis
-              dataKey="metric"
-              tick={{ fill: CHART.tick, fontSize: 10, fontFamily: CHART.fontFamily }}
-            />
-            <PolarRadiusAxis angle={90} domain={[0, 100]} tick={false} axisLine={false} />
-            <Tooltip content={teamRadarTooltip} />
-            <Radar
-              name="Cohort average"
-              dataKey="avgNorm"
-              stroke="rgba(240, 236, 226, 0.35)"
-              fill="transparent"
-              strokeWidth={1.5}
-              strokeDasharray="4 4"
-              dot={false}
-            />
-            <Radar
-              name={teamA.name}
-              dataKey="team0Norm"
-              stroke={colorA}
-              fill={colorA}
-              fillOpacity={0.12}
-              strokeWidth={2}
-              dot={{ r: 3, fill: colorA, strokeWidth: 0 }}
-            />
-            <Radar
-              name={teamB.name}
-              dataKey="team1Norm"
-              stroke={colorB}
-              fill={colorB}
-              fillOpacity={0.12}
-              strokeWidth={2}
-              dot={{ r: 3, fill: colorB, strokeWidth: 0 }}
-            />
-          </RadarChart>
-        </ResponsiveContainer>
-      </div>
-      <div className="matchup-radar-legend">
-        <span className="matchup-radar-legend-item entity-inline-row">
-          <span
-            className="matchup-radar-legend-swatch"
-            style={{ background: colorA }}
-          />
-          <TeamLogo name={teamA.name} size={16} />
-          <span>{teamA.name}</span>
-        </span>
-        <span className="matchup-radar-legend-item entity-inline-row">
-          <span
-            className="matchup-radar-legend-swatch"
-            style={{ background: colorB }}
-          />
-          <TeamLogo name={teamB.name} size={16} />
-          <span>{teamB.name}</span>
-        </span>
-        <span className="matchup-radar-legend-item">
-          <span
-            className="matchup-radar-legend-swatch"
-            style={{
-              background: 'transparent',
-              borderBottom: '2px dashed rgba(240, 236, 226, 0.35)',
-            }}
-          />
-          Cohort average
-        </span>
-      </div>
-      </ShareableChart>
+    <div ref={sectionRef} className="page-section matchup-radar-section">
+      <ChartFrame
+        kind="radar"
+        drawKey={`${teamA.name}-${teamB.name}`}
+        title="Team Radar Comparison"
+        subtitle={
+          <span className="entity-inline-row">
+            <TeamLogo name={teamA.name} size={20} />
+            <span>{teamA.name}</span>
+            <span className="text-secondary"> vs </span>
+            <TeamLogo name={teamB.name} size={20} />
+            <span>{teamB.name}</span>
+            <span className="text-secondary"> — dashed line is cohort average</span>
+          </span>
+        }
+        footer={
+          <div className="matchup-radar-legend">
+            <span className="matchup-radar-legend-item entity-inline-row">
+              <span className="matchup-radar-legend-swatch" style={{ background: colorA }} />
+              <TeamLogo name={teamA.name} size={16} />
+              <span>{teamA.name}</span>
+            </span>
+            <span className="matchup-radar-legend-item entity-inline-row">
+              <span className="matchup-radar-legend-swatch" style={{ background: colorB }} />
+              <TeamLogo name={teamB.name} size={16} />
+              <span>{teamB.name}</span>
+            </span>
+            <span className="matchup-radar-legend-item">
+              <span
+                className="matchup-radar-legend-swatch"
+                style={{
+                  background: 'transparent',
+                  borderBottom: '2px dashed rgba(240, 236, 226, 0.35)',
+                }}
+              />
+              Cohort average
+            </span>
+          </div>
+        }
+      >
+        <div className="radar-chart-wrap" style={{ minHeight: 360 }}>
+          <ResponsiveContainer width="100%" height={360}>
+            <RadarChart data={data} cx="50%" cy="50%" outerRadius="75%">
+              <PolarGrid stroke={CHART.grid} />
+              <PolarAngleAxis
+                dataKey="metric"
+                tick={{ fill: CHART.tick, fontSize: 10, fontFamily: CHART.fontFamily }}
+              />
+              <PolarRadiusAxis angle={90} domain={[0, 100]} tick={false} axisLine={false} />
+              <Tooltip content={teamRadarTooltip} />
+              <Radar
+                name="Cohort average"
+                dataKey="avgNorm"
+                stroke="rgba(240, 236, 226, 0.35)"
+                fill="transparent"
+                strokeWidth={1.5}
+                strokeDasharray="4 4"
+                dot={false}
+              />
+              <Radar
+                name={teamA.name}
+                dataKey="team0Norm"
+                stroke={colorA}
+                fill={colorA}
+                fillOpacity={0.16}
+                strokeWidth={2.25}
+                dot={{ r: 3.5, fill: colorA, strokeWidth: 0 }}
+              />
+              <Radar
+                name={teamB.name}
+                dataKey="team1Norm"
+                stroke={colorB}
+                fill={colorB}
+                fillOpacity={0.16}
+                strokeWidth={2.25}
+                dot={{ r: 3.5, fill: colorB, strokeWidth: 0 }}
+              />
+            </RadarChart>
+          </ResponsiveContainer>
+        </div>
+      </ChartFrame>
+
       <div className="matchup-team-stats">
         <div className="matchup-team-stats-header">
           <span className="matchup-stat-team matchup-stat-value-a entity-inline-row">

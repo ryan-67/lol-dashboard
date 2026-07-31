@@ -22,7 +22,7 @@ export default function NuckyCompareChart({ payload }: { payload: CompareChartPa
   })
 
   return (
-    <ShareableChart className="nucky-compare-chart border border-[var(--border-subtle)] bg-[var(--bg-base)] p-3 my-2 rounded-[var(--radius-sm)]">
+    <ShareableChart bare className="nucky-compare-chart border border-[var(--border-subtle)] bg-[var(--bg-base)] p-3 my-2 rounded-[var(--radius-sm)]">
       <div className="flex items-start justify-between gap-3 mb-3">
         <div>
           <div className="text-[11px] uppercase tracking-wide text-[var(--text-tertiary)]">Comparison</div>

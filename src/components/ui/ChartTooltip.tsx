@@ -44,7 +44,8 @@ export function ChartTooltip({
       <div className="chart-tooltip-name">{title}</div>
       {rows.map((row) => (
         <div key={row.label} className="chart-tooltip-row">
-          {row.label}: {row.value}
+          <span className="chart-tooltip-key">{row.label}</span>
+          <span className="chart-tooltip-val">{row.value}</span>
         </div>
       ))}
     </div>

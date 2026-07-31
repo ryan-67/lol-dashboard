@@ -4,7 +4,7 @@ import DashboardFrame from './DashboardFrame'
 export default function DuoLayout() {
   return (
     <div className="duo-layout">
-      <div className="duo-chat">
+      <div className="duo-chat" data-lenis-prevent>
         <ChatPane embedded />
       </div>
       <div className="duo-dashboard">

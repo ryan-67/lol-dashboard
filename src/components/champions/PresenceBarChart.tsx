@@ -1,5 +1,4 @@
-import { useMemo, useRef } from 'react'
-import { useGSAP } from '@gsap/react'
+import { useMemo } from 'react'
 import {
   BarChart,
   Bar,
@@ -14,10 +13,9 @@ import { buildPresenceBarData, totalGamesInCohort } from '../../lib/championAnal
 import type { Champion } from '../../hooks/useDashboardData'
 import { useDashboard } from '../../context/DashboardContext'
 import { makeChartTooltipContent } from '../ui/ChartTooltip'
-import ShareableChart from '../ui/ShareableChart'
+import ChartFrame, { ChartReadout } from '../ui/ChartFrame'
 import ChampionAxisTick from '../ui/ChampionAxisTick'
-import { animateChartDraw } from '../../theme/animations'
-import { CHART } from '../../theme/chartTheme'
+import { AXIS_PROPS, CHART, GRID_PROPS } from '../../theme/chartTheme'
 
 const presenceBarTooltip = makeChartTooltipContent(
   (props) => {
@@ -48,7 +46,6 @@ interface PresenceBarChartProps {
 }
 
 export default function PresenceBarChart({ champions }: PresenceBarChartProps) {
-  const sectionRef = useRef<HTMLDivElement>(null)
   const { filteredTeams } = useDashboard()
   const totalGames = useMemo(() => totalGamesInCohort(filteredTeams), [filteredTeams])
   const data = useMemo(
@@ -56,33 +53,30 @@ export default function PresenceBarChart({ champions }: PresenceBarChartProps) {
     [champions, totalGames],
   )
 
-  useGSAP(
-    () => {
-      animateChartDraw(sectionRef.current)
-    },
-    { scope: sectionRef, dependencies: [champions.length, totalGames] },
-  )
-
   return (
-    <ShareableChart ref={sectionRef} className="card page-section">
-      <h2 className="card-title">Champion Presence</h2>
-      <p className="card-subtitle">Top 20 by presence — pick rate (gold) vs ban rate (dim)</p>
+    <ChartFrame
+      className="page-section"
+      kind="bars"
+      drawKey={`${champions.length}-${totalGames}`}
+      title="Champion Presence"
+      subtitle="Top 20 by presence — pick rate (signal) vs ban rate (cream)"
+      meta={<ChartReadout label="n" value={String(data.length)} accent />}
+    >
       <div className="h-[520px]">
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={data} layout="vertical" margin={{ top: 8, right: 24, left: 96, bottom: 8 }}>
-            <CartesianGrid stroke={CHART.grid} strokeDasharray="3 3" />
+            <CartesianGrid {...GRID_PROPS} horizontal={false} vertical />
             <XAxis
               type="number"
               domain={[0, 200]}
-              stroke={CHART.axis}
-              tick={{ fill: CHART.tick, fontSize: CHART.fontSize, fontFamily: CHART.fontFamily }}
+              {...AXIS_PROPS}
               tickFormatter={(v) => `${Number(v).toFixed(1)}%`}
             />
             <YAxis
               type="category"
               dataKey="name"
               width={92}
-              stroke={CHART.axis}
+              {...AXIS_PROPS}
               tick={<ChampionAxisTick />}
             />
             <Tooltip content={presenceBarTooltip} />
@@ -99,6 +93,7 @@ export default function PresenceBarChart({ champions }: PresenceBarChartProps) {
               stackId="presence"
               fill={CHART.accent}
               stroke={CHART.accent}
+              radius={[0, 2, 2, 0]}
             />
             <Bar
               dataKey="banRate"
@@ -112,6 +107,6 @@ export default function PresenceBarChart({ champions }: PresenceBarChartProps) {
           </BarChart>
         </ResponsiveContainer>
       </div>
-    </ShareableChart>
+    </ChartFrame>
   )
 }

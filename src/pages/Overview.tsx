@@ -74,7 +74,7 @@ import {
   Tooltip,
 } from 'recharts'
 import { makeChartTooltipContent } from '../components/ui/ChartTooltip'
-import ShareableChart from '../components/ui/ShareableChart'
+import ChartFrame from '../components/ui/ChartFrame'
 import { MetricScoreRow } from '../components/ui/MetricHint'
 import {
   OP_SCORE_HINT,
@@ -508,7 +508,7 @@ function WeeklyRadar({
     },
   )
   return (
-    <ShareableChart className="overview-weekly-radar">
+    <ChartFrame className="overview-weekly-radar" kind="radar" hideShare>
       <ResponsiveContainer width="100%" height={compact ? 200 : 270}>
         <RadarChart data={data} cx="50%" cy="50%" outerRadius={compact ? '68%' : '72%'}>
           <PolarGrid stroke={CHART.grid} />
@@ -532,13 +532,13 @@ function WeeklyRadar({
             dataKey="playerNorm"
             stroke={color}
             fill={color}
-            fillOpacity={0.12}
-            strokeWidth={2}
-            dot={{ r: 3, fill: color, strokeWidth: 0 }}
+            fillOpacity={0.18}
+            strokeWidth={2.25}
+            dot={{ r: 3.5, fill: color, strokeWidth: 0 }}
           />
         </RadarChart>
       </ResponsiveContainer>
-    </ShareableChart>
+    </ChartFrame>
   )
 }
 
@@ -772,7 +772,7 @@ export default function Overview() {
           </div>
         </section>
       ) : (
-        <>
+        <div key={displayPeriod} className="instrument-swap">
       <section id="overview-recap" className="overview-section">
       <section className="card overview-hub-card overview-hub-hero">
         <div className="overview-hub-hero-copy">
@@ -1115,7 +1115,7 @@ export default function Overview() {
           )}
         </section>
       </section>
-        </>
+        </div>
       )}
     </div>
   )

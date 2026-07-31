@@ -230,7 +230,7 @@ function ChartBlock({ json }: { json: string }) {
   const colors = [CHART.series, CHART.seriesAlt, '#a8a49a', '#7a8a9a']
 
   return (
-    <ShareableChart className="border border-[var(--border-subtle)] bg-[var(--bg-base)] p-3 my-2 rounded-[var(--radius-sm)]">
+    <ShareableChart bare className="border border-[var(--border-subtle)] bg-[var(--bg-base)] p-3 my-2 rounded-[var(--radius-sm)]">
       <div className="text-xs text-[var(--text-secondary)] mb-2">{barPayload.title}</div>
       <div className="h-64">
         <ResponsiveContainer width="100%" height="100%">
