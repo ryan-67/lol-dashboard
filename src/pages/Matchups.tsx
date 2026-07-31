@@ -11,7 +11,8 @@ import {
 import { TeamComparisonSection } from '../components/teams'
 import { TeamLogo } from '../components/entities'
 import { isTier1Player, isTier1Team } from '../lib/mergeSlices'
-import PageHeader from '../components/ui/PageHeader'
+import PageHeader, { PageHeaderReadout } from '../components/ui/PageHeader'
+import EmptyState from '../components/ui/EmptyState'
 
 export default function Matchups() {
   const { data, loading, filteredTeams, filteredPlayers, filteredChampions } = useDashboard()
@@ -76,6 +77,7 @@ export default function Matchups() {
         eyebrow="matchups"
         title="team matchup comparison"
         subtitle="Compare structure, lane matchups, and priority champions between two teams."
+        meta={<PageHeaderReadout label="teams" value={teams.length} />}
       />
 
       <div className="matchup-controls">
@@ -113,7 +115,9 @@ export default function Matchups() {
       </div>
 
       {!teamAData || !teamBData ? (
-        <div className="empty-state">Select two teams to compare</div>
+        <EmptyState hint="Pick Team A and Team B above — H2H record, radar overlays, and lane grids will load here.">
+          Select two teams to compare
+        </EmptyState>
       ) : (
         <div className="matchups-stack">
           <div className="card">

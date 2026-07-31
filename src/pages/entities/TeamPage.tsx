@@ -46,6 +46,7 @@ import TeamBestChampionsByRole from '../../components/entities/TeamBestChampions
 import TeamGoldGraph from '../../components/entities/TeamGoldGraph'
 import TeamObjectivesGraph from '../../components/entities/TeamObjectivesGraph'
 import SectionSubnav from '../../components/ui/SectionSubnav'
+import KpiTile from '../../components/ui/KpiTile'
 import { roleLabel } from '../../lib/championAnalytics'
 
 const TEAM_STATS_SECTIONS = [
@@ -329,16 +330,8 @@ export default function TeamPage() {
           </p>
         </div>
         <div className="dash-kpi-grid" style={{ marginBottom: 0 }}>
-          <div className="dash-kpi">
-            <span className="dash-kpi-label">Winrate</span>
-            <span className="dash-kpi-value">{formatPct(team.winrate, 1)}</span>
-          </div>
-          <div className="dash-kpi">
-            <span className="dash-kpi-label">Record</span>
-            <span className="dash-kpi-value">
-              {team.wins}-{team.losses}
-            </span>
-          </div>
+          <KpiTile label="Winrate" value={team.winrate} decimals={1} suffix="%" />
+          <KpiTile label="Record" display={`${team.wins}-${team.losses}`} />
         </div>
       </header>
 

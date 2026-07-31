@@ -8,7 +8,7 @@ import { formatGameDate, formatNum } from '../lib/format'
 import { formatDurationMinSec } from '../lib/tournamentFormat'
 import { scrollEntranceStagger } from '../theme/animations'
 import { LeagueLogo } from '../components/entities'
-import PageHeader from '../components/ui/PageHeader'
+import PageHeader, { PageHeaderReadout } from '../components/ui/PageHeader'
 
 function formatDuration(minutes: number | null): string {
   return formatDurationMinSec(minutes)
@@ -45,6 +45,18 @@ export default function Tournaments() {
         eyebrow="tournaments"
         title="splits & internationals"
         subtitle="Tier-1 splits, playoffs, and international events — sorted by most recent game."
+        meta={
+          <>
+            <PageHeaderReadout label="events" value={tournaments.length} />
+            <PageHeaderReadout
+              label="games"
+              value={formatNum(
+                tournaments.reduce((s, t) => s + t.gameCount, 0),
+                0,
+              )}
+            />
+          </>
+        }
       />
 
       {tournaments.length === 0 ? (

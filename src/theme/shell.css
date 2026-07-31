@@ -1349,6 +1349,69 @@
     border-bottom: 1px solid var(--border-subtle);
   }
 
+  /* Compact top bar: brand + mode switch + nav share one wrapped row */
+  .app-sidebar-top {
+    flex: 1;
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.4rem 0.6rem;
+    padding: 0.5rem 0.65rem;
+  }
+
+  .app-mode-switch {
+    grid-template-columns: repeat(3, auto);
+  }
+
+  /* Horizontal icon nav — scrolls instead of stacking */
+  .app-sidebar-nav {
+    flex: 1 1 100%;
+    flex-direction: row;
+    align-items: center;
+    gap: 0.15rem;
+    margin-top: 0;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .app-sidebar-nav::-webkit-scrollbar {
+    display: none;
+  }
+
+  .app-sidebar-link {
+    flex-shrink: 0;
+  }
+
+  .app-sidebar-link::after {
+    top: auto;
+    left: 18%;
+    right: 18%;
+    bottom: 0;
+    width: auto;
+    height: 2px;
+    transform: scaleX(0.4);
+  }
+
+  .app-sidebar-link.is-active::after {
+    transform: scaleX(1);
+  }
+
+  .profile-menu {
+    border-top: 0;
+    border-left: 1px solid var(--border-subtle);
+    padding: 0.35rem 0.5rem;
+    display: flex;
+    align-items: center;
+  }
+
+  .profile-menu-flyout {
+    left: auto;
+    right: 0.4rem;
+    top: calc(100% + 0.25rem);
+    bottom: auto;
+    min-width: 11rem;
+  }
+
   .app-shell-v2-main {
     overflow: visible;
     height: auto;

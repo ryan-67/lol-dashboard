@@ -22,7 +22,7 @@ import PlayerMetricsTableCard from '../components/players/PlayerMetricsTableCard
 import { playerKey, resolveDefaultPlayerKey } from '../lib/playerAnalytics'
 import { scrollEntranceStagger, refreshScrollTrigger } from '../theme/animations'
 import { supabase } from '../lib/supabaseClient'
-import PageHeader from '../components/ui/PageHeader'
+import PageHeader, { PageHeaderReadout } from '../components/ui/PageHeader'
 import PowerRankingsPanel from '../components/rankings/PowerRankingsPanel'
 import SectionSubnav, { type SectionSubnavItem } from '../components/ui/SectionSubnav'
 import type { RatingRole } from '../lib/loadPlayerRatings'
@@ -154,6 +154,12 @@ export default function Players() {
         eyebrow="players"
         title="player rankings & form"
         subtitle="Power rankings, role radars, statistical trends, and form trajectories — filtered by league and split."
+        meta={
+          <>
+            <PageHeaderReadout label="players" value={players.length} />
+            <PageHeaderReadout label="split" value={`${league} · ${split}`} />
+          </>
+        }
       />
       <SectionSubnav
         items={SUBNAV_ITEMS}

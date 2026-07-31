@@ -21,7 +21,7 @@ import {
 import SortableTh from '../components/ui/SortableTh'
 import { ChampionEntityInline } from '../components/entities'
 import { refreshScrollTrigger } from '../theme/animations'
-import PageHeader from '../components/ui/PageHeader'
+import PageHeader, { PageHeaderReadout } from '../components/ui/PageHeader'
 import SectionSubnav, { type SectionSubnavItem } from '../components/ui/SectionSubnav'
 import { opScoreTo100 } from '../lib/scoreNormalize'
 import { OP_SCORE_HINT } from '../lib/metricHints'
@@ -103,6 +103,12 @@ export default function Champions() {
         eyebrow="champions"
         title="meta & performance"
         subtitle="Presence, winrate, OP spotlight, and rising/falling trends for the current filter."
+        meta={
+          <>
+            <PageHeaderReadout label="champions" value={roleFiltered.length} />
+            <PageHeaderReadout label="role" value={roleFilter === 'all' ? 'all' : roleLabel(roleFilter)} />
+          </>
+        }
       />
       <SectionSubnav
         items={SUBNAV_ITEMS}

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import PageHeader from '../components/ui/PageHeader'
+import PageHeader, { PageHeaderReadout } from '../components/ui/PageHeader'
 import NuckyAiPaywall from '../components/nuckyai/NuckyAiPaywall'
 import AuthModal from '../components/AuthModal'
 import { useOptionalChatSession } from '../context/ChatSessionContext'
@@ -93,20 +93,26 @@ export default function Predictions() {
         eyebrow="nucky prediction model"
         title="nucky prediction model"
         subtitle="Upcoming series, a completed-series accuracy log, model power rankings, and pre-match analysis."
+        meta={
+          scorecard ? (
+            <>
+              <PageHeaderReadout
+                label="holdout"
+                value={
+                  <span className="text-accent">
+                    {formatPct(scorecard.aggregate.model.accuracy, 1)}
+                  </span>
+                }
+              />
+              <PageHeaderReadout
+                label="baseline"
+                value={formatPct(scorecard.aggregate.baseline.accuracy, 1)}
+              />
+              <PageHeaderReadout label="series" value={scorecard.holdoutSeries} />
+            </>
+          ) : undefined
+        }
       />
-
-      {scorecard ? (
-        <div className="predictions-scorecard" aria-label="Model track record">
-          <span className="predictions-scorecard-label">holdout accuracy</span>
-          <span className="predictions-scorecard-value text-accent">
-            {formatPct(scorecard.aggregate.model.accuracy, 1)}
-          </span>
-          <span className="predictions-scorecard-meta text-secondary">
-            vs {formatPct(scorecard.aggregate.baseline.accuracy, 1)} baseline ·{' '}
-            {scorecard.holdoutSeries} series
-          </span>
-        </div>
-      ) : null}
 
       <div className="predictions-model-tabs" role="tablist" aria-label="Prediction model sections">
         {MODEL_TABS.map((item) => (

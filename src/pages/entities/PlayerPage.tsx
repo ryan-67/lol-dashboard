@@ -13,7 +13,7 @@ import {
 } from '../../lib/playerRadar'
 import { getPlayerRole, resolveLaneOpponentForGame } from '../../lib/playerAnalytics'
 import { unitIntervalTo100 } from '../../lib/scoreNormalize'
-import { formatGameDate, formatNum, formatPct } from '../../lib/format'
+import { formatGameDate, formatNum } from '../../lib/format'
 import { resolveTournamentDisplay, buildTournamentIdentityFromGame, tournamentPath } from '../../lib/tournamentCatalog'
 import { resolveGameOpponent } from '../../lib/gameOpponent'
 import PlayerRadarChart from '../../components/players/PlayerRadarChart'
@@ -22,6 +22,7 @@ import PlayerFormChart from '../../components/players/PlayerFormChart'
 import PlayerModelCard from '../../components/players/PlayerModelCard'
 import PlayerGameExplorer from '../../components/players/PlayerGameExplorer'
 import SectionSubnav from '../../components/ui/SectionSubnav'
+import KpiTile from '../../components/ui/KpiTile'
 import {
   EntityFilterBar,
   EntityLink,
@@ -153,26 +154,15 @@ export default function PlayerPage() {
           </p>
         </div>
         <div className="dash-kpi-grid" style={{ marginBottom: 0 }}>
-          <div className="dash-kpi">
-            <span className="dash-kpi-label">KDA</span>
-            <span className="dash-kpi-value">{formatNum(player.kda, 2)}</span>
-          </div>
-          <div className="dash-kpi">
-            <span className="dash-kpi-label">Games</span>
-            <span className="dash-kpi-value">{player.games}</span>
-          </div>
-          <div className="dash-kpi">
-            <span className="dash-kpi-label">W-L</span>
-            <span className="dash-kpi-value">
-              {wins}-{losses}
-            </span>
-          </div>
-          <div className="dash-kpi">
-            <span className="dash-kpi-label">Winrate</span>
-            <span className="dash-kpi-value">
-              {formatPct((wins / Math.max(player.games, 1)) * 100, 1)}
-            </span>
-          </div>
+          <KpiTile label="KDA" value={player.kda} decimals={2} />
+          <KpiTile label="Games" value={player.games} />
+          <KpiTile label="W-L" display={`${wins}-${losses}`} />
+          <KpiTile
+            label="Winrate"
+            value={(wins / Math.max(player.games, 1)) * 100}
+            decimals={1}
+            suffix="%"
+          />
         </div>
       </header>
 

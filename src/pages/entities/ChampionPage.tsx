@@ -29,6 +29,7 @@ import {
 } from '../../components/entities'
 import ChampionLaneMatchups from '../../components/entities/ChampionLaneMatchups'
 import ChampionMatchHistoryTable from '../../components/champions/ChampionMatchHistoryTable'
+import KpiTile from '../../components/ui/KpiTile'
 
 export default function ChampionPage() {
   const { slug = '' } = useParams<{ slug: string }>()
@@ -142,28 +143,17 @@ export default function ChampionPage() {
           <p className="entity-hero-meta entity-subtitle">{roleSubtitle}</p>
         </div>
         <div className="dash-kpi-grid" style={{ marginBottom: 0 }}>
-          <div className="dash-kpi">
-            <span className="dash-kpi-label">Presence</span>
-            <span className="dash-kpi-value">{formatPct(presence, 1)}</span>
-          </div>
-          <div className="dash-kpi">
-            <span className="dash-kpi-label">Pick</span>
-            <span className="dash-kpi-value">{formatPct(pickRate, 1)}</span>
-          </div>
-          <div className="dash-kpi">
-            <span className="dash-kpi-label">Ban</span>
-            <span className="dash-kpi-value">{formatPct(banRate, 1)}</span>
-          </div>
-          <div className="dash-kpi">
-            <span className="dash-kpi-label">Winrate</span>
-            <span className="dash-kpi-value">{formatPct(champion.winrate, 1)}</span>
-          </div>
-          <div className="dash-kpi">
-            <span className="dash-kpi-label">Priority</span>
-            <span className="dash-kpi-value">
-              {priorityScore != null ? priorityScore.toFixed(1) : '—'}
-            </span>
-          </div>
+          <KpiTile label="Presence" value={presence} decimals={1} suffix="%" />
+          <KpiTile label="Pick" value={pickRate} decimals={1} suffix="%" />
+          <KpiTile label="Ban" value={banRate} decimals={1} suffix="%" />
+          <KpiTile label="Winrate" value={champion.winrate} decimals={1} suffix="%" />
+          <KpiTile
+            label="Priority"
+            display={priorityScore != null ? undefined : '—'}
+            value={priorityScore ?? undefined}
+            decimals={1}
+            accent
+          />
         </div>
       </header>
 

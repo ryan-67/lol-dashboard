@@ -12,7 +12,7 @@ import {
 } from '../components/teams'
 import TeamMetricsTableCard from '../components/teams/TeamMetricsTableCard'
 import { scrollEntranceStagger, refreshScrollTrigger } from '../theme/animations'
-import PageHeader from '../components/ui/PageHeader'
+import PageHeader, { PageHeaderReadout } from '../components/ui/PageHeader'
 import TeamPowerBoard from '../components/rankings/TeamPowerBoard'
 import SectionSubnav from '../components/ui/SectionSubnav'
 import { powerRegionsFromSelectedLeagues } from '../lib/powerRegionFilter'
@@ -58,6 +58,12 @@ export default function Teams() {
         eyebrow="teams"
         title="team power & style"
         subtitle="Radar profiles and objective fingerprints across the filtered split. Multi-team compares live on Matchups."
+        meta={
+          <>
+            <PageHeaderReadout label="teams" value={teams.length} />
+            <PageHeaderReadout label="split" value={`${league} · ${split}`} />
+          </>
+        }
       />
 
       <SectionSubnav
