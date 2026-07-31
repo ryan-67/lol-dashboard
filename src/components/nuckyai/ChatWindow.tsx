@@ -85,10 +85,11 @@ export default function ChatWindow({
         />
       ) : (
         <div className="chat-empty" data-lenis-prevent ref={emptyRef}>
+          <p className="chat-empty-eyebrow chat-empty-reveal">analyst · evidence-backed</p>
           <h1 className="chat-empty-greeting chat-empty-reveal">{greetingForNow(displayName)}</h1>
           <p className="chat-empty-sub chat-empty-reveal">
-            Ask nucky about players, teams, drafts, and series lean — grounded in the same ratings
-            and match evidence as the dashboard.
+            Ask about players, teams, drafts, and series lean — grounded in the same ratings and
+            match evidence as the dashboard.
           </p>
           <div className="chat-empty-input-slot chat-empty-reveal">
             <ChatInput
@@ -101,17 +102,22 @@ export default function ChatWindow({
               floating
             />
           </div>
-          <div className="chat-empty-prompts">
+          <div className="chat-empty-prompts" role="list" aria-label="Suggested prompts">
             {PROMPTS.map((prompt) => (
               <button
                 key={prompt}
                 type="button"
                 className="chat-empty-prompt"
+                role="listitem"
                 onClick={() => onSend(prompt)}
               >
-                <span className="chat-empty-prompt-slash">/</span>
+                <span className="chat-empty-prompt-slash" aria-hidden="true">
+                  /
+                </span>
                 <span>{prompt}</span>
-                <span className="chat-empty-prompt-chevron">›</span>
+                <span className="chat-empty-prompt-chevron" aria-hidden="true">
+                  ›
+                </span>
               </button>
             ))}
           </div>

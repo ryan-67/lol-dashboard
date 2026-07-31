@@ -44,21 +44,23 @@ export default function MessageList({
   return (
     <div
       ref={containerRef}
-      className="flex-1 min-h-0 overflow-y-auto p-4 space-y-3"
+      className="chat-messages"
       data-lenis-prevent
       onScroll={updateAutoScrollState}
     >
-      {messages.map((message, idx) => (
-        <MessageBubble
-          key={message.id ?? `${message.role}-${message.created_at ?? idx}-${idx}`}
-          message={message}
-          isAssistant={message.role === 'assistant'}
-          onRegenerate={onRegenerate}
-          onRetry={onRetry}
-          deferCharts={streaming && idx === lastAssistantIdx}
-        />
-      ))}
-      <div ref={bottomRef} />
+      <div className="chat-messages-inner">
+        {messages.map((message, idx) => (
+          <MessageBubble
+            key={message.id ?? `${message.role}-${message.created_at ?? idx}-${idx}`}
+            message={message}
+            isAssistant={message.role === 'assistant'}
+            onRegenerate={onRegenerate}
+            onRetry={onRetry}
+            deferCharts={streaming && idx === lastAssistantIdx}
+          />
+        ))}
+        <div ref={bottomRef} />
+      </div>
     </div>
   )
 }

@@ -325,46 +325,56 @@ export default function AppSidebar() {
 
         <EntitySearch compact placeholder="search…" />
 
-        <nav className="app-sidebar-nav" aria-label="Primary">
-          <p className="app-sidebar-section-label app-sidebar-nav-label">analytics</p>
-          {DASH_TABS.map((tab) => {
-            const gated = Boolean(tab.gated) && !subscribed
-            const Icon = tab.icon
-            return (
-              <NavLink
-                key={tab.id}
-                to={dashPath(mode, tab.id)}
-                end={tab.id === 'overview'}
-                title={gated ? 'subscribe for access' : undefined}
-                className={({ isActive }) =>
-                  `app-sidebar-link${isActive ? ' is-active' : ''}${gated ? ' is-gated' : ''}`
-                }
-              >
-                <span className="app-sidebar-link-icon">
-                  <Icon size={15} aria-hidden />
-                </span>
-                <span className="app-sidebar-link-text">{tab.label}</span>
-                {gated ? (
-                  <span className="app-sidebar-link-tag">
-                    <Lock size={9} aria-hidden /> {tab.tag ?? ''}
+        {mode !== 'chat' ? (
+          <nav className="app-sidebar-nav" aria-label="Primary">
+            <p className="app-sidebar-section-label app-sidebar-nav-label">analytics</p>
+            {DASH_TABS.map((tab) => {
+              const gated = Boolean(tab.gated) && !subscribed
+              const Icon = tab.icon
+              return (
+                <NavLink
+                  key={tab.id}
+                  to={dashPath(mode, tab.id)}
+                  end={tab.id === 'overview'}
+                  title={gated ? 'subscribe for access' : undefined}
+                  className={({ isActive }) =>
+                    `app-sidebar-link${isActive ? ' is-active' : ''}${gated ? ' is-gated' : ''}`
+                  }
+                >
+                  <span className="app-sidebar-link-icon">
+                    <Icon size={15} aria-hidden />
                   </span>
-                ) : tab.tag ? (
-                  <span className="app-sidebar-link-tag">{tab.tag}</span>
-                ) : null}
-              </NavLink>
-            )
-          })}
-        </nav>
+                  <span className="app-sidebar-link-text">{tab.label}</span>
+                  {gated ? (
+                    <span className="app-sidebar-link-tag">
+                      <Lock size={9} aria-hidden /> {tab.tag ?? ''}
+                    </span>
+                  ) : tab.tag ? (
+                    <span className="app-sidebar-link-tag">{tab.tag}</span>
+                  ) : null}
+                </NavLink>
+              )
+            })}
+          </nav>
+        ) : (
+          <p className="app-sidebar-chat-hint">switch to data for boards · duo for split view</p>
+        )}
       </div>
 
       {showChatHistory && chat ? (
-        <div className="app-sidebar-conversations" data-lenis-prevent>
+        <div
+          className={`app-sidebar-conversations${mode === 'chat' ? ' app-sidebar-conversations--focus' : ''}`}
+          data-lenis-prevent
+        >
           <p className="app-sidebar-section-label">conversations</p>
           {shareToast ? <p className="app-sidebar-convo-toast">{shareToast}</p> : null}
           {chat.conversationsLoading ? (
             <SignalLoader compact label="loading chats…" />
           ) : chat.conversations.length === 0 ? (
-            <p className="app-sidebar-muted">no chats yet</p>
+            <div className="app-sidebar-convo-empty" role="status">
+              <p className="app-sidebar-muted">no chats yet</p>
+              <p className="app-sidebar-muted-hint">pick a prompt or ask anything</p>
+            </div>
           ) : (
             <ul className="app-sidebar-convo-list">
               {chat.conversations.map((c) => (

@@ -89,12 +89,14 @@ export default function ChatInput({
   return (
     <div className={`chat-input-wrap${floating ? ' chat-input-floating' : ''}`}>
       {disabled && onStop ? (
-        <div className="mb-2">
+        <div className="chat-input-stop-row">
           <button
             type="button"
-            className="border border-[var(--border-subtle)] px-3 py-1 text-xs text-[var(--text-secondary)] hover:text-[var(--accent)]"
+            className="chat-input-stop"
             onClick={onStop}
+            aria-label="Stop generating"
           >
+            <span className="chat-input-stop-icon" aria-hidden="true" />
             stop
           </button>
         </div>
@@ -102,7 +104,7 @@ export default function ChatInput({
 
       <div className="chat-input-shell">
         {showTypeahead ? (
-          <ul className="chat-typeahead" role="listbox">
+          <ul className="chat-typeahead" role="listbox" aria-label="Entity matches">
             {results.map((entry, i) => (
               <li key={`${entry.type}-${entry.slug}`}>
                 <button
@@ -124,9 +126,10 @@ export default function ChatInput({
           ref={ref}
           value={value}
           onChange={(e) => onChange(e.target.value)}
-          placeholder="ask nucky..."
+          placeholder="ask nucky…"
           disabled={disabled}
           rows={1}
+          aria-label="Message nucky"
           onKeyDown={(e) => {
             if (showTypeahead && results.length) {
               if (e.key === 'ArrowDown') {
@@ -151,12 +154,15 @@ export default function ChatInput({
           }}
         />
         <div className="chat-input-toolbar">
+          <span className="chat-input-hint" aria-hidden="true">
+            enter to send
+          </span>
           <button
             type="button"
             className="chat-input-send"
             disabled={disabled || !value.trim()}
             onClick={handleSendOrPick}
-            aria-label="Send"
+            aria-label="Send message"
           >
             ↑
           </button>

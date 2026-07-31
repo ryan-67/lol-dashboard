@@ -312,84 +312,74 @@ export default function MessageBubble({
   }
 
   const isThinking = Boolean(message.thinking)
+  const isError = Boolean(message.retryable) || /^failed to fetch/i.test(message.content.trim())
+  const roleLabel = isAssistant ? 'nucky' : 'you'
 
   return (
-    <div className={`w-full ${isAssistant ? '' : 'flex flex-col items-end'}`}>
+    <div className={`nuckyai-turn${isAssistant ? '' : ' nuckyai-turn--user'}`}>
       <div
-        className={`nuckyai-bubble border px-3.5 py-2.5 max-w-[95%] md:max-w-[85%] rounded-[var(--radius-md)] ${
-          isAssistant
-            ? 'nuckyai-bubble--assistant border-[var(--border-subtle)] bg-[var(--bg-surface)]'
-            : 'nuckyai-bubble--user border-[var(--border-accent)] bg-[var(--accent-bg)]'
-        } group`}
+        className={[
+          'nuckyai-bubble',
+          isAssistant ? 'nuckyai-bubble--assistant' : 'nuckyai-bubble--user',
+          isError ? 'nuckyai-bubble--error' : '',
+          isThinking ? 'nuckyai-bubble--thinking' : '',
+        ]
+          .filter(Boolean)
+          .join(' ')}
       >
+        <div className="nuckyai-bubble-meta">
+          <span className="nuckyai-bubble-role">{roleLabel}</span>
+          {!isThinking && relativeTime(message.created_at) ? (
+            <span className="nuckyai-bubble-time">{relativeTime(message.created_at)}</span>
+          ) : null}
+        </div>
         {isThinking ? (
-          <p className="text-sm text-[var(--text-secondary)] italic animate-pulse">{message.content}</p>
+          <p className="nuckyai-bubble-thinking">{message.content}</p>
         ) : (
           <>
-        {blocks.map((block, idx) => {
-          if (block.type === 'text') {
-            return (
-              <div key={`t-${idx}`}>{renderText(block.content, { isAssistant })}</div>
-            )
-          }
-          if (block.type === 'chart') {
-            return <ChartBlock key={`c-${idx}`} json={block.content} />
-          }
-          return (
-            <div key={`code-${idx}`} className="my-2 border border-[var(--border-subtle)] bg-[var(--bg-base)]">
-              <div className="flex justify-end border-b border-[var(--border-subtle)] px-2 py-1">
-                <button
-                  type="button"
-                  className="text-xs text-[var(--text-secondary)] hover:text-[var(--accent)]"
-                  onClick={() => navigator.clipboard.writeText(block.content)}
-                >
+            {blocks.map((block, idx) => {
+              if (block.type === 'text') {
+                return (
+                  <div key={`t-${idx}`} className="nuckyai-bubble-body">
+                    {renderText(block.content, { isAssistant })}
+                  </div>
+                )
+              }
+              if (block.type === 'chart') {
+                return <ChartBlock key={`c-${idx}`} json={block.content} />
+              }
+              return (
+                <div key={`code-${idx}`} className="nuckyai-code-block">
+                  <div className="nuckyai-code-toolbar">
+                    <button
+                      type="button"
+                      className="nuckyai-action"
+                      onClick={() => navigator.clipboard.writeText(block.content)}
+                    >
+                      copy
+                    </button>
+                  </div>
+                  <pre className="nuckyai-code-pre">{block.content}</pre>
+                </div>
+              )
+            })}
+
+            {isAssistant ? (
+              <div className="nuckyai-copy-row">
+                <button type="button" className="nuckyai-action" onClick={() => void copy()}>
                   copy
                 </button>
+                <ClipboardToast visible={copied} />
+                <button type="button" className="nuckyai-action" onClick={onRegenerate}>
+                  regenerate
+                </button>
+                {message.retryable ? (
+                  <button type="button" className="nuckyai-action" onClick={onRetry}>
+                    retry
+                  </button>
+                ) : null}
               </div>
-              <pre className="p-3 overflow-x-auto text-xs text-[var(--text-primary)] whitespace-pre-wrap">
-                {block.content}
-              </pre>
-            </div>
-          )
-        })}
-
-        {isAssistant && !isThinking && (
-          <div className="mt-2 flex items-center gap-3 text-xs nuckyai-copy-row">
-            <button
-              type="button"
-              className="text-[var(--text-secondary)] hover:text-[var(--accent)]"
-              onClick={() => void copy()}
-            >
-              copy
-            </button>
-            <ClipboardToast visible={copied} />
-            <button
-              type="button"
-              className="text-[var(--text-secondary)] hover:text-[var(--accent)]"
-              onClick={onRegenerate}
-            >
-              regenerate
-            </button>
-            {message.retryable && (
-              <button
-                type="button"
-                className="text-[var(--text-secondary)] hover:text-[var(--accent)]"
-                onClick={onRetry}
-              >
-                retry
-              </button>
-            )}
-          </div>
-        )}
-        {!isThinking && relativeTime(message.created_at) && (
-          <div
-            className={`mt-1.5 text-[11px] text-[var(--text-tertiary)] font-[family-name:var(--font-mono)] ${
-              isAssistant ? '' : 'text-right'
-            }`}
-          >
-            {relativeTime(message.created_at)}
-          </div>
-        )}
+            ) : null}
           </>
         )}
       </div>

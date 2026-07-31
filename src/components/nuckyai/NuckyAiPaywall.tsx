@@ -20,6 +20,7 @@ export default function NuckyAiPaywall({
   return (
     <div className="nuckyai-paywall">
       <div className="nuckyai-paywall-card">
+        <p className="nuckyai-paywall-kicker">signal access</p>
         <p className="nuckyai-paywall-eyebrow">unlock nucky</p>
         <div className="nuckyai-paywall-price-row">
           <span className="nuckyai-paywall-price">{formatNuckyAiBetaPrice()}</span>

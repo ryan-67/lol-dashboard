@@ -3479,7 +3479,23 @@ b,
   animation: clipboard-toast-fade 0.5s ease-out forwards;
 }
 
+.nuckyai-turn {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.nuckyai-turn--user {
+  align-items: flex-end;
+}
+
 .nuckyai-bubble {
+  position: relative;
+  max-width: min(100%, 38rem);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  padding: 0.7rem 0.9rem 0.75rem;
   box-shadow: var(--shadow-soft);
   transition: border-color var(--dur-fast) var(--ease-out);
 }
@@ -3490,12 +3506,145 @@ b,
     var(--bg-surface);
 }
 
+.nuckyai-bubble--assistant::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0.55rem;
+  bottom: 0.55rem;
+  width: 2px;
+  background: var(--accent);
+  opacity: 0.85;
+}
+
 .nuckyai-bubble--user {
-  box-shadow: 0 0 0 1px color-mix(in oklab, var(--accent) 18%, transparent);
+  border-color: var(--border-accent);
+  background: color-mix(in oklab, var(--accent-bg) 70%, var(--bg-surface));
+  box-shadow: 0 0 0 1px color-mix(in oklab, var(--accent) 14%, transparent);
+}
+
+.nuckyai-bubble--error {
+  border-color: color-mix(in oklab, var(--neg) 45%, var(--border-subtle));
+  background:
+    linear-gradient(160deg, color-mix(in oklab, var(--neg) 10%, transparent), transparent 55%),
+    var(--bg-surface);
+}
+
+.nuckyai-bubble--error.nuckyai-bubble--assistant::before {
+  background: var(--neg);
+}
+
+.nuckyai-bubble--thinking {
+  border-style: dashed;
+}
+
+.nuckyai-bubble-meta {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.4rem;
+}
+
+.nuckyai-bubble-role {
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+}
+
+.nuckyai-bubble--user .nuckyai-bubble-role {
+  color: var(--accent);
+}
+
+.nuckyai-bubble-time {
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  color: var(--text-tertiary);
+  white-space: nowrap;
+}
+
+.nuckyai-bubble-body {
+  font-size: 0.9rem;
+  line-height: 1.55;
+  color: var(--text-primary);
+}
+
+.nuckyai-bubble-thinking {
+  margin: 0;
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+  font-style: italic;
+  animation: nuckyai-think-pulse 1.4s ease-in-out infinite;
+}
+
+@keyframes nuckyai-think-pulse {
+  0%,
+  100% {
+    opacity: 0.55;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nuckyai-bubble-thinking {
+    animation: none;
+    opacity: 0.85;
+  }
+}
+
+.nuckyai-code-block {
+  margin: 0.55rem 0;
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-base);
+  border-radius: var(--radius-sm);
+}
+
+.nuckyai-code-toolbar {
+  display: flex;
+  justify-content: flex-end;
+  border-bottom: 1px solid var(--border-subtle);
+  padding: 0.3rem 0.45rem;
+}
+
+.nuckyai-code-pre {
+  margin: 0;
+  padding: 0.75rem;
+  overflow-x: auto;
+  font-size: 0.75rem;
+  color: var(--text-primary);
+  white-space: pre-wrap;
+}
+
+.nuckyai-action {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  padding: 0;
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: color var(--dur-fast) var(--ease-out);
+}
+
+.nuckyai-action:hover {
+  color: var(--accent);
 }
 
 .nuckyai-copy-row {
   position: relative;
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  margin-top: 0.65rem;
+  padding-top: 0.45rem;
+  border-top: 1px solid color-mix(in oklab, var(--border-subtle) 80%, transparent);
 }
 
 .nuckyai-copy-row .clipboard-toast {
@@ -3521,6 +3670,7 @@ b,
 }
 
 .nuckyai-paywall-card {
+  position: relative;
   border: 1px solid var(--border-accent);
   background:
     radial-gradient(420px 180px at 0% 0%, var(--accent-bg), transparent 65%),
@@ -3529,11 +3679,30 @@ b,
   box-shadow: var(--shadow-lift);
 }
 
-.nuckyai-paywall-eyebrow {
+.nuckyai-paywall-card::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 1.1rem;
+  bottom: 1.1rem;
+  width: 2px;
+  background: var(--accent);
+}
+
+.nuckyai-paywall-kicker {
   margin: 0 0 0.35rem;
   font-family: var(--font-mono);
-  font-size: 0.875rem;
-  font-weight: 500;
+  font-size: 0.62rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+.nuckyai-paywall-eyebrow {
+  margin: 0 0 0.35rem;
+  font-size: 1.05rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
   color: var(--text-primary);
   text-transform: lowercase;
 }
