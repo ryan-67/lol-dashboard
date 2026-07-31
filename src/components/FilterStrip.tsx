@@ -46,8 +46,8 @@ export function FilterStripControls({
   ]
 
   return (
-    <div className="flex flex-col sm:flex-row sm:items-center gap-4">
-      <div className="flex items-center gap-2">
+    <div className="filter-toolbar">
+      <div className="filter-toolbar-group">
         <span className="label-field">League</span>
         {isAllTier1Selected(selectedLeagues) ? null : (
           <LeagueLogo league={selectedLeagues[0] ?? 'LCK'} size={18} />
@@ -64,7 +64,7 @@ export function FilterStripControls({
       </div>
       {!hideYearAndSplit && (
         <>
-          <div className="flex items-center gap-2">
+          <div className="filter-toolbar-group">
             <span className="label-field">Year</span>
             <MultiSelectDropdown
               label="Year"
@@ -72,10 +72,10 @@ export function FilterStripControls({
               options={yearOptions}
               selected={selectedYears}
               onToggle={toggleYear}
-              minWidth={120}
+              minWidth={110}
             />
           </div>
-          <div className="flex items-center gap-2">
+          <div className="filter-toolbar-group">
             <span className="label-field">Split</span>
             <MultiSelectDropdown
               label="Split"
@@ -100,11 +100,8 @@ interface FilterStripShellProps {
 
 export function FilterStripShell({ children, trailing }: FilterStripShellProps) {
   return (
-    <div
-      className="border-t"
-      style={{ borderColor: 'var(--border-subtle)', backgroundColor: 'var(--bg-surface)' }}
-    >
-      <div className="app-header-inner flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 py-3">
+    <div style={{ backgroundColor: 'color-mix(in oklab, var(--bg-surface) 72%, transparent)' }}>
+      <div className="app-header-inner flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3 py-2.5">
         {children}
         {trailing}
       </div>

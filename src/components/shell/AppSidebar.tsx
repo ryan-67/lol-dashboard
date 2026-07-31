@@ -1,5 +1,19 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, type ComponentType } from 'react'
 import { NavLink, Link, useLocation } from 'react-router-dom'
+import {
+  ArrowsLeftRight,
+  ChartLine,
+  ChatCircleDots,
+  Lock,
+  Pulse,
+  Shield,
+  SquaresFour,
+  SquareSplitHorizontal,
+  Sword,
+  Trophy,
+  UsersThree,
+  type IconProps,
+} from '@phosphor-icons/react'
 import { useOptionalChatSession } from '../../context/ChatSessionContext'
 import { useViewPreference } from '../../context/ViewPreferenceContext'
 import EntitySearch from './EntitySearch'
@@ -21,15 +35,34 @@ function dashPath(mode: ShellMode, tab: string): string {
   return tab === 'overview' ? '/dashboard' : `/dashboard/${tab}`
 }
 
-const DASH_TABS = [
-  { id: 'overview', label: 'overview' },
-  { id: 'players', label: 'players' },
-  { id: 'teams', label: 'teams' },
-  { id: 'champions', label: 'champions' },
-  { id: 'tournaments', label: 'tournaments' },
-  { id: 'matchups', label: 'matchups' },
-  { id: 'predictions', label: 'nucky prediction model', gated: true },
-] as const
+interface DashTab {
+  id: string
+  label: string
+  icon: ComponentType<IconProps>
+  gated?: boolean
+  tag?: string
+}
+
+const DASH_TABS: DashTab[] = [
+  { id: 'overview', label: 'overview', icon: SquaresFour },
+  { id: 'players', label: 'players', icon: UsersThree },
+  { id: 'teams', label: 'teams', icon: Shield },
+  { id: 'champions', label: 'champions', icon: Sword },
+  { id: 'tournaments', label: 'tournaments', icon: Trophy },
+  { id: 'matchups', label: 'matchups', icon: ArrowsLeftRight },
+  { id: 'predictions', label: 'predictions', icon: Pulse, gated: true, tag: 'model' },
+]
+
+/** Preserve the current tab when jumping between dashboard and duo. */
+function modeTarget(pathname: string, target: ShellMode): string {
+  if (target === 'chat') return '/chat'
+  const base = target === 'duo' ? '/duo' : '/dashboard'
+  const tail = pathname.replace(/^\/(duo|dashboard)/, '')
+  if (pathname.startsWith('/duo') || pathname.startsWith('/dashboard')) {
+    return `${base}${tail}` || base
+  }
+  return base
+}
 
 function MenuDotsIcon() {
   return (
@@ -224,11 +257,9 @@ export default function AppSidebar() {
   const chat = useOptionalChatSession()
   const [shareToast, setShareToast] = useState<string | null>(null)
 
-  // Chat-preference + on /chat: collapse dash tabs to single Dashboard link
-  const chatOnlyNav = mode === 'chat' && defaultView === 'chat'
   const showChatHistory = (mode === 'duo' || mode === 'chat') && chat?.isSubscribed
   const showNewChat = mode === 'duo' || mode === 'chat'
-  const showNuckyLink = mode === 'dashboard'
+  const subscribed = Boolean(chat?.isSubscribed)
 
   const handleShare = async (id: string) => {
     const url = conversationShareUrl(id)
@@ -252,12 +283,41 @@ export default function AppSidebar() {
           <span>nucky</span>
         </Link>
 
+        <nav className="app-mode-switch" aria-label="Workspace mode">
+          <NavLink
+            to={modeTarget(location.pathname, 'dashboard')}
+            className={`app-mode-switch-btn${mode === 'dashboard' ? ' is-active' : ''}`}
+            aria-current={mode === 'dashboard' ? 'page' : undefined}
+          >
+            <ChartLine size={13} aria-hidden />
+            <span className="app-mode-switch-label">data</span>
+          </NavLink>
+          <NavLink
+            to={modeTarget(location.pathname, 'duo')}
+            title={!subscribed ? 'subscribe for nucky chat' : undefined}
+            className={`app-mode-switch-btn${mode === 'duo' ? ' is-active' : ''}${subscribed ? '' : ' is-gated'}`}
+            aria-current={mode === 'duo' ? 'page' : undefined}
+          >
+            <SquareSplitHorizontal size={13} aria-hidden />
+            <span className="app-mode-switch-label">duo</span>
+          </NavLink>
+          <NavLink
+            to="/chat"
+            title={!subscribed ? 'subscribe for nucky chat' : undefined}
+            className={`app-mode-switch-btn${mode === 'chat' ? ' is-active' : ''}${subscribed ? '' : ' is-gated'}`}
+            aria-current={mode === 'chat' ? 'page' : undefined}
+          >
+            <ChatCircleDots size={13} aria-hidden />
+            <span className="app-mode-switch-label">chat</span>
+          </NavLink>
+        </nav>
+
         {showNewChat ? (
           <button
             type="button"
             className="app-sidebar-new-chat"
             onClick={() => chat?.beginNewChat()}
-            disabled={!chat?.isSubscribed}
+            disabled={!subscribed}
           >
             + new chat
           </button>
@@ -266,37 +326,34 @@ export default function AppSidebar() {
         <EntitySearch compact placeholder="search…" />
 
         <nav className="app-sidebar-nav" aria-label="Primary">
-          {showNuckyLink ? (
-            <NavLink to="/duo" className="app-sidebar-link" title={!chat?.isSubscribed ? 'subscribe for nucky chat' : undefined}>
-              nucky
-            </NavLink>
-          ) : null}
-
-          {chatOnlyNav ? (
-            <NavLink to="/dashboard" className="app-sidebar-link">
-              dashboard
-            </NavLink>
-          ) : (
-            <>
-              <p className="app-sidebar-section-label app-sidebar-nav-label">analytics</p>
-              {DASH_TABS.map((tab) => {
-                const gated = 'gated' in tab && tab.gated && !chat?.isSubscribed
-                return (
-                  <NavLink
-                    key={tab.id}
-                    to={dashPath(mode, tab.id)}
-                    end={tab.id === 'overview'}
-                    title={gated ? 'subscribe for access' : undefined}
-                    className={({ isActive }) =>
-                      `app-sidebar-link${isActive ? ' is-active' : ''}${gated ? ' is-gated' : ''}`
-                    }
-                  >
-                    {tab.label}
-                  </NavLink>
-                )
-              })}
-            </>
-          )}
+          <p className="app-sidebar-section-label app-sidebar-nav-label">analytics</p>
+          {DASH_TABS.map((tab) => {
+            const gated = Boolean(tab.gated) && !subscribed
+            const Icon = tab.icon
+            return (
+              <NavLink
+                key={tab.id}
+                to={dashPath(mode, tab.id)}
+                end={tab.id === 'overview'}
+                title={gated ? 'subscribe for access' : undefined}
+                className={({ isActive }) =>
+                  `app-sidebar-link${isActive ? ' is-active' : ''}${gated ? ' is-gated' : ''}`
+                }
+              >
+                <span className="app-sidebar-link-icon">
+                  <Icon size={15} aria-hidden />
+                </span>
+                <span className="app-sidebar-link-text">{tab.label}</span>
+                {gated ? (
+                  <span className="app-sidebar-link-tag">
+                    <Lock size={9} aria-hidden /> {tab.tag ?? ''}
+                  </span>
+                ) : tab.tag ? (
+                  <span className="app-sidebar-link-tag">{tab.tag}</span>
+                ) : null}
+              </NavLink>
+            )
+          })}
         </nav>
       </div>
 

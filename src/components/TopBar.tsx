@@ -26,8 +26,9 @@ export default function TopBar() {
     <FilterStripShell
       trailing={
         lastUpdated ? (
-          <span className="text-xs text-tertiary">
-            updated {formatRefreshTimestamp(lastUpdated, { includeYear: true })}
+          <span className="filter-sync">
+            <span className="filter-sync-dot" aria-hidden />
+            synced {formatRefreshTimestamp(lastUpdated, { includeYear: true })}
           </span>
         ) : undefined
       }

@@ -121,7 +121,7 @@ export function animateCounter(
 ) {
   if (!element) return
 
-  const { decimals = 1, suffix = '', prefix = '', duration = 0.4 } = options ?? {}
+  const { decimals = 1, suffix = '', prefix = '', duration = 0.9 } = options ?? {}
   if (reducedMotion()) {
     element.textContent = `${prefix}${finalValue.toFixed(decimals)}${suffix}`
     return
@@ -462,19 +462,17 @@ export function revealDashboardSections(root: Element | null) {
 
   targets.forEach((el, i) => {
     el.setAttribute('data-revealed', '1')
-    const fromRight = i % 3 === 2
-    gsap.set(el, { opacity: 0, y: fromRight ? 12 : 36, x: fromRight ? 28 : 0 })
+    gsap.set(el, { opacity: 0, y: 16 })
     gsap.to(el, {
       opacity: 1,
       y: 0,
-      x: 0,
-      duration: 0.55,
-      delay: Math.min(i * 0.04, 0.28),
+      duration: 0.45,
+      delay: Math.min(i * 0.05, 0.24),
       ease: 'power3.out',
       clearProps: 'transform',
       scrollTrigger: {
         ...scrollerVars(el),
-        start: 'top 90%',
+        start: 'top 92%',
       },
     })
   })

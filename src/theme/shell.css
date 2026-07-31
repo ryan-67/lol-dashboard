@@ -119,20 +119,15 @@
     transform var(--dur-fast) var(--ease-out);
 }
 
-/* signal dot slot — lights up on the active route */
-.app-sidebar-link::before {
-  content: '';
-  width: 5px;
-  height: 5px;
-  border-radius: 50%;
-  background: var(--border-focus);
-  opacity: 0;
-  transform: scale(0.4);
-  transition:
-    opacity var(--dur-fast) var(--ease-out),
-    transform var(--dur-fast) var(--ease-out),
-    background var(--dur-fast) var(--ease-out);
+/* nav icon — quiet by default, signal-lit when active */
+.app-sidebar-link-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.05rem;
   flex-shrink: 0;
+  color: var(--text-tertiary);
+  transition: color var(--dur-fast) var(--ease-out), transform var(--dur-fast) var(--ease-out);
 }
 
 .app-sidebar-link:hover {
@@ -142,9 +137,34 @@
   transform: translateX(1px);
 }
 
-.app-sidebar-link:hover::before {
-  opacity: 0.7;
-  transform: scale(1);
+.app-sidebar-link:hover .app-sidebar-link-icon {
+  color: var(--text-secondary);
+}
+
+.app-sidebar-link.is-active .app-sidebar-link-icon {
+  color: var(--accent);
+}
+
+/* tiny mono tag (e.g. "model" on predictions) */
+.app-sidebar-link-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.22rem;
+  margin-left: auto;
+  font-family: var(--font-mono);
+  font-size: 0.56rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+  border: 1px solid var(--border-hairline);
+  border-radius: 3px;
+  padding: 0.12rem 0.32rem;
+  flex-shrink: 0;
+}
+
+.app-sidebar-link.is-active .app-sidebar-link-tag {
+  color: var(--accent);
+  border-color: color-mix(in oklab, var(--accent) 40%, var(--border-subtle));
 }
 
 .app-sidebar-link.is-gated {
@@ -185,16 +205,60 @@
   border-color: var(--border-accent);
 }
 
-.app-sidebar-link.is-active::before {
-  opacity: 1;
-  transform: scale(1);
-  background: var(--accent);
-  box-shadow: 0 0 8px var(--accent-glow);
-}
-
 .app-sidebar-link.is-active::after {
   opacity: 1;
   transform: scaleY(1);
+}
+
+/* Mode switch — dashboard / duo / chat segmented instrument control */
+.app-mode-switch {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 2px;
+  padding: 3px;
+  border: 1px solid var(--border-hairline);
+  border-radius: var(--radius-sm);
+  background: color-mix(in oklab, var(--bg-inset) 85%, transparent);
+}
+
+.app-mode-switch-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.32rem;
+  padding: 0.42rem 0.2rem;
+  border-radius: 3px;
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  font-weight: 500;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+  text-decoration: none;
+  border: 1px solid transparent;
+  transition:
+    color var(--dur-fast) var(--ease-out),
+    background var(--dur-fast) var(--ease-out),
+    border-color var(--dur-fast) var(--ease-out);
+}
+
+.app-mode-switch-btn svg {
+  flex-shrink: 0;
+}
+
+.app-mode-switch-btn:hover {
+  color: var(--text-primary);
+  background: var(--bg-elevated);
+}
+
+.app-mode-switch-btn.is-active {
+  color: var(--accent);
+  background: color-mix(in oklab, var(--accent-bg) 60%, var(--bg-elevated));
+  border-color: color-mix(in oklab, var(--accent) 32%, var(--border-subtle));
+}
+
+.app-mode-switch-btn.is-gated {
+  opacity: 0.55;
 }
 
 .app-sidebar-brand {
@@ -733,6 +797,70 @@
   border-bottom: 1px solid var(--border-subtle);
 }
 
+/* Filter strip — instrument toolbar: mono labels, hairline group dividers, sync readout */
+.filter-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem 1.1rem;
+}
+
+.filter-toolbar-group {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.filter-toolbar-group + .filter-toolbar-group {
+  padding-left: 1.1rem;
+  border-left: 1px solid var(--border-hairline);
+}
+
+.filter-toolbar .label-field {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  color: var(--text-tertiary);
+}
+
+/* Sync readout — quiet mono timestamp with a live signal dot */
+.filter-sync {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.04em;
+  color: var(--text-tertiary);
+  white-space: nowrap;
+}
+
+.filter-sync-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 8px var(--accent-glow);
+  animation: filter-sync-pulse 2.6s ease-in-out infinite;
+}
+
+@keyframes filter-sync-pulse {
+  0%,
+  100% {
+    opacity: 0.45;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .filter-sync-dot {
+    animation: none;
+    opacity: 0.8;
+  }
+}
+
 .dashboard-frame-main {
   flex: 1;
   padding: 1.1rem var(--padding-x) 2.5rem;
@@ -1027,6 +1155,23 @@
   padding: 0.25rem;
 }
 
+/* Ambient cursor trail — screen-blended WebGL layer over the app shell */
+.app-cursor-trail {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 90;
+  pointer-events: none;
+  mix-blend-mode: screen;
+  opacity: 0.85;
+  transition: opacity 260ms ease-out;
+}
+
+.app-cursor-trail.is-muted {
+  opacity: 0;
+}
+
 /* Contact page */
 .contact-page {
   display: flex;
@@ -1141,14 +1286,16 @@
 
 @media (max-width: 960px) {
   .app-sidebar {
-    width: 72px;
+    width: 68px;
   }
 
   .app-sidebar-brand span:last-child,
   .app-sidebar-new-chat,
   .entity-search,
-  .app-sidebar-link,
   .app-sidebar-nav-label,
+  .app-sidebar-link-text,
+  .app-sidebar-link-tag,
+  .app-mode-switch-label,
   .app-sidebar-conversations,
   .profile-menu-meta,
   .profile-menu-chevrons {
@@ -1156,7 +1303,17 @@
   }
 
   .app-sidebar-nav {
-    align-items: center;
+    align-items: stretch;
+  }
+
+  /* icon-only rail */
+  .app-sidebar-link {
+    justify-content: center;
+    padding: 0.58rem 0.4rem;
+  }
+
+  .app-mode-switch {
+    grid-template-columns: 1fr;
   }
 
   .duo-layout {

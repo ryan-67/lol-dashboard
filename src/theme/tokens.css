@@ -48,10 +48,22 @@
   --font-sans: 'IBM Plex Sans', 'Segoe UI', sans-serif;
   --font-mono: 'Noto Sans Mono', ui-monospace, monospace;
   --text-base: 14px;
+  --text-xs: 11px;
+  --text-sm: 12.5px;
   --leading-base: 1.5;
+
+  /* Semantic result colors — W/L convention shared with chartTheme */
+  --pos: #5c9e5a;
+  --neg: #c45c5c;
+
+  /* Instrument chrome */
+  --grid-line: color-mix(in oklab, var(--border-subtle) 42%, transparent);
+  --tick: color-mix(in oklab, var(--accent) 60%, var(--border-focus));
+  --bg-hover: color-mix(in oklab, var(--bg-elevated) 78%, transparent);
 
   /* Motion */
   --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-inout: cubic-bezier(0.77, 0, 0.175, 1);
   --dur-fast: 140ms;
   --dur-med: 220ms;
   --dur-slow: 420ms;
@@ -272,25 +284,50 @@ b,
   color: var(--text-tertiary);
 }
 
-/* Cards */
+/* Cards — matte instrument panel: hairline border, quiet top edge, hover fiducial */
 .card {
   position: relative;
   background:
-    linear-gradient(168deg, color-mix(in oklab, var(--bg-elevated) 62%, transparent) 0%, transparent 40%),
-    color-mix(in oklab, var(--bg-surface) 96%, transparent);
-  border: 1px solid var(--border-subtle);
+    linear-gradient(180deg, color-mix(in oklab, var(--bg-elevated) 46%, transparent) 0%, transparent 34%),
+    color-mix(in oklab, var(--bg-surface) 97%, transparent);
+  border: 1px solid var(--border-hairline);
   border-radius: var(--radius-md);
-  padding: var(--component-gap);
-  box-shadow: var(--shadow-soft);
+  padding: 1.35rem 1.45rem;
+  box-shadow:
+    var(--shadow-soft),
+    inset 0 1px 0 color-mix(in oklab, var(--text-primary) 4%, transparent);
   transition:
     border-color var(--dur-med) var(--ease-out),
     box-shadow var(--dur-med) var(--ease-out),
     transform var(--dur-med) var(--ease-out);
 }
 
+/* hover: hairline sharpens + a short signal segment wakes up on the top edge */
+.card::before {
+  content: '';
+  position: absolute;
+  top: -1px;
+  left: 1rem;
+  width: 34px;
+  height: 1px;
+  background: var(--accent);
+  opacity: 0;
+  transform: scaleX(0.4);
+  transform-origin: left center;
+  transition:
+    opacity var(--dur-med) var(--ease-out),
+    transform var(--dur-med) var(--ease-out);
+  pointer-events: none;
+}
+
 .card:hover {
-  border-color: var(--border-focus);
+  border-color: var(--border-subtle);
   box-shadow: var(--shadow-lift);
+}
+
+.card:hover::before {
+  opacity: 0.9;
+  transform: scaleX(1);
 }
 
 /* Signal card — for model-output surfaces (ratings, outlooks, model cards) */
@@ -300,6 +337,11 @@ b,
     linear-gradient(180deg, var(--accent-bg) 0%, transparent 18%),
     linear-gradient(168deg, color-mix(in oklab, var(--bg-elevated) 62%, transparent) 0%, transparent 40%),
     color-mix(in oklab, var(--bg-surface) 96%, transparent);
+}
+
+.card--signal::before {
+  opacity: 0.9;
+  transform: scaleX(1);
 }
 
 .card-title {
@@ -390,23 +432,24 @@ b,
 
 .select-wrap select {
   appearance: none;
-  background-color: var(--bg-surface);
+  background-color: color-mix(in oklab, var(--bg-inset) 80%, transparent);
   border: 1px solid var(--border-subtle);
   color: var(--text-primary);
   font-family: var(--font-mono);
-  font-size: 14px;
+  font-size: 12.5px;
   font-weight: 400;
-  padding: 8px 36px 8px 12px;
-  border-radius: 0;
+  padding: 7px 32px 7px 11px;
+  border-radius: var(--radius-sm);
   cursor: pointer;
-  transition: border-color 0.15s ease;
-  min-width: 140px;
+  transition: border-color 0.15s ease, background-color 0.15s ease;
+  min-width: 130px;
 }
 
 .select-wrap select:hover,
 .select-wrap select:focus {
   outline: none;
   border-color: var(--border-focus);
+  background-color: var(--bg-elevated);
 }
 
 .select-wrap .select-chevron {
@@ -427,17 +470,17 @@ b,
 
 .multi-select-trigger {
   appearance: none;
-  background-color: var(--bg-surface);
+  background-color: color-mix(in oklab, var(--bg-inset) 80%, transparent);
   border: 1px solid var(--border-subtle);
   color: var(--text-primary);
   font-family: var(--font-mono);
-  font-size: 14px;
+  font-size: 12.5px;
   font-weight: 400;
-  padding: 8px 36px 8px 12px;
-  border-radius: 0;
+  padding: 7px 32px 7px 11px;
+  border-radius: var(--radius-sm);
   cursor: pointer;
-  transition: border-color 0.15s ease;
-  min-width: 140px;
+  transition: border-color 0.15s ease, background-color 0.15s ease;
+  min-width: 130px;
   width: 100%;
   text-align: left;
 }
@@ -446,6 +489,7 @@ b,
 .multi-select-trigger:focus {
   outline: none;
   border-color: var(--border-focus);
+  background-color: var(--bg-elevated);
 }
 
 .multi-select-value {
@@ -468,9 +512,23 @@ b,
   margin: 0;
   padding: 4px 0;
   list-style: none;
-  background-color: var(--bg-surface);
+  background-color: var(--bg-elevated);
   border: 1px solid var(--border-subtle);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+  border-radius: var(--radius-sm);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
+  animation: instrument-pop var(--dur-fast) var(--ease-out);
+  transform-origin: top left;
+}
+
+@keyframes instrument-pop {
+  from {
+    opacity: 0;
+    transform: scale(0.97) translateY(-2px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
 }
 
 .multi-select-option {
@@ -478,12 +536,12 @@ b,
   align-items: center;
   gap: 8px;
   width: 100%;
-  padding: 8px 12px;
+  padding: 7px 12px;
   border: none;
   background: transparent;
   color: var(--text-primary);
   font-family: var(--font-mono);
-  font-size: 14px;
+  font-size: 12.5px;
   text-align: left;
   cursor: pointer;
 }
@@ -524,27 +582,36 @@ b,
   background: var(--accent-bg);
 }
 
-/* Tables */
+/* Tables — instrument readout: mono numerals, hairline rows, signal row hover */
 .table-wrap {
   overflow: auto;
+  border: 1px solid var(--border-hairline);
+  border-radius: var(--radius-sm);
+  background: color-mix(in oklab, var(--bg-inset) 65%, transparent);
 }
 
 .data-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 14px;
+  font-size: 13px;
 }
 
 .data-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
   text-align: left;
   font-family: var(--font-mono);
-  font-size: 10.5px;
+  font-size: 10px;
   font-weight: 500;
   color: var(--text-tertiary);
   text-transform: uppercase;
   letter-spacing: 0.12em;
-  padding: 8px 12px;
-  border-bottom: 1px solid var(--border-focus);
+  padding: 9px 12px;
+  background: color-mix(in srgb, var(--bg-surface) 96%, transparent);
+  border-bottom: 1px solid var(--border-subtle);
+  box-shadow: 0 1px 0 color-mix(in oklab, var(--accent) 14%, transparent);
+  white-space: nowrap;
 }
 
 .data-table th.sortable {
@@ -558,17 +625,21 @@ b,
 }
 
 .data-table tbody tr {
-  border-bottom: 1px solid var(--border-hairline);
+  border-bottom: 1px solid var(--grid-line);
   transition: background 0.15s ease, box-shadow 0.15s ease;
 }
 
+.data-table tbody tr:last-child {
+  border-bottom: none;
+}
+
 .data-table tbody tr:hover {
-  background-color: var(--bg-elevated);
+  background-color: var(--bg-hover);
   box-shadow: inset 2px 0 0 var(--accent);
 }
 
 .data-table tbody td {
-  padding: 8px 12px;
+  padding: 7px 12px;
   color: var(--text-primary);
 }
 
@@ -591,7 +662,9 @@ b,
 }
 
 .empty-state {
+  position: relative;
   border: 1px dashed var(--border-subtle);
+  border-radius: var(--radius-sm);
   background:
     repeating-linear-gradient(
       -45deg,
@@ -599,11 +672,47 @@ b,
       color-mix(in oklab, var(--bg-elevated) 45%, transparent) 12px 13px
     ),
     var(--bg-surface);
-  padding: 40px 32px;
+  padding: 44px 32px;
   text-align: center;
   color: var(--text-secondary);
   font-family: var(--font-mono);
-  font-size: 13px;
+  font-size: var(--text-sm);
+  letter-spacing: 0.02em;
+}
+
+.empty-state-line {
+  margin: 0;
+}
+
+.empty-state-hint {
+  margin: 6px 0 0;
+  font-size: var(--text-xs);
+  color: var(--text-tertiary);
+}
+
+/* fiducial corner brackets */
+.empty-state::before,
+.empty-state::after {
+  content: '';
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  border: 1px solid color-mix(in oklab, var(--accent) 42%, var(--border-subtle));
+  pointer-events: none;
+}
+
+.empty-state::before {
+  top: -1px;
+  left: -1px;
+  border-right: 0;
+  border-bottom: 0;
+}
+
+.empty-state::after {
+  right: -1px;
+  bottom: -1px;
+  border-left: 0;
+  border-top: 0;
 }
 
 .overview-section {
@@ -1144,15 +1253,36 @@ b,
 
 .stat-tile {
   position: relative;
-  background-color: var(--bg-elevated);
-  border: 1px solid var(--border-subtle);
-  padding: 16px;
-  border-radius: 0;
-  transition: border-color var(--dur-fast) var(--ease-out);
+  background:
+    linear-gradient(180deg, color-mix(in oklab, var(--bg-elevated) 70%, transparent), var(--bg-surface));
+  border: 1px solid var(--border-hairline);
+  padding: 14px 16px;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  transition:
+    border-color var(--dur-fast) var(--ease-out),
+    transform var(--dur-fast) var(--ease-out);
+}
+
+.stat-tile::after {
+  content: '';
+  position: absolute;
+  inset: 0 auto auto 0;
+  width: 26px;
+  height: 1px;
+  background: var(--accent);
+  opacity: 0.5;
+  transition: width var(--dur-med) var(--ease-out), opacity var(--dur-fast) var(--ease-out);
 }
 
 .stat-tile:hover {
-  border-color: var(--border-focus);
+  border-color: var(--border-subtle);
+  transform: translateY(-1px);
+}
+
+.stat-tile:hover::after {
+  width: 100%;
+  opacity: 0.25;
 }
 
 .stat-label {
@@ -1495,6 +1625,9 @@ b,
 
 .entity-table-wrap {
   overflow-x: auto;
+  border: 1px solid var(--border-hairline);
+  border-radius: var(--radius-sm);
+  background: color-mix(in oklab, var(--bg-inset) 65%, transparent);
 }
 
 .entity-table {
@@ -1505,19 +1638,28 @@ b,
 
 .entity-table th,
 .entity-table td {
-  padding: 10px 8px;
+  padding: 8px 10px;
   text-align: left;
-  border-bottom: 1px solid var(--border-hairline);
+  border-bottom: 1px solid var(--grid-line);
 }
 
 .entity-table th {
-  font-size: 10.5px;
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  font-size: 10px;
   text-transform: uppercase;
   letter-spacing: 0.12em;
   color: var(--text-tertiary);
   font-weight: 500;
   white-space: nowrap;
-  border-bottom-color: var(--border-focus);
+  background: color-mix(in srgb, var(--bg-surface) 96%, transparent);
+  border-bottom: 1px solid var(--border-subtle);
+  box-shadow: 0 1px 0 color-mix(in oklab, var(--accent) 14%, transparent);
+}
+
+.entity-table tbody tr:last-child td {
+  border-bottom: none;
 }
 
 .entity-table tbody tr {
@@ -2505,29 +2647,50 @@ b,
 }
 
 .section-subnav-link {
-  padding: 7px 14px;
+  position: relative;
+  padding: 7px 12px 9px;
   font-family: var(--font-mono);
-  font-size: 12px;
+  font-size: 11.5px;
   font-weight: 500;
-  letter-spacing: 0.03em;
+  letter-spacing: 0.05em;
   text-transform: uppercase;
   color: var(--text-secondary);
   background: transparent;
-  border: 1px solid transparent;
-  border-radius: var(--radius-sm);
+  border: 0;
+  border-radius: var(--radius-sm) var(--radius-sm) 0 0;
   cursor: pointer;
-  transition: color 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+  transition: color 0.15s ease, background 0.15s ease;
+}
+
+/* sliding signal underline */
+.section-subnav-link::after {
+  content: '';
+  position: absolute;
+  left: 10px;
+  right: 10px;
+  bottom: 0;
+  height: 2px;
+  background: var(--accent);
+  opacity: 0;
+  transform: scaleX(0.35);
+  transform-origin: left center;
+  transition:
+    opacity var(--dur-fast) var(--ease-out),
+    transform var(--dur-med) var(--ease-out);
 }
 
 .section-subnav-link:hover {
   color: var(--text-primary);
-  background: var(--bg-elevated);
+  background: var(--bg-hover);
 }
 
 .section-subnav-link.is-active {
   color: var(--accent);
-  border-color: var(--accent);
-  background: var(--accent-bg);
+}
+
+.section-subnav-link.is-active::after {
+  opacity: 1;
+  transform: scaleX(1);
 }
 
 .section-subnav-extra {

@@ -3,12 +3,18 @@ import { Link } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import { useProfile } from '../../context/ProfileContext'
 import AuthModal from '../AuthModal'
+import {
+  ambientTrailEnabled,
+  ambientTrailSupported,
+  setAmbientTrailEnabled,
+} from '../../lib/ambientTrail'
 
 export default function ProfileMenu() {
   const { user, loading, signOut } = useAuth()
   const { profile } = useProfile()
   const [open, setOpen] = useState(false)
   const [showAuth, setShowAuth] = useState(false)
+  const [trailOn, setTrailOn] = useState(() => ambientTrailEnabled())
   const wrapRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -55,6 +61,24 @@ export default function ProfileMenu() {
             </span>
             contact
           </Link>
+          {ambientTrailSupported() ? (
+            <button
+              type="button"
+              className="profile-menu-item"
+              role="menuitemcheckbox"
+              aria-checked={trailOn}
+              onClick={() => {
+                const next = !trailOn
+                setAmbientTrailEnabled(next)
+                setTrailOn(next)
+              }}
+            >
+              <span className="profile-menu-icon" aria-hidden>
+                {trailOn ? '◉' : '◌'}
+              </span>
+              ambient trail {trailOn ? 'on' : 'off'}
+            </button>
+          ) : null}
           <button
             type="button"
             className="profile-menu-item"
