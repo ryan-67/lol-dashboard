@@ -102,8 +102,49 @@ def _read_year_csv(path: Path) -> pd.DataFrame:
     return df
 
 
+def _load_cito_supplement() -> pd.DataFrame:
+    """Recent Cito player-stats exported as OE-shaped rows (no Drive wait).
+
+    Written by ``npm run sync:cito-player-stats`` → data/ml/cito_oe_supplement.csv.
+    Prefer OE when the same calendar day + team already exists in OE (dedupe).
+    """
+    path = ROOT / "data" / "ml" / "cito_oe_supplement.csv"
+    if not path.exists():
+        return pd.DataFrame()
+    try:
+        df = pd.read_csv(path, low_memory=False)
+    except Exception as exc:  # noqa: BLE001
+        print(f"WARNING: could not read Cito OE supplement: {exc}", file=sys.stderr)
+        return pd.DataFrame()
+    if df.empty:
+        return df
+    df.columns = [c.strip() for c in df.columns]
+    if "league" in df.columns:
+        df["league"] = df["league"].astype(str).str.strip()
+        df = df[df["league"].isin(ALL_ALLOWED_LEAGUE_CODES)]
+    if "datacompleteness" not in df.columns:
+        df["datacompleteness"] = "partial"
+    df["datacompleteness"] = df["datacompleteness"].astype(str).str.strip()
+    df = df[df["datacompleteness"].isin(ALLOWED_COMPLETENESS)]
+    if "date" in df.columns:
+        df["date"] = pd.to_datetime(df["date"], errors="coerce", utc=True)
+        df = df.dropna(subset=["date"])
+    if "gameid" in df.columns:
+        df["gameid"] = df["gameid"].astype(str).str.strip()
+    if "teamname" in df.columns:
+        df["teamname"] = df["teamname"].astype(str).str.strip()
+    if "position" in df.columns:
+        df["position"] = df["position"].astype(str).str.strip()
+    print(f"  Loaded {len(df)} Cito supplement rows from {path.name}", file=sys.stderr)
+    return df
+
+
 def load_raw_rows(years: list[str], lol_dir: Path = LOL_DIR) -> pd.DataFrame:
-    """Concatenate filtered raw rows (player + team) across the requested CSV years."""
+    """Concatenate filtered raw rows (player + team) across the requested CSV years.
+
+    When present, appends recent Cito box scores so current-model refresh does not
+    wait on OE Drive — OE rows win on (date, teamname) collisions.
+    """
     all_files = discover_local_csv_files(lol_dir)
     by_year = {}
     for path in all_files:
@@ -116,9 +157,38 @@ def load_raw_rows(years: list[str], lol_dir: Path = LOL_DIR) -> pd.DataFrame:
 
     frames = [_read_year_csv(by_year[y]) for y in sorted(by_year)]
     frames = [f for f in frames if not f.empty]
+    cito = _load_cito_supplement()
+    if not cito.empty:
+        # Keep Cito rows only for years we care about
+        if "year" in cito.columns:
+            cito = cito[cito["year"].astype(str).isin([str(y) for y in years])]
+        frames.append(cito)
     if not frames:
         raise RuntimeError(f"No tier-1/international rows found for years {years} in {lol_dir}")
-    return pd.concat(frames, ignore_index=True)
+    raw = pd.concat(frames, ignore_index=True)
+
+    # Drop Cito rows that duplicate an OE (date, team) already present.
+    if "cito_source" in raw.columns and "date" in raw.columns and "teamname" in raw.columns:
+        raw["_day"] = pd.to_datetime(raw["date"], utc=True, errors="coerce").dt.strftime("%Y-%m-%d")
+        oe_keys = set(
+            zip(
+                raw.loc[raw["cito_source"].fillna(0).astype(int) != 1, "_day"].astype(str),
+                raw.loc[raw["cito_source"].fillna(0).astype(int) != 1, "teamname"].astype(str),
+            )
+        )
+        keep = []
+        for idx, row in raw.iterrows():
+            is_cito = int(row.get("cito_source") or 0) == 1
+            if not is_cito:
+                keep.append(True)
+                continue
+            key = (str(row.get("_day")), str(row.get("teamname")))
+            keep.append(key not in oe_keys)
+        raw = raw.loc[keep].drop(columns=["_day"], errors="ignore")
+        n_cito = int((raw.get("cito_source", 0).fillna(0).astype(int) == 1).sum()) if "cito_source" in raw.columns else 0
+        if n_cito:
+            print(f"  Using {n_cito} Cito-only rows after OE dedupe", file=sys.stderr)
+    return raw.reset_index(drop=True)
 
 
 def _build_team_rows(raw: pd.DataFrame) -> pd.DataFrame:

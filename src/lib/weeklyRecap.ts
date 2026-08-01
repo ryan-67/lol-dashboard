@@ -33,6 +33,13 @@ import {
   teamHasUpcomingInTournament,
 } from './citoSeriesVerify'
 import { resolveTournamentFormat } from './tournamentFormat'
+import {
+  hasSufficientCitoBoxScores,
+  rowsForMatch,
+  rowsForTeamsDate,
+  type CitoPlayerStatCacheRow,
+  type CitoPlayerStatsBundle,
+} from './citoPlayerStats'
 
 export type { SeriesFacts }
 
@@ -1758,15 +1765,90 @@ function teamSplitWr(teams: Team[], name: string): number {
   return findTeamByName(teams, name)?.winrate ?? 50
 }
 
+/** Build ParsedGame[] from Cito player box scores for a single series. */
+export function parsedGamesFromCitoPlayerRows(
+  rows: CitoPlayerStatCacheRow[],
+  leagueHint?: string,
+): ParsedGame[] {
+  if (!rows.length) return []
+  const byGame = new Map<string, CitoPlayerStatCacheRow[]>()
+  for (const r of rows) {
+    const list = byGame.get(r.citoGameId) ?? []
+    list.push(r)
+    byGame.set(r.citoGameId, list)
+  }
+
+  const games: ParsedGame[] = []
+  for (const [gameId, players] of byGame) {
+    if (players.length < 8) continue
+    const teamKills = new Map<string, number>()
+    for (const p of players) {
+      const t = resolveTeamCanonicalName(p.teamName)
+      teamKills.set(t, (teamKills.get(t) ?? 0) + p.kills)
+    }
+    const teamsInGame = [...teamKills.keys()]
+    if (teamsInGame.length < 2) continue
+
+    const winnerTeam =
+      players.find((p) => p.result === 1)?.teamName ??
+      teamsInGame[0]!
+    const winner = resolveTeamCanonicalName(winnerTeam)
+    const loser =
+      teamsInGame.find((t) => t !== winner) ?? teamsInGame[1] ?? teamsInGame[0]!
+    const date = players[0]!.gameDate
+    const league = (players[0]!.league || leagueHint || 'T1').toUpperCase()
+    const length = players[0]!.gameLengthMinutes ?? 30
+
+    const roster: GamePlayer[] = players.map((p) => {
+      const team = resolveTeamCanonicalName(p.teamName)
+      const tk = teamKills.get(team) ?? 0
+      const kp = tk > 0 ? ((p.kills + p.assists) / tk) * 100 : 0
+      const dmgShare = p.damageShare <= 1.5 ? p.damageShare * 100 : p.damageShare
+      const goldShare = p.goldShare <= 1.5 ? p.goldShare * 100 : p.goldShare
+      return {
+        team,
+        name: p.playerName,
+        champion: p.champion || 'Unknown',
+        role: p.role,
+        kda: p.kda,
+        gd15: p.gd15,
+        xpd15: p.xpd15,
+        csd15: p.csd15,
+        kp,
+        dmgShare,
+        goldShare,
+        kaPerMin: length > 0 ? (p.kills + p.assists) / length : 0,
+        dmgGoldRatio: goldShare > 0 ? dmgShare / goldShare : dmgShare,
+        dmgPerGold: p.gold > 0 ? p.damage / p.gold : 0,
+        won: p.result === 1,
+      }
+    })
+
+    games.push({
+      id: gameId,
+      date,
+      winner,
+      loser,
+      players: roster,
+      league,
+      split: 'Summer',
+      playoffs: false,
+      oeYear: date.slice(0, 4),
+    })
+  }
+  return games.sort((a, b) => a.date.localeCompare(b.date) || a.id.localeCompare(b.id))
+}
+
 /**
  * Score + tournament-context SeriesBrief when Cito has a completed series but OE
- * box scores are missing. Enough for AI recaps focused on stakes/outcome.
+ * box scores are missing. Uses Cito player-stats for full facts when available.
  */
 export function buildCitoOnlySeriesBrief(
   row: CitoSeriesResult,
   teams: Team[],
   powerRanks?: PowerRankMap,
   citoPeers: CitoSeriesResult[] = [],
+  citoPlayerStats?: CitoPlayerStatsBundle | null,
 ): SeriesBrief | null {
   if (typeof row.scoreA !== 'number' || typeof row.scoreB !== 'number') return null
   if (!isValidSeriesScore(row.scoreA, row.scoreB)) return null
@@ -1811,9 +1893,85 @@ export function buildCitoOnlySeriesBrief(
 
   const domSplitWr = teamSplitWr(teams, winner)
   const vicSplitWr = teamSplitWr(teams, loser)
+
+  // Prefer full box-score facts from Cito player-stats when available.
+  let statRows = row.matchId
+    ? rowsForMatch(citoPlayerStats ?? null, row.matchId)
+    : []
+  if (!statRows.length) {
+    statRows = rowsForTeamsDate(
+      citoPlayerStats ?? null,
+      row.teamA,
+      row.teamB,
+      date,
+    )
+  }
+  const citoGames = hasSufficientCitoBoxScores(statRows)
+    ? parsedGamesFromCitoPlayerRows(statRows, league)
+    : []
+
+  if (citoGames.length >= Math.max(1, domWins + vicWins - 1)) {
+    const bucket: SeriesBucket = {
+      teamA: resolveTeamCanonicalName(row.teamA),
+      teamB: resolveTeamCanonicalName(row.teamB),
+      games: citoGames,
+      sessionIndex: 0,
+    }
+    const weekCounts = buildWeekChampionCounts(citoGames)
+    const facts = buildSeriesFacts(bucket, teams, weekCounts, {
+      blowout: domWins >= 2 && vicWins === 0,
+      seriesStreak: 0,
+      victimSlump: 0,
+      powerRanks,
+      bracketContext: {
+        blockName: resolved.blockName,
+        bracket: resolved.bracket,
+        loserContinues,
+        winnerContinues,
+        formatId: format?.id ?? null,
+        structure: format?.structure ?? null,
+        lossCanEliminateWithoutLower: format?.lossCanEliminateWithoutLower ?? null,
+      },
+    })
+    facts.score = resolved.score
+    facts.domWins = domWins
+    facts.vicWins = vicWins
+    facts.winner = resolveTeamCanonicalName(winner)
+    facts.loser = resolveTeamCanonicalName(loser)
+    facts.winnerAbbr = recapTeamTag(winner)
+    facts.loserAbbr = recapTeamTag(loser)
+    facts.tournamentLabel = tournamentLabel
+    facts.narrativeHints = [
+      `tournament: ${tournamentLabel}`,
+      `box scores from Cito player-stats (${citoGames.length} games) — OE lag fill`,
+      ...facts.narrativeHints,
+    ]
+    if (loserContinues) {
+      facts.narrativeHints.push(
+        `${recapTeamTag(loser)} continues in the event (lower bracket / not eliminated)`,
+      )
+    } else if (format?.lossCanEliminateWithoutLower) {
+      facts.narrativeHints.push(`${recapTeamTag(loser)} is eliminated from ${tournamentLabel}`)
+    }
+
+    const shell = buildCitoShellRecapLine(row)
+    if (!shell) return null
+    return {
+      seriesId: stableSeriesId(row.teamA, row.teamB, date),
+      date,
+      dateLabel: formatRecapDate(date),
+      league,
+      teamA: resolveTeamCanonicalName(row.teamA),
+      teamB: resolveTeamCanonicalName(row.teamB),
+      facts,
+      templateLine: shell,
+      dataSource: 'cito',
+    }
+  }
+
   const narrativeHints: string[] = [
     `tournament: ${tournamentLabel}`,
-    `score verified from Cito schedule (${resolved.score}) — box-score player stats not yet in OE`,
+    `score verified from Cito schedule (${resolved.score}) — player-stats not yet synced`,
   ]
   if (loserContinues) {
     narrativeHints.push(
@@ -1926,11 +2084,13 @@ export function collectSeriesBriefs(
     gameCatalog?: Record<string, GameCatalogEntry>
     powerRanks?: PowerRankMap
     citoResults?: CitoSeriesResult[]
+    citoPlayerStats?: CitoPlayerStatsBundle | null
   },
 ): SeriesBrief[] {
   const cito = options?.citoResults ?? []
   if (!window && !options?.gameFilter && !cito.length) return []
   const gameCatalog = options?.gameCatalog
+  const citoPlayerStats = options?.citoPlayerStats ?? null
   const games = collectParsedGames(players, { window, gameFilter: options?.gameFilter, gameCatalog })
 
   const weekCounts = games.length ? buildWeekChampionCounts(games) : new Map()
@@ -2132,7 +2292,13 @@ export function collectSeriesBriefs(
     if (!date) continue
     const key = seriesCoverageKey(row.teamA, row.teamB, date)
     if (covered.has(key)) continue
-    const brief = buildCitoOnlySeriesBrief(row, teams, options?.powerRanks, cito)
+    const brief = buildCitoOnlySeriesBrief(
+      row,
+      teams,
+      options?.powerRanks,
+      cito,
+      citoPlayerStats,
+    )
     if (!brief) continue
     covered.add(key)
     briefs.push(brief)

@@ -14,6 +14,7 @@
     "sync:cito-postgame": "tsx scripts/cito/sync-postgame.ts",
     "sync:cito-schedule": "tsx scripts/cito/sync-schedule.ts",
     "sync:cito-live-drafts": "tsx scripts/cito/sync-live-drafts.ts",
+    "sync:cito-player-stats": "tsx scripts/cito/sync-player-stats.ts",
     "check:cito-updates": "tsx scripts/cito/check-cito-updates.ts",
     "save:cito-sync-state": "tsx scripts/cito/save-cito-sync-state.ts",
     "bump:elo-cito": "tsx scripts/ml/bump-elo-from-cito.ts",

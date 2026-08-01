@@ -44,6 +44,20 @@ import {
 } from '../../src/lib/citoSeriesVerify.ts'
 import { readFileSync } from 'fs'
 import { resolve } from 'path'
+import type { CitoPlayerStatsBundle } from '../../src/lib/citoPlayerStats.ts'
+
+function loadCitoPlayerStatsFromDisk(): CitoPlayerStatsBundle {
+  try {
+    const file = resolve(process.cwd(), 'public/data/cito_player_stats_cache.json')
+    const body = JSON.parse(readFileSync(file, 'utf8')) as Partial<CitoPlayerStatsBundle>
+    return {
+      generatedAt: typeof body.generatedAt === 'string' ? body.generatedAt : '',
+      rows: Array.isArray(body.rows) ? body.rows : [],
+    }
+  } catch {
+    return { generatedAt: '', rows: [] }
+  }
+}
 
 function loadExternalScheduleFromDisk(): CitoSeriesResult[] {
   try {
@@ -87,8 +101,12 @@ async function main(): Promise<void> {
   for (const row of external) byId.set(row.matchId, row)
   for (const row of citoOnly) byId.set(row.matchId, row)
   const citoResults = [...byId.values()]
+  const citoPlayerStats = loadCitoPlayerStatsFromDisk()
   console.log(
     `  ${citoOnly.length} Cito + ${external.length} external → ${citoResults.length} row(s) for cross-check`,
+  )
+  console.log(
+    `  Cito player-stats cache: ${citoPlayerStats.rows.length} player-game row(s)`,
   )
 
   let briefs: SeriesBrief[] = []
@@ -99,6 +117,7 @@ async function main(): Promise<void> {
       gameFilter: is2026SpringPlayoffGame,
       powerRanks,
       citoResults,
+      citoPlayerStats,
     })
   } else {
     const citoLatest = latestCitoCompletedDate(citoResults)
@@ -109,7 +128,11 @@ async function main(): Promise<void> {
     }
 
     let recapWindow = windowToWeeklyRecapWindow(window)
-    briefs = collectSeriesBriefs(players, teams, recapWindow, { powerRanks, citoResults })
+    briefs = collectSeriesBriefs(players, teams, recapWindow, {
+      powerRanks,
+      citoResults,
+      citoPlayerStats,
+    })
 
     if (!briefs.length && client && process.env.RECAP_FROM_SUPABASE !== '1') {
       console.log('No series from local shards — loading fresh oe_slices from Supabase...')
@@ -117,7 +140,11 @@ async function main(): Promise<void> {
       const retryWindow = getHubWindow(players, 'monthly', { citoLatestDate: citoLatest })
       if (retryWindow) {
         recapWindow = windowToWeeklyRecapWindow(retryWindow)
-        briefs = collectSeriesBriefs(players, teams, recapWindow, { powerRanks, citoResults })
+        briefs = collectSeriesBriefs(players, teams, recapWindow, {
+          powerRanks,
+          citoResults,
+          citoPlayerStats,
+        })
       }
     }
 
@@ -125,12 +152,16 @@ async function main(): Promise<void> {
       gameFilter: (g) => isRecentCompletedGame(g, 14),
       powerRanks,
       citoResults,
+      citoPlayerStats,
     })
     briefs = dedupeBriefs([...briefs, ...recentBriefs])
-    const citoOnly = briefs.filter((b) => b.dataSource === 'cito').length
+    const citoOnlyCount = briefs.filter((b) => b.dataSource === 'cito').length
+    const citoFull = briefs.filter(
+      (b) => b.dataSource === 'cito' && b.facts.winnerStars.length > 0,
+    ).length
     console.log(
       `Monthly window ${window.label}: ${briefs.length} series` +
-        ` (${citoOnly} Cito-only, no OE box scores yet)`,
+        ` (${citoOnlyCount} Cito-primary, ${citoFull} with Cito box scores)`,
     )
   }
 

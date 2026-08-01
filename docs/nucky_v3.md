@@ -299,16 +299,16 @@ Community is **not** a substitute for the Board. Optional enrichment: show model
 
 | Source | v3 role |
 | --- | --- |
-| **CitoAPI** | **Primary for current** — tier-1 schedules, completed series scores, live drafts, Hub recaps, Elo bumps |
-| **OE (Oracle’s Elixir)** | **Historical backbone** — full box scores, feature mart, full ML retrain, agent-chat OE queries; backfills when Drive advances |
+| **CitoAPI** | **Primary for current** — schedules, scores, **player box scores**, live drafts, Hub recaps, Elo bumps, **model retrain trigger** |
+| **OE (Oracle’s Elixir)** | **Historical backbone** — multi-year CSV history for z-score baselines + chat OE tools; Drive backfill when CSV advances |
 | **RAG + Tavily** | Chat grounding for careers / news / non-OE facts (unchanged philosophy) |
-| **Artifacts** | `region_strength` bumps from Cito without waiting for OE; full `player_ratings` / mart refresh on OE backfill |
+| **Artifacts** | Retrain from OE history cache **+** Cito player-stats supplement when Cito advances (no Drive wait) |
 
 ### 9.2 Freshness SLA (target)
 
 - **Ideal:** new completed series visible in Hub/Form/Board as soon as Cito confirms completion.  
-- **Recaps:** write on Cito-complete series (score + tournament stakes); enrich with OE player stats when box scores land.  
-- **Rankings:** `bump:elo-cito` updates `region_strength` on new Cito series; full OE retrain remains the historical rebuild.  
+- **Recaps:** full AI blurbs from Cito `/player-stats` when synced; score-only fallback if stats lag.  
+- **Model:** `refresh-current-ml` on Cito delta — feature mart / ratings / insights using cached OE history + Cito box scores.  
 - **Predictions:** pre-draft **series** odds always; post-draft **game** odds when Cito draft locks.  
 - **Acceptable v3 launch:** &lt;12h for tier-1 completed series; visible “data as of” stamp when lagging.
 
@@ -456,5 +456,5 @@ Most product locks are closed. Left for implement-time / billing design:
 3. ~~**V3-2** IA remodel~~ **done 2026-08-01** — league-only chrome; Matchups → Overview; Hub|Board Overview; form helpers + entity Now+Next  
 4. ~~**V3-3** future gate~~ **done 2026-08-01** — Predictions shell free; win%/Kalshi/preview packets gated; track record on Board + Predictions  
 5. ~~**V3-4** post-draft~~ **done 2026-08-01** — `sync:cito-live-drafts` + Board badges + Preview comps + chat loads locked Cito drafts  
-6. **CI** — Cito-primary current path (`sync-current` always + Elo bump on Cito delta); OE+ML only when Drive advances / `force_oe_ml`. Apply `20260801120000_cito_sync_and_drafts.sql`.  
+6. **CI** — Cito-primary current path (`sync-current` + player-stats + Elo); `refresh-current-ml` on Cito delta (OE history cache + Cito box scores); OE Drive job for shard backfill. Apply `20260801120000_cito_sync_and_drafts.sql` + `20260801140000_cito_player_game_stats.sql`.  
 7. Next: **V3-5** Community v1
