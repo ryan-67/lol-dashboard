@@ -1,6 +1,66 @@
 {
-  "generatedAt": "2026-08-01T15:01:35.658Z",
+  "generatedAt": "2026-08-01T17:00:31.530Z",
   "drafts": [
+    {
+      "matchId": "lol-match-115548681803406231",
+      "gameId": "lol-game-115548681803406233",
+      "gameNumber": 2,
+      "league": "LEC",
+      "teamA": "GIANTX",
+      "teamB": "SK Gaming",
+      "blueTeam": "giantx-lec",
+      "redTeam": "sk-gaming",
+      "bluePicks": [
+        {
+          "championName": "Viktor",
+          "role": "ADC"
+        },
+        {
+          "championName": "Renekton",
+          "role": "Top"
+        },
+        {
+          "championName": "Xin Zhao",
+          "role": "Jungle"
+        },
+        {
+          "championName": "Ryze",
+          "role": "Mid"
+        },
+        {
+          "championName": "Leona",
+          "role": "Support"
+        }
+      ],
+      "redPicks": [
+        {
+          "championName": "Dr. Mundo",
+          "role": "Top"
+        },
+        {
+          "championName": "Nocturne",
+          "role": "Jungle"
+        },
+        {
+          "championName": "Sylas",
+          "role": "Mid"
+        },
+        {
+          "championName": "Alistar",
+          "role": "Support"
+        },
+        {
+          "championName": "Varus",
+          "role": "ADC"
+        }
+      ],
+      "blueBans": [],
+      "redBans": [],
+      "draftComplete": true,
+      "status": "inprogress",
+      "scheduledAt": "2026-08-01T15:00:00+00:00",
+      "fetchedAt": "2026-08-01T17:00:29.984Z"
+    },
     {
       "matchId": "lol-match-116566854547769556",
       "gameId": "lol-game-116566854547769558",
