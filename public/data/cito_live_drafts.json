@@ -1,4 +1,65 @@
 {
-  "generatedAt": "",
-  "drafts": []
+  "generatedAt": "2026-08-01T10:39:29.236Z",
+  "drafts": [
+    {
+      "matchId": "lol-match-116566854547769584",
+      "gameId": "lol-game-116566854547769587",
+      "gameNumber": 3,
+      "league": "LPL",
+      "teamA": "TOP ESPORTS",
+      "teamB": "LGD GAMING",
+      "blueTeam": "lgd",
+      "redTeam": "tes",
+      "bluePicks": [
+        {
+          "championName": "Dr. Mundo",
+          "role": "Jungle"
+        },
+        {
+          "championName": "Ryze",
+          "role": "Mid"
+        },
+        {
+          "championName": "Lulu",
+          "role": "Support"
+        },
+        {
+          "championName": "Ambessa",
+          "role": "Top"
+        },
+        {
+          "championName": "Kog'Maw",
+          "role": "ADC"
+        }
+      ],
+      "redPicks": [
+        {
+          "championName": "Milio",
+          "role": "Support"
+        },
+        {
+          "championName": "Skarner",
+          "role": "Jungle"
+        },
+        {
+          "championName": "Syndra",
+          "role": "Mid"
+        },
+        {
+          "championName": "Olaf",
+          "role": "Top"
+        },
+        {
+          "championName": "Lucian",
+          "role": "ADC"
+        }
+      ],
+      "blueBans": [],
+      "redBans": [],
+      "draftComplete": true,
+      "status": "inprogress",
+      "scheduledAt": "2026-08-01T09:00:00+00:00",
+      "fetchedAt": "2026-08-01T10:39:27.027Z"
+    }
+  ]
 }
