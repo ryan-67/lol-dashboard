@@ -3,7 +3,7 @@ import { Link, useLocation, useParams } from 'react-router-dom'
 import PageHeader from '../../components/ui/PageHeader'
 import NuckyAiPaywall from '../../components/nuckyai/NuckyAiPaywall'
 import AuthModal from '../../components/AuthModal'
-import { EntityLink, TeamLogo, TeamStatTrends } from '../../components/entities'
+import { EntityLink, TeamLogo, TeamStatTrends, ChampionEntityInline } from '../../components/entities'
 import {
   PlayerMatchupGrid,
   TeamRadarComparison,
@@ -25,6 +25,11 @@ import {
 } from '../../lib/predictions/scorePrematchClient'
 import { buildTeamMatchHistoryWithPerf } from '../../lib/predictions/matchHistoryPerf'
 import { fetchPlayerRatings, RATING_ROLES, type PlayerPowerRow } from '../../lib/loadPlayerRatings'
+import {
+  draftByMatchId,
+  fetchLiveDraftsBundle,
+  type LiveDraftRow,
+} from '../../lib/loadLiveDrafts'
 import { teamMatchesCanonical } from '../../lib/entities'
 import { powerScoreTo100 } from '../../lib/scoreNormalize'
 import { formatGameDate, formatNum, formatProfileDate } from '../../lib/format'
@@ -90,6 +95,7 @@ export default function PredictionPreviewPage() {
   const [model, setModel] = useState<PrematchModelOdds | null>(null)
   const [rosterA, setRosterA] = useState<{ role: string; row: PlayerPowerRow }[]>([])
   const [rosterB, setRosterB] = useState<{ role: string; row: PlayerPowerRow }[]>([])
+  const [liveDraft, setLiveDraft] = useState<LiveDraftRow | null>(null)
   const [loading, setLoading] = useState(true)
 
   const teams = useMemo(
@@ -114,14 +120,16 @@ export default function PredictionPreviewPage() {
       if (!alive) return
       setScheduleRow(row)
       if (row) {
-        const [built, ratings] = await Promise.all([
+        const [built, ratings, drafts] = await Promise.all([
           buildPredictionBoard([row]),
           fetchPlayerRatings(),
+          fetchLiveDraftsBundle(true),
         ])
         if (!alive) return
         setModel(built[0]?.model ?? null)
         setRosterA(rosterForTeam(ratings, row.team_a))
         setRosterB(rosterForTeam(ratings, row.team_b))
+        setLiveDraft(draftByMatchId(drafts, matchId))
       }
       setLoading(false)
     })()
@@ -168,7 +176,11 @@ export default function PredictionPreviewPage() {
   if (!isSubscribed) {
     return (
       <div className="page-section predictions-preview-page">
-        <PageHeader eyebrow="preview" title="series preview" subtitle="Subscribe for pre-match breakdowns." />
+        <PageHeader
+          eyebrow="future · paid"
+          title="series forecast"
+          subtitle="Schedule listing is free on the Board. Win probabilities and post-draft packets require a subscription."
+        />
         <NuckyAiPaywall
           onAction={() => {
             if (!chat?.user) chat?.setShowAuth(true)
@@ -179,9 +191,10 @@ export default function PredictionPreviewPage() {
               ? 'sign in to subscribe'
               : chat?.checkoutLoading
                 ? 'loading…'
-                : 'subscribe for access'
+                : 'subscribe for future odds'
           }
           actionDisabled={Boolean(chat?.checkoutLoading)}
+          footnote="Current power rankings stay free on Players / Teams / Overview."
         />
         <AuthModal
           open={Boolean(chat?.showAuth)}
@@ -261,8 +274,57 @@ export default function PredictionPreviewPage() {
         <p className="text-secondary text-sm">
           model {formatModelOdds(model)} · confidence {model.confidence} · source {model.source} ·
           kalshi —
+          {liveDraft?.draftComplete
+            ? ` · post-draft g${liveDraft.gameNumber ?? '?'}`
+            : ' · prematch'}
         </p>
       </section>
+
+      {liveDraft?.draftComplete ? (
+        <section className="card" aria-label="Post-draft comps">
+          <p className="page-header-eyebrow">post-draft</p>
+          <h3 className="card-title">
+            Locked draft
+            {liveDraft.gameNumber != null ? ` · game ${liveDraft.gameNumber}` : ''}
+          </h3>
+          <p className="card-subtitle">
+            Cito draft feed locked. Ask nucky in chat for a draft-aware packet on this series —
+            full blend uses the same draft model as the training pipeline.
+          </p>
+          <div className="overview-grid overview-grid-2">
+            <div>
+              <p className="text-sm text-secondary" style={{ marginBottom: '0.5rem' }}>
+                Blue · {liveDraft.blueTeam ?? 'TBD'}
+              </p>
+              <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
+                {liveDraft.bluePicks.map((p) => (
+                  <li key={`b-${p.championName}`} style={{ padding: '0.25rem 0' }}>
+                    <ChampionEntityInline name={p.championName} iconSize={20} />
+                    {p.role ? (
+                      <span className="text-tertiary text-xs"> · {p.role}</span>
+                    ) : null}
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <div>
+              <p className="text-sm text-secondary" style={{ marginBottom: '0.5rem' }}>
+                Red · {liveDraft.redTeam ?? 'TBD'}
+              </p>
+              <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
+                {liveDraft.redPicks.map((p) => (
+                  <li key={`r-${p.championName}`} style={{ padding: '0.25rem 0' }}>
+                    <ChampionEntityInline name={p.championName} iconSize={20} />
+                    {p.role ? (
+                      <span className="text-tertiary text-xs"> · {p.role}</span>
+                    ) : null}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        </section>
+      ) : null}
 
       <div className="predictions-power-grid">
         <div className="card">

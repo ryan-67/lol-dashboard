@@ -7,27 +7,39 @@ import {
   matchesPredictionLeagueFilter,
   type PredictionLeagueFilter,
 } from '../../lib/predictions/leagueFilter'
+import {
+  draftByMatchId,
+  fetchLiveDraftsBundle,
+  type LiveDraftsBundle,
+} from '../../lib/loadLiveDrafts'
 import { formatProfileDate } from '../../lib/format'
 import { shellAwarePath } from '../../lib/shellPath'
 import type { CitoScheduleRow } from '../../lib/loadCitoSchedule'
+import TrackRecordStrip from '../predictions/TrackRecordStrip'
 
 /**
- * Free Overview Board — upcoming schedule + tournament context.
+ * Free Overview Board — upcoming schedule + tournament context + post-draft badges.
  * Win% / full packets stay on Predictions (V3-3 gate); Board never blank.
  */
 export default function OverviewBoard() {
   const location = useLocation()
   const [filter, setFilter] = useState<PredictionLeagueFilter>('all')
   const [rows, setRows] = useState<CitoScheduleRow[]>([])
+  const [drafts, setDrafts] = useState<LiveDraftsBundle | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     let cancelled = false
     setLoading(true)
-    void fetchUpcomingCitoScheduleBoard({ limit: 150 })
-      .then((schedule) => {
-        if (!cancelled) setRows(schedule)
+    void Promise.all([
+      fetchUpcomingCitoScheduleBoard({ limit: 150 }),
+      fetchLiveDraftsBundle(true),
+    ])
+      .then(([schedule, draftBundle]) => {
+        if (cancelled) return
+        setRows(schedule)
+        setDrafts(draftBundle)
       })
       .catch((err) => {
         if (!cancelled) {
@@ -56,8 +68,8 @@ export default function OverviewBoard() {
           <p className="page-header-eyebrow">foresight</p>
           <h2 className="card-title">Board</h2>
           <p className="card-subtitle">
-            Upcoming tier-1 series — who plays whom, when, and in what event.
-            Model win probabilities and full packets live on{' '}
+            Upcoming tier-1 series — who plays whom, when, and in what event. Post-draft games are
+            flagged when Cito locks picks. Model win probabilities and full packets live on{' '}
             <Link to={predictionsPath} className="text-accent">
               Predictions
             </Link>
@@ -65,6 +77,8 @@ export default function OverviewBoard() {
           </p>
         </div>
       </section>
+
+      <TrackRecordStrip />
 
       <div className="predictions-filters" role="tablist" aria-label="League filter">
         {PREDICTION_LEAGUE_FILTERS.map((item) => (
@@ -103,6 +117,7 @@ export default function OverviewBoard() {
                 <th>Matchup</th>
                 <th>Tournament</th>
                 <th>Format</th>
+                <th>Draft</th>
                 <th>Analysis</th>
               </tr>
             </thead>
@@ -114,6 +129,7 @@ export default function OverviewBoard() {
                   `/predictions/${encodeURIComponent(row.match_id)}`,
                   location.pathname,
                 )
+                const draft = draftByMatchId(drafts, row.match_id)
                 return (
                   <tr key={row.match_id}>
                     <td className="text-secondary whitespace-nowrap">
@@ -145,6 +161,16 @@ export default function OverviewBoard() {
                     </td>
                     <td>{format}</td>
                     <td>
+                      {draft?.draftComplete ? (
+                        <span className="text-accent text-sm">
+                          post-draft
+                          {draft.gameNumber != null ? ` g${draft.gameNumber}` : ''}
+                        </span>
+                      ) : (
+                        <span className="text-tertiary text-sm">—</span>
+                      )}
+                    </td>
+                    <td>
                       {row.team_a === 'TBD' || row.team_b === 'TBD' ? (
                         <span className="text-secondary text-sm">—</span>
                       ) : (
@@ -152,7 +178,7 @@ export default function OverviewBoard() {
                           to={preview}
                           className="btn btn-secondary predictions-preview-btn"
                         >
-                          Open
+                          {draft?.draftComplete ? 'Post-draft' : 'Open'}
                         </Link>
                       )}
                     </td>

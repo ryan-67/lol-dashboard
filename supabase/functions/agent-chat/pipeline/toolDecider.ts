@@ -323,10 +323,19 @@ export async function decideAndFetch(deps: DecideDeps): Promise<Evidence> {
   let analystToolNames: string[] = [];
   let hasWebVerifiedChunk = false;
 
-  const draftExtracted = parseDraftExtractionBlock(message);
+  let draftExtracted = parseDraftExtractionBlock(message);
+  // V3-4: if user asks about a live series without pasting a draft, load locked Cito draft.
+  if (!draftExtracted && isMlAnalysisQuestion(message)) {
+    try {
+      const { loadCitoMatchDraftForMessage } = await import("../helpers/loadCitoMatchDraft.ts");
+      draftExtracted = await loadCitoMatchDraftForMessage(serviceClient, message);
+    } catch {
+      draftExtracted = null;
+    }
+  }
   const draftAnalysisIntent = Boolean(draftExtracted);
 
-  // ---- Text draft input: OE + RAG for parsed comp ----
+  // ---- Text / live draft input: OE + RAG for parsed comp ----
   if (draftExtracted) {
     const draftCtx = await fetchDraftAnalysisContext(
       serviceClient,

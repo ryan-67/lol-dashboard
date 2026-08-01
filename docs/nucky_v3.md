@@ -1,6 +1,6 @@
 # nucky.gg v3 — Product Repositioning Scope
 
-> Status: **In progress** (2026-08-01) — V3-0…V3-2 implemented in product UI; V3-3+ not started.  
+> Status: **In progress** (2026-08-01) — V3-0…V3-4 implemented; V3-5 community next.  
 > Supersedes the *product thesis* of `docs/nucky_v2.md` for dashboard IA and monetization.  
 > Keeps v2 engineering assets (rating system, scorecard, shell, chat pipeline) as the substrate.  
 > Cito current-week probe: §9.4 / `.tmp/cito-current-audit.json` (2026-08-01).
@@ -367,8 +367,8 @@ Phases are product slices, not calendar promises.
 | **V3-0** | Positioning lock | ✅ This doc accepted; form/chat/community/defaults locked; Cito week probe done (§9.4) |
 | **V3-1** | Current-data path | ✅ Hub series completeness uses Cito results (academy-filtered); OE lag no longer blanking the week; freshness stamps honest |
 | **V3-2** | IA remodel | ✅ Year/split gone; Matchups gone; Hub+Board Overview; Form tabs + entity Now+Next; league filter only |
-| **V3-3** | Future gate | Board schedule free; win%/packets paid; track record adjacent; paywall copy clear |
-| **V3-4** | Post-draft | Draft-complete games get draft-aware packet on Board + chat |
+| **V3-3** | Future gate | ✅ Board schedule free; win%/packets paid; track record adjacent; paywall copy clear |
+| **V3-4** | Post-draft | ✅ Draft-complete games get draft-aware packet on Board + chat |
 | **V3-5** | Community v1 | Series + game threads, ratings/tags; player hubs; moderation basics; logged-in free |
 | **V3-6** | Chat as analyst | Current vs future tool gating; packet narration; less regurgitation; richer cards |
 
@@ -452,4 +452,7 @@ Most product locks are closed. Left for implement-time / billing design:
 1. ~~Lock form / chat / ratings / default / Cito probe~~ **done 2026-08-01**  
 2. ~~**V3-1** current-data path~~ **done 2026-08-01** — Hub recap invents Cito-complete series when OE lags; academy filter on `fetchCitoSeriesResults`; freshness uses max(OE, Cito)  
 3. ~~**V3-2** IA remodel~~ **done 2026-08-01** — league-only chrome; Matchups → Overview; Hub|Board Overview; form helpers + entity Now+Next  
-4. Next: **V3-3** future gate — Board schedule free (shipped); gate win%/packets on Predictions; track record adjacent; paywall copy clear
+4. ~~**V3-3** future gate~~ **done 2026-08-01** — Predictions shell free; win%/Kalshi/preview packets gated; track record on Board + Predictions  
+5. ~~**V3-4** post-draft~~ **done 2026-08-01** — `sync:cito-live-drafts` + Board badges + Preview comps + chat loads locked Cito drafts  
+6. **CI** — Refresh Dashboard Data is Cito-primary (`sync-current` always; OE+ML when Cito/OE advances). Apply `20260801120000_cito_sync_and_drafts.sql`.  
+7. Next: **V3-5** Community v1

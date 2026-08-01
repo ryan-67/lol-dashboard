@@ -21,8 +21,14 @@ import {
   subscribeKalshiBoardOdds,
   type KalshiBoardQuote,
 } from '../../lib/predictions/kalshiBoardOdds'
+import {
+  draftByMatchId,
+  fetchLiveDraftsBundle,
+  type LiveDraftsBundle,
+} from '../../lib/loadLiveDrafts'
 import { formatProfileDate } from '../../lib/format'
 import { shellAwarePath } from '../../lib/shellPath'
+import FutureOddsGate from './FutureOddsGate'
 
 const MODEL_REFRESH_MS = 5 * 60_000
 
@@ -30,11 +36,25 @@ function previewPath(matchId: string, pathname: string): string {
   return shellAwarePath(`/predictions/${encodeURIComponent(matchId)}`, pathname)
 }
 
-export default function PredictionScheduleTab() {
+interface PredictionScheduleTabProps {
+  /** When false, hide win% / Kalshi and show unlock CTA (V3-3 future gate). */
+  showForecast?: boolean
+  onUnlockForecast?: () => void
+  unlockLabel?: string
+  unlockDisabled?: boolean
+}
+
+export default function PredictionScheduleTab({
+  showForecast = true,
+  onUnlockForecast,
+  unlockLabel = 'subscribe for odds',
+  unlockDisabled = false,
+}: PredictionScheduleTabProps) {
   const location = useLocation()
   const [filter, setFilter] = useState<PredictionLeagueFilter>('all')
   const [rows, setRows] = useState<PredictionBoardRow[]>([])
   const [kalshi, setKalshi] = useState<Record<string, KalshiBoardQuote>>({})
+  const [drafts, setDrafts] = useState<LiveDraftsBundle | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [modelUpdatedAt, setModelUpdatedAt] = useState<string | null>(null)
@@ -48,9 +68,39 @@ export default function PredictionScheduleTab() {
         invalidateExternalScheduleCache()
       }
       const schedule = await fetchUpcomingCitoScheduleBoard({ limit: 150 })
-      const board = await buildPredictionBoard(schedule, { forceArtifacts: forceModel })
-      setRows(board)
-      setModelUpdatedAt(new Date().toISOString())
+      if (showForecast) {
+        const board = await buildPredictionBoard(schedule, { forceArtifacts: forceModel })
+        setRows(board)
+        setModelUpdatedAt(new Date().toISOString())
+      } else {
+        setRows(
+          schedule.map((row) => ({
+            matchId: row.match_id,
+            scheduledAt: row.scheduled_at,
+            teamA: row.team_a,
+            teamB: row.team_b,
+            league: row.league,
+            tournament: row.tournament_name ?? row.league,
+            formatLabel: typeof row.best_of === 'number' ? `Bo${row.best_of}` : 'TBD',
+            bestOf: typeof row.best_of === 'number' ? row.best_of : null,
+            kalshiOdds: '—',
+            model: {
+              winProbA: 0.5,
+              winProbB: 0.5,
+              eloA: null,
+              eloB: null,
+              powerA: null,
+              powerB: null,
+              rosterPowerA: null,
+              rosterPowerB: null,
+              confidence: 'low',
+              source: 'unavailable',
+            },
+          })),
+        )
+      }
+      const draftBundle = await fetchLiveDraftsBundle(forceModel)
+      setDrafts(draftBundle)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'failed to load schedule')
     } finally {
@@ -68,9 +118,11 @@ export default function PredictionScheduleTab() {
       window.clearInterval(id)
       window.removeEventListener('focus', onFocus)
     }
-  }, [])
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- reload when gate flips
+  }, [showForecast])
 
   useEffect(() => {
+    if (!showForecast) return
     return subscribeKalshiBoardOdds(
       () =>
         rows.map((r) => ({
@@ -82,7 +134,7 @@ export default function PredictionScheduleTab() {
         })),
       setKalshi,
     )
-  }, [rows])
+  }, [rows, showForecast])
 
   const filtered = useMemo(
     () =>
@@ -113,8 +165,15 @@ export default function PredictionScheduleTab() {
             type="button"
             role="tab"
             aria-selected={filter === item.id}
+            tabIndex={0}
             className={`predictions-filter-btn${filter === item.id ? ' is-active' : ''}`}
             onClick={() => setFilter(item.id)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault()
+                setFilter(item.id)
+              }
+            }}
           >
             {item.label}
           </button>
@@ -122,10 +181,14 @@ export default function PredictionScheduleTab() {
       </div>
 
       <p className="predictions-refresh-meta text-secondary text-sm">
-        model odds refresh with artifact updates
-        {modelUpdatedAt ? ` · last check ${formatProfileDate(modelUpdatedAt)}` : ''}
-        {' · '}
-        kalshi polls live (~60s)
+        {showForecast
+          ? `model odds refresh with artifact updates${
+              modelUpdatedAt ? ` · last check ${formatProfileDate(modelUpdatedAt)}` : ''
+            } · kalshi polls live (~60s)`
+          : 'schedule free · win probabilities and packets require a subscription'}
+        {drafts?.drafts?.length
+          ? ` · ${drafts.drafts.length} post-draft game${drafts.drafts.length === 1 ? '' : 's'} live`
+          : ''}
       </p>
 
       {error ? (
@@ -146,14 +209,22 @@ export default function PredictionScheduleTab() {
                 <th>Matchup</th>
                 <th>Tournament</th>
                 <th>Format</th>
-                <th>Kalshi</th>
-                <th>Model</th>
-                <th>Preview</th>
+                <th>Draft</th>
+                {showForecast ? (
+                  <>
+                    <th>Kalshi</th>
+                    <th>Model</th>
+                    <th>Preview</th>
+                  </>
+                ) : (
+                  <th>Forecast</th>
+                )}
               </tr>
             </thead>
             <tbody>
               {filtered.map((row) => {
                 const k = kalshi[row.matchId]
+                const draft = draftByMatchId(drafts, row.matchId)
                 return (
                   <tr key={row.matchId}>
                     <td className="text-secondary whitespace-nowrap">
@@ -182,22 +253,49 @@ export default function PredictionScheduleTab() {
                     </td>
                     <td className="text-secondary">{row.tournament}</td>
                     <td>{row.formatLabel}</td>
-                    <td className="text-secondary font-mono" title={k?.ticker ?? undefined}>
-                      {k?.display ?? row.kalshiOdds}
-                    </td>
-                    <td className="text-accent font-mono">{formatModelOdds(row.model)}</td>
                     <td>
-                      {row.teamA === 'TBD' || row.teamB === 'TBD' ? (
-                        <span className="text-secondary text-sm">—</span>
+                      {draft?.draftComplete ? (
+                        <span className="text-accent text-sm" title="Draft locked — post-draft packet available">
+                          post-draft
+                          {draft.gameNumber != null ? ` g${draft.gameNumber}` : ''}
+                        </span>
                       ) : (
-                        <Link
-                          to={previewPath(row.matchId, location.pathname)}
-                          className="btn btn-secondary predictions-preview-btn"
-                        >
-                          Preview
-                        </Link>
+                        <span className="text-tertiary text-sm">—</span>
                       )}
                     </td>
+                    {showForecast ? (
+                      <>
+                        <td className="text-secondary font-mono" title={k?.ticker ?? undefined}>
+                          {k?.display ?? row.kalshiOdds}
+                        </td>
+                        <td className="text-accent font-mono">{formatModelOdds(row.model)}</td>
+                        <td>
+                          {row.teamA === 'TBD' || row.teamB === 'TBD' ? (
+                            <span className="text-secondary text-sm">—</span>
+                          ) : (
+                            <Link
+                              to={previewPath(row.matchId, location.pathname)}
+                              className="btn btn-secondary predictions-preview-btn"
+                            >
+                              {draft?.draftComplete ? 'Post-draft' : 'Preview'}
+                            </Link>
+                          )}
+                        </td>
+                      </>
+                    ) : (
+                      <td>
+                        {onUnlockForecast ? (
+                          <FutureOddsGate
+                            compact
+                            onSubscribe={onUnlockForecast}
+                            actionLabel={unlockLabel}
+                            actionDisabled={unlockDisabled}
+                          />
+                        ) : (
+                          <span className="text-tertiary text-sm">subscribe</span>
+                        )}
+                      </td>
+                    )}
                   </tr>
                 )
               })}

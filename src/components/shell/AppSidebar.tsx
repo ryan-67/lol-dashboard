@@ -48,7 +48,8 @@ const DASH_TABS: DashTab[] = [
   { id: 'teams', label: 'teams', icon: Shield },
   { id: 'champions', label: 'champions', icon: Sword },
   { id: 'tournaments', label: 'tournaments', icon: Trophy },
-  { id: 'predictions', label: 'predictions', icon: Pulse, gated: true, tag: 'model' },
+  // V3-3: nav is free; future odds gated inside the page (not a hard wall).
+  { id: 'predictions', label: 'predictions', icon: Pulse, tag: 'model' },
 ]
 
 /** Preserve the current tab when jumping between dashboard and duo. */
@@ -334,7 +335,13 @@ export default function AppSidebar() {
                   key={tab.id}
                   to={dashPath(mode, tab.id)}
                   end={tab.id === 'overview'}
-                  title={gated ? 'subscribe for access' : undefined}
+                  title={
+                    gated
+                      ? 'subscribe for access'
+                      : tab.id === 'predictions'
+                        ? 'schedule free · future odds paid'
+                        : undefined
+                  }
                   className={({ isActive }) =>
                     `app-sidebar-link${isActive ? ' is-active' : ''}${gated ? ' is-gated' : ''}`
                   }

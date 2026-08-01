@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react'
 import PageHeader, { PageHeaderReadout } from '../components/ui/PageHeader'
-import NuckyAiPaywall from '../components/nuckyai/NuckyAiPaywall'
 import AuthModal from '../components/AuthModal'
 import { useOptionalChatSession } from '../context/ChatSessionContext'
 import {
@@ -11,6 +10,8 @@ import {
 import PredictionScheduleTab from '../components/predictions/PredictionScheduleTab'
 import PredictionAnalysisTab from '../components/predictions/PredictionAnalysisTab'
 import PredictionLogTab from '../components/predictions/PredictionLogTab'
+import FutureOddsGate from '../components/predictions/FutureOddsGate'
+import TrackRecordStrip from '../components/predictions/TrackRecordStrip'
 import {
   PredictionChampionRankings,
   PredictionPlayerRankings,
@@ -25,15 +26,22 @@ type ModelTab =
   | 'champion-rankings'
   | 'analysis'
 
-const MODEL_TABS: { id: ModelTab; label: string }[] = [
+const FREE_TABS: { id: ModelTab; label: string }[] = [
   { id: 'schedule', label: 'Schedule' },
   { id: 'log', label: 'Log' },
   { id: 'team-rankings', label: 'Team rankings' },
   { id: 'player-rankings', label: 'Player rankings' },
   { id: 'champion-rankings', label: 'Champion rankings' },
+]
+
+const PAID_TABS: { id: ModelTab; label: string }[] = [
   { id: 'analysis', label: 'Analysis' },
 ]
 
+/**
+ * V3-3: Predictions shell is free (schedule + track record + current rankings).
+ * Future win% / packets / analysis depth require subscription.
+ */
 export default function Predictions() {
   const chat = useOptionalChatSession()
   const isSubscribed = Boolean(chat?.isSubscribed)
@@ -51,6 +59,21 @@ export default function Predictions() {
     }
   }, [])
 
+  useEffect(() => {
+    if (!isSubscribed && tab === 'analysis') setTab('schedule')
+  }, [isSubscribed, tab])
+
+  const handleUnlock = () => {
+    if (!chat?.user) chat?.setShowAuth(true)
+    else void chat.subscribe()
+  }
+
+  const unlockLabel = !chat?.user
+    ? 'sign in to subscribe'
+    : chat.checkoutLoading
+      ? 'loading…'
+      : 'subscribe for future odds'
+
   if (!subscriptionReady) {
     return (
       <div className="page-section predictions-page">
@@ -59,40 +82,18 @@ export default function Predictions() {
     )
   }
 
-  if (!isSubscribed) {
-    return (
-      <div className="page-section predictions-page">
-        <PageHeader
-          eyebrow="nucky prediction model"
-          title="nucky prediction model"
-          subtitle="Schedule board, model power rankings, and pre-match analysis — subscribe for access."
-        />
-        <NuckyAiPaywall
-          onAction={() => {
-            if (!chat?.user) chat?.setShowAuth(true)
-            else void chat.subscribe()
-          }}
-          actionLabel={
-            !chat?.user
-              ? 'sign in to subscribe'
-              : chat.checkoutLoading
-                ? 'loading…'
-                : 'subscribe for access'
-          }
-          actionDisabled={Boolean(chat?.checkoutLoading)}
-          footnote="Predictions are analytics, not betting advice. Kalshi odds are display-only."
-        />
-        <AuthModal open={Boolean(chat?.showAuth)} onClose={() => chat?.setShowAuth(false)} />
-      </div>
-    )
-  }
+  const tabs = isSubscribed ? [...FREE_TABS, ...PAID_TABS] : FREE_TABS
 
   return (
     <div className="page-section predictions-page">
       <PageHeader
         eyebrow="nucky prediction model"
         title="nucky prediction model"
-        subtitle="Upcoming series, a completed-series accuracy log, model power rankings, and pre-match analysis."
+        subtitle={
+          isSubscribed
+            ? 'Upcoming series, post-draft packets, completed-series log, and model rankings.'
+            : 'Schedule and current power boards are free. Win probabilities and full packets are paid.'
+        }
         meta={
           scorecard ? (
             <>
@@ -114,27 +115,72 @@ export default function Predictions() {
         }
       />
 
+      <TrackRecordStrip />
+
       <div className="predictions-model-tabs" role="tablist" aria-label="Prediction model sections">
-        {MODEL_TABS.map((item) => (
+        {tabs.map((item) => (
           <button
             key={item.id}
             type="button"
             role="tab"
             aria-selected={tab === item.id}
+            tabIndex={0}
             className={`predictions-model-tab${tab === item.id ? ' is-active' : ''}`}
             onClick={() => setTab(item.id)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault()
+                setTab(item.id)
+              }
+            }}
           >
             {item.label}
           </button>
         ))}
+        {!isSubscribed ? (
+          <button
+            type="button"
+            className="predictions-model-tab"
+            onClick={handleUnlock}
+            aria-label="Unlock analysis"
+          >
+            Analysis · paid
+          </button>
+        ) : null}
       </div>
 
-      {tab === 'schedule' ? <PredictionScheduleTab /> : null}
+      {tab === 'schedule' ? (
+        <PredictionScheduleTab
+          showForecast={isSubscribed}
+          onUnlockForecast={handleUnlock}
+          unlockLabel={unlockLabel}
+          unlockDisabled={Boolean(chat?.checkoutLoading)}
+        />
+      ) : null}
       {tab === 'log' ? <PredictionLogTab /> : null}
       {tab === 'team-rankings' ? <PredictionTeamRankings /> : null}
       {tab === 'player-rankings' ? <PredictionPlayerRankings /> : null}
       {tab === 'champion-rankings' ? <PredictionChampionRankings /> : null}
-      {tab === 'analysis' ? <PredictionAnalysisTab /> : null}
+      {tab === 'analysis' && isSubscribed ? <PredictionAnalysisTab /> : null}
+      {tab === 'analysis' && !isSubscribed ? (
+        <FutureOddsGate
+          onSubscribe={handleUnlock}
+          actionLabel={unlockLabel}
+          actionDisabled={Boolean(chat?.checkoutLoading)}
+        />
+      ) : null}
+
+      {!isSubscribed && tab === 'schedule' ? (
+        <div style={{ marginTop: '1.25rem' }}>
+          <FutureOddsGate
+            onSubscribe={handleUnlock}
+            actionLabel={unlockLabel}
+            actionDisabled={Boolean(chat?.checkoutLoading)}
+          />
+        </div>
+      ) : null}
+
+      <AuthModal open={Boolean(chat?.showAuth)} onClose={() => chat?.setShowAuth(false)} />
     </div>
   )
 }

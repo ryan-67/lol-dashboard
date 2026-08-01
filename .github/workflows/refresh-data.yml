@@ -1,45 +1,28 @@
-# Refresh Oracle's Elixir data: Drive → ingest → Supabase → schedule sync → recaps → gold → nuckyAI ML → publish model to nucky.gg.
+# Refresh Dashboard Data (v3 — Cito-primary for recent match freshness)
 #
 # Autonomous flow (every 2h + manual dispatch):
-# 1) check: compare current-year OE Drive CSV metadata to last sync (old years are stable)
-# 2) if changed (or manual): download OE CSV → backfill history → ingest shards → publish CDN → seed oe_slices
-# 3) sync Cito schedules + completed results (best-of / series scores; enrich bad team labels from match games)
-# 4) generate weekly recap summaries only for concluded series (skip mid-Bo5)
-# 5) sync Cito/gol gold timelines for series pages
-# 6) retrain nuckyAI ML artifacts
-# 7) publish model outputs to nucky.gg surfaces:
-#      - public/data/{player_ratings,region_strength,accuracy_scorecard,model_metadata,ml_freshness}.json
-#        (landing scorecard, dashboard power boards, prediction rankings — via git → GitHub Pages)
-#      - supabase/functions/agent-chat/ml/* (committed; live chat needs edge deploy — see step below)
+# 1) check: compare Cito tier-1 completed-series fingerprint (primary) + OE Drive CSV (secondary)
+# 2) sync-current (ALWAYS on cron/manual):
+#      - sync Cito schedules + scores → Supabase cito_schedules
+#      - sync external schedules (Leaguepedia EWC)
+#      - poll live/near-live drafts → cito_match_drafts + public/data/cito_live_drafts.json
+#      - generate weekly recap summaries ONLY for concluded series (isSeriesReadyForRecap)
+#      - sync Cito postgame gold (soft)
+#      - commit schedule/draft caches; save cito_sync_state watermark
+# 3) refresh-oe-ml when Cito advanced OR OE CSV changed OR manual:
+#      - download OE CSV → ingest shards → seed oe_slices (deep stats + training)
+#      - retrain nuckyAI ML → publish artifacts → optional agent-chat deploy
 #
-# When OE CSV is unchanged on cron, sync-scores still runs Cito schedule + recaps so
-# finished Bo5 scores surface without waiting for the next Drive CSV bump.
-# Cito schedule sync and weekly recap generation are hard failures (no continue-on-error).
+# Recaps never write for incomplete Bo5 mid-series (Cito status + best_of + score clinch).
+# Post-draft: sync-live-drafts flags locked comps for Board / Predictions / chat packets.
 #
-# Scheduled: every 2 hours, check OE Drive metadata first. Full download/ingest/seed
-# runs only when the current-year CSV changed (modifiedTime, size, or md5Checksum).
+# Secrets: SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, CITO_API_KEY
+# Optional: GOOGLE_SERVICE_ACCOUNT_KEY, OE_DRIVE_FOLDER_ID, OPENROUTER_API_KEY,
+#           SUPABASE_ACCESS_TOKEN
 #
-# Manual workflow_dispatch always runs the full refresh. On manual runs, ML soft-fail
-# is disabled so a broken retrain fails the job loudly instead of silently leaving
-# rankings frozen while OE advances.
-#
-# This is also nuckyAI's ONLY data source — the ML pipeline (scripts/ml/) reads the same
-# lol/*.csv this job downloads and re-trains/re-exports its artifacts every time this job
-# runs, so the model never depends on a manually-refreshed local CSV copy. Since the
-# scheduled download only fetches the *current* year's CSV (to stay fast), a cached lol/
-# history (restored below) + scripts/ensure_oe_history.py back it with the multi-year
-# history the ML pipeline needs for rolling/team-form features and walk-forward validation.
-# See docs/nuckyAI_model.md §8.9 and scripts/ml/README.md.
-#
-# Requires oe_sync_state table — see supabase/migrations/oe_sync_state.sql
-# If check logs "permission denied for table oe_sync_state", re-run that migration's GRANT block
-# in the Supabase SQL editor (service_role needs SELECT/INSERT/UPDATE/DELETE).
-#
-# Secrets: SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, GOOGLE_SERVICE_ACCOUNT_KEY
-# Optional: OE_DRIVE_FOLDER_ID, OPENROUTER_API_KEY (weekly recap generation), CITO_API_KEY (schedule + gold)
-# Optional: SUPABASE_ACCESS_TOKEN — when set, successful retrains auto-deploy agent-chat so
-#           live prediction packets match the committed ml/ artifacts (without it, static
-#           site rankings still update via git; chat stays on last manual edge deploy).
+# Apply migrations:
+#   supabase/migrations/oe_sync_state.sql
+#   supabase/migrations/20260801120000_cito_sync_and_drafts.sql
 
 name: Refresh Dashboard Data
 
@@ -47,7 +30,7 @@ on:
   workflow_dispatch:
     inputs:
       download_scope:
-        description: CSV years to download from Drive
+        description: CSV years to download from Drive (OE deep stats / ML)
         required: true
         default: current
         type: choice
@@ -58,6 +41,11 @@ on:
         description: Regenerate all weekly recap summaries (overwrite cached rows)
         required: true
         default: false
+        type: boolean
+      force_oe_ml:
+        description: Force OE download + ML retrain even if unchanged
+        required: true
+        default: true
         type: boolean
   schedule:
     - cron: '0 */2 * * *'
@@ -72,12 +60,23 @@ concurrency:
 jobs:
   check:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
     outputs:
-      changed: ${{ steps.result.outputs.changed }}
+      cito_changed: ${{ steps.result.outputs.cito_changed }}
+      oe_changed: ${{ steps.result.outputs.oe_changed }}
+      run_oe_ml: ${{ steps.result.outputs.run_oe_ml }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+
+      - name: Install Node dependencies
+        run: npm ci
 
       - name: Setup Python
         uses: actions/setup-python@v5
@@ -89,30 +88,124 @@ jobs:
       - name: Install Python dependencies
         run: pip install -r scripts/requirements-ingest.txt
 
-      - name: Determine if refresh needed
+      - name: Determine Cito / OE refresh needs
         id: result
         env:
+          CITO_API_KEY: ${{ secrets.CITO_API_KEY }}
           GOOGLE_SERVICE_ACCOUNT_KEY: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_KEY }}
           OE_DRIVE_FOLDER_ID: ${{ secrets.OE_DRIVE_FOLDER_ID }}
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
         run: |
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            echo "changed=true" >> "$GITHUB_OUTPUT"
-            echo "Manual run — forcing full refresh."
-          else
-            changed=$(python scripts/check_oe_drive.py --format github)
-            echo "changed=$changed" >> "$GITHUB_OUTPUT"
-            if [ "$changed" = "true" ]; then
-              echo "OE CSV changed on Drive — refresh will run."
+            echo "cito_changed=true" >> "$GITHUB_OUTPUT"
+            if [ "${{ inputs.force_oe_ml }}" = "true" ]; then
+              echo "oe_changed=true" >> "$GITHUB_OUTPUT"
+              echo "run_oe_ml=true" >> "$GITHUB_OUTPUT"
             else
-              echo "No OE CSV changes — skipping refresh."
+              oe=$(python scripts/check_oe_drive.py --format github || echo true)
+              echo "oe_changed=$oe" >> "$GITHUB_OUTPUT"
+              echo "run_oe_ml=$oe" >> "$GITHUB_OUTPUT"
             fi
+            echo "Manual run — sync-current always; OE/ML per force_oe_ml / Drive."
+            exit 0
           fi
 
-  refresh:
+          cito=$(npx tsx scripts/cito/check-cito-updates.ts --format github || echo true)
+          echo "cito_changed=$cito" >> "$GITHUB_OUTPUT"
+          echo "Cito completed-series advanced: $cito"
+
+          oe=$(python scripts/check_oe_drive.py --format github || echo true)
+          echo "oe_changed=$oe" >> "$GITHUB_OUTPUT"
+          echo "OE Drive CSV changed: $oe"
+
+          if [ "$cito" = "true" ] || [ "$oe" = "true" ]; then
+            echo "run_oe_ml=true" >> "$GITHUB_OUTPUT"
+            echo "Will run OE ingest + ML retrain (Cito and/or OE advanced)."
+          else
+            echo "run_oe_ml=false" >> "$GITHUB_OUTPUT"
+            echo "No Cito/OE delta — sync-current only (schedule, drafts, recaps)."
+          fi
+
+  # Primary path — always keeps Hub/Board/recaps fresh from Cito.
+  sync-current:
     needs: check
-    if: needs.check.result == 'success' && needs.check.outputs.changed == 'true'
+    if: needs.check.result == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+
+      - name: Install Node dependencies
+        run: npm ci
+
+      - name: Sync Cito league schedules (series scores + bracket blocks)
+        env:
+          CITO_API_KEY: ${{ secrets.CITO_API_KEY }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: npm run sync:cito-schedule
+
+      - name: Sync external schedules (Leaguepedia EWC, etc.)
+        continue-on-error: true
+        run: npm run sync:external-schedule
+
+      - name: Sync live post-draft comps (Cito drafts endpoint)
+        continue-on-error: true
+        env:
+          CITO_API_KEY: ${{ secrets.CITO_API_KEY }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: npm run sync:cito-live-drafts -- --hours 8 --max 30
+
+      - name: Generate weekly recap summaries (complete series only)
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          CITO_API_KEY: ${{ secrets.CITO_API_KEY }}
+          RECAP_REGENERATE: ${{ github.event_name == 'workflow_dispatch' && inputs.regenerate_recaps && '1' || '0' }}
+        run: npm run generate:weekly-recap
+
+      - name: Sync Cito postgame gold timelines
+        continue-on-error: true
+        env:
+          CITO_API_KEY: ${{ secrets.CITO_API_KEY }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: npm run sync:cito-postgame -- --max-matches 20
+
+      - name: Commit Cito schedule + live draft caches
+        continue-on-error: true
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add public/data/cito_schedule_cache.json public/data/cito_live_drafts.json || true
+          if ! git diff --staged --quiet; then
+            git commit -m "chore(data): sync Cito schedule and live drafts"
+            git push || (git fetch origin main && git rebase origin/main && git push)
+          else
+            echo "Cito caches unchanged — skip commit."
+          fi
+
+      - name: Save Cito sync watermark
+        continue-on-error: true
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: npm run save:cito-sync-state
+
+  # Secondary path — OE deep stats + model retrain when recent results or CSV moved.
+  refresh-oe-ml:
+    needs: [check, sync-current]
+    if: needs.check.result == 'success' && needs.check.outputs.run_oe_ml == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 180
 
@@ -185,43 +278,6 @@ jobs:
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
         run: python scripts/verify_supabase_seed.py
 
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: npm
-
-      - name: Install Node dependencies
-        run: npm ci
-
-      - name: Sync Cito league schedules (series scores + bracket blocks)
-        env:
-          CITO_API_KEY: ${{ secrets.CITO_API_KEY }}
-          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-        run: npm run sync:cito-schedule
-
-      - name: Sync external schedules (Leaguepedia EWC, etc.)
-        continue-on-error: true
-        run: npm run sync:external-schedule
-
-      - name: Generate weekly recap summaries
-        env:
-          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
-          CITO_API_KEY: ${{ secrets.CITO_API_KEY }}
-          RECAP_REGENERATE: ${{ github.event_name == 'workflow_dispatch' && inputs.regenerate_recaps && '1' || '0' }}
-        run: npm run generate:weekly-recap
-
-      - name: Sync Cito postgame gold timelines
-        continue-on-error: true
-        env:
-          CITO_API_KEY: ${{ secrets.CITO_API_KEY }}
-          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-        run: npm run sync:cito-postgame -- --max-matches 20
-
       - name: Backfill gol.gg gold timelines (Cito fallback)
         continue-on-error: true
         id: gol_gold
@@ -243,7 +299,6 @@ jobs:
 
       - name: Install ML pipeline dependencies
         id: ml_deps
-        # Soft-fail on cron so OE still publishes; hard-fail on manual dispatch.
         continue-on-error: ${{ github.event_name != 'workflow_dispatch' }}
         run: pip install -r scripts/requirements-ml.txt
 
@@ -280,15 +335,13 @@ jobs:
         run: |
           outcome="${RETRAIN_OUTCOME:-failure}"
           python scripts/ml/write_ml_freshness.py --outcome "$outcome"
-          echo "::warning::ML retrain did not succeed (outcome=$outcome). OE shards may be ahead of model rankings — see public/data/ml_freshness.json"
+          echo "::warning::ML retrain did not succeed (outcome=$outcome). See public/data/ml_freshness.json"
 
       - name: Commit published model artifacts (static site + edge bundle)
         if: always() && (steps.ml_publish.outcome == 'success' || steps.ml_retrain.outcome != 'success') && steps.ml_deps.outcome == 'success'
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          # Landing + dashboard rankings read public/data/* after GitHub Pages rebuilds.
-          # Chat/prediction packets need the edge deploy step below for live Supabase.
           git add supabase/functions/agent-chat/ml/ || true
           git add \
             public/data/player_ratings.json \
@@ -317,8 +370,6 @@ jobs:
         run: |
           if [ -z "${SUPABASE_ACCESS_TOKEN:-}" ]; then
             echo "::notice::SUPABASE_ACCESS_TOKEN not set — skipping live agent-chat deploy."
-            echo "Static rankings still update via the git commit above."
-            echo "To ship chat/prediction packets: npx supabase functions deploy agent-chat --use-api"
             exit 0
           fi
           REF=$(python -c "import os,re; u=os.environ.get('SUPABASE_URL',''); m=re.match(r'https://([a-z0-9-]+)\\.supabase\\.co', u or ''); print(m.group(1) if m else '')")
@@ -337,43 +388,3 @@ jobs:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
         run: python scripts/save_oe_drive_state.py
-
-  # When OE CSV is unchanged, still refresh Cito series scores + recaps so finished
-  # Bo5s (and mid-series progress) surface without waiting for the next Drive CSV bump.
-  sync-scores:
-    needs: check
-    if: needs.check.result == 'success' && needs.check.outputs.changed != 'true'
-    runs-on: ubuntu-latest
-    timeout-minutes: 45
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: npm
-
-      - name: Install Node dependencies
-        run: npm ci
-
-      - name: Sync Cito league schedules (series scores + bracket blocks)
-        env:
-          CITO_API_KEY: ${{ secrets.CITO_API_KEY }}
-          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-        run: npm run sync:cito-schedule
-
-      - name: Sync external schedules (Leaguepedia EWC, etc.)
-        continue-on-error: true
-        run: npm run sync:external-schedule
-
-      - name: Generate weekly recap summaries
-        env:
-          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
-          CITO_API_KEY: ${{ secrets.CITO_API_KEY }}
-          RECAP_REGENERATE: '0'
-        run: npm run generate:weekly-recap
