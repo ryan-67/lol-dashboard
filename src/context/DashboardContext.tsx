@@ -147,10 +147,10 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
   const resetMainTabFilters = useCallback(() => {
     setSelectedLeagues(['All Tier 1'])
     setSelectedYears([DEFAULT_YEAR])
-    const split = pickDefaultDashboardSplit(meta?.splits ?? [], store, DEFAULT_YEAR, DEFAULT_SPLIT)
-    userPickedSplit.current = false
-    setSelectedSplits([split])
-  }, [meta, store, setSelectedLeagues, setSelectedYears, setSelectedSplits])
+    // v3: form tabs use current year · ALL splits (no year/split chrome).
+    userPickedSplit.current = true
+    setSelectedSplits(['ALL'])
+  }, [setSelectedLeagues, setSelectedYears, setSelectedSplits])
 
   useEffect(() => {
     if (!meta) return
@@ -184,8 +184,8 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!store || !meta || splitInitialized.current || userPickedSplit.current) return
     splitInitialized.current = true
-    const best = pickDefaultDashboardSplit(meta.splits, store, DEFAULT_YEAR, DEFAULT_SPLIT)
-    setSelectedSplits([best])
+    // v3 IA: current-form instrument — merge all splits in the active year.
+    setSelectedSplits(['ALL'])
   }, [store, meta, setSelectedSplits])
 
   const data = useMemo(() => {

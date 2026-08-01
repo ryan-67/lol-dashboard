@@ -57,12 +57,29 @@ const ACADEMY_TEAM_RE = /\b(academy|challengers?|youth|ama)\b/i
 const ACADEMY_CONTEXT_RE =
   /\b(academy|challengers?|lck\s*cl|lckc|ldl|lcs\.?a\b|youth|ama\b|development\s*league)\b/i
 
-export function isAcademyOrMinorScheduleRow(row: CitoScheduleRow): boolean {
-  if (ACADEMY_TEAM_RE.test(row.team_a) || ACADEMY_TEAM_RE.test(row.team_b)) return true
-  const code = row.league.trim().toUpperCase()
+/** Shared academy/minor check for schedule rows and Cito series-result shapes. */
+export function isAcademyOrMinorTeamOrContext(opts: {
+  teamA: string
+  teamB: string
+  league: string
+  tournamentName?: string | null
+  blockName?: string | null
+}): boolean {
+  if (ACADEMY_TEAM_RE.test(opts.teamA) || ACADEMY_TEAM_RE.test(opts.teamB)) return true
+  const code = opts.league.trim().toUpperCase()
   if (EXCLUDED_LEAGUE_CODES.has(code)) return true
-  const hay = `${row.league} ${row.tournament_name ?? ''} ${row.block_name ?? ''}`
+  const hay = `${opts.league} ${opts.tournamentName ?? ''} ${opts.blockName ?? ''}`
   return ACADEMY_CONTEXT_RE.test(hay)
+}
+
+export function isAcademyOrMinorScheduleRow(row: CitoScheduleRow): boolean {
+  return isAcademyOrMinorTeamOrContext({
+    teamA: row.team_a,
+    teamB: row.team_b,
+    league: row.league,
+    tournamentName: row.tournament_name,
+    blockName: row.block_name,
+  })
 }
 
 export function isInternationalScheduleLeague(row: CitoScheduleRow): boolean {

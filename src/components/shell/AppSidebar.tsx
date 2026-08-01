@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState, type ComponentType } from 'react'
 import { NavLink, Link, useLocation } from 'react-router-dom'
 import {
-  ArrowsLeftRight,
   ChartLine,
   ChatCircleDots,
   Lock,
@@ -49,7 +48,6 @@ const DASH_TABS: DashTab[] = [
   { id: 'teams', label: 'teams', icon: Shield },
   { id: 'champions', label: 'champions', icon: Sword },
   { id: 'tournaments', label: 'tournaments', icon: Trophy },
-  { id: 'matchups', label: 'matchups', icon: ArrowsLeftRight },
   { id: 'predictions', label: 'predictions', icon: Pulse, gated: true, tag: 'model' },
 ]
 

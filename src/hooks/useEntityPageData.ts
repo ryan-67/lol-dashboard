@@ -118,16 +118,14 @@ export function useEntityPageData(hasDataForSplit: (data: DashboardData) => bool
   const {
     catalog,
     league: globalLeague,
-    year: globalYear,
-    split: globalSplit,
     leagues,
     years: dashboardYears,
   } = useDashboard()
 
   const [filters, setFilters] = useState<EntityFilterState>({
     league: globalLeague,
-    year: globalYear,
-    split: globalSplit,
+    year: DEFAULT_YEAR,
+    split: 'ALL',
   })
   const [store, setStore] = useState<OEStore | null>(null)
   const [loading, setLoading] = useState(true)
@@ -150,23 +148,45 @@ export function useEntityPageData(hasDataForSplit: (data: DashboardData) => bool
     let cancelled = false
     void (async () => {
       setLoading(true)
+      // v3 entity Now+Next: current year · ALL splits (no year/split archaeology).
+      const currentFilters: EntityFilterState = {
+        league: globalLeague,
+        year: DEFAULT_YEAR,
+        split: 'ALL',
+      }
+      const rows = await fetchOESlices({
+        leagues: leagueLabelToLeagues(globalLeague),
+        years: [DEFAULT_YEAR],
+        splits: ['ALL'],
+        catalogSplits: catalog.splits,
+      })
+      const probeStore = buildStoreFromSliceRows(catalog, rows)
+      const probeData = mergeDataForFilters(probeStore, currentFilters)
+      if (cancelled) return
+      if (hasDataForSplit(probeData)) {
+        setFilters(currentFilters)
+        setFallbackNotice(null)
+        setReady(true)
+        return
+      }
+      // Fallback: pick newest split that has the entity, still within current year when possible.
       const { filters: chosen, notice } = await findBestSplit(
         catalog.splits,
-        globalYear,
-        globalSplit,
+        DEFAULT_YEAR,
+        'ALL',
         globalLeague,
         catalog,
         hasDataForSplit,
       )
       if (cancelled) return
-      setFilters(chosen)
-      setFallbackNotice(notice)
+      setFilters({ ...chosen, year: chosen.year === 'ALL' ? DEFAULT_YEAR : chosen.year })
+      setFallbackNotice(notice ?? 'Showing available current-year data for this entity')
       setReady(true)
     })()
     return () => {
       cancelled = true
     }
-  }, [catalog, globalLeague, globalSplit, globalYear, hasDataForSplit])
+  }, [catalog, globalLeague, hasDataForSplit])
 
   useEffect(() => {
     if (!catalog || !ready) return
@@ -196,7 +216,8 @@ export function useEntityPageData(hasDataForSplit: (data: DashboardData) => bool
 
   const setLeague = useCallback((league: string) => {
     userAdjustedFilters.current = true
-    setFilters((f) => ({ ...f, league }))
+    // v3: league lens only — keep current-year ALL splits.
+    setFilters({ league, year: DEFAULT_YEAR, split: 'ALL' })
     setFallbackNotice(null)
   }, [])
 

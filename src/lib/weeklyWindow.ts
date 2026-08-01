@@ -1,4 +1,5 @@
 import type { Player, PlayerGameLog } from '../hooks/useDashboardData'
+import { formatDateRange } from './format'
 
 export type HubPeriod = 'weekly' | 'monthly'
 
@@ -12,8 +13,14 @@ export interface WeeklyWindow {
   end: Date
   key: string
   label: string
+  /** Latest completed match date from OE and/or Cito (SoR for freshness). */
   latestDataDate: Date | null
+  /** True when the product window is "current" but match data lags today. */
   dataStale: boolean
+  /** OE game-log max date when available (may lag Cito). */
+  oeLatestDate: Date | null
+  /** Cito completed-series max date when available. */
+  citoLatestDate: Date | null
 }
 
 export function parseDate(value: string): Date | null {
@@ -52,22 +59,41 @@ function isoDate(date: Date): string {
   return localIsoDate(date)
 }
 
-import { formatDateRange } from './format'
+export interface HubWindowOptions {
+  /** Latest completed Cito series day — keeps Hub current when OE shards lag. */
+  citoLatestDate?: Date | null
+  now?: Date
+}
+
+function maxDate(a: Date | null, b: Date | null): Date | null {
+  if (!a) return b
+  if (!b) return a
+  return a.getTime() >= b.getTime() ? a : b
+}
 
 /** Rolling N-day window ending on today when in current season; otherwise anchored to latest data. */
 export function getHubWindow(
   players: Player[],
   period: HubPeriod,
-  now: Date = new Date(),
+  nowOrOpts: Date | HubWindowOptions = new Date(),
+  maybeOpts?: HubWindowOptions,
 ): WeeklyWindow | null {
+  const opts: HubWindowOptions =
+    nowOrOpts instanceof Date
+      ? { ...(maybeOpts ?? {}), now: nowOrOpts }
+      : nowOrOpts
+  const now = opts.now ?? new Date()
   const dayCount = HUB_PERIOD_DAYS[period]
-  const dates = players
+  const oeDates = players
     .flatMap((p) => p.gameLog ?? [])
     .map((g) => parseDate(g.date))
     .filter((d): d is Date => d !== null)
-  if (!dates.length) return null
-  dates.sort((a, b) => a.getTime() - b.getTime())
-  const latestDataDate = dates[dates.length - 1]!
+  oeDates.sort((a, b) => a.getTime() - b.getTime())
+  const oeLatestDate = oeDates.length ? oeDates[oeDates.length - 1]! : null
+  const citoLatestDate = opts.citoLatestDate ?? null
+  const latestDataDate = maxDate(oeLatestDate, citoLatestDate)
+  if (!latestDataDate) return null
+
   const today = startOfDay(now)
   const latestDay = startOfDay(latestDataDate)
   const daysSinceLatest =
@@ -87,6 +113,8 @@ export function getHubWindow(
     label: formatDateRange(start, anchorEnd),
     latestDataDate,
     dataStale,
+    oeLatestDate,
+    citoLatestDate,
   }
 }
 
@@ -113,4 +141,24 @@ export function inHubWindow(log: PlayerGameLog, window: WeeklyWindow): boolean {
 
 export function windowToWeeklyRecapWindow(window: WeeklyWindow) {
   return { start: window.start, end: window.end, label: window.label }
+}
+
+/** Latest completed Cito series calendar day from result rows. */
+export function latestCitoCompletedDate(
+  results: Array<{ scheduledAt: string | null; status: string; scoreA: number | null; scoreB: number | null }>,
+): Date | null {
+  let best: Date | null = null
+  for (const row of results) {
+    const status = (row.status ?? '').trim().toLowerCase().replace(/\s+/g, '_')
+    const completed =
+      ['completed', 'finished', 'done', 'complete'].includes(status) ||
+      (typeof row.scoreA === 'number' &&
+        typeof row.scoreB === 'number' &&
+        Math.max(row.scoreA, row.scoreB) >= 2)
+    if (!completed) continue
+    const d = parseDate(row.scheduledAt ?? '')
+    if (!d) continue
+    if (!best || d.getTime() > best.getTime()) best = d
+  }
+  return best
 }

@@ -1,6 +1,5 @@
 import Select from './ui/Select'
 import LeagueLogo from './entities/LeagueLogo'
-import { entitySplitOptions } from '../lib/filterOptions'
 
 export interface EntityFilterStripValues {
   league: string
@@ -17,18 +16,10 @@ export interface EntityFilterStripValues {
 
 export function EntityFilterStripControls({
   league,
-  year,
-  split,
   leagues,
-  years,
-  splits: _splits,
   onLeagueChange,
-  onYearChange,
-  onSplitChange,
-  showAllSplit = true,
-  catalogSplits = [] as string[],
 }: EntityFilterStripValues & { catalogSplits?: string[] }) {
-  const splitOptions = entitySplitOptions(catalogSplits, year)
+  // v3: league watching lens only — year/split archaeology removed from entity chrome.
   return (
     <div className="flex flex-col sm:flex-row sm:items-center gap-4">
       <div className="flex items-center gap-2">
@@ -38,31 +29,6 @@ export function EntityFilterStripControls({
           {leagues.map((l) => (
             <option key={l} value={l}>
               {l}
-            </option>
-          ))}
-        </Select>
-      </div>
-      <div className="flex items-center gap-2">
-        <span className="label-field">Year</span>
-        <Select label="Year" value={year} onChange={(e) => onYearChange(e.target.value)}>
-          {years.map((y) => (
-            <option key={y} value={y}>
-              {y}
-            </option>
-          ))}
-        </Select>
-      </div>
-      <div className="flex items-center gap-2">
-        <span className="label-field">Split</span>
-        <Select label="Split" value={split} onChange={(e) => onSplitChange(e.target.value)}>
-          {showAllSplit ? (
-            <option key="ALL" value="ALL">
-              ALL
-            </option>
-          ) : null}
-          {splitOptions.map((s) => (
-            <option key={s.value} value={s.value}>
-              {s.label}
             </option>
           ))}
         </Select>

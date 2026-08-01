@@ -153,11 +153,11 @@ export default function Players() {
       <PageHeader
         eyebrow="players"
         title="player rankings & form"
-        subtitle="Power rankings, role radars, statistical trends, and form trajectories — filtered by league and split."
+        subtitle="Current-form instrument — model power boards, role radars, and last-8-series form signals."
         meta={
           <>
             <PageHeaderReadout label="players" value={players.length} />
-            <PageHeaderReadout label="split" value={`${league} · ${split}`} />
+            <PageHeaderReadout label="league" value={league} />
           </>
         }
       />

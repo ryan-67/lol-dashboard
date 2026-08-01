@@ -321,7 +321,7 @@ export default function TeamPage() {
       <header className="entity-hero">
         <EntityHeroField />
         <div>
-          <p className="page-header-eyebrow">team</p>
+          <p className="page-header-eyebrow">team · now</p>
           <h1 className="entity-hero-name entity-title-row">
             <TeamLogo name={team.name} size={32} />
             {team.name}
@@ -329,6 +329,7 @@ export default function TeamPage() {
           <p className="entity-hero-meta entity-subtitle">
             <LeagueLogo league={team.league} size={20} />
             {team.league}
+            {' · current form'}
           </p>
         </div>
         <div className="dash-kpi-grid" style={{ marginBottom: 0 }}>
@@ -530,7 +531,7 @@ export default function TeamPage() {
           </div>
 
           <div className="card">
-            <h3 className="card-title">Match History</h3>
+            <h3 className="card-title">Recent series</h3>
             <div className="entity-table-wrap">
               <table className="entity-table">
                 <thead>

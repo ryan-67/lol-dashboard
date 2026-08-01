@@ -1462,6 +1462,63 @@ function summarizeSeries(
   }
 }
 
+function citoSeriesInWindow(
+  row: CitoSeriesResult,
+  window: WeeklyRecapWindow,
+): boolean {
+  const day = (row.scheduledAt ?? '').slice(0, 10)
+  if (!day) return false
+  const d = parseCalendarDate(day)
+  if (!d) return false
+  const start = new Date(window.start)
+  start.setHours(0, 0, 0, 0)
+  const end = new Date(window.end)
+  end.setHours(23, 59, 59, 999)
+  return d >= start && d <= end
+}
+
+function buildCitoShellRecapLine(row: CitoSeriesResult): WeeklyRecapLine | null {
+  if (typeof row.scoreA !== 'number' || typeof row.scoreB !== 'number') return null
+  if (!isValidSeriesScore(row.scoreA, row.scoreB)) return null
+  const aWins = row.scoreA > row.scoreB
+  const winner = aWins ? row.teamA : row.teamB
+  const loser = aWins ? row.teamB : row.teamA
+  const score = `${Math.max(row.scoreA, row.scoreB)}-${Math.min(row.scoreA, row.scoreB)}`
+  const date = (row.scheduledAt ?? '').slice(0, 10)
+  if (!date) return null
+  const league = (row.league || 'T1').toUpperCase()
+  const tournamentLabel = row.tournamentName ?? row.blockName ?? league
+  return {
+    id: `cito-${row.matchId || `${row.teamA}-${row.teamB}-${date}`}`,
+    seriesId: stableSeriesId(row.teamA, row.teamB, date),
+    date,
+    dateLabel: formatGameDate(date),
+    segments: [
+      segTeam(winner),
+      segText(' beat '),
+      segTeam(loser),
+      segText(` ${score} (${league})`),
+    ],
+    score: {
+      winner: resolveTeamCanonicalName(winner),
+      loser: resolveTeamCanonicalName(loser),
+      winnerAbbr: recapTeamTag(winner),
+      loserAbbr: recapTeamTag(loser),
+      score,
+      tournamentLabel,
+      tournamentLeague: league,
+    },
+  }
+}
+
+function seriesCoverageKey(teamA: string, teamB: string, date: string): string {
+  return `${seriesKey(resolveTeamCanonicalName(teamA), resolveTeamCanonicalName(teamB))}|${date.slice(0, 10)}`
+}
+
+/**
+ * Hub recap lines: OE-enriched when box scores exist; Cito-complete shells when OE lags.
+ * V3-1: Cito results can invent series rows the OE week is missing.
+ */
 export function buildWeeklyRecapLines(
   players: Player[],
   teams: Team[],
@@ -1472,15 +1529,16 @@ export function buildWeeklyRecapLines(
 ): WeeklyRecapLine[] {
   if (!window) return []
   const games = collectWeeklyGames(players, window, gameCatalog)
-  if (!games.length) return []
-
-  const weekCounts = buildWeekChampionCounts(games)
+  const cito = citoResults ?? []
+  const weekCounts = games.length ? buildWeekChampionCounts(games) : new Map()
   const allGamesForMeta = collectParsedGames(players, { gameCatalog })
-  const championMeta = buildChampionMetaFromGames(allGamesForMeta.length ? allGamesForMeta : games)
-  const series = groupSeries(games)
+  const championMeta = buildChampionMetaFromGames(
+    allGamesForMeta.length ? allGamesForMeta : games,
+  )
+  const series = games.length ? groupSeries(games) : []
   const ledger = new RecapLedger()
   const lines: WeeklyRecapLine[] = []
-  const cito = citoResults ?? []
+  const covered = new Set<string>()
 
   for (let i = 0; i < series.length; i++) {
     const bucket = series[i]!
@@ -1510,9 +1568,28 @@ export function buildWeeklyRecapLines(
     // Weekly hub + recaps only show concluded series.
     if (!isSeriesReadyForRecap(resolved)) continue
     if (!isValidSeriesScore(resolved.winsA, resolved.winsB)) continue
-    // Schedule may already show 3-0 while OE only ingested 2 games — wait for full series logs.
+
+    covered.add(seriesCoverageKey(bucket.teamA, bucket.teamB, latestDate))
     const neededGames = resolved.winsA + resolved.winsB
-    if (bucket.games.length < neededGames) continue
+    // OE lag: schedule already final but box scores incomplete — still list the series.
+    if (bucket.games.length < neededGames) {
+      const shell = buildCitoShellRecapLine({
+        matchId: resolved.cito?.matchId ?? '',
+        league: firstGame.league ?? resolved.cito?.league ?? 'T1',
+        tournamentName: resolved.cito?.tournamentName ?? null,
+        blockName: resolved.blockName,
+        teamA: bucket.teamA,
+        teamB: bucket.teamB,
+        scheduledAt: latestDate,
+        status: 'completed',
+        scoreA: resolved.winsA,
+        scoreB: resolved.winsB,
+        winnerTeam: resolved.winner,
+        bestOf: resolved.bestOf,
+      })
+      if (shell) lines.push(shell)
+      continue
+    }
 
     const line = summarizeSeries(
       bucket,
@@ -1554,9 +1631,51 @@ export function buildWeeklyRecapLines(
     })
   }
 
+  // Cito-only series OE never ingested (blank week / missing LCK·LPL slices).
+  for (const row of cito) {
+    if (!citoSeriesInWindow(row, window)) continue
+    const status = (row.status ?? '').trim().toLowerCase().replace(/\s+/g, '_')
+    const completed =
+      ['completed', 'finished', 'done', 'complete'].includes(status) ||
+      (typeof row.scoreA === 'number' &&
+        typeof row.scoreB === 'number' &&
+        isValidSeriesScore(row.scoreA, row.scoreB))
+    if (!completed) continue
+    if (typeof row.scoreA !== 'number' || typeof row.scoreB !== 'number') continue
+    if (!isValidSeriesScore(row.scoreA, row.scoreB)) continue
+    const date = (row.scheduledAt ?? '').slice(0, 10)
+    const key = seriesCoverageKey(row.teamA, row.teamB, date)
+    if (covered.has(key)) continue
+    // Also match ±1 day OE coverage (timezone / start-date drift).
+    const targetPair = seriesKey(
+      resolveTeamCanonicalName(row.teamA),
+      resolveTeamCanonicalName(row.teamB),
+    )
+    const nearCovered = [...covered].some((k) => {
+      const idx = k.lastIndexOf('|')
+      if (idx < 0) return false
+      const pair = k.slice(0, idx)
+      const d = k.slice(idx + 1)
+      if (pair !== targetPair) return false
+      return Math.abs(daysBetweenDates(date, d)) <= 1
+    })
+    if (nearCovered) continue
+    const shell = buildCitoShellRecapLine(row)
+    if (!shell) continue
+    covered.add(key)
+    lines.push(shell)
+  }
+
   return lines
     .sort((a, b) => b.date.localeCompare(a.date) || a.id.localeCompare(b.id))
     .slice(0, 8)
+}
+
+function daysBetweenDates(a: string, b: string): number {
+  const da = parseCalendarDate(a)
+  const db = parseCalendarDate(b)
+  if (!da || !db) return 999
+  return Math.round(Math.abs(da.getTime() - db.getTime()) / (1000 * 60 * 60 * 24))
 }
 
 export function recapLineToText(line: WeeklyRecapLine): string {
@@ -1720,13 +1839,13 @@ export function collectSeriesBriefs(
       )
       continue
     }
+    // V3-1: keep series when Cito has the final score even if OE box scores lag.
     const neededGames = resolved.winsA + resolved.winsB
     if (bucket.games.length < neededGames) {
       console.warn(
-        `Skipping OE-lag series ${bucket.teamA} vs ${bucket.teamB}: schedule ${resolved.score} but only ` +
-          `${bucket.games.length}/${neededGames} OE games ingested`,
+        `OE-lag series ${bucket.teamA} vs ${bucket.teamB}: schedule ${resolved.score} but only ` +
+          `${bucket.games.length}/${neededGames} OE games — using Cito score`,
       )
-      continue
     }
 
     const dominant = resolved.winner

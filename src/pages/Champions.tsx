@@ -102,7 +102,7 @@ export default function Champions() {
       <PageHeader
         eyebrow="champions"
         title="meta & performance"
-        subtitle="Presence, winrate, OP spotlight, and rising/falling trends for the current filter."
+        subtitle="Current-form meta instrument — presence, OP spotlight, and rising/falling trends."
         meta={
           <>
             <PageHeaderReadout label="champions" value={roleFiltered.length} />
@@ -148,7 +148,7 @@ export default function Champions() {
             <h2 className="card-title">Full Champion Metrics</h2>
             <p className="card-subtitle">
               {roleFilter === 'all'
-                ? 'All champions in the current league and split.'
+                ? 'All champions in the current form lens.'
                 : `Champions with ${roleLabel(roleFilter)} in their role pool.`}
             </p>
             <div className="table-wrap">

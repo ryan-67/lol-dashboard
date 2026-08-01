@@ -9,6 +9,10 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { teamsShareEsportsSlug } from './entities/assets'
 import { resolveTeamCanonicalName, teamMatchesCanonical } from './entities/slugs'
+import {
+  isAcademyOrMinorTeamOrContext,
+  isTier1PredictionRow,
+} from './predictions/leagueFilter'
 import { daysBetween, isValidSeriesScore } from './seriesGrouping'
 import { recapTeamTag } from './recapTeamTag'
 
@@ -518,12 +522,41 @@ export function effectiveBestOf(opts: {
   return null
 }
 
+/** Drop academy / challengers pollution nested under parent league IDs. */
+export function filterTier1CitoSeriesResults(rows: CitoSeriesResult[]): CitoSeriesResult[] {
+  return rows.filter((row) => {
+    if (
+      isAcademyOrMinorTeamOrContext({
+        teamA: row.teamA,
+        teamB: row.teamB,
+        league: row.league,
+        tournamentName: row.tournamentName,
+        blockName: row.blockName,
+      })
+    ) {
+      return false
+    }
+    return isTier1PredictionRow({
+      match_id: row.matchId,
+      league: row.league,
+      tournament_name: row.tournamentName,
+      team_a: row.teamA,
+      team_b: row.teamB,
+      scheduled_at: row.scheduledAt,
+      status: row.status,
+      block_name: row.blockName,
+    })
+  })
+}
+
 /**
  * Load recent Cito schedule rows (completed + live) for series score verification.
  * Pass `client` from Node/CI (service role) — browser callers omit it and use the anon client.
  *
  * The browser supabase client is loaded lazily so Node/CI scripts that pass `client`
  * never import it (avoids Node 20 WebSocket / missing anon-key issues).
+ *
+ * Results are academy-filtered (V3-1) so Hub/Board never list Challengers under LCK/LPL.
  */
 export async function fetchCitoSeriesResults(options?: {
   sinceDays?: number
@@ -531,13 +564,17 @@ export async function fetchCitoSeriesResults(options?: {
   client?: SupabaseClient
   /** Include Leaguepedia external cache (EWC, etc.). Default true. */
   includeExternal?: boolean
+  /** Skip academy/minor filter (audit scripts). Default false. */
+  includeAcademy?: boolean
 }): Promise<CitoSeriesResult[]> {
   let db: SupabaseClient | null = options?.client ?? null
   if (!db) {
     const { supabase, isSupabaseConfigured } = await import('./supabaseClient')
     if (!isSupabaseConfigured) {
       // Still try external schedule (EWC) when Supabase is unavailable.
-      return options?.includeExternal === false ? [] : loadExternalScheduleAsCitoResults()
+      const externalOnly =
+        options?.includeExternal === false ? [] : await loadExternalScheduleAsCitoResults()
+      return options?.includeAcademy ? externalOnly : filterTier1CitoSeriesResults(externalOnly)
     }
     db = supabase
   }
@@ -580,16 +617,19 @@ export async function fetchCitoSeriesResults(options?: {
     rows = mapRows(data ?? [])
   }
 
-  if (options?.includeExternal === false) return rows
+  let merged = rows
+  if (options?.includeExternal !== false) {
+    const external = await loadExternalScheduleAsCitoResults()
+    if (external.length) {
+      // Prefer Cito/lolesports rows; fill gaps with Leaguepedia (EWC).
+      const byId = new Map<string, CitoSeriesResult>()
+      for (const row of external) byId.set(row.matchId, row)
+      for (const row of rows) byId.set(row.matchId, row)
+      merged = [...byId.values()]
+    }
+  }
 
-  const external = await loadExternalScheduleAsCitoResults()
-  if (!external.length) return rows
-
-  // Prefer Cito/lolesports rows; fill gaps with Leaguepedia (EWC).
-  const byId = new Map<string, CitoSeriesResult>()
-  for (const row of external) byId.set(row.matchId, row)
-  for (const row of rows) byId.set(row.matchId, row)
-  return [...byId.values()]
+  return options?.includeAcademy ? merged : filterTier1CitoSeriesResults(merged)
 }
 
 /** Map schedule-cache row shapes into CitoSeriesResult (browser or Node). */

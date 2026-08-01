@@ -21,7 +21,6 @@ const menuNav = [
   { to: '/teams', label: 'Teams' },
   { to: '/champions', label: 'Champions' },
   { to: '/tournaments', label: 'Tournaments' },
-  { to: '/matchups', label: 'Matchups' },
   { to: '/faq', label: 'FAQ' },
 ]
 
@@ -30,7 +29,6 @@ const MAIN_DASHBOARD_PATHS = new Set([
   '/players',
   '/teams',
   '/champions',
-  '/matchups',
   '/tournaments',
 ])
 

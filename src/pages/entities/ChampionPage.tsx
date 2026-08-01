@@ -137,7 +137,7 @@ export default function ChampionPage() {
       <header className="entity-hero">
         <EntityHeroField />
         <div>
-          <p className="page-header-eyebrow">champion</p>
+          <p className="page-header-eyebrow">champion · now</p>
           <h1 className="entity-hero-name entity-title-row">
             <ChampionIcon name={champion.name} size={40} />
             {champion.name}
@@ -249,7 +249,7 @@ export default function ChampionPage() {
         championName={champion.name}
         players={players}
         data={data}
-        limit={50}
+        limit={12}
       />
     </div>
   )

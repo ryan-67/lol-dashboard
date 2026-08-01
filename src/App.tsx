@@ -20,7 +20,6 @@ import Overview from './pages/Overview'
 import Players from './pages/Players'
 import Teams from './pages/Teams'
 import Champions from './pages/Champions'
-import Matchups from './pages/Matchups'
 import Tournaments from './pages/Tournaments'
 import Predictions from './pages/Predictions'
 import PlayerPage from './pages/entities/PlayerPage'
@@ -184,7 +183,7 @@ function AppRoutes() {
           <Route path="players" element={<Players />} />
           <Route path="teams" element={<Teams />} />
           <Route path="champions" element={<Champions />} />
-          <Route path="matchups" element={<Matchups />} />
+          <Route path="matchups" element={<Navigate to="/duo" replace />} />
           <Route path="tournaments" element={<Tournaments />} />
           <Route path="predictions" element={<Predictions />} />
           <Route path="predictions/:matchId" element={<PredictionPreviewPage />} />
@@ -209,7 +208,7 @@ function AppRoutes() {
           <Route path="players" element={<Players />} />
           <Route path="teams" element={<Teams />} />
           <Route path="champions" element={<Champions />} />
-          <Route path="matchups" element={<Matchups />} />
+          <Route path="matchups" element={<Navigate to="/dashboard" replace />} />
           <Route path="tournaments" element={<Tournaments />} />
           <Route path="predictions" element={<Predictions />} />
           <Route path="predictions/:matchId" element={<PredictionPreviewPage />} />
@@ -230,7 +229,7 @@ function AppRoutes() {
       <Route path="/players" element={<Navigate to="/dashboard/players" replace />} />
       <Route path="/teams" element={<Navigate to="/dashboard/teams" replace />} />
       <Route path="/champions" element={<Navigate to="/dashboard/champions" replace />} />
-      <Route path="/matchups" element={<Navigate to="/dashboard/matchups" replace />} />
+      <Route path="/matchups" element={<Navigate to="/dashboard" replace />} />
       <Route path="/tournaments" element={<Navigate to="/dashboard/tournaments" replace />} />
       <Route path="/predictions" element={<Navigate to="/dashboard/predictions" replace />} />
       <Route

@@ -57,11 +57,11 @@ export default function Teams() {
       <PageHeader
         eyebrow="teams"
         title="team power & style"
-        subtitle="Radar profiles and objective fingerprints across the filtered split. Multi-team compares live on Matchups."
+        subtitle="Current-form instrument — model power boards, radar profiles, and objective fingerprints."
         meta={
           <>
             <PageHeaderReadout label="teams" value={teams.length} />
-            <PageHeaderReadout label="split" value={`${league} · ${split}`} />
+            <PageHeaderReadout label="league" value={league} />
           </>
         }
       />

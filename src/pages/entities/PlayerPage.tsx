@@ -13,16 +13,17 @@ import {
 } from '../../lib/playerRadar'
 import { getPlayerRole, resolveLaneOpponentForGame } from '../../lib/playerAnalytics'
 import { unitIntervalTo100 } from '../../lib/scoreNormalize'
-import { formatGameDate, formatNum } from '../../lib/format'
+import { formatGameDate, formatNum, formatPct } from '../../lib/format'
 import { resolveTournamentDisplay, buildTournamentIdentityFromGame, tournamentPath } from '../../lib/tournamentCatalog'
 import { resolveGameOpponent } from '../../lib/gameOpponent'
+import { computePlayerCurrentForm, formSparkValues } from '../../lib/currentForm'
 import PlayerRadarChart from '../../components/players/PlayerRadarChart'
 import PlayerRadarStatsGrid from '../../components/players/PlayerRadarStatsGrid'
 import PlayerFormChart from '../../components/players/PlayerFormChart'
 import PlayerModelCard from '../../components/players/PlayerModelCard'
-import PlayerGameExplorer from '../../components/players/PlayerGameExplorer'
 import SectionSubnav from '../../components/ui/SectionSubnav'
 import KpiTile from '../../components/ui/KpiTile'
+import FormBadges from '../../components/ui/FormBadges'
 import EntityHeroField from '../../components/ui/EntityHeroField'
 import {
   EntityFilterBar,
@@ -36,10 +37,9 @@ import {
 import type { DashboardData } from '../../hooks/useDashboardData'
 
 const PLAYER_PAGE_SECTIONS = [
-  { id: 'player-overview', label: 'Overview' },
-  { id: 'player-trends', label: 'Trends' },
-  { id: 'player-form', label: 'Form' },
-  { id: 'player-history', label: 'History' },
+  { id: 'player-now', label: 'Now' },
+  { id: 'player-evidence', label: 'Evidence' },
+  { id: 'player-recent', label: 'Recent' },
 ]
 
 export default function PlayerPage() {
@@ -103,6 +103,11 @@ export default function PlayerPage() {
     [player],
   )
 
+  const currentForm = useMemo(
+    () => (player ? computePlayerCurrentForm(player) : null),
+    [player],
+  )
+
   const sortedGameLog = useMemo(
     () =>
       [...(player?.gameLog ?? [])].sort(
@@ -132,8 +137,7 @@ export default function PlayerPage() {
     )
   }
 
-  const wins = (player.gameLog ?? []).filter((g) => g.result === 1).length
-  const losses = (player.gameLog ?? []).length - wins
+  const form = currentForm!
 
   return (
     <div className="page-section entity-page">
@@ -146,7 +150,7 @@ export default function PlayerPage() {
       <header className="entity-hero">
         <EntityHeroField />
         <div>
-          <p className="page-header-eyebrow">player</p>
+          <p className="page-header-eyebrow">player · now</p>
           <h1 className="entity-hero-name">{player.name}</h1>
           <p className="entity-hero-meta entity-subtitle">
             <TeamLogo name={player.team} size={22} />
@@ -154,23 +158,36 @@ export default function PlayerPage() {
             <LeagueLogo league={player.league} size={18} /> {player.league} ·{' '}
             <span>{role.toUpperCase()}</span>
           </p>
+          <FormBadges form={form} className="mt-2" />
         </div>
         <div className="dash-kpi-grid" style={{ marginBottom: 0 }}>
-          <KpiTile label="KDA" value={player.kda} decimals={2} />
-          <KpiTile label="Games" value={player.games} />
-          <KpiTile label="W-L" display={`${wins}-${losses}`} />
           <KpiTile
-            label="Winrate"
-            value={(wins / Math.max(player.games, 1)) * 100}
-            decimals={1}
+            label="Form"
+            value={form.formScore}
+            decimals={0}
+            accent
+            spark={formSparkValues(form)}
+            meta={form.label}
+          />
+          <KpiTile
+            label="Series WR"
+            value={form.winRate * 100}
+            decimals={0}
             suffix="%"
+            meta={`${form.sampleSize} series`}
+          />
+          <KpiTile label="KDA" value={player.kda} decimals={2} />
+          <KpiTile
+            label="Idle"
+            display={form.idleDays != null ? `${form.idleDays}d` : '—'}
+            meta={form.idleLabel ?? 'active'}
           />
         </div>
       </header>
 
       <SectionSubnav items={PLAYER_PAGE_SECTIONS} />
 
-      <section id="player-overview">
+      <section id="player-now">
         <PlayerModelCard player={player} role={role} />
 
         <div className="overview-grid overview-grid-2">
@@ -178,25 +195,39 @@ export default function PlayerPage() {
             <PlayerRadarChart player={player} role={role} cohort={cohort} hideHeader />
             <PlayerRadarStatsGrid player={player} role={role} cohort={cohort} />
           </div>
-          <PlayerChampionTable player={player} role={role} cohort={cohort} />
+          <div>
+            <PlayerFormChart players={[player]} cohortPlayers={cohort} />
+            {form.series.length > 0 ? (
+              <div className="card" style={{ marginTop: '1rem' }}>
+                <h3 className="card-title">Last {form.sampleSize} series</h3>
+                <ul className="text-sm text-secondary" style={{ listStyle: 'none', padding: 0, margin: 0 }}>
+                  {form.series.map((s) => (
+                    <li key={`${s.date}-${s.opponent}`} style={{ padding: '0.35rem 0' }}>
+                      <span className={s.won ? 'text-accent' : ''}>{s.won ? 'W' : 'L'}</span>
+                      {' '}{s.scoreLabel} vs {s.opponent}
+                      <span className="text-tertiary"> · {formatGameDate(s.date)}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ) : null}
+          </div>
         </div>
+      </section>
 
+      <section id="player-evidence">
+        <PlayerChampionTable player={player} role={role} cohort={cohort} />
         <div className="overview-grid overview-grid-2">
           <ChampionWinrateBars title="Best Champions" entries={champExtremes.best} tone="best" />
           <ChampionWinrateBars title="Worst Champions" entries={champExtremes.worst} tone="worst" />
         </div>
       </section>
 
-      <section id="player-trends">
-        <PlayerGameExplorer player={player} cohort={cohort} role={role} />
-      </section>
-
-      <section id="player-form">
-        <PlayerFormChart players={[player]} cohortPlayers={cohort} />
-      </section>
-
-      <section id="player-history" className="card">
-        <h3 className="card-title">Match History</h3>
+      <section id="player-recent" className="card">
+        <h3 className="card-title">Recent games</h3>
+        <p className="card-subtitle">
+          Form-window evidence ({formatPct(form.winRate * 100, 0)} series WR) — not a career archive.
+        </p>
         <div className="entity-table-wrap">
           <table className="entity-table">
             <thead>
@@ -216,7 +247,7 @@ export default function PlayerPage() {
               </tr>
             </thead>
             <tbody>
-              {sortedGameLog.slice(0, 20).map((g, i) => {
+              {sortedGameLog.slice(0, 12).map((g, i) => {
                 const opponent = resolveGameOpponent(g, player.team, players, data?.gameCatalog)
                 const laneOpponent = resolveLaneOpponentForGame(
                   opponent ? { ...g, opponent } : g,

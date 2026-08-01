@@ -64,7 +64,7 @@ export default function DashboardFrame() {
     normalized === '/dashboard/champions' ||
     normalized === '/dashboard/tournaments'
 
-  // Matchups uses its own team selectors — league/year/split strip is irrelevant
+  // Predictions / entity pages own their chrome; list tabs get league lens only.
   const shouldShowTopBar = isListTab && !isEntityPage
 
   return (

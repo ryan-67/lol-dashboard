@@ -4,9 +4,9 @@ import { createPortal } from 'react-dom'
 export type TeamPageTab = 'stats' | 'schedule' | 'gold'
 
 const TABS: { id: TeamPageTab; label: string }[] = [
-  { id: 'stats', label: 'Stats' },
-  { id: 'schedule', label: 'Schedule' },
-  { id: 'gold', label: 'Gold Graph' },
+  { id: 'stats', label: 'Now' },
+  { id: 'schedule', label: 'Next' },
+  { id: 'gold', label: 'Gold' },
 ]
 
 interface TeamSubnavProps {

@@ -36,6 +36,8 @@ import TeamRadarChart from '../components/teams/TeamRadarChart'
 import { EntityLink, ChampionEntityInline } from '../components/entities'
 import WeeklyRecap from '../components/overview/WeeklyRecap'
 import OverviewHubToggle from '../components/overview/OverviewHubToggle'
+import OverviewPaneToggle from '../components/overview/OverviewPaneToggle'
+import OverviewBoard from '../components/overview/OverviewBoard'
 import SectionSubnav, { type SectionSubnavItem } from '../components/ui/SectionSubnav'
 import PowerRankingsPanel from '../components/rankings/PowerRankingsPanel'
 import TeamPowerBoard from '../components/rankings/TeamPowerBoard'
@@ -50,11 +52,17 @@ import { resolveGameOpponent } from '../lib/gameOpponent'
 import {
   getHubWindow,
   inHubWindow,
+  latestCitoCompletedDate,
   localIsoDate,
   HUB_PERIOD_DAYS,
   type HubPeriod,
   type WeeklyWindow,
 } from '../lib/weeklyWindow'
+import {
+  readLocalOverviewPane,
+  writeLocalOverviewPane,
+  type OverviewPane,
+} from '../lib/overviewPane'
 import { CHART } from '../theme/chartTheme'
 import {
   scrollEntranceStagger,
@@ -558,6 +566,7 @@ export default function Overview() {
     selectedLeagues,
   } = useDashboard()
   const rootRef = useRef<HTMLDivElement>(null)
+  const [overviewPane, setOverviewPane] = useState<OverviewPane>(() => readLocalOverviewPane())
   const [hubPeriod, setHubPeriod] = useState<HubPeriod>('weekly')
   const [displayPeriod, setDisplayPeriod] = useState<HubPeriod>('weekly')
   const [isPeriodPending, startPeriodTransition] = useTransition()
@@ -566,6 +575,11 @@ export default function Overview() {
   const [recapReady, setRecapReady] = useState(false)
 
   const hubContentLoading = isPeriodPending || recapLoading || !recapReady
+
+  const handleOverviewPaneChange = (pane: OverviewPane) => {
+    setOverviewPane(pane)
+    writeLocalOverviewPane(pane)
+  }
 
   const powerRegions = useMemo(
     () => powerRegionsFromSelectedLeagues(selectedLeagues),
@@ -583,9 +597,23 @@ export default function Overview() {
 
   const copy = HUB_COPY[displayPeriod]
 
+  const [citoResults, setCitoResults] = useState<CitoSeriesResult[]>([])
+
+  useEffect(() => {
+    let cancelled = false
+    void fetchCitoSeriesResults({ sinceDays: 45 }).then((rows) => {
+      if (!cancelled) setCitoResults(rows)
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  const citoLatestDate = useMemo(() => latestCitoCompletedDate(citoResults), [citoResults])
+
   const hubWindow = useMemo(
-    () => getHubWindow(weeklyHubPlayers, displayPeriod),
-    [weeklyHubPlayers, displayPeriod],
+    () => getHubWindow(weeklyHubPlayers, displayPeriod, { citoLatestDate }),
+    [weeklyHubPlayers, displayPeriod, citoLatestDate],
   )
   const weeklyPlayers = useMemo(
     () => (hubWindow ? getWeeklyPlayers(weeklyHubPlayers, hubWindow) : []),
@@ -632,18 +660,6 @@ export default function Overview() {
     const displayable = filteredChampions.filter(isDisplayableChampion)
     return computeOpScores(displayable, 1).all.slice(0, 10)
   }, [filteredChampions])
-
-  const [citoResults, setCitoResults] = useState<CitoSeriesResult[]>([])
-
-  useEffect(() => {
-    let cancelled = false
-    void fetchCitoSeriesResults({ sinceDays: 45 }).then((rows) => {
-      if (!cancelled) setCitoResults(rows)
-    })
-    return () => {
-      cancelled = true
-    }
-  }, [])
 
   const templateRecapLines = useMemo(() => {
     if (!hubWindow) return []
@@ -749,8 +765,26 @@ export default function Overview() {
     )
   }
 
+  const freshnessStamp = (() => {
+    if (!hubWindow?.latestDataDate) return ''
+    const through = formatGameDate(hubWindow.latestDataDate, { year: 'numeric' })
+    const oeLag =
+      hubWindow.oeLatestDate &&
+      hubWindow.citoLatestDate &&
+      hubWindow.oeLatestDate.getTime() < hubWindow.citoLatestDate.getTime()
+    const source = oeLag ? ' (Cito)' : ''
+    if (hubWindow.dataStale || oeLag) return ` · Data through ${through}${source}`
+    return ` · Data through ${through}`
+  })()
+
   return (
     <div ref={rootRef} className="overview-hub">
+      <OverviewPaneToggle value={overviewPane} onChange={handleOverviewPaneChange} />
+
+      {overviewPane === 'board' ? (
+        <OverviewBoard />
+      ) : (
+        <>
       <SectionSubnav
         key={hubContentLoading ? 'overview-subnav-pending' : 'overview-subnav-ready'}
         items={OVERVIEW_SUBNAV_ITEMS}
@@ -779,13 +813,10 @@ export default function Overview() {
           <p className="page-header-eyebrow">tier-1 signal</p>
           <h2 className="card-title">{copy.hubTitle}</h2>
           <p className="card-subtitle">
-            League: <span className="text-accent">{league}</span> · Split:{' '}
-            <span className="text-accent">{split}</span>
+            League: <span className="text-accent">{league}</span>
             {hubWindow ? ` · Past ${copy.periodDays} days: ${hubWindow.label}` : ''}
-            {hubWindow?.dataStale && hubWindow.latestDataDate
-              ? ` · Data through ${formatGameDate(hubWindow.latestDataDate, { year: 'numeric' })}`
-              : ''}
-            {lastUpdated ? ` · Refreshed ${formatRefreshTimestamp(lastUpdated)}` : ''}
+            {freshnessStamp}
+            {lastUpdated ? ` · OE shards ${formatRefreshTimestamp(lastUpdated)}` : ''}
           </p>
         </div>
       </section>
@@ -1079,7 +1110,7 @@ export default function Overview() {
           <h2 className="card-title">Champion Power Rankings</h2>
           <p className="card-subtitle">
             Top 10 champions by OP score (presence, win rate, ban rate, and KDA z-scores) for the
-            current league and split filters — distinct from weekly Champion of the Week above.
+            current form lens — distinct from weekly Champion of the Week above.
           </p>
           {topOpChampions.length === 0 ? (
             <p className="text-secondary">Not enough champion data for the current filters.</p>
@@ -1116,6 +1147,8 @@ export default function Overview() {
         </section>
       </section>
         </div>
+      )}
+        </>
       )}
     </div>
   )
