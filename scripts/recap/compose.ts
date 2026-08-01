@@ -1,6 +1,6 @@
 import type { SeriesBrief } from '../../src/lib/weeklyRecap.ts'
 import type { WeeklyRecapLine, WeeklyRecapSegment } from '../../src/lib/weeklyRecap.ts'
-import { recapLineToText } from '../../src/lib/weeklyRecap.ts'
+import { isScoreOnlyBrief, recapLineToText } from '../../src/lib/weeklyRecap.ts'
 import { factsToPromptJson } from '../../src/lib/recapFacts.ts'
 import { recapTeamTag } from '../../src/lib/recapTeamTag.ts'
 import { teamSearchAbbreviation } from '../../src/lib/entities/entityMap.ts'
@@ -132,9 +132,11 @@ function parseNarrative(raw: unknown): string {
 }
 
 const MIN_RECAP_CHARS = 300
+const MIN_RECAP_CHARS_SCORE_ONLY = 180
 const BANNED_OPENERS = /\b(rolled|keep rolling|another clean)\b/i
 
 function validateLine(segments: WeeklyRecapSegment[], brief: SeriesBrief, narrative: string): void {
+  const scoreOnly = isScoreOnlyBrief(brief)
   const plain = segments.map((s) => (s.kind === 'text' ? s.value : s.label)).join('')
   if (!plain.includes(brief.facts.score)) {
     console.warn(`  score ${brief.facts.score} not found in: ${plain}`)
@@ -144,9 +146,12 @@ function validateLine(segments: WeeklyRecapSegment[], brief: SeriesBrief, narrat
     throw new Error('Narrative missing team tokens — need {{WINNER}} and {{LOSER}}')
   }
 
-  if (plain.replace(/\s+/g, ' ').trim().length < MIN_RECAP_CHARS) {
+  const minChars = scoreOnly ? MIN_RECAP_CHARS_SCORE_ONLY : MIN_RECAP_CHARS
+  if (plain.replace(/\s+/g, ' ').trim().length < minChars) {
     throw new Error(
-      `Recap too short (${plain.length} chars) — need 3–4 sentences (~${MIN_RECAP_CHARS}+ chars) with standout + concern stats`,
+      scoreOnly
+        ? `Recap too short (${plain.length} chars) — need ~${minChars}+ chars with score + tournament stakes`
+        : `Recap too short (${plain.length} chars) — need 3–4 sentences (~${minChars}+ chars) with standout + concern stats`,
     )
   }
 
@@ -154,10 +159,17 @@ function validateLine(segments: WeeklyRecapSegment[], brief: SeriesBrief, narrat
     throw new Error('Recap uses banned cliché opener (rolled/rolling/another clean) — vary the opening')
   }
 
-  const nameErr = detectPlayerNameHallucination(narrative, collectAllowedIgns(brief.facts))
-  if (nameErr) throw new Error(nameErr)
+  // Score-only (Cito, no OE box scores): no player stats / fraud language.
+  if (scoreOnly) {
+    if (/\b(gd@15|csd@15|xpd@15|dmg share|kda|kp %|fraud)\b/i.test(narrative)) {
+      throw new Error('Score-only recap must not invent player stats or fraud language (wait for OE)')
+    }
+  } else {
+    const nameErr = detectPlayerNameHallucination(narrative, collectAllowedIgns(brief.facts))
+    if (nameErr) throw new Error(nameErr)
+  }
 
-  const fraudUsed = /\bfraud\b/i.test(narrative)
+  const fraudUsed = !scoreOnly && /\bfraud\b/i.test(narrative)
   if (fraudUsed) {
     const allPlayers = [
       ...brief.facts.winnerStars,
@@ -251,6 +263,7 @@ function tournamentStakeHints(brief: SeriesBrief): string[] {
 }
 
 function buildUserPrompt(brief: SeriesBrief, ragContext: string, correction?: string): string {
+  const scoreOnly = isScoreOnlyBrief(brief)
   const factsJson = factsToPromptJson(brief.facts)
   const glossaryJson = glossaryToPromptJson(buildRecapEntityGlossary(brief.facts))
   const stakes = tournamentStakeHints(brief)
@@ -258,7 +271,10 @@ function buildUserPrompt(brief: SeriesBrief, ragContext: string, correction?: st
   const parts = [
     `[FACTS]
 ${factsJson}`,
-    `[ENTITY_GLOSSARY — exact spellings only; never alter player igns]
+    scoreOnly
+      ? `[DATA_SOURCE]
+Cito schedule only — OE box scores not available yet. Do NOT invent player names, champions, gd@15, kp, dmg share, or fraud language. Focus on score, tournament stakes, and narrativeHints.`
+      : `[ENTITY_GLOSSARY — exact spellings only; never alter player igns]
 ${glossaryJson}`,
     `[EXTERNAL_CONTEXT — reddit threads, liquipedia, standings/playoffs narrative; use for stakes/implications only]
 ${ragContext || '(none — lean on facts.narrativeHints and stats)'}`,
@@ -277,15 +293,23 @@ You MUST weave at least one of these stakes into the recap (advancement, elimina
 ${correction}`)
   }
 
-  parts.push(
-    `Write the full recap for this ${brief.facts.tournamentLabel ?? brief.facts.league} series. Winner={{WINNER}} (${brief.facts.winnerAbbr}), Loser={{LOSER}} (${brief.facts.loserAbbr}), score ${brief.facts.score}.
+  if (scoreOnly) {
+    parts.push(
+      `Write a 2–3 sentence recap for this ${brief.facts.tournamentLabel ?? brief.facts.league} series. Winner={{WINNER}} (${brief.facts.winnerAbbr}), Loser={{LOSER}} (${brief.facts.loserAbbr}), score ${brief.facts.score}.
+Must include {{WINNER}} and {{LOSER}} at least once each. ~180–360 chars.
+Lean on tournament stakes / narrativeHints. No player names. No invented stats.`,
+    )
+  } else {
+    parts.push(
+      `Write the full recap for this ${brief.facts.tournamentLabel ?? brief.facts.league} series. Winner={{WINNER}} (${brief.facts.winnerAbbr}), Loser={{LOSER}} (${brief.facts.loserAbbr}), score ${brief.facts.score}.
 Must include {{WINNER}} and {{LOSER}} at least once each. Minimum 3–4 sentences (~320+ chars).
 ${stakes.length ? 'REQUIRED: include tournament stakes from [TOURNAMENT_STAKES] (who advances / who goes home / who they face next).' : 'If narrativeHints include tournament context, include it.'}
 Call out at least one standout AND one concern or loser bright spot — each with ROLE-CORRECT stats from facts.*.notes (top=gd@15, jg/sup=kp, mid/adc=dmg share — never "gapped" an ADC from gd@15).
 "fraud" ONLY when fraudEligible is true on a FAVORED/top-tier player — never fraud underdogs (see matchup context / power ranks in narrativeHints).
 Series streaks in facts are tournament-scoped only — do not invent LEC/LCK playoff streaks for an MSI recap.
 Only mention "pulled out [champ]" if facts.pocketPick is set.`,
-  )
+    )
+  }
 
   return parts.join('\n\n')
 }

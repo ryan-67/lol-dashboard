@@ -1729,7 +1729,18 @@ export interface SeriesBrief {
   teamB: string
   facts: SeriesFacts
   templateLine: WeeklyRecapLine
+  /** oe = box-score facts; cito = schedule/score + tournament context only (OE lag). */
+  dataSource?: 'oe' | 'cito'
 }
+
+/** True when the brief has no per-player box scores (Cito-complete, OE lagging). */
+export const isScoreOnlyBrief = (brief: SeriesBrief): boolean =>
+  brief.dataSource === 'cito' ||
+  (!brief.facts.winnerStars.length &&
+    !brief.facts.winnerConcerns.length &&
+    !brief.facts.loserBrightSpots.length &&
+    !brief.facts.loserStinkers.length &&
+    brief.facts.gameCount === 0)
 
 export function stableSeriesId(
   teamA: string,
@@ -1741,6 +1752,168 @@ export function stableSeriesId(
   const b = resolveTeamCanonicalName(teamB)
   const base = `${seriesKey(a, b)}|${latestDate}`
   return sessionIndex > 0 ? `${base}|${sessionIndex}` : base
+}
+
+function teamSplitWr(teams: Team[], name: string): number {
+  return findTeamByName(teams, name)?.winrate ?? 50
+}
+
+/**
+ * Score + tournament-context SeriesBrief when Cito has a completed series but OE
+ * box scores are missing. Enough for AI recaps focused on stakes/outcome.
+ */
+export function buildCitoOnlySeriesBrief(
+  row: CitoSeriesResult,
+  teams: Team[],
+  powerRanks?: PowerRankMap,
+  citoPeers: CitoSeriesResult[] = [],
+): SeriesBrief | null {
+  if (typeof row.scoreA !== 'number' || typeof row.scoreB !== 'number') return null
+  if (!isValidSeriesScore(row.scoreA, row.scoreB)) return null
+  const date = (row.scheduledAt ?? '').slice(0, 10)
+  if (!date) return null
+
+  const resolved = resolveSeriesScoreWithCito(
+    row.teamA,
+    row.teamB,
+    row.scoreA,
+    row.scoreB,
+    date,
+    [row, ...citoPeers],
+    seriesResolveOpts(row.league, null, false, row.tournamentName ?? row.blockName),
+  )
+  if (!isSeriesReadyForRecap(resolved)) return null
+
+  const winner = resolved.winner
+  const loser = resolved.loser
+  const domWins = Math.max(resolved.winsA, resolved.winsB)
+  const vicWins = Math.min(resolved.winsA, resolved.winsB)
+  const league = (row.league || 'T1').toUpperCase()
+  const tournamentLabel =
+    row.tournamentName ?? row.blockName ?? intlTournamentLabel(league, date.slice(0, 4), null)
+  const format = resolveTournamentFormat({
+    league: row.league,
+    tournamentLabel,
+    blockName: row.blockName ?? resolved.blockName,
+  })
+  const loserContinues = teamHasUpcomingInTournament(
+    loser,
+    date,
+    tournamentLabel,
+    citoPeers.length ? citoPeers : [row],
+  )
+  const winnerContinues = teamHasUpcomingInTournament(
+    winner,
+    date,
+    tournamentLabel,
+    citoPeers.length ? citoPeers : [row],
+  )
+
+  const domSplitWr = teamSplitWr(teams, winner)
+  const vicSplitWr = teamSplitWr(teams, loser)
+  const narrativeHints: string[] = [
+    `tournament: ${tournamentLabel}`,
+    `score verified from Cito schedule (${resolved.score}) — box-score player stats not yet in OE`,
+  ]
+  if (loserContinues) {
+    narrativeHints.push(
+      `${recapTeamTag(loser)} continues in the event (lower bracket / not eliminated)`,
+    )
+  } else if (format?.lossCanEliminateWithoutLower) {
+    narrativeHints.push(`${recapTeamTag(loser)} is eliminated from ${tournamentLabel}`)
+  }
+  if (winnerContinues) {
+    narrativeHints.push(`${recapTeamTag(winner)} advances / continues in ${tournamentLabel}`)
+  }
+  if (domWins >= 2 && vicWins === 0) narrativeHints.push('sweep')
+
+  const rankW = powerRanks?.get(resolveTeamCanonicalName(winner))
+  const rankL = powerRanks?.get(resolveTeamCanonicalName(loser))
+  if (rankW != null && rankL != null && rankL + 5 <= rankW) {
+    narrativeHints.push(
+      `upset watch: ${recapTeamTag(winner)} (#${rankW}) beat higher-ranked ${recapTeamTag(loser)} (#${rankL})`,
+    )
+  }
+
+  const facts: SeriesFacts = {
+    winner: resolveTeamCanonicalName(winner),
+    loser: resolveTeamCanonicalName(loser),
+    winnerAbbr: recapTeamTag(winner),
+    loserAbbr: recapTeamTag(loser),
+    score: resolved.score,
+    league,
+    tournamentLabel,
+    domWins,
+    vicWins,
+    gameCount: 0,
+    reverseSweep: false,
+    blowout: domWins >= 2 && vicWins === 0,
+    upset: vicSplitWr > domSplitWr + 8,
+    messySeries: false,
+    leadBlownBy: null,
+    leadBlownByAbbr: null,
+    domSplitWr,
+    vicSplitWr,
+    seriesStreak: 0,
+    victimSlump: 0,
+    avgGd15Winner: 0,
+    laneDuel: null,
+    topCarry: null,
+    pocketPick: null,
+    winnerStars: [],
+    winnerConcerns: [],
+    loserBrightSpots: [],
+    loserStinkers: [],
+    gameFlow: [],
+    narrativeHints,
+    participants: [],
+    loserHorrors: [],
+    highlights: [],
+    loserStandout: null,
+  }
+
+  const shell = buildCitoShellRecapLine(row)
+  if (!shell) return null
+
+  return {
+    seriesId: stableSeriesId(row.teamA, row.teamB, date),
+    date,
+    dateLabel: formatRecapDate(date),
+    league,
+    teamA: resolveTeamCanonicalName(row.teamA),
+    teamB: resolveTeamCanonicalName(row.teamB),
+    facts,
+    templateLine: {
+      ...shell,
+      segments: [
+        ...shell.segments,
+        segText(
+          loserContinues
+            ? ` — ${recapTeamTag(loser)} continues`
+            : winnerContinues
+              ? ` — ${recapTeamTag(winner)} advances`
+              : '',
+        ),
+      ].filter((s) => s.kind !== 'text' || s.value.length > 0),
+    },
+    dataSource: 'cito',
+  }
+}
+
+function citoRowMatchesCollectFilter(
+  row: CitoSeriesResult,
+  window: WeeklyRecapWindow | null,
+  gameFilter?: (g: PlayerGameLog) => boolean,
+): boolean {
+  const date = (row.scheduledAt ?? '').slice(0, 10)
+  if (!date) return false
+  if (window) return citoSeriesInWindow(row, window)
+  if (gameFilter) {
+    // Score-only path: only honor date-based filters (e.g. recent 14d).
+    // Playoff/year filters need OE flags — skip Cito-only for those.
+    return gameFilter({ date } as PlayerGameLog)
+  }
+  return false
 }
 
 /** All series in the window with deterministic facts + template fallback line. */
@@ -1755,19 +1928,22 @@ export function collectSeriesBriefs(
     citoResults?: CitoSeriesResult[]
   },
 ): SeriesBrief[] {
-  if (!window && !options?.gameFilter) return []
-  const gameCatalog = options?.gameCatalog
   const cito = options?.citoResults ?? []
+  if (!window && !options?.gameFilter && !cito.length) return []
+  const gameCatalog = options?.gameCatalog
   const games = collectParsedGames(players, { window, gameFilter: options?.gameFilter, gameCatalog })
-  if (!games.length) return []
 
-  const weekCounts = buildWeekChampionCounts(games)
+  const weekCounts = games.length ? buildWeekChampionCounts(games) : new Map()
   const playerChampGames = buildPlayerChampGameIndex(players)
   // Presence/meta + tournament peers from full player logs (not just the recap window).
   const allGamesForMeta = collectParsedGames(players, { gameCatalog })
-  const championMeta = buildChampionMetaFromGames(allGamesForMeta.length ? allGamesForMeta : games)
-  const series = groupSeries(games)
-  const peerSeries = groupSeries(allGamesForMeta.length ? allGamesForMeta : games)
+  const championMeta = buildChampionMetaFromGames(
+    allGamesForMeta.length ? allGamesForMeta : games,
+  )
+  const series = games.length ? groupSeries(games) : []
+  const peerSeries = allGamesForMeta.length
+    ? groupSeries(allGamesForMeta)
+    : series
   const ledger = new RecapLedger()
   const briefs: SeriesBrief[] = []
 
@@ -1942,7 +2118,24 @@ export function collectSeriesBriefs(
       teamB: resolveTeamCanonicalName(bucket.teamB),
       facts,
       templateLine,
+      dataSource: 'oe',
     })
+  }
+
+  // V3 current: invent Cito-complete series even when OE has zero games for them.
+  const covered = new Set(
+    briefs.map((b) => seriesCoverageKey(b.teamA, b.teamB, b.date)),
+  )
+  for (const row of cito) {
+    if (!citoRowMatchesCollectFilter(row, window, options?.gameFilter)) continue
+    const date = (row.scheduledAt ?? '').slice(0, 10)
+    if (!date) continue
+    const key = seriesCoverageKey(row.teamA, row.teamB, date)
+    if (covered.has(key)) continue
+    const brief = buildCitoOnlySeriesBrief(row, teams, options?.powerRanks, cito)
+    if (!brief) continue
+    covered.add(key)
+    briefs.push(brief)
   }
 
   return briefs.sort((a, b) => b.date.localeCompare(a.date) || a.seriesId.localeCompare(b.seriesId))

@@ -13,10 +13,12 @@ import {
   type PredictionLeagueFilter,
 } from '../../lib/predictions/leagueFilter'
 import {
+  buildDualPredictionOdds,
   buildPredictionBoard,
   formatModelOdds,
   type PredictionBoardRow,
 } from '../../lib/predictions/scorePrematchClient'
+import { teamMatchesCanonical } from '../../lib/entities'
 import {
   subscribeKalshiBoardOdds,
   type KalshiBoardQuote,
@@ -213,7 +215,8 @@ export default function PredictionScheduleTab({
                 {showForecast ? (
                   <>
                     <th>Kalshi</th>
-                    <th>Model</th>
+                    <th>Series</th>
+                    <th>Game</th>
                     <th>Preview</th>
                   </>
                 ) : (
@@ -225,6 +228,19 @@ export default function PredictionScheduleTab({
               {filtered.map((row) => {
                 const k = kalshi[row.matchId]
                 const draft = draftByMatchId(drafts, row.matchId)
+                const sideBiasA =
+                  draft?.draftComplete && draft.blueTeam
+                    ? teamMatchesCanonical(draft.blueTeam, row.teamA)
+                      ? 1
+                      : teamMatchesCanonical(draft.redTeam ?? '', row.teamA)
+                        ? -1
+                        : 0
+                    : 0
+                const dual = buildDualPredictionOdds(row.model, {
+                  bestOf: row.bestOf,
+                  draftComplete: Boolean(draft?.draftComplete),
+                  sideBiasA,
+                })
                 return (
                   <tr key={row.matchId}>
                     <td className="text-secondary whitespace-nowrap">
@@ -260,7 +276,7 @@ export default function PredictionScheduleTab({
                           {draft.gameNumber != null ? ` g${draft.gameNumber}` : ''}
                         </span>
                       ) : (
-                        <span className="text-tertiary text-sm">—</span>
+                        <span className="text-tertiary text-sm">pre-draft</span>
                       )}
                     </td>
                     {showForecast ? (
@@ -268,7 +284,22 @@ export default function PredictionScheduleTab({
                         <td className="text-secondary font-mono" title={k?.ticker ?? undefined}>
                           {k?.display ?? row.kalshiOdds}
                         </td>
-                        <td className="text-accent font-mono">{formatModelOdds(row.model)}</td>
+                        <td
+                          className="text-accent font-mono"
+                          title="Pre-draft series win probability"
+                        >
+                          {formatModelOdds(dual.series)}
+                        </td>
+                        <td
+                          className="font-mono"
+                          title="Post-draft individual game win probability"
+                        >
+                          {dual.game ? (
+                            <span className="text-accent">{formatModelOdds(dual.game)}</span>
+                          ) : (
+                            <span className="text-tertiary">—</span>
+                          )}
+                        </td>
                         <td>
                           {row.teamA === 'TBD' || row.teamB === 'TBD' ? (
                             <span className="text-secondary text-sm">—</span>

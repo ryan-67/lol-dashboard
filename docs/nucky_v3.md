@@ -299,16 +299,18 @@ Community is **not** a substitute for the Board. Optional enrichment: show model
 
 | Source | v3 role |
 | --- | --- |
-| **OE (Oracle’s Elixir)** | Long-horizon training, backfill, historical features; **not** the freshness SLA for “current” product |
-| **CitoAPI** | Candidate system-of-record for **recent/current** schedules, results, drafts; post-draft triggers |
+| **CitoAPI** | **Primary for current** — tier-1 schedules, completed series scores, live drafts, Hub recaps, Elo bumps |
+| **OE (Oracle’s Elixir)** | **Historical backbone** — full box scores, feature mart, full ML retrain, agent-chat OE queries; backfills when Drive advances |
 | **RAG + Tavily** | Chat grounding for careers / news / non-OE facts (unchanged philosophy) |
-| **Artifacts** | `region_strength`, `player_ratings`, scorecard, etc. — published freshness must track current matches |
+| **Artifacts** | `region_strength` bumps from Cito without waiting for OE; full `player_ratings` / mart refresh on OE backfill |
 
 ### 9.2 Freshness SLA (target)
 
-- **Ideal:** new completed series visible in Hub/Form/Board as soon as Cito (or chosen SoR) confirms completion.  
-- **Acceptable v3 launch:** &lt;12h for tier-1 completed series under normal conditions; visible “data as of” stamp when lagging.  
-- Model artifacts: retrain/publish path must not silently stall while current results advance (carry forward v2 Phase 6 freshness work).
+- **Ideal:** new completed series visible in Hub/Form/Board as soon as Cito confirms completion.  
+- **Recaps:** write on Cito-complete series (score + tournament stakes); enrich with OE player stats when box scores land.  
+- **Rankings:** `bump:elo-cito` updates `region_strength` on new Cito series; full OE retrain remains the historical rebuild.  
+- **Predictions:** pre-draft **series** odds always; post-draft **game** odds when Cito draft locks.  
+- **Acceptable v3 launch:** &lt;12h for tier-1 completed series; visible “data as of” stamp when lagging.
 
 ### 9.3 Cito reliability gate
 
@@ -454,5 +456,5 @@ Most product locks are closed. Left for implement-time / billing design:
 3. ~~**V3-2** IA remodel~~ **done 2026-08-01** — league-only chrome; Matchups → Overview; Hub|Board Overview; form helpers + entity Now+Next  
 4. ~~**V3-3** future gate~~ **done 2026-08-01** — Predictions shell free; win%/Kalshi/preview packets gated; track record on Board + Predictions  
 5. ~~**V3-4** post-draft~~ **done 2026-08-01** — `sync:cito-live-drafts` + Board badges + Preview comps + chat loads locked Cito drafts  
-6. **CI** — Refresh Dashboard Data is Cito-primary (`sync-current` always; OE+ML when Cito/OE advances). Apply `20260801120000_cito_sync_and_drafts.sql`.  
+6. **CI** — Cito-primary current path (`sync-current` always + Elo bump on Cito delta); OE+ML only when Drive advances / `force_oe_ml`. Apply `20260801120000_cito_sync_and_drafts.sql`.  
 7. Next: **V3-5** Community v1

@@ -16,6 +16,7 @@
     "sync:cito-live-drafts": "tsx scripts/cito/sync-live-drafts.ts",
     "check:cito-updates": "tsx scripts/cito/check-cito-updates.ts",
     "save:cito-sync-state": "tsx scripts/cito/save-cito-sync-state.ts",
+    "bump:elo-cito": "tsx scripts/ml/bump-elo-from-cito.ts",
     "sync:external-schedule": "tsx scripts/leaguepedia/sync-external-schedule.ts",
     "backfill:gol-gold": "python scripts/backfill_gol_gold_timelines.py",
     "eval:nuckyai": "tsx scripts/eval-nuckyai.ts",

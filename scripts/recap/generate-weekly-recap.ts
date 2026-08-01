@@ -15,7 +15,11 @@ import {
   isRecentCompletedGame,
   type SeriesBrief,
 } from '../../src/lib/weeklyRecap.ts'
-import { getHubWindow, windowToWeeklyRecapWindow } from '../../src/lib/weeklyWindow.ts'
+import {
+  getHubWindow,
+  latestCitoCompletedDate,
+  windowToWeeklyRecapWindow,
+} from '../../src/lib/weeklyWindow.ts'
 import {
   createServiceClient,
   currentYear,
@@ -97,9 +101,10 @@ async function main(): Promise<void> {
       citoResults,
     })
   } else {
-    const window = getHubWindow(players, 'monthly')
+    const citoLatest = latestCitoCompletedDate(citoResults)
+    const window = getHubWindow(players, 'monthly', { citoLatestDate: citoLatest })
     if (!window) {
-      console.log('No game log dates — nothing to recap.')
+      console.log('No OE game-log or Cito completed dates — nothing to recap.')
       return
     }
 
@@ -109,7 +114,7 @@ async function main(): Promise<void> {
     if (!briefs.length && client && process.env.RECAP_FROM_SUPABASE !== '1') {
       console.log('No series from local shards — loading fresh oe_slices from Supabase...')
       ;({ players, teams } = await loadTier1DataFromSupabase(client, year))
-      const retryWindow = getHubWindow(players, 'monthly')
+      const retryWindow = getHubWindow(players, 'monthly', { citoLatestDate: citoLatest })
       if (retryWindow) {
         recapWindow = windowToWeeklyRecapWindow(retryWindow)
         briefs = collectSeriesBriefs(players, teams, recapWindow, { powerRanks, citoResults })
@@ -122,7 +127,11 @@ async function main(): Promise<void> {
       citoResults,
     })
     briefs = dedupeBriefs([...briefs, ...recentBriefs])
-    console.log(`Monthly window ${window.label}: ${briefs.length} series (incl. recent completions)`)
+    const citoOnly = briefs.filter((b) => b.dataSource === 'cito').length
+    console.log(
+      `Monthly window ${window.label}: ${briefs.length} series` +
+        ` (${citoOnly} Cito-only, no OE box scores yet)`,
+    )
   }
 
   if (!briefs.length) {

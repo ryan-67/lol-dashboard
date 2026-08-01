@@ -1,20 +1,21 @@
-# Refresh Dashboard Data (v3 — Cito-primary for recent match freshness)
+# Refresh Dashboard Data (v3 — Cito-primary current; OE historical backbone)
 #
 # Autonomous flow (every 2h + manual dispatch):
-# 1) check: compare Cito tier-1 completed-series fingerprint (primary) + OE Drive CSV (secondary)
-# 2) sync-current (ALWAYS on cron/manual):
-#      - sync Cito schedules + scores → Supabase cito_schedules
+# 1) check: Cito completed-series fingerprint (current) + OE Drive CSV (backfill)
+# 2) sync-current (ALWAYS):
+#      - sync Cito schedules + scores → cito_schedules
 #      - sync external schedules (Leaguepedia EWC)
-#      - poll live/near-live drafts → cito_match_drafts + public/data/cito_live_drafts.json
-#      - generate weekly recap summaries ONLY for concluded series (isSeriesReadyForRecap)
+#      - poll live drafts → cito_match_drafts + public/data/cito_live_drafts.json
+#      - generate recaps for Cito-complete series (no OE wait; score-only AI when box scores lag)
+#      - bump Elo / power rankings from new Cito series when cito_changed
 #      - sync Cito postgame gold (soft)
-#      - commit schedule/draft caches; save cito_sync_state watermark
-# 3) refresh-oe-ml when Cito advanced OR OE CSV changed OR manual:
-#      - download OE CSV → ingest shards → seed oe_slices (deep stats + training)
-#      - retrain nuckyAI ML → publish artifacts → optional agent-chat deploy
+#      - commit schedule/draft/Elo caches; save cito_sync_state watermark
+# 3) refresh-oe-ml ONLY when OE Drive advanced OR force_oe_ml:
+#      - OE CSV → ingest → seed oe_slices (historical backbone for chat / deep stats)
+#      - full ML retrain → publish (backfills player ratings + feature mart)
 #
-# Recaps never write for incomplete Bo5 mid-series (Cito status + best_of + score clinch).
-# Post-draft: sync-live-drafts flags locked comps for Board / Predictions / chat packets.
+# Do NOT gate recaps, Hub freshness, or Elo bumps on OE. OE backfills when Drive moves.
+# Post-draft: sync-live-drafts → Board / Predictions series vs game odds.
 #
 # Secrets: SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, CITO_API_KEY
 # Optional: GOOGLE_SERVICE_ACCOUNT_KEY, OE_DRIVE_FOLDER_ID, OPENROUTER_API_KEY,
@@ -43,9 +44,9 @@ on:
         default: false
         type: boolean
       force_oe_ml:
-        description: Force OE download + ML retrain even if unchanged
+        description: Force OE download + full ML retrain even if Drive unchanged
         required: true
-        default: true
+        default: false
         type: boolean
   schedule:
     - cron: '0 */2 * * *'
@@ -65,6 +66,7 @@ jobs:
       cito_changed: ${{ steps.result.outputs.cito_changed }}
       oe_changed: ${{ steps.result.outputs.oe_changed }}
       run_oe_ml: ${{ steps.result.outputs.run_oe_ml }}
+      run_cito_elo: ${{ steps.result.outputs.run_cito_elo }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -99,6 +101,7 @@ jobs:
         run: |
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             echo "cito_changed=true" >> "$GITHUB_OUTPUT"
+            echo "run_cito_elo=true" >> "$GITHUB_OUTPUT"
             if [ "${{ inputs.force_oe_ml }}" = "true" ]; then
               echo "oe_changed=true" >> "$GITHUB_OUTPUT"
               echo "run_oe_ml=true" >> "$GITHUB_OUTPUT"
@@ -107,24 +110,26 @@ jobs:
               echo "oe_changed=$oe" >> "$GITHUB_OUTPUT"
               echo "run_oe_ml=$oe" >> "$GITHUB_OUTPUT"
             fi
-            echo "Manual run — sync-current always; OE/ML per force_oe_ml / Drive."
+            echo "Manual run — sync-current + Cito Elo; OE/ML only if Drive moved or force_oe_ml."
             exit 0
           fi
 
           cito=$(npx tsx scripts/cito/check-cito-updates.ts --format github || echo true)
           echo "cito_changed=$cito" >> "$GITHUB_OUTPUT"
+          echo "run_cito_elo=$cito" >> "$GITHUB_OUTPUT"
           echo "Cito completed-series advanced: $cito"
 
           oe=$(python scripts/check_oe_drive.py --format github || echo true)
           echo "oe_changed=$oe" >> "$GITHUB_OUTPUT"
           echo "OE Drive CSV changed: $oe"
 
-          if [ "$cito" = "true" ] || [ "$oe" = "true" ]; then
+          # OE/ML is historical backfill only — never triggered by Cito alone.
+          if [ "$oe" = "true" ]; then
             echo "run_oe_ml=true" >> "$GITHUB_OUTPUT"
-            echo "Will run OE ingest + ML retrain (Cito and/or OE advanced)."
+            echo "Will run OE ingest + full ML retrain (Drive advanced)."
           else
             echo "run_oe_ml=false" >> "$GITHUB_OUTPUT"
-            echo "No Cito/OE delta — sync-current only (schedule, drafts, recaps)."
+            echo "OE unchanged — skip full retrain; Cito Elo bump handles current rankings."
           fi
 
   # Primary path — always keeps Hub/Board/recaps fresh from Cito.
@@ -165,7 +170,7 @@ jobs:
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
         run: npm run sync:cito-live-drafts -- --hours 8 --max 30
 
-      - name: Generate weekly recap summaries (complete series only)
+      - name: Generate weekly recap summaries (Cito-complete; no OE wait)
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
@@ -173,6 +178,14 @@ jobs:
           CITO_API_KEY: ${{ secrets.CITO_API_KEY }}
           RECAP_REGENERATE: ${{ github.event_name == 'workflow_dispatch' && inputs.regenerate_recaps && '1' || '0' }}
         run: npm run generate:weekly-recap
+
+      - name: Bump Elo / power rankings from new Cito series
+        if: needs.check.outputs.run_cito_elo == 'true'
+        continue-on-error: true
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: npm run bump:elo-cito
 
       - name: Sync Cito postgame gold timelines
         continue-on-error: true
@@ -182,17 +195,24 @@ jobs:
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
         run: npm run sync:cito-postgame -- --max-matches 20
 
-      - name: Commit Cito schedule + live draft caches
+      - name: Commit Cito schedule + drafts + Elo bump
         continue-on-error: true
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add public/data/cito_schedule_cache.json public/data/cito_live_drafts.json || true
+          git add \
+            public/data/cito_schedule_cache.json \
+            public/data/cito_live_drafts.json \
+            public/data/region_strength.json \
+            data/ml/artifacts/region_strength.json \
+            data/ml/artifacts/cito_elo_bump_state.json \
+            supabase/functions/agent-chat/ml/region_strength.json \
+            || true
           if ! git diff --staged --quiet; then
-            git commit -m "chore(data): sync Cito schedule and live drafts"
+            git commit -m "chore(data): sync Cito current (schedule, drafts, Elo)"
             git push || (git fetch origin main && git rebase origin/main && git push)
           else
-            echo "Cito caches unchanged — skip commit."
+            echo "Cito current caches unchanged — skip commit."
           fi
 
       - name: Save Cito sync watermark
@@ -202,7 +222,7 @@ jobs:
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
         run: npm run save:cito-sync-state
 
-  # Secondary path — OE deep stats + model retrain when recent results or CSV moved.
+  # Historical backbone — OE deep stats + full ML retrain when Drive CSV advances.
   refresh-oe-ml:
     needs: [check, sync-current]
     if: needs.check.result == 'success' && needs.check.outputs.run_oe_ml == 'true'

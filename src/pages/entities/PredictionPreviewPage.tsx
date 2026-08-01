@@ -17,6 +17,7 @@ import {
 } from '../../lib/loadCitoSchedule'
 import {
   buildPredictionBoard,
+  buildDualPredictionOdds,
   formatBestOfLabel,
   formatModelOdds,
   resolveSeriesBestOf,
@@ -228,7 +229,21 @@ export default function PredictionPreviewPage() {
   }
 
   const bestOf = resolveSeriesBestOf(scheduleRow)
-  const favIsA = model.winProbA >= model.winProbB
+  const sideBiasA =
+    liveDraft?.draftComplete && liveDraft.blueTeam
+      ? teamMatchesCanonical(liveDraft.blueTeam, scheduleRow.team_a)
+        ? 1
+        : teamMatchesCanonical(liveDraft.redTeam ?? '', scheduleRow.team_a)
+          ? -1
+          : 0
+      : 0
+  const dual = buildDualPredictionOdds(model, {
+    bestOf,
+    draftComplete: Boolean(liveDraft?.draftComplete),
+    sideBiasA,
+  })
+  const display = dual.game ?? dual.series
+  const favIsA = display.winProbA >= display.winProbB
 
   return (
     <div className="page-section predictions-preview-page">
@@ -239,7 +254,11 @@ export default function PredictionPreviewPage() {
       </p>
 
       <section className="predictions-hero card">
-        <p className="predictions-hero-eyebrow">nucky model prediction</p>
+        <p className="predictions-hero-eyebrow">
+          {dual.mode === 'post-draft-game'
+            ? `post-draft game ${liveDraft?.gameNumber ?? ''} prediction`
+            : 'pre-draft series prediction'}
+        </p>
         <div className="predictions-hero-matchup">
           <span className="predictions-hero-team">
             <TeamLogo name={scheduleRow.team_a} size={36} />
@@ -257,26 +276,28 @@ export default function PredictionPreviewPage() {
         </p>
         <div className="predictions-hero-odds">
           <div className={`predictions-hero-side${favIsA ? ' is-fav' : ''}`}>
-            <span className="predictions-hero-pct text-accent">{pct(model.winProbA)}</span>
+            <span className="predictions-hero-pct text-accent">{pct(display.winProbA)}</span>
             <span className="text-secondary text-sm">{scheduleRow.team_a}</span>
           </div>
           <div className="predictions-hero-bar" aria-hidden>
             <div
               className="predictions-hero-bar-fill"
-              style={{ width: `${Math.round(model.winProbA * 100)}%` }}
+              style={{ width: `${Math.round(display.winProbA * 100)}%` }}
             />
           </div>
           <div className={`predictions-hero-side${!favIsA ? ' is-fav' : ''}`}>
-            <span className="predictions-hero-pct text-accent">{pct(model.winProbB)}</span>
+            <span className="predictions-hero-pct text-accent">{pct(display.winProbB)}</span>
             <span className="text-secondary text-sm">{scheduleRow.team_b}</span>
           </div>
         </div>
         <p className="text-secondary text-sm">
-          model {formatModelOdds(model)} · confidence {model.confidence} · source {model.source} ·
-          kalshi —
-          {liveDraft?.draftComplete
-            ? ` · post-draft g${liveDraft.gameNumber ?? '?'}`
-            : ' · prematch'}
+          pre-draft series {formatModelOdds(dual.series)}
+          {dual.game
+            ? ` · post-draft game ${formatModelOdds(dual.game)}${
+                liveDraft?.gameNumber != null ? ` (g${liveDraft.gameNumber})` : ''
+              }`
+            : ' · waiting for locked draft for game odds'}
+          {' · '}confidence {display.confidence} · source {display.source}
         </p>
       </section>
 
@@ -288,8 +309,8 @@ export default function PredictionPreviewPage() {
             {liveDraft.gameNumber != null ? ` · game ${liveDraft.gameNumber}` : ''}
           </h3>
           <p className="card-subtitle">
-            Cito draft feed locked. Ask nucky in chat for a draft-aware packet on this series —
-            full blend uses the same draft model as the training pipeline.
+            Game win% above uses series Elo inverted to map odds + side. Ask nucky in chat for the
+            full draft-aware packet (champion matchup blend).
           </p>
           <div className="overview-grid overview-grid-2">
             <div>

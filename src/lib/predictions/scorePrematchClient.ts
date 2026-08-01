@@ -27,6 +27,18 @@ export interface PrematchModelOdds {
   rosterPowerB: number | null
   confidence: 'high' | 'medium' | 'low'
   source: 'elo' | 'elo+roster' | 'unavailable'
+  /** series = pre-draft BoX; game = post-draft single-map */
+  grain?: 'series' | 'game'
+}
+
+export type PredictionGrain = 'pre-draft-series' | 'post-draft-game'
+
+export interface DualPredictionOdds {
+  /** Pre-draft series win probability (Elo + roster). */
+  series: PrematchModelOdds
+  /** Post-draft individual game win probability when a locked draft is available. */
+  game: PrematchModelOdds | null
+  mode: PredictionGrain
 }
 
 export interface PredictionBoardRow {
@@ -149,6 +161,97 @@ export function scorePrematchClient(
     rosterPowerB: meanB != null ? powerScoreTo100(meanB) : null,
     confidence,
     source,
+    grain: 'series',
+  }
+}
+
+/**
+ * Invert a BoX series win probability into an implied per-game win rate
+ * (independent games, first-to-ceil(bo/2) wins). Used as the post-draft game prior.
+ */
+export function seriesProbToGameProb(seriesProb: number, bestOf: number | null): number {
+  const pSeries = clamp01(seriesProb)
+  const bo = bestOf === 5 ? 5 : bestOf === 1 ? 1 : 3
+  if (bo === 1) return pSeries
+
+  const need = Math.ceil(bo / 2)
+  // Binary search game win p such that P(win series) ≈ pSeries
+  let lo = 0.05
+  let hi = 0.95
+  for (let i = 0; i < 24; i++) {
+    const mid = (lo + hi) / 2
+    const got = seriesWinFromGame(mid, need, bo)
+    if (got < pSeries) lo = mid
+    else hi = mid
+  }
+  return clamp01((lo + hi) / 2)
+}
+
+function seriesWinFromGame(pGame: number, need: number, bestOf: number): number {
+  // Enumerate decisive scorelines for Bo3/Bo5.
+  let total = 0
+  for (let losses = 0; losses < need; losses++) {
+    const games = need + losses
+    if (games > bestOf) break
+    // Binomial: exactly `need` wins and `losses` losses, last game a win.
+    const prior = games - 1
+    const ways = binomial(prior, need - 1)
+    total += ways * pGame ** need * (1 - pGame) ** losses
+  }
+  return total
+}
+
+function binomial(n: number, k: number): number {
+  if (k < 0 || k > n) return 0
+  let r = 1
+  for (let i = 1; i <= k; i++) r = (r * (n - k + i)) / i
+  return r
+}
+
+/**
+ * Post-draft individual-game odds: series-implied game prior, softly nudged when
+ * blue/red side labels are known (full champ blend lives in agent-chat draft model).
+ */
+export function scorePostDraftGameClient(
+  series: PrematchModelOdds,
+  opts: {
+    bestOf: number | null
+    /** +1 if team A is on blue, -1 if on red, 0 unknown */
+    sideBiasA?: number
+    draftComplete?: boolean
+  },
+): PrematchModelOdds | null {
+  if (!opts.draftComplete) return null
+  if (series.source === 'unavailable') return null
+
+  let pGame = seriesProbToGameProb(series.winProbA, opts.bestOf)
+  // Tiny side nudge — blue historically slight edge in pro; keep ≤2pp.
+  const side = opts.sideBiasA ?? 0
+  if (side !== 0) pGame = clamp01(pGame + side * 0.015)
+
+  return {
+    ...series,
+    winProbA: pGame,
+    winProbB: 1 - pGame,
+    confidence: series.confidence === 'high' ? 'medium' : series.confidence,
+    source: series.source,
+    grain: 'game',
+  }
+}
+
+export function buildDualPredictionOdds(
+  series: PrematchModelOdds,
+  opts: {
+    bestOf: number | null
+    draftComplete?: boolean
+    sideBiasA?: number
+  },
+): DualPredictionOdds {
+  const game = scorePostDraftGameClient(series, opts)
+  return {
+    series,
+    game,
+    mode: game ? 'post-draft-game' : 'pre-draft-series',
   }
 }
 
