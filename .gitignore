@@ -3,6 +3,7 @@ public/data/*
 !public/data/oe_slices_*.json
 !public/data/cito_schedule_cache.json
 !public/data/cito_live_drafts.json
+!public/data/cito_player_stats_cache.json
 !public/data/external_schedule_cache.json
 !public/data/gol_game_cache.json
 !public/data/accuracy_scorecard.json
@@ -65,6 +66,7 @@ supabase/migrations/**
 !supabase/migrations/cito_schedules_best_of.sql
 !supabase/migrations/avatars_storage.sql
 !supabase/migrations/20260801120000_cito_sync_and_drafts.sql
+!supabase/migrations/20260801140000_cito_player_game_stats.sql
 
 scripts/rag-indexer/src/
 scripts/rag-indexer/tsconfig.json
