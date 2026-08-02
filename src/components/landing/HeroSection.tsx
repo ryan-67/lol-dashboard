@@ -1,124 +1,125 @@
 import { useRef } from 'react'
 import { Link } from 'react-router-dom'
 import gsap from 'gsap'
+import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import { useGSAP } from '@gsap/react'
-import { MOTION, reducedMotion } from './motion'
+import { initTypeCycle, MOTION, reducedMotion } from './motion'
 
-gsap.registerPlugin(useGSAP)
+gsap.registerPlugin(ScrollTrigger, useGSAP)
 
 interface HeroSectionProps {
   introDone: boolean
   signedIn: boolean
   homePath: string
-  accuracyLabel: string | null
   onCreateAccount: () => void
 }
 
-const HERO_LINES = ['the', 'lolesports', 'signal.']
+const CYCLE_VERBS = ['understands', 'analyzes', 'predicts'] as const
 
-/** Hero — the wireframe companion is the centered centerpiece; copy overlays left. */
+/**
+ * First viewport — one composition, brand first. The persistent glass N
+ * scene (mounted at page level) carries the identity; this section owns the
+ * typed promise line, one CTA group, and the scroll cue.
+ */
 export default function HeroSection({
   introDone,
   signedIn,
   homePath,
-  accuracyLabel,
   onCreateAccount,
 }: HeroSectionProps) {
   const rootRef = useRef<HTMLElement>(null)
+  const verbRef = useRef<HTMLSpanElement>(null)
+  const reduce = reducedMotion()
+
+  /* Typed verb rotation — starts once the loader hands off. */
+  useGSAP(
+    () => {
+      if (!introDone) return
+      return initTypeCycle(verbRef.current, CYCLE_VERBS)
+    },
+    { scope: rootRef, dependencies: [introDone] },
+  )
 
   useGSAP(
     () => {
       const root = rootRef.current
-      if (!root || !introDone) return
+      if (!root) return
 
-      if (reducedMotion()) {
-        gsap.set(root.querySelectorAll('.hero-stagger, .hero-line-inner'), {
-          autoAlpha: 1,
-          yPercent: 0,
-          y: 0,
-        })
+      if (reduce) {
+        gsap.set(root.querySelectorAll('.hero-stagger'), { autoAlpha: 1, y: 0 })
         return
       }
 
-      const tl = gsap.timeline({ defaults: { ease: MOTION.easeOut } })
-
-      tl.fromTo(
-        root.querySelector('.hero-eyebrow'),
-        { autoAlpha: 0, y: 16 },
-        { autoAlpha: 1, y: 0, duration: 0.7 },
-      )
-        .fromTo(
-          root.querySelectorAll('.hero-line-inner'),
-          { yPercent: 118, filter: 'blur(7px)' },
-          {
-            yPercent: 0,
-            filter: 'blur(0px)',
-            duration: 1.05,
-            stagger: MOTION.lineStagger,
-            ease: MOTION.easeExpo,
-          },
-          '-=0.35',
-        )
-        .fromTo(
-          root.querySelectorAll('.hero-stagger'),
-          { autoAlpha: 0, y: 22, filter: 'blur(6px)' },
-          {
-            autoAlpha: 1,
-            y: 0,
-            filter: 'blur(0px)',
-            duration: 0.8,
-            stagger: 0.09,
-            clearProps: 'filter',
-          },
-          '-=0.55',
-        )
-        .fromTo(
-          root.querySelector('.hero-scroll-cue'),
-          { autoAlpha: 0 },
-          { autoAlpha: 1, duration: 0.7 },
-          '-=0.2',
-        )
+      /* DOM copy drifts up slightly faster than the scene for depth. */
+      gsap.to(root.querySelector('.hero-copy'), {
+        yPercent: -26,
+        autoAlpha: 0,
+        ease: 'none',
+        scrollTrigger: {
+          trigger: root,
+          start: 'top top',
+          end: 'bottom 55%',
+          scrub: MOTION.scrub,
+        },
+      })
     },
-    { scope: rootRef, dependencies: [introDone] },
+    { scope: rootRef, dependencies: [reduce] },
+  )
+
+  /* Entrance choreography waits for the loader hand-off. */
+  useGSAP(
+    () => {
+      const root = rootRef.current
+      if (!root || !introDone || reduce) return
+
+      const tl = gsap.timeline({ defaults: { ease: MOTION.easeOut } })
+      tl.fromTo(
+        root.querySelectorAll('.hero-stagger'),
+        { autoAlpha: 0, y: 26, filter: 'blur(7px)' },
+        {
+          autoAlpha: 1,
+          y: 0,
+          filter: 'blur(0px)',
+          duration: 0.9,
+          stagger: 0.11,
+          clearProps: 'filter',
+        },
+        0.3,
+      )
+    },
+    { scope: rootRef, dependencies: [introDone, reduce] },
   )
 
   return (
     <section
       className="hero"
       ref={rootRef}
-      data-companion="front"
-      data-companion-scale="1"
-      aria-label="nucky — the lolesports signal"
+      data-accent-hue="195"
+      aria-label="nucky — understand, analyze, and predict lolesports"
     >
+      <h1 className="sr-only">nucky — understand, analyze, and predict lolesports</h1>
+
       <div className="hero-inner">
         <div className="hero-copy">
-          <p className="hero-eyebrow" style={{ opacity: 0 }}>
+          <p className="hero-eyebrow hero-stagger" style={{ opacity: 0 }}>
             <span className="signal-dot" aria-hidden="true" />
-            lol esports analytics · prediction model · ai analyst
+            the lolesports signal
           </p>
 
-          <h1 className="hero-title" aria-label="nucky. the lolesports signal.">
-            <span className="hero-line" aria-hidden="true">
-              <span className="hero-line-inner hero-brand">
-                nucky<span className="hero-brand-dot">.</span>
-              </span>
-            </span>
-            {HERO_LINES.map((line) => (
-              <span className="hero-line" key={line} aria-hidden="true">
-                <span className="hero-line-inner">{line}</span>
-              </span>
-            ))}
-          </h1>
-
-          <p className="hero-sub hero-stagger" style={{ opacity: 0 }}>
-            Twelve years of pro-play memory, proprietary ratings, and auditable
-            predictions — read by an analyst that answers with the evidence.
+          <p className="hero-promise hero-stagger" style={{ opacity: 0 }} aria-hidden="true">
+            nucky{' '}
+            <span className="hero-verb">
+              <span ref={verbRef}>{reduce ? CYCLE_VERBS[0] : ''}</span>
+              <span className="type-caret" />
+            </span>{' '}
+            tier-1 lolesports
           </p>
+          <p className="sr-only">nucky understands, analyzes, and predicts tier-1 lolesports</p>
 
           <div className="hero-actions hero-stagger" style={{ opacity: 0 }}>
             {signedIn ? (
               <Link className="landing-btn landing-btn-primary" to={homePath} data-magnetic>
-                open app
+                <span className="btn-label">enter nucky</span>
                 <span className="landing-btn-icon" aria-hidden="true">→</span>
               </Link>
             ) : (
@@ -128,33 +129,16 @@ export default function HeroSection({
                 onClick={onCreateAccount}
                 data-magnetic
               >
-                create account
+                <span className="btn-label">enter nucky</span>
                 <span className="landing-btn-icon" aria-hidden="true">→</span>
               </button>
             )}
             <Link className="landing-btn landing-btn-ghost" to="/dashboard" data-magnetic>
-              browse the free dashboard
+              <span className="btn-label">browse free</span>
+              <span className="landing-btn-icon" aria-hidden="true">→</span>
             </Link>
           </div>
-
-          {accuracyLabel ? (
-            <p className="hero-readout hero-stagger" style={{ opacity: 0 }}>
-              <span className="hero-readout-value">{accuracyLabel}</span>
-              walk-forward prediction accuracy
-            </p>
-          ) : null}
-
-          <div className="hero-leagues hero-stagger" style={{ opacity: 0 }} aria-label="League coverage">
-            {['LCK', 'LPL', 'LEC', 'LCS', 'MSI', 'Worlds', 'First Stand', 'EWC'].map((league) => (
-              <span key={league}>{league}</span>
-            ))}
-          </div>
         </div>
-      </div>
-
-      <div className="hero-scroll-cue" style={{ opacity: 0 }} aria-hidden="true">
-        <span className="hero-scroll-cue-line" />
-        scroll
       </div>
     </section>
   )

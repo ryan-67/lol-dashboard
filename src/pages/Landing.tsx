@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { lazy, Suspense, useEffect, useRef, useState } from 'react'
 import { useLocation } from 'react-router-dom'
 import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
@@ -6,37 +6,40 @@ import { useGSAP } from '@gsap/react'
 import AuthModal from '../components/AuthModal'
 import Preloader from '../components/landing/Preloader'
 import CursorTrail from '../components/landing/CursorTrail'
-import WireframeCompanion from '../components/landing/WireframeCompanion'
+import LetterGlitch from '../components/landing/LetterGlitch'
 import HeroSection from '../components/landing/HeroSection'
+import SectionRail from '../components/landing/SectionRail'
+import FeaturesGallery from '../components/landing/FeaturesGallery'
 import KnowsSection from '../components/landing/KnowsSection'
-import WhatIsSection from '../components/landing/WhatIsSection'
-import LeaguesSection from '../components/landing/LeaguesSection'
-import ModelEngineSection from '../components/landing/ModelEngineSection'
-import TrackRecordSection from '../components/landing/TrackRecordSection'
+import CoverageSection from '../components/landing/CoverageSection'
+import ProofGallery from '../components/landing/ProofGallery'
 import PricingSection from '../components/landing/PricingSection'
 import FaqSection from '../components/landing/FaqSection'
-import SignalSection from '../components/landing/SignalSection'
 import FinalCtaSection from '../components/landing/FinalCtaSection'
 import {
+  coarsePointer,
+  getLandingLenis,
+  initAccentDrift,
+  initLandingLenis,
   initMagnetic,
   initParallaxLayers,
   initScrollReveals,
   initTextReveals,
+  initTiltHover,
   reducedMotion,
 } from '../components/landing/motion'
 import { useViewPreference } from '../context/ViewPreferenceContext'
 import { useAuth } from '../context/AuthContext'
-import {
-  fetchAccuracyScorecard,
-  formatPct,
-  type AccuracyScorecard,
-} from '../lib/accuracyScorecard'
+import { fetchAccuracyScorecard, type AccuracyScorecard } from '../lib/accuracyScorecard'
 import { fetchModelMetadata } from '../lib/loadModelMetadata'
 import { formatModelUpdatedDate } from '../lib/format'
 import { DEFAULT_TIMEZONE } from '../lib/timezones'
 import { startStripeCheckout } from '../lib/billing'
 
 gsap.registerPlugin(ScrollTrigger, useGSAP)
+
+/* Heavy R3F chunk — the persistent glass N scene behind the whole page. */
+const HeroN = lazy(() => import('../components/landing/HeroN'))
 
 type AuthView = 'signin' | 'signup'
 
@@ -45,6 +48,14 @@ export default function Landing() {
   const { homePath } = useViewPreference()
   const location = useLocation()
   const rootRef = useRef<HTMLDivElement>(null)
+  const sceneRef = useRef<HTMLDivElement>(null)
+
+  /* Scene progress refs — read every frame by the R3F loop, written by
+   * ScrollTriggers here. No React re-renders on scroll. */
+  const heroProgressRef = useRef(0)
+  const pageProgressRef = useRef(0)
+  const finaleProgressRef = useRef(0)
+  const spinBoostRef = useRef(0)
 
   const [introDone, setIntroDone] = useState(false)
   const [scorecard, setScorecard] = useState<AccuracyScorecard | null>(null)
@@ -54,7 +65,13 @@ export default function Landing() {
   const [checkoutError, setCheckoutError] = useState<string | null>(null)
   const [checkoutLoading, setCheckoutLoading] = useState(false)
 
-  /* Live scorecard + model metadata (kept from the previous surface). */
+  const reduce = reducedMotion()
+  const compactScene = coarsePointer()
+
+  /* Silky document scroll — Lenis driven through the GSAP ticker. */
+  useEffect(() => initLandingLenis(), [])
+
+  /* Live scorecard + model metadata. */
   useEffect(() => {
     let alive = true
     const load = (force = false) => {
@@ -77,21 +94,138 @@ export default function Landing() {
     }
   }, [])
 
-  /* Hash deep links (/#pricing etc). */
+  /* Hash deep links (/#pricing etc) — respect pinned sections via Lenis. */
   useEffect(() => {
     if (!location.hash) return
     const id = location.hash.slice(1)
     const frame = window.requestAnimationFrame(() => {
-      document.getElementById(id)?.scrollIntoView({
-        behavior: reducedMotion() ? 'auto' : 'smooth',
-        block: 'start',
-      })
+      const target = document.getElementById(id)
+      if (!target) return
+      const lenis = getLandingLenis()
+      if (lenis) lenis.scrollTo(target, { offset: -8, duration: 1.1 })
+      else target.scrollIntoView({ behavior: reducedMotion() ? 'auto' : 'smooth', block: 'start' })
     })
     return () => window.cancelAnimationFrame(frame)
   }, [location.hash])
 
+  /* Persistent scene choreography: hero progress spins the N to the right
+   * as the story arrives; page progress keeps it rotating in place; the
+   * layer settles to a readable mid-strength presence (off-white edges keep
+   * it a visible transition catalyst). Approaching the finale, it brightens
+   * and spins hard before the brand plane takes over. */
+  useGSAP(
+    () => {
+      const root = rootRef.current
+      const scene = sceneRef.current
+      if (!root || !scene || reduce) return
+
+      const hero = root.querySelector<HTMLElement>('.hero')
+      const finale = root.querySelector<HTMLElement>('.finale')
+
+      if (hero) {
+        ScrollTrigger.create({
+          trigger: hero,
+          start: 'top top',
+          end: 'bottom top',
+          scrub: true,
+          onUpdate: (self) => {
+            heroProgressRef.current = self.progress
+          },
+        })
+      }
+
+      ScrollTrigger.create({
+        trigger: root,
+        start: 'top top',
+        end: 'bottom bottom',
+        scrub: true,
+        onUpdate: (self) => {
+          pageProgressRef.current = self.progress
+        },
+      })
+
+      /* Knows → coverage hand-off: while the transition gap crosses the
+       * viewport, pulse the spin boost (peaks mid-gap, settles at both
+       * ends) so the N whirls rapidly between the two sections. */
+      const coverage = root.querySelector<HTMLElement>('#coverage')
+      if (coverage) {
+        ScrollTrigger.create({
+          trigger: coverage,
+          start: 'top bottom',
+          end: 'top top',
+          scrub: true,
+          onUpdate: (self) => {
+            spinBoostRef.current = Math.sin(self.progress * Math.PI)
+          },
+          onLeave: () => {
+            spinBoostRef.current = 0
+          },
+          onLeaveBack: () => {
+            spinBoostRef.current = 0
+          },
+        })
+      }
+
+      /* Mid-strength persistence — readable catalyst behind sections 2–8. */
+      gsap.fromTo(
+        scene,
+        { opacity: 1 },
+        {
+          opacity: 0.68,
+          ease: 'none',
+          scrollTrigger: {
+            trigger: hero ?? root,
+            start: 'center top',
+            end: 'bottom top',
+            scrub: true,
+          },
+        },
+      )
+
+      if (finale) {
+        ScrollTrigger.create({
+          trigger: finale,
+          start: 'top 90%',
+          end: 'top 18%',
+          scrub: true,
+          onUpdate: (self) => {
+            finaleProgressRef.current = self.progress
+          },
+        })
+
+        /* Brighten the scene as the finale spin kicks in, then ease back
+         * slightly so the wordmark owns the plate. */
+        gsap.fromTo(
+          scene,
+          { opacity: 0.68 },
+          {
+            opacity: 1,
+            ease: 'power1.inOut',
+            scrollTrigger: {
+              trigger: finale,
+              start: 'top 90%',
+              end: 'top 35%',
+              scrub: true,
+            },
+          },
+        )
+        gsap.to(scene, {
+          opacity: 0.42,
+          ease: 'power1.inOut',
+          scrollTrigger: {
+            trigger: finale,
+            start: 'top 35%',
+            end: 'top 8%',
+            scrub: true,
+          },
+        })
+      }
+    },
+    { scope: rootRef, dependencies: [reduce] },
+  )
+
   /* Page-wide motion systems: kinetic text, reveal presets, parallax,
-   * magnetic hover, footer handoff. Section-specific choreography lives
+   * magnetic + tilt hover, accent atmosphere. Section choreography lives
    * inside each section component. */
   useGSAP(
     () => {
@@ -102,31 +236,15 @@ export default function Landing() {
       initScrollReveals(root)
       initParallaxLayers(root)
       const cleanupMagnetic = initMagnetic(root)
-
-      /* Footer parallax handoff (footer lives in LandingLayout). */
-      const footer = document.querySelector('.landing-footer')
-      if (footer && !reducedMotion()) {
-        gsap.fromTo(
-          footer,
-          { yPercent: -10, autoAlpha: 0.75 },
-          {
-            yPercent: 0,
-            autoAlpha: 1,
-            ease: 'none',
-            scrollTrigger: {
-              trigger: footer,
-              start: 'top bottom',
-              end: 'top 55%',
-              scrub: 1,
-            },
-          },
-        )
-      }
+      const cleanupTilt = initTiltHover(root)
+      const cleanupAccent = initAccentDrift(root)
 
       const refreshTimer = window.setTimeout(() => ScrollTrigger.refresh(), 450)
       return () => {
         window.clearTimeout(refreshTimer)
         cleanupMagnetic?.()
+        cleanupTilt()
+        cleanupAccent()
       }
     },
     { scope: rootRef },
@@ -153,9 +271,6 @@ export default function Landing() {
     }
   }
 
-  const accuracyLabel = scorecard
-    ? formatPct(scorecard.aggregate.model.accuracy)
-    : null
   const scorecardUpdated = formatModelUpdatedDate(modelUpdatedIso ?? scorecard?.generatedAt, {
     timeZone: DEFAULT_TIMEZONE,
   })
@@ -169,28 +284,53 @@ export default function Landing() {
       <div className="landing-ambient" aria-hidden="true">
         <div className="landing-ambient-grid" />
         <div className="landing-ambient-glow" data-parallax-layer data-speed="-0.08" />
+        <LetterGlitch />
       </div>
 
-      <WireframeCompanion />
+      {/* Persistent glass N scene — fixed behind every section, faint after
+       * the hero, rotating with scroll as the transition catalyst. */}
+      <div
+        className={`landing-scene${introDone ? ' is-live' : ''}`}
+        ref={sceneRef}
+        aria-hidden="true"
+      >
+        {reduce ? (
+          <div className="hero-static">
+            <span className="hero-static-mark">
+              N<span className="hero-static-dot">.</span>
+            </span>
+          </div>
+        ) : (
+          <Suspense fallback={null}>
+            <HeroN
+              heroRef={heroProgressRef}
+              pageRef={pageProgressRef}
+              finaleRef={finaleProgressRef}
+              boostRef={spinBoostRef}
+              compact={compactScene}
+            />
+          </Suspense>
+        )}
+      </div>
+
+      {/* Fixed left rail — section ticks + active label (alche language). */}
+      <SectionRail />
 
       <div className="landing-content">
         <HeroSection
           introDone={introDone}
           signedIn={Boolean(user)}
           homePath={homePath}
-          accuracyLabel={accuracyLabel}
           onCreateAccount={() => openAuth('signup')}
         />
 
+        <FeaturesGallery />
+
         <KnowsSection />
 
-        <WhatIsSection />
+        <CoverageSection />
 
-        <LeaguesSection />
-
-        <ModelEngineSection />
-
-        <TrackRecordSection scorecard={scorecard} updatedLabel={scorecardUpdated ?? null} />
+        <ProofGallery scorecard={scorecard} updatedLabel={scorecardUpdated ?? null} />
 
         <PricingSection
           signedIn={Boolean(user)}
@@ -200,8 +340,6 @@ export default function Landing() {
         />
 
         <FaqSection />
-
-        <SignalSection />
 
         <FinalCtaSection
           signedIn={Boolean(user)}

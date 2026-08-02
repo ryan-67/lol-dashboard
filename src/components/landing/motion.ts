@@ -1,5 +1,6 @@
 import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
+import Lenis from 'lenis'
 
 gsap.registerPlugin(ScrollTrigger)
 
@@ -26,6 +27,136 @@ export const reducedMotion = (): boolean =>
 
 export const coarsePointer = (): boolean =>
   typeof window !== 'undefined' && window.matchMedia('(pointer: coarse)').matches
+
+/* ---------- Lenis smooth scroll (landing surface) ---------- */
+
+let landingLenis: Lenis | null = null
+
+export const getLandingLenis = (): Lenis | null => landingLenis
+
+/**
+ * Silky document-level smooth scroll for the marketing surface, driven
+ * through the GSAP ticker so ScrollTrigger pins/scrubs stay phase-locked
+ * (cinematic-gsap-lenis-motion-system skill wiring).
+ */
+export function initLandingLenis(): () => void {
+  if (reducedMotion()) return () => {}
+
+  const lenis = new Lenis({
+    /* Slightly softer than the prior pass — silkier inertia across long
+     * pin runs without feeling floaty. */
+    lerp: 0.072,
+    smoothWheel: true,
+    wheelMultiplier: 0.86,
+    touchMultiplier: 1.05,
+    syncTouch: false,
+  })
+  landingLenis = lenis
+  lenis.on('scroll', ScrollTrigger.update)
+
+  const raf = (time: number) => {
+    lenis.raf(time * 1000)
+  }
+  gsap.ticker.add(raf)
+  gsap.ticker.lagSmoothing(0)
+
+  /* One late refresh after layout + fonts settle so pin distances match
+   * measured track widths (avoids end-of-gallery micro-jumps). */
+  const refreshTimer = window.setTimeout(() => ScrollTrigger.refresh(), 700)
+
+  return () => {
+    window.clearTimeout(refreshTimer)
+    gsap.ticker.remove(raf)
+    lenis.destroy()
+    if (landingLenis === lenis) landingLenis = null
+  }
+}
+
+/* ---------- rotating accent atmosphere ---------- */
+
+/**
+ * Alche-like accent color switches: sections declare `data-accent-hue` and
+ * the page's `--la-h` custom property glides between them as they take the
+ * viewport. Turquoise (195) stays the home signature.
+ */
+export function initAccentDrift(root: HTMLElement): () => void {
+  const state = { hue: 195 }
+  const apply = () => {
+    root.style.setProperty('--la-h', state.hue.toFixed(2))
+  }
+  apply()
+
+  if (reducedMotion()) return () => {}
+
+  const triggers: ScrollTrigger[] = []
+  gsap.utils.toArray<HTMLElement>(root.querySelectorAll('[data-accent-hue]')).forEach((el) => {
+    const hue = Number(el.dataset.accentHue || 195)
+    const glide = (target: number) => {
+      gsap.to(state, {
+        hue: target,
+        duration: 1.4,
+        ease: 'power2.inOut',
+        overwrite: 'auto',
+        onUpdate: apply,
+      })
+    }
+    triggers.push(
+      ScrollTrigger.create({
+        trigger: el,
+        start: 'top 55%',
+        end: 'bottom 45%',
+        onEnter: () => glide(hue),
+        onEnterBack: () => glide(hue),
+        onLeaveBack: () => glide(195),
+      }),
+    )
+  })
+
+  return () => {
+    triggers.forEach((trigger) => trigger.kill())
+    gsap.killTweensOf(state)
+  }
+}
+
+/* ---------- physical tilt hover ---------- */
+
+/** Material-feeling card tilt (rotateX/Y under 4deg) for [data-tilt]. */
+export function initTiltHover(root: HTMLElement): () => void {
+  if (reducedMotion() || coarsePointer()) return () => {}
+
+  const cleanups: Array<() => void> = []
+
+  gsap.utils.toArray<HTMLElement>(root.querySelectorAll('[data-tilt]')).forEach((element) => {
+    const strength = Number(element.dataset.tilt || 3.4)
+    const rxTo = gsap.quickTo(element, 'rotationX', { duration: 0.55, ease: 'power3.out' })
+    const ryTo = gsap.quickTo(element, 'rotationY', { duration: 0.55, ease: 'power3.out' })
+    const yTo = gsap.quickTo(element, 'y', { duration: 0.55, ease: 'power3.out' })
+    gsap.set(element, { transformPerspective: 900 })
+
+    const handleMove = (event: PointerEvent) => {
+      const rect = element.getBoundingClientRect()
+      const px = (event.clientX - rect.left) / rect.width - 0.5
+      const py = (event.clientY - rect.top) / rect.height - 0.5
+      rxTo(-py * strength)
+      ryTo(px * strength)
+      yTo(-3)
+    }
+    const handleLeave = () => {
+      rxTo(0)
+      ryTo(0)
+      yTo(0)
+    }
+
+    element.addEventListener('pointermove', handleMove)
+    element.addEventListener('pointerleave', handleLeave)
+    cleanups.push(() => {
+      element.removeEventListener('pointermove', handleMove)
+      element.removeEventListener('pointerleave', handleLeave)
+    })
+  })
+
+  return () => cleanups.forEach((fn) => fn())
+}
 
 /** Wrap each word in a masked span pair for kinetic reveals. */
 export function splitWords(element: HTMLElement): void {
@@ -246,6 +377,126 @@ export function animateStatCounter(
       element.textContent = `${prefix}${finalValue.toFixed(decimals)}${suffix}`
     },
   })
+}
+
+/* ---------- hyper-text hover (magicui-style letter scramble) ---------- */
+
+const HYPER_CHARS = 'abcdefghijklmnopqrstuvwxyz'
+
+/**
+ * Letter-scramble-on-hover for [data-hyper] links: each character spins
+ * through random glyphs then locks left-to-right (magicui HyperText feel).
+ * Layout-safe — the element keeps its own width via ch-locked spans.
+ */
+export function initHyperText(root: ParentNode = document): () => void {
+  if (reducedMotion()) return () => {}
+
+  const cleanups: Array<() => void> = []
+
+  gsap.utils.toArray<HTMLElement>(root.querySelectorAll('[data-hyper]')).forEach((element) => {
+    const original = element.textContent || ''
+    if (!original.trim()) return
+    let raf = 0
+
+    const play = () => {
+      window.cancelAnimationFrame(raf)
+      const started = performance.now()
+      const perChar = 46
+      const spins = 2.6
+
+      const frame = (now: number) => {
+        const elapsed = now - started
+        const locked = Math.floor(elapsed / perChar)
+        let out = ''
+        for (let i = 0; i < original.length; i++) {
+          const char = original[i]!
+          if (char === ' ' || i < locked - spins) {
+            out += char
+          } else {
+            out += HYPER_CHARS[Math.floor(Math.random() * HYPER_CHARS.length)]
+          }
+        }
+        element.textContent = out
+        if (locked - spins < original.length) {
+          raf = window.requestAnimationFrame(frame)
+        } else {
+          element.textContent = original
+        }
+      }
+      raf = window.requestAnimationFrame(frame)
+    }
+
+    const stop = () => {
+      window.cancelAnimationFrame(raf)
+      element.textContent = original
+    }
+
+    element.addEventListener('mouseenter', play)
+    element.addEventListener('focus', play)
+    element.addEventListener('mouseleave', stop)
+    element.addEventListener('blur', stop)
+    cleanups.push(() => {
+      window.cancelAnimationFrame(raf)
+      element.removeEventListener('mouseenter', play)
+      element.removeEventListener('focus', play)
+      element.removeEventListener('mouseleave', stop)
+      element.removeEventListener('blur', stop)
+      element.textContent = original
+    })
+  })
+
+  return () => cleanups.forEach((fn) => fn())
+}
+
+/* ---------- type / delete / retype word cycle ---------- */
+
+/**
+ * ReactBits TextType-style rotation: the word is typed out, holds, deletes,
+ * and the next candidate types in. Returns a cleanup. The element should sit
+ * next to a CSS caret (see .type-caret).
+ */
+export function initTypeCycle(
+  element: HTMLElement | null,
+  words: readonly string[],
+  opts?: { typeMs?: number; deleteMs?: number; holdMs?: number },
+): () => void {
+  if (!element || !words.length) return () => {}
+
+  if (reducedMotion()) {
+    element.textContent = words[0]!
+    return () => {}
+  }
+
+  const { typeMs = 62, deleteMs = 34, holdMs = 2100 } = opts ?? {}
+  let wordIndex = 0
+  let timer = 0
+
+  const schedule = (fn: () => void, ms: number) => {
+    timer = window.setTimeout(fn, ms)
+  }
+
+  const typeWord = (word: string, at: number) => {
+    element.textContent = word.slice(0, at)
+    if (at < word.length) {
+      schedule(() => typeWord(word, at + 1), typeMs + Math.random() * 34)
+      return
+    }
+    schedule(() => deleteWord(word, word.length), holdMs)
+  }
+
+  const deleteWord = (word: string, at: number) => {
+    element.textContent = word.slice(0, at)
+    if (at > 0) {
+      schedule(() => deleteWord(word, at - 1), deleteMs)
+      return
+    }
+    wordIndex = (wordIndex + 1) % words.length
+    schedule(() => typeWord(words[wordIndex]!, 0), 260)
+  }
+
+  typeWord(words[0]!, 0)
+
+  return () => window.clearTimeout(timer)
 }
 
 const SCRAMBLE_CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789<>/\\|+=~'

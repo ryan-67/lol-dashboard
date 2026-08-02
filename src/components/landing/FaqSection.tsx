@@ -33,19 +33,19 @@ const FAQ_ITEMS = [
   },
 ]
 
-/** FAQ — clean accordion; section-level reveal only, deliberately restrained. */
+/** FAQ — indexed accordion; items cascade in, answers unfold on a spring-free ease. */
 export default function FaqSection() {
   const [openIndex, setOpenIndex] = useState<number | null>(0)
+
+  const handleToggle = (index: number) => {
+    setOpenIndex(openIndex === index ? null : index)
+  }
 
   return (
     <section
       className="faq landing-inner"
       id="faq"
-      data-companion="point-up"
-      data-companion-x="0"
-      data-companion-y="34"
-      data-companion-scale="0.38"
-      data-companion-opacity="0.85"
+      data-accent-hue="195"
       aria-label="Frequently asked questions"
     >
       <div className="section-head">
@@ -55,18 +55,21 @@ export default function FaqSection() {
         </h2>
       </div>
 
-      <div className="faq-list" data-reveal="fade-up">
+      <div className="faq-list" data-reveal-group>
         {FAQ_ITEMS.map((item, index) => {
           const open = openIndex === index
           return (
-            <article className={`faq-item${open ? ' is-open' : ''}`} key={item.question}>
+            <article
+              className={`faq-item${open ? ' is-open' : ''}`}
+              key={item.question}
+              data-reveal-item
+            >
               <h3 className="faq-question">
-                <button
-                  type="button"
-                  aria-expanded={open}
-                  onClick={() => setOpenIndex(open ? null : index)}
-                >
-                  <span>{item.question}</span>
+                <button type="button" aria-expanded={open} onClick={() => handleToggle(index)}>
+                  <span className="faq-index" aria-hidden="true">
+                    {String(index + 1).padStart(2, '0')}
+                  </span>
+                  <span className="faq-question-text">{item.question}</span>
                   <span className="faq-toggle" aria-hidden="true" />
                 </button>
               </h3>
