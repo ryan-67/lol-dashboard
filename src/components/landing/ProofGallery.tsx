@@ -63,7 +63,6 @@ export default function ProofGallery({ scorecard, updatedLabel }: ProofGalleryPr
       mm.add('(min-width: 900px)', () => {
         const track = root.querySelector<HTMLElement>('.pg-track')
         const stage = root.querySelector<HTMLElement>('.pg-stage')
-        const rail = root.querySelector<HTMLElement>('.pg-rail-fill')
         if (!track || !stage) return
 
         const panels = gsap.utils.toArray<HTMLElement>(root.querySelectorAll('.pg-panel'))
@@ -82,8 +81,7 @@ export default function ProofGallery({ scorecard, updatedLabel }: ProofGalleryPr
             pin: true,
             anticipatePin: 1,
             invalidateOnRefresh: true,
-            onUpdate: (self) => {
-              if (rail) gsap.set(rail, { scaleX: self.progress })
+            onUpdate: () => {
               /* Panels angle toward the center of the stage — planes in a
                * gallery, not flat cards. */
               const mid = window.innerWidth / 2
@@ -310,12 +308,6 @@ export default function ProofGallery({ scorecard, updatedLabel }: ProofGalleryPr
               </p>
             </div>
           </article>
-        </div>
-
-        <div className="pg-chrome" aria-hidden="true">
-          <div className="pg-rail">
-            <span className="pg-rail-fill" />
-          </div>
         </div>
       </div>
     </section>

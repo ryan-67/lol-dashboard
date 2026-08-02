@@ -8,6 +8,7 @@ import Preloader from '../components/landing/Preloader'
 import CursorTrail from '../components/landing/CursorTrail'
 import LetterGlitch from '../components/landing/LetterGlitch'
 import HeroSection from '../components/landing/HeroSection'
+import SectionRail from '../components/landing/SectionRail'
 import FeaturesGallery from '../components/landing/FeaturesGallery'
 import KnowsSection from '../components/landing/KnowsSection'
 import CoverageSection from '../components/landing/CoverageSection'
@@ -287,6 +288,9 @@ export default function Landing() {
           </Suspense>
         )}
       </div>
+
+      {/* Fixed left rail — section ticks + active label (alche language). */}
+      <SectionRail />
 
       <div className="landing-content">
         <HeroSection

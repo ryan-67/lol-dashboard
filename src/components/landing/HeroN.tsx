@@ -157,10 +157,10 @@ function Wordmark({ heroRef }: WordmarkProps) {
   )
 }
 
-const ACCENT_A = new Color('#9aedf3')
-const ACCENT_B = new Color('#d4f7f0')
+const ACCENT_A = new Color('#8fe7ee')
+const ACCENT_B = new Color('#bff0e9')
 const ACCENT_FINALE = new Color('#ffffff')
-const EDGE_COLOR = new Color('#f3f0e7')
+const EDGE_COLOR = new Color('#6fd9e4')
 const EDGE_FINALE = new Color('#ffffff')
 
 function GlassN({ heroRef, pageRef, finaleRef, compact }: SceneProgress) {
@@ -168,6 +168,8 @@ function GlassN({ heroRef, pageRef, finaleRef, compact }: SceneProgress) {
   const meshRef = useRef<Mesh>(null)
   const shellRef = useRef<Mesh>(null)
   const edgesRef = useRef<LineSegments>(null)
+  const lastPageRef = useRef(0)
+  const spinVelRef = useRef(0)
   const geometry = useMemo(buildNGeometry, [])
   const edges = useMemo(() => new EdgesGeometry(geometry, 14), [geometry])
 
@@ -204,6 +206,13 @@ function GlassN({ heroRef, pageRef, finaleRef, compact }: SceneProgress) {
     group.rotation.y = MathUtils.damp(group.rotation.y, targetRy, damp, delta)
     group.rotation.x = MathUtils.damp(group.rotation.x, targetRx, damp, delta)
 
+    /* Scroll-direction spin: scroll velocity feeds a smoothed angular kick —
+     * clockwise on the way down, counter-clockwise back up. */
+    const pageVel = delta > 0 ? (page - lastPageRef.current) / delta : 0
+    lastPageRef.current = page
+    spinVelRef.current = MathUtils.damp(spinVelRef.current, pageVel, 3, delta)
+    group.rotation.y += spinVelRef.current * 7 * delta
+
     /* Extra free-spin while the finale is mid-transition. */
     if (finale > 0.05 && finale < 0.92) {
       group.rotation.y += delta * (1.8 + finale * 4.2)
@@ -229,64 +238,72 @@ function GlassN({ heroRef, pageRef, finaleRef, compact }: SceneProgress) {
       if (finale > 0) material.color.lerp(ACCENT_FINALE, finale * 0.45)
     }
     if (typeof material.roughness === 'number') {
-      material.roughness = MathUtils.lerp(0.04, 0.015, finale)
+      material.roughness = MathUtils.lerp(0.06, 0.02, finale)
     }
 
-    /* Off-white rim — stronger mid-page so the N stays a readable catalyst;
-     * brightest during the finale spin. */
+    /* Turquoise holo rim — a breathing glow shell + edge lines keep the
+     * glass readable mid-page; brightest during the finale spin. */
+    const holoPulse = 0.5 + Math.sin(time * 1.4) * 0.5
     const shellMat = shellRef.current?.material as { opacity?: number; color?: Color } | undefined
     if (shellMat) {
-      const midPresence = hero > 0.2 ? 0.34 : 0.22
-      shellMat.opacity = MathUtils.clamp(midPresence + finale * 0.4, 0.18, 0.72)
+      const midPresence = hero > 0.2 ? 0.3 : 0.18
+      shellMat.opacity = MathUtils.clamp(
+        midPresence + holoPulse * 0.08 + finale * 0.35,
+        0.12,
+        0.68,
+      )
       if (shellMat.color) shellMat.color.copy(EDGE_COLOR).lerp(EDGE_FINALE, finale)
     }
     const edgeMat = edgesRef.current?.material as LineBasicMaterial | undefined
     if (edgeMat) {
-      const midPresence = hero > 0.2 ? 0.85 : 0.6
-      edgeMat.opacity = MathUtils.clamp(midPresence + finale * 0.3, 0.5, 1)
+      const midPresence = hero > 0.2 ? 0.62 : 0.42
+      edgeMat.opacity = MathUtils.clamp(midPresence + holoPulse * 0.1 + finale * 0.35, 0.3, 1)
       edgeMat.color.copy(EDGE_COLOR).lerp(EDGE_FINALE, finale)
     }
   })
 
   return (
     <group ref={groupRef}>
-      {/* Thin off-white shell — edge halo without a filled white plate. */}
-      <mesh ref={shellRef} geometry={geometry} scale={1.028}>
+      {/* Additive turquoise shell — soft holographic glow around the glass. */}
+      <mesh ref={shellRef} geometry={geometry} scale={1.045}>
         <meshBasicMaterial
-          color="#f3f0e7"
+          color="#57c4cf"
           side={BackSide}
           transparent
-          opacity={0.26}
+          opacity={0.2}
+          blending={AdditiveBlending}
           depthWrite={false}
           toneMapped={false}
         />
       </mesh>
+      {/* Round-2 glass — deep transmissive turquoise, not milky. */}
       <mesh ref={meshRef} geometry={geometry}>
         <MeshTransmissionMaterial
-          transmission={0.88}
-          samples={compact ? 4 : 8}
-          resolution={compact ? 256 : 640}
-          thickness={1.4}
-          roughness={0.035}
-          ior={1.52}
-          chromaticAberration={0.24}
-          anisotropicBlur={0.14}
-          distortion={0.16}
-          distortionScale={0.24}
-          temporalDistortion={0.05}
-          attenuationDistance={1.2}
-          attenuationColor="#7adde6"
-          color="#a8f0f5"
+          transmission={1}
+          samples={compact ? 4 : 7}
+          resolution={compact ? 256 : 512}
+          thickness={1.1}
+          roughness={0.06}
+          ior={1.48}
+          chromaticAberration={0.32}
+          anisotropicBlur={0.22}
+          distortion={0.24}
+          distortionScale={0.32}
+          temporalDistortion={0.08}
+          attenuationDistance={2.2}
+          attenuationColor="#57c4cf"
+          color="#8fe7ee"
           backside={!compact}
-          backsideThickness={0.42}
+          backsideThickness={0.3}
         />
       </mesh>
-      {/* Off-white edge wireframe — crisp silhouette on matte black. */}
+      {/* Turquoise holo edge lines — crisp silhouette on matte black. */}
       <lineSegments ref={edgesRef} geometry={edges}>
         <lineBasicMaterial
-          color="#f3f0e7"
+          color="#6fd9e4"
           transparent
-          opacity={0.75}
+          opacity={0.5}
+          blending={AdditiveBlending}
           depthWrite={false}
           toneMapped={false}
         />
@@ -342,11 +359,10 @@ function DriftField({ compact }: { compact?: boolean }) {
 function StudioRig() {
   return (
     <Environment resolution={256} frames={1}>
-      <Lightformer intensity={3.2} position={[0, 3, 4]} scale={[9, 3, 1]} color="#f4fdff" />
-      <Lightformer intensity={1.6} position={[-5, -1, 3]} rotation-y={0.6} scale={[4, 6, 1]} color="#6fd4de" />
-      <Lightformer intensity={1.4} position={[5, 0, 2]} rotation-y={-0.6} scale={[3, 7, 1]} color="#f3f0e7" />
-      <Lightformer intensity={0.9} position={[0, -4, 2]} scale={[10, 2, 1]} color="#1a555c" />
-      <Lightformer intensity={1.1} position={[2, 2, -3]} scale={[5, 5, 1]} color="#c8f4f8" />
+      <Lightformer intensity={2.2} position={[0, 3, 4]} scale={[9, 3, 1]} color="#eafcff" />
+      <Lightformer intensity={1.1} position={[-5, -1, 3]} rotation-y={0.6} scale={[4, 6, 1]} color="#57c4cf" />
+      <Lightformer intensity={0.85} position={[5, 0, 2]} rotation-y={-0.6} scale={[3, 7, 1]} color="#f3f0e7" />
+      <Lightformer intensity={0.5} position={[0, -4, 2]} scale={[10, 2, 1]} color="#0e3f46" />
     </Environment>
   )
 }
@@ -369,11 +385,6 @@ export default function HeroN({ heroRef, pageRef, finaleRef, compact }: ScenePro
       eventPrefix="client"
     >
       <StudioRig />
-      <ambientLight intensity={0.45} />
-      {/* Rim catchlights — keep the extruded edges readable on matte black. */}
-      <pointLight position={[3.2, 2.4, 3.5]} intensity={18} color="#f3f0e7" distance={12} />
-      <pointLight position={[-3.4, -1.2, 2.8]} intensity={12} color="#8fe7ee" distance={10} />
-      <pointLight position={[0.4, 3.6, 1.2]} intensity={10} color="#ffffff" distance={9} />
       <Wordmark heroRef={heroRef} />
       <GlassN heroRef={heroRef} pageRef={pageRef} finaleRef={finaleRef} compact={compact} />
       <DriftField compact={compact} />

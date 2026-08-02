@@ -5,6 +5,7 @@ import { useGSAP } from '@gsap/react'
 import { MOTION, reducedMotion, scrambleText } from './motion'
 import imgPom from '../assets/pom.png'
 import imgMatchup from '../assets/matchup.png'
+import imgTeam from '../assets/team.png'
 import imgModel from '../assets/prediction_model.png'
 import fakerVideo from '../assets/faker_vid.mp4'
 
@@ -73,8 +74,6 @@ export default function FeaturesGallery() {
       mm.add('(min-width: 900px)', () => {
         const track = root.querySelector<HTMLElement>('.fg-track')
         const stage = root.querySelector<HTMLElement>('.fg-stage')
-        const rail = root.querySelector<HTMLElement>('.fg-rail-fill')
-        const counter = root.querySelector<HTMLElement>('.fg-counter-current')
         if (!track || !stage) return
 
         const panels = gsap.utils.toArray<HTMLElement>(root.querySelectorAll('.fg-panel'))
@@ -95,16 +94,7 @@ export default function FeaturesGallery() {
             pin: true,
             anticipatePin: 1,
             invalidateOnRefresh: true,
-            onUpdate: (self) => {
-              if (rail) gsap.set(rail, { scaleX: self.progress })
-              if (counter) {
-                const idx = Math.min(
-                  CHAPTERS.length,
-                  Math.floor(self.progress * CHAPTERS.length) + 1,
-                )
-                const label = `0${idx}`
-                if (counter.textContent !== label) counter.textContent = label
-              }
+            onUpdate: () => {
               /* 3D gallery physics — frames arrive angled toward the
                * viewer and flatten as they cross center (alche works). */
               const mid = window.innerWidth / 2
@@ -239,6 +229,14 @@ export default function FeaturesGallery() {
                         loading="lazy"
                       />
                     </div>
+                    <div className="fg-frame fg-frame--team" data-tilt="4">
+                      <img
+                        className="fg-media-img"
+                        src={imgTeam}
+                        alt="team analytics view"
+                        loading="lazy"
+                      />
+                    </div>
                     <div className="fg-frame fg-frame--matchup" data-tilt="4">
                       <img
                         className="fg-media-img"
@@ -291,17 +289,6 @@ export default function FeaturesGallery() {
               </div>
             </article>
           ))}
-        </div>
-
-        <div className="fg-chrome" aria-hidden="true">
-          <div className="fg-counter">
-            <span className="fg-counter-current">01</span>
-            <span className="fg-counter-total">/ 03</span>
-          </div>
-          <div className="fg-rail">
-            <span className="fg-rail-fill" />
-          </div>
-          <span className="fg-hint">scroll</span>
         </div>
       </div>
     </section>

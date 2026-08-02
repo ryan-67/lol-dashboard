@@ -85,11 +85,6 @@ export default function HeroSection({
           clearProps: 'filter',
         },
         0.3,
-      ).fromTo(
-        root.querySelector('.hero-scroll-cue'),
-        { autoAlpha: 0 },
-        { autoAlpha: 1, duration: 0.7 },
-        '-=0.3',
       )
     },
     { scope: rootRef, dependencies: [introDone, reduce] },
@@ -144,11 +139,6 @@ export default function HeroSection({
             </Link>
           </div>
         </div>
-      </div>
-
-      <div className="hero-scroll-cue" style={{ opacity: 0 }} aria-hidden="true">
-        <span className="hero-scroll-cue-line" />
-        scroll
       </div>
     </section>
   )
