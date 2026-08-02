@@ -1,9 +1,8 @@
 import { useEffect, useMemo, useRef, useState, type MutableRefObject } from 'react'
 import { Canvas, useFrame } from '@react-three/fiber'
-import { Environment, Lightformer, MeshTransmissionMaterial, Outlines } from '@react-three/drei'
+import { Environment, Lightformer, MeshTransmissionMaterial } from '@react-three/drei'
 import {
   AdditiveBlending,
-  BackSide,
   CanvasTexture,
   Color,
   ExtrudeGeometry,
@@ -20,8 +19,6 @@ interface SceneProgress {
   heroRef: MutableRefObject<number>
   /** 0 → top of page, 1 → bottom. Drives the persistent rotation. */
   pageRef: MutableRefObject<number>
-  /** 0 → before finale, 1 → finale fully revealed. Spins + brightens the N. */
-  finaleRef: MutableRefObject<number>
   /** Lower fidelity path for small screens. */
   compact?: boolean
 }
@@ -154,125 +151,65 @@ function Wordmark({ heroRef }: WordmarkProps) {
   )
 }
 
-const ACCENT_A = new Color('#9aedf3')
-const ACCENT_B = new Color('#d4f7f0')
-const ACCENT_FINALE = new Color('#ffffff')
-const EDGE_COLOR = new Color('#f3f0e7')
-const EDGE_FINALE = new Color('#ffffff')
+const ACCENT_A = new Color('#8fe7ee')
+const ACCENT_B = new Color('#bff0e9')
 
-function GlassN({ heroRef, pageRef, finaleRef, compact }: SceneProgress) {
-  const groupRef = useRef<Group>(null)
+function GlassN({ heroRef, pageRef, compact }: SceneProgress) {
   const meshRef = useRef<Mesh>(null)
-  const shellRef = useRef<Mesh>(null)
   const geometry = useMemo(buildNGeometry, [])
 
   useEffect(() => () => geometry.dispose(), [geometry])
 
-  useFrame((state, delta) => {
-    const group = groupRef.current
+  useFrame((state) => {
     const mesh = meshRef.current
-    if (!group || !mesh) return
+    if (!mesh) return
     const time = state.clock.getElapsedTime()
     const hero = heroRef.current
     const page = pageRef.current
-    const finale = MathUtils.clamp(finaleRef.current, 0, 1)
 
-    /* Idle drift + pointer steer + persistent scroll rotation. Finale adds
-     * a rapid spin burst before the brand plane takes over. */
+    /* Idle drift + pointer steer + the persistent scroll rotation: the N
+     * spins right as the hero hands off (alche-style reveal) and keeps
+     * turning in place for the rest of the page — the transition catalyst. */
     const targetRy =
-      Math.sin(time * 0.22) * 0.3 +
-      state.pointer.x * 0.5 +
-      hero * 2.4 +
-      page * 5.6 +
-      finale * Math.PI * 3.4
-    const targetRx =
-      Math.cos(time * 0.17) * 0.1 - state.pointer.y * 0.3 + hero * 0.25 + finale * 0.35
+      Math.sin(time * 0.22) * 0.3 + state.pointer.x * 0.5 + hero * 2.4 + page * 5.6
+    const targetRx = Math.cos(time * 0.17) * 0.1 - state.pointer.y * 0.3 + hero * 0.25
+    mesh.rotation.y = MathUtils.damp(mesh.rotation.y, targetRy, 2.6, 1 / 60)
+    mesh.rotation.x = MathUtils.damp(mesh.rotation.x, targetRx, 2.6, 1 / 60)
 
-    /* During the finale burst, chase the target harder so the spin reads. */
-    const damp = finale > 0.05 ? 5.5 : 2.6
-    group.rotation.y = MathUtils.damp(group.rotation.y, targetRy, damp, delta)
-    group.rotation.x = MathUtils.damp(group.rotation.x, targetRx, damp, delta)
+    /* Recede slightly as the hero exits, then hold — centered and faint
+     * behind every section. */
+    mesh.position.y = Math.sin(time * 0.6) * 0.07
+    mesh.position.z = MathUtils.damp(mesh.position.z, -hero * 1.7, 2.2, 1 / 60)
 
-    /* Extra free-spin while the finale is mid-transition. */
-    if (finale > 0.05 && finale < 0.92) {
-      group.rotation.y += delta * (1.8 + finale * 4.2)
-    }
-
-    /* Recede after the hero, then push forward + scale up for the finale. */
-    const baseZ = -hero * 1.7
-    const finaleZ = finale * 1.35
-    group.position.y = Math.sin(time * 0.6) * 0.07
-    group.position.z = MathUtils.damp(group.position.z, baseZ + finaleZ, 2.4, delta)
-    const scale = 1 + finale * 0.18
-    group.scale.setScalar(MathUtils.damp(group.scale.x, scale, 2.8, delta))
-
-    /* Ambient tint + finale brighten. */
-    const material = mesh.material as {
-      color?: Color
-      roughness?: number
-      transmission?: number
-    }
+    /* Slow ambient tint cycle around the turquoise signature. */
+    const material = mesh.material as { color?: Color }
     if (material.color) {
       const blend = (Math.sin(time * 0.16) + 1) / 2
       material.color.copy(ACCENT_A).lerp(ACCENT_B, blend)
-      if (finale > 0) material.color.lerp(ACCENT_FINALE, finale * 0.45)
-    }
-    if (typeof material.roughness === 'number') {
-      material.roughness = MathUtils.lerp(0.04, 0.015, finale)
-    }
-
-    /* Off-white rim — stronger mid-page so the N stays a readable catalyst;
-     * brightest during the finale spin. */
-    const shellMat = shellRef.current?.material as { opacity?: number; color?: Color } | undefined
-    if (shellMat) {
-      const midPresence = hero > 0.2 ? 0.34 : 0.22
-      shellMat.opacity = MathUtils.clamp(midPresence + finale * 0.4, 0.18, 0.72)
-      if (shellMat.color) shellMat.color.copy(EDGE_COLOR).lerp(EDGE_FINALE, finale)
     }
   })
 
   return (
-    <group ref={groupRef}>
-      {/* Thin off-white shell — edge halo without a filled white plate. */}
-      <mesh ref={shellRef} geometry={geometry} scale={1.028}>
-        <meshBasicMaterial
-          color="#f3f0e7"
-          side={BackSide}
-          transparent
-          opacity={0.26}
-          depthWrite={false}
-          toneMapped={false}
-        />
-      </mesh>
-      <mesh ref={meshRef} geometry={geometry}>
-        <MeshTransmissionMaterial
-          transmission={0.88}
-          samples={compact ? 4 : 8}
-          resolution={compact ? 256 : 640}
-          thickness={1.4}
-          roughness={0.035}
-          ior={1.52}
-          chromaticAberration={0.24}
-          anisotropicBlur={0.14}
-          distortion={0.16}
-          distortionScale={0.24}
-          temporalDistortion={0.05}
-          attenuationDistance={1.2}
-          attenuationColor="#7adde6"
-          color="#a8f0f5"
-          backside={!compact}
-          backsideThickness={0.42}
-        />
-        <Outlines
-          thickness={compact ? 1.6 : 2.4}
-          color="#f3f0e7"
-          opacity={0.85}
-          transparent
-          screenspace
-          toneMapped={false}
-        />
-      </mesh>
-    </group>
+    <mesh ref={meshRef} geometry={geometry}>
+      <MeshTransmissionMaterial
+        transmission={1}
+        samples={compact ? 4 : 7}
+        resolution={compact ? 256 : 512}
+        thickness={1.1}
+        roughness={0.06}
+        ior={1.48}
+        chromaticAberration={0.32}
+        anisotropicBlur={0.22}
+        distortion={0.24}
+        distortionScale={0.32}
+        temporalDistortion={0.08}
+        attenuationDistance={2.2}
+        attenuationColor="#57c4cf"
+        color="#8fe7ee"
+        backside={!compact}
+        backsideThickness={0.3}
+      />
+    </mesh>
   )
 }
 
@@ -310,7 +247,7 @@ function DriftField({ compact }: { compact?: boolean }) {
         size={0.035}
         color="#57c4cf"
         transparent
-        opacity={0.5}
+        opacity={0.42}
         sizeAttenuation
         blending={AdditiveBlending}
         depthWrite={false}
@@ -323,11 +260,10 @@ function DriftField({ compact }: { compact?: boolean }) {
 function StudioRig() {
   return (
     <Environment resolution={256} frames={1}>
-      <Lightformer intensity={3.2} position={[0, 3, 4]} scale={[9, 3, 1]} color="#f4fdff" />
-      <Lightformer intensity={1.6} position={[-5, -1, 3]} rotation-y={0.6} scale={[4, 6, 1]} color="#6fd4de" />
-      <Lightformer intensity={1.4} position={[5, 0, 2]} rotation-y={-0.6} scale={[3, 7, 1]} color="#f3f0e7" />
-      <Lightformer intensity={0.9} position={[0, -4, 2]} scale={[10, 2, 1]} color="#1a555c" />
-      <Lightformer intensity={1.1} position={[2, 2, -3]} scale={[5, 5, 1]} color="#c8f4f8" />
+      <Lightformer intensity={2.2} position={[0, 3, 4]} scale={[9, 3, 1]} color="#eafcff" />
+      <Lightformer intensity={1.1} position={[-5, -1, 3]} rotation-y={0.6} scale={[4, 6, 1]} color="#57c4cf" />
+      <Lightformer intensity={0.85} position={[5, 0, 2]} rotation-y={-0.6} scale={[3, 7, 1]} color="#f3f0e7" />
+      <Lightformer intensity={0.5} position={[0, -4, 2]} scale={[10, 2, 1]} color="#0e3f46" />
     </Environment>
   )
 }
@@ -336,10 +272,10 @@ function StudioRig() {
  * Persistent brand scene: the extruded glass N (refracting the in-scene
  * nucky wordmark) lives behind the whole landing page. During the hero it
  * owns the viewport; afterwards the wordmark dissolves and the N stays
- * centered with an off-white edge outline, rotating with scroll. Approaching
- * the finale, it brightens and spins rapidly before the brand plane takes over.
+ * centered, faint, rotating in place with scroll — the transition catalyst
+ * between sections. The page-level container controls its overall opacity.
  */
-export default function HeroN({ heroRef, pageRef, finaleRef, compact }: SceneProgress) {
+export default function HeroN({ heroRef, pageRef, compact }: SceneProgress) {
   return (
     <Canvas
       dpr={compact ? [1, 1.4] : [1, 1.8]}
@@ -350,13 +286,8 @@ export default function HeroN({ heroRef, pageRef, finaleRef, compact }: ScenePro
       eventPrefix="client"
     >
       <StudioRig />
-      <ambientLight intensity={0.45} />
-      {/* Rim catchlights — keep the extruded edges readable on matte black. */}
-      <pointLight position={[3.2, 2.4, 3.5]} intensity={18} color="#f3f0e7" distance={12} />
-      <pointLight position={[-3.4, -1.2, 2.8]} intensity={12} color="#8fe7ee" distance={10} />
-      <pointLight position={[0.4, 3.6, 1.2]} intensity={10} color="#ffffff" distance={9} />
       <Wordmark heroRef={heroRef} />
-      <GlassN heroRef={heroRef} pageRef={pageRef} finaleRef={finaleRef} compact={compact} />
+      <GlassN heroRef={heroRef} pageRef={pageRef} compact={compact} />
       <DriftField compact={compact} />
     </Canvas>
   )

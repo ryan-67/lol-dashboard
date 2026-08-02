@@ -460,27 +460,6 @@ html.no-motion [data-motion-text],
   text-decoration: none;
 }
 
-/* Extruded 3D-style N mark (BrandMark.tsx) — replaces the flat mono N. */
-.brand-mark {
-  display: inline-grid;
-  place-items: center;
-  width: 1.85rem;
-  height: 1.85rem;
-  flex-shrink: 0;
-  line-height: 0;
-}
-
-.brand-mark svg {
-  display: block;
-  width: 100%;
-  height: 100%;
-}
-
-.brand-mark--lg {
-  width: 2.05rem;
-  height: 2.05rem;
-}
-
 .landing-brand-name {
   font-size: 1.12rem;
   font-weight: 650;
@@ -1068,10 +1047,6 @@ html.no-motion [data-motion-text],
   will-change: transform;
 }
 
-.knows-img-inner img.knows-logo-invert {
-  filter: invert(1) brightness(1.08);
-}
-
 .knows-img-inner img {
   display: block;
   width: 100%;
@@ -1233,11 +1208,6 @@ html.no-motion [data-motion-text],
   width: 62%;
   aspect-ratio: 1 / 1;
   object-fit: contain;
-}
-
-/* EWC ships as a black SVG — invert so it reads on matte black. */
-.cov-card-inner img.cov-logo-invert {
-  filter: invert(1) brightness(1.08);
 }
 
 .cov-card-inner span {
@@ -2132,11 +2102,6 @@ html.no-motion [data-motion-text],
 
 /* The wordmark at architectural scale — the whole point of the plate. */
 .finale-mark {
-  margin: 0;
-  display: flex;
-  align-items: baseline;
-  justify-content: center;
-  perspective: 900px;
   font-size: clamp(5.4rem, 19vw, 19rem);
   font-weight: 700;
   letter-spacing: -0.06em;
@@ -2144,12 +2109,6 @@ html.no-motion [data-motion-text],
   color: var(--text-primary);
   text-shadow: 0 0 90px oklch(0.8 0.115 var(--la-h, 195) / 0.22);
   user-select: none;
-  will-change: transform, opacity;
-}
-
-.finale-letter {
-  display: inline-block;
-  transform-origin: 50% 100%;
   will-change: transform, opacity;
 }
 
@@ -2213,6 +2172,68 @@ html.no-motion [data-motion-text],
   flex-basis: 100%;
   text-align: center;
   opacity: 0.75;
+}
+
+/* ---------- footer — slim closing bar ---------- */
+
+.landing-footer {
+  position: relative;
+  z-index: 3;
+  border-top: 1px solid var(--border-hairline);
+  background: color-mix(in srgb, #060708 88%, transparent);
+}
+
+.landing-footer-bar {
+  max-width: var(--max-width);
+  margin-inline: auto;
+  padding: 18px var(--padding-x);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+.landing-footer-meta {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-tertiary);
+}
+
+.landing-footer-meta a {
+  color: var(--text-secondary);
+  text-decoration: none;
+}
+
+.landing-footer-meta a:hover {
+  color: var(--accent);
+}
+
+.landing-footer-links {
+  display: flex;
+  gap: 20px;
+}
+
+.landing-footer-links a {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  color: var(--text-secondary);
+  text-decoration: none;
+  transition: color 180ms var(--ease-out);
+}
+
+.landing-footer-links a:hover {
+  color: var(--accent);
+}
+
+@media (max-width: 560px) {
+  .landing-footer-bar {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
 }
 
 /* ---------- legal / doc pages (privacy, terms) ---------- */

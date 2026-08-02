@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import AuthModal from '../AuthModal'
-import BrandMark from './BrandMark'
 import { initHyperText } from './motion'
 import { useAuth } from '../../context/AuthContext'
 import { useViewPreference } from '../../context/ViewPreferenceContext'
@@ -34,11 +33,12 @@ export default function LandingLayout({ children }: LandingLayoutProps) {
     setMenuOpen(false)
   }, [location.pathname])
 
-  /* Letter-scramble hover on the nav tabs. */
+  /* Letter-scramble hover on the nav tabs + footer links. */
   useEffect(() => {
     const header = headerRef.current
-    if (!header) return
-    return initHyperText(header)
+    const shell = header?.closest('.landing-shell')
+    if (!shell) return
+    return initHyperText(shell)
   }, [])
 
   useEffect(() => {
@@ -58,7 +58,9 @@ export default function LandingLayout({ children }: LandingLayoutProps) {
       <header className={`landing-header${scrolled ? ' is-scrolled' : ''}`} ref={headerRef}>
         <div className="landing-header-inner">
           <Link to="/" className="landing-brand" aria-label="nucky home">
-            <BrandMark className="brand-mark--lg" />
+            <span className="nucky-mark nucky-mark--lg" aria-hidden>
+              N
+            </span>
             <span className="landing-brand-name">nucky</span>
           </Link>
 
@@ -151,6 +153,27 @@ export default function LandingLayout({ children }: LandingLayoutProps) {
       </header>
 
       <main className="landing-main">{children}</main>
+
+      {/* Slim closing bar — the finale brand plane carries the big links. */}
+      <footer className="landing-footer">
+        <div className="landing-footer-bar">
+          <Link to="/" className="landing-brand landing-brand-footer">
+            <span className="nucky-mark" aria-hidden>
+              N
+            </span>
+            <span className="landing-brand-name">nucky</span>
+          </Link>
+          <p className="landing-footer-meta">
+            © 2026 nucky · <a href="mailto:geonbu@nucky.gg">geonbu@nucky.gg</a> · not endorsed by
+            Riot Games
+          </p>
+          <nav className="landing-footer-links" aria-label="Legal">
+            <Link to="/private-policy" data-hyper>privacy</Link>
+            <Link to="/terms" data-hyper>terms</Link>
+            <Link to="/contact" data-hyper>contact</Link>
+          </nav>
+        </div>
+      </footer>
 
       <AuthModal open={showAuth} onClose={() => setShowAuth(false)} initialView={authView} />
     </div>

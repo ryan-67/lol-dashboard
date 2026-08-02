@@ -27,13 +27,11 @@ const FINALE_LEGAL = [
   { to: '/terms', label: 'terms' },
 ]
 
-const MARK = 'nucky'
-
 /**
- * Closing brand plane (alche end-frame language): the persistent glass N
- * brightens + spins (driven from Landing via finaleRef), then this plate
- * reveals "nucky" letter-by-letter with a scramble settle, followed by the
- * CTAs and site links. No separate footer bar — meta lives here.
+ * Closing brand plane (alche end-frame language): scrolling to the bottom
+ * wipes into a full plate that is just "nucky" at architectural scale, with
+ * the site links and the two CTAs beneath it. The persistent glass N and
+ * atmosphere glow faintly behind the wordmark.
  */
 export default function FinalCtaSection({
   signedIn,
@@ -51,86 +49,39 @@ export default function FinalCtaSection({
 
       const wipe = root.querySelector<HTMLElement>('.finale-wipe')
       const mark = root.querySelector<HTMLElement>('.finale-mark')
-      const letters = gsap.utils.toArray<HTMLElement>(root.querySelectorAll('.finale-letter'))
       const rows = root.querySelectorAll<HTMLElement>('.finale-row')
 
       if (reducedMotion()) {
         gsap.set(wipe, { autoAlpha: 0 })
         gsap.set([mark, rows], { autoAlpha: 1 })
-        gsap.set(letters, { autoAlpha: 1, y: 0 })
         return cleanupHyper
       }
 
-      gsap.set(letters, { autoAlpha: 0, y: 80, rotateX: -55 })
-      gsap.set(rows, { autoAlpha: 0, y: 30 })
-      gsap.set(mark, { autoAlpha: 1 })
-
-      /* Scrubbed handoff: wipe clears as the N finishes its spin, then
-       * letters cascade in. A one-shot scramble settles each glyph. */
+      /* Page transition — the plate wipes up, then the wordmark inflates
+       * from below the fold and the link rows settle in. */
       const tl = gsap.timeline({
         scrollTrigger: {
           trigger: root,
-          start: 'top 78%',
-          end: 'top 8%',
-          scrub: 1.05,
+          start: 'top 82%',
+          end: 'top 12%',
+          scrub: 1,
         },
       })
-
-      tl.fromTo(wipe, { yPercent: 0 }, { yPercent: -100, duration: 0.4, ease: 'power2.inOut' })
-
-      tl.to(
-        letters,
-        {
-          autoAlpha: 1,
-          y: 0,
-          rotateX: 0,
-          duration: 0.55,
-          stagger: 0.07,
-          ease: 'power3.out',
-        },
-        0.22,
+      tl.fromTo(wipe, { yPercent: 0 }, { yPercent: -100, duration: 0.45, ease: 'power2.inOut' })
+      tl.fromTo(
+        mark,
+        { yPercent: 34, autoAlpha: 0 },
+        { yPercent: 0, autoAlpha: 1, duration: 0.5, ease: 'power3.out' },
+        0.18,
       )
-
       tl.fromTo(
         rows,
         { autoAlpha: 0, y: 30 },
-        { autoAlpha: 1, y: 0, duration: 0.35, stagger: 0.08, ease: 'power3.out' },
-        0.55,
+        { autoAlpha: 1, y: 0, duration: 0.32, stagger: 0.08, ease: 'power3.out' },
+        0.5,
       )
 
-      /* One-shot letter scramble when the plate crosses mid-viewport —
-       * text-type / hyper-text kin for the architectural wordmark. */
-      const SCRAMBLE = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'
-      const settleScramble = () => {
-        letters.forEach((el, i) => {
-          if (el.dataset.settled === '1') return
-          const finalChar = el.dataset.char ?? ''
-          if (finalChar === '.') {
-            el.dataset.settled = '1'
-            return
-          }
-          const steps = 8 + i * 2
-          let step = 0
-          const tick = window.setInterval(() => {
-            step += 1
-            if (step >= steps) {
-              el.textContent = finalChar
-              el.dataset.settled = '1'
-              window.clearInterval(tick)
-              return
-            }
-            el.textContent = SCRAMBLE[Math.floor(Math.random() * SCRAMBLE.length)] ?? finalChar
-          }, 28)
-        })
-      }
-
-      ScrollTrigger.create({
-        trigger: root,
-        start: 'top 45%',
-        once: true,
-        onEnter: settleScramble,
-      })
-
+      /* Ambient — the wordmark breathes very slowly once revealed. */
       const breathe = gsap.to(mark, {
         scale: 1.015,
         duration: 5.5,
@@ -158,21 +109,9 @@ export default function FinalCtaSection({
       <div className="finale-wipe" aria-hidden="true" />
 
       <div className="finale-plane">
-        <h2 className="finale-mark" aria-label="nucky">
-          {MARK.split('').map((char, i) => (
-            <span
-              key={`${char}-${i}`}
-              className="finale-letter"
-              data-char={char}
-              aria-hidden="true"
-            >
-              {char}
-            </span>
-          ))}
-          <span className="finale-letter finale-mark-dot" data-char="." aria-hidden="true">
-            .
-          </span>
-        </h2>
+        <div className="finale-mark">
+          nucky<span className="finale-mark-dot">.</span>
+        </div>
 
         <div className="finale-row finale-actions">
           <Link className="landing-btn landing-btn-primary landing-btn-lg" to="/dashboard" data-magnetic>
@@ -213,9 +152,6 @@ export default function FinalCtaSection({
                 {link.label}
               </Link>
             ))}
-            <Link to="/contact" className="finale-link" data-hyper>
-              contact
-            </Link>
           </span>
           <span className="finale-riot">
             not endorsed by Riot Games · League of Legends is a trademark of Riot Games, Inc.

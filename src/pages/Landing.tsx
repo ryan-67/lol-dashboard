@@ -53,7 +53,6 @@ export default function Landing() {
    * ScrollTriggers here. No React re-renders on scroll. */
   const heroProgressRef = useRef(0)
   const pageProgressRef = useRef(0)
-  const finaleProgressRef = useRef(0)
 
   const [introDone, setIntroDone] = useState(false)
   const [scorecard, setScorecard] = useState<AccuracyScorecard | null>(null)
@@ -108,9 +107,7 @@ export default function Landing() {
 
   /* Persistent scene choreography: hero progress spins the N to the right
    * as the story arrives; page progress keeps it rotating in place; the
-   * layer settles to a readable mid-strength presence (off-white edges keep
-   * it a visible transition catalyst). Approaching the finale, it brightens
-   * and spins hard before the brand plane takes over. */
+   * layer itself dims to a faint presence once the hero hands off. */
   useGSAP(
     () => {
       const root = rootRef.current
@@ -118,8 +115,6 @@ export default function Landing() {
       if (!root || !scene || reduce) return
 
       const hero = root.querySelector<HTMLElement>('.hero')
-      const finale = root.querySelector<HTMLElement>('.finale')
-
       if (hero) {
         ScrollTrigger.create({
           trigger: hero,
@@ -142,12 +137,13 @@ export default function Landing() {
         },
       })
 
-      /* Mid-strength persistence — readable catalyst behind sections 2–8. */
+      /* Faint persistence — full presence in the hero, ~1/4 strength for
+       * the rest of the story so section content stays readable. */
       gsap.fromTo(
         scene,
         { opacity: 1 },
         {
-          opacity: 0.68,
+          opacity: 0.24,
           ease: 'none',
           scrollTrigger: {
             trigger: hero ?? root,
@@ -157,45 +153,6 @@ export default function Landing() {
           },
         },
       )
-
-      if (finale) {
-        ScrollTrigger.create({
-          trigger: finale,
-          start: 'top 90%',
-          end: 'top 18%',
-          scrub: true,
-          onUpdate: (self) => {
-            finaleProgressRef.current = self.progress
-          },
-        })
-
-        /* Brighten the scene as the finale spin kicks in, then ease back
-         * slightly so the wordmark owns the plate. */
-        gsap.fromTo(
-          scene,
-          { opacity: 0.68 },
-          {
-            opacity: 1,
-            ease: 'power1.inOut',
-            scrollTrigger: {
-              trigger: finale,
-              start: 'top 90%',
-              end: 'top 35%',
-              scrub: true,
-            },
-          },
-        )
-        gsap.to(scene, {
-          opacity: 0.42,
-          ease: 'power1.inOut',
-          scrollTrigger: {
-            trigger: finale,
-            start: 'top 35%',
-            end: 'top 8%',
-            scrub: true,
-          },
-        })
-      }
     },
     { scope: rootRef, dependencies: [reduce] },
   )
@@ -278,12 +235,7 @@ export default function Landing() {
           </div>
         ) : (
           <Suspense fallback={null}>
-            <HeroN
-              heroRef={heroProgressRef}
-              pageRef={pageProgressRef}
-              finaleRef={finaleProgressRef}
-              compact={compactScene}
-            />
+            <HeroN heroRef={heroProgressRef} pageRef={pageProgressRef} compact={compactScene} />
           </Suspense>
         )}
       </div>
