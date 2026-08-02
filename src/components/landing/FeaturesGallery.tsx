@@ -78,7 +78,11 @@ export default function FeaturesGallery() {
 
         const panels = gsap.utils.toArray<HTMLElement>(root.querySelectorAll('.fg-panel'))
         const medias = gsap.utils.toArray<HTMLElement>(root.querySelectorAll('.fg-media'))
-        const distance = () => track.scrollWidth - window.innerWidth
+        /* Full-exit distance (alche gallery behavior): the track travels its
+         * entire width, so the last panel crosses center and disappears off
+         * the left edge before the pin releases — no content is left
+         * mid-viewport to "jump" when the next section takes over. */
+        const distance = () => track.scrollWidth
 
         gsap.set(track, { transformPerspective: 1500 })
         medias.forEach((media) => gsap.set(media, { transformPerspective: 1200 }))

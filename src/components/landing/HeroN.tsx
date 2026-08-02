@@ -25,6 +25,8 @@ interface SceneProgress {
   pageRef: MutableRefObject<number>
   /** 0 → before finale, 1 → finale fully revealed. Spins + brightens the N. */
   finaleRef: MutableRefObject<number>
+  /** 0–1 pulse during section hand-off gaps — drives a rapid spin burst. */
+  boostRef?: MutableRefObject<number>
   /** Lower fidelity path for small screens. */
   compact?: boolean
 }
@@ -163,7 +165,7 @@ const ACCENT_FINALE = new Color('#ffffff')
 const EDGE_COLOR = new Color('#6fd9e4')
 const EDGE_FINALE = new Color('#ffffff')
 
-function GlassN({ heroRef, pageRef, finaleRef, compact }: SceneProgress) {
+function GlassN({ heroRef, pageRef, finaleRef, boostRef, compact }: SceneProgress) {
   const groupRef = useRef<Group>(null)
   const meshRef = useRef<Mesh>(null)
   const shellRef = useRef<Mesh>(null)
@@ -212,6 +214,14 @@ function GlassN({ heroRef, pageRef, finaleRef, compact }: SceneProgress) {
     lastPageRef.current = page
     spinVelRef.current = MathUtils.damp(spinVelRef.current, pageVel, 3, delta)
     group.rotation.y += spinVelRef.current * 7 * delta
+
+    /* Hand-off burst: while a section transition gap is on screen, the N
+     * spins rapidly (direction follows scroll) — the transition catalyst. */
+    const boost = MathUtils.clamp(boostRef?.current ?? 0, 0, 1)
+    if (boost > 0.01) {
+      const dir = spinVelRef.current < 0 ? -1 : 1
+      group.rotation.y += dir * boost * delta * 5.5
+    }
 
     /* Extra free-spin while the finale is mid-transition. */
     if (finale > 0.05 && finale < 0.92) {
@@ -374,7 +384,7 @@ function StudioRig() {
  * centered with an off-white edge outline, rotating with scroll. Approaching
  * the finale, it brightens and spins rapidly before the brand plane takes over.
  */
-export default function HeroN({ heroRef, pageRef, finaleRef, compact }: SceneProgress) {
+export default function HeroN({ heroRef, pageRef, finaleRef, boostRef, compact }: SceneProgress) {
   return (
     <Canvas
       dpr={compact ? [1, 1.4] : [1, 1.8]}
@@ -386,7 +396,13 @@ export default function HeroN({ heroRef, pageRef, finaleRef, compact }: ScenePro
     >
       <StudioRig />
       <Wordmark heroRef={heroRef} />
-      <GlassN heroRef={heroRef} pageRef={pageRef} finaleRef={finaleRef} compact={compact} />
+      <GlassN
+        heroRef={heroRef}
+        pageRef={pageRef}
+        finaleRef={finaleRef}
+        boostRef={boostRef}
+        compact={compact}
+      />
       <DriftField compact={compact} />
     </Canvas>
   )

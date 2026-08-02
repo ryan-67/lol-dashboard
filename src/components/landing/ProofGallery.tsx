@@ -66,7 +66,9 @@ export default function ProofGallery({ scorecard, updatedLabel }: ProofGalleryPr
         if (!track || !stage) return
 
         const panels = gsap.utils.toArray<HTMLElement>(root.querySelectorAll('.pg-panel'))
-        const distance = () => track.scrollWidth - window.innerWidth
+        /* Full-exit distance — every panel scrolls fully past (alche
+         * behavior) so the unpin happens on an empty stage. */
+        const distance = () => track.scrollWidth
 
         gsap.set(track, { transformPerspective: 1400 })
 

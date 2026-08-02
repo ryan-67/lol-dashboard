@@ -55,6 +55,7 @@ export default function Landing() {
   const heroProgressRef = useRef(0)
   const pageProgressRef = useRef(0)
   const finaleProgressRef = useRef(0)
+  const spinBoostRef = useRef(0)
 
   const [introDone, setIntroDone] = useState(false)
   const [scorecard, setScorecard] = useState<AccuracyScorecard | null>(null)
@@ -142,6 +143,28 @@ export default function Landing() {
           pageProgressRef.current = self.progress
         },
       })
+
+      /* Knows → coverage hand-off: while the transition gap crosses the
+       * viewport, pulse the spin boost (peaks mid-gap, settles at both
+       * ends) so the N whirls rapidly between the two sections. */
+      const coverage = root.querySelector<HTMLElement>('#coverage')
+      if (coverage) {
+        ScrollTrigger.create({
+          trigger: coverage,
+          start: 'top bottom',
+          end: 'top top',
+          scrub: true,
+          onUpdate: (self) => {
+            spinBoostRef.current = Math.sin(self.progress * Math.PI)
+          },
+          onLeave: () => {
+            spinBoostRef.current = 0
+          },
+          onLeaveBack: () => {
+            spinBoostRef.current = 0
+          },
+        })
+      }
 
       /* Mid-strength persistence — readable catalyst behind sections 2–8. */
       gsap.fromTo(
@@ -283,6 +306,7 @@ export default function Landing() {
               heroRef={heroProgressRef}
               pageRef={pageProgressRef}
               finaleRef={finaleProgressRef}
+              boostRef={spinBoostRef}
               compact={compactScene}
             />
           </Suspense>
