@@ -3,9 +3,10 @@ import { reducedMotion } from './motion'
 
 const GLYPHS = '01アイウエオカキクケコサシスセソタチツナニヌネノnucky<>/\\+=·'
 const CELL = 34
-const BASE_ALPHA = 0.045
-const MOUSE_RADIUS = 260
-const MUTATE_MS = 90
+/* Slightly less muted than the first pass — still atmospheric, not a matrix wall. */
+const BASE_ALPHA = 0.11
+const MOUSE_RADIUS = 280
+const MUTATE_MS = 80
 
 /**
  * Faint glitching glyph field (reactbits letter-glitch language, heavily
@@ -41,8 +42,8 @@ export default function LetterGlitch() {
       rows = Math.ceil(window.innerHeight / CELL)
       cells = Array.from({ length: cols * rows }, () => ({
         char: GLYPHS[Math.floor(Math.random() * GLYPHS.length)]!,
-        /* Most cells stay dark — a sparse field, not a matrix wall. */
-        alpha: Math.random() < 0.22 ? Math.random() : 0,
+        /* Sparse field — a few more lit cells than before for readable atmosphere. */
+        alpha: Math.random() < 0.3 ? Math.random() : 0,
       }))
       ctx.font = '11px "Noto Sans Mono", monospace'
       ctx.textAlign = 'center'
@@ -58,7 +59,7 @@ export default function LetterGlitch() {
           const i = Math.floor(Math.random() * cells.length)
           const cell = cells[i]!
           cell.char = GLYPHS[Math.floor(Math.random() * GLYPHS.length)]!
-          cell.alpha = Math.random() < 0.25 ? Math.random() : cell.alpha * 0.5
+          cell.alpha = Math.random() < 0.32 ? Math.random() : cell.alpha * 0.55
         }
       }
 
@@ -70,9 +71,9 @@ export default function LetterGlitch() {
           const x = c * CELL + CELL / 2
           const y = r * CELL + CELL / 2
           const dist = Math.hypot(x - mouse.x, y - mouse.y)
-          const boost = dist < MOUSE_RADIUS ? (1 - dist / MOUSE_RADIUS) * 2.4 : 0
-          const alpha = Math.min(0.24, cell.alpha * BASE_ALPHA * (1 + boost * 3))
-          ctx.fillStyle = `oklch(0.8 0.115 195 / ${alpha.toFixed(3)})`
+          const boost = dist < MOUSE_RADIUS ? (1 - dist / MOUSE_RADIUS) * 2.6 : 0
+          const alpha = Math.min(0.38, cell.alpha * BASE_ALPHA * (1 + boost * 3))
+          ctx.fillStyle = `oklch(0.84 0.11 195 / ${alpha.toFixed(3)})`
           ctx.fillText(cell.char, x, y)
         }
       }

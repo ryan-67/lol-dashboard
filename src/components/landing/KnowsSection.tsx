@@ -115,17 +115,20 @@ export default function KnowsSection() {
   const items = useMemo(buildItems, [])
   const [resolvedUrls, setResolvedUrls] = useState<Record<string, string>>({})
 
-  /* Punch solid white/black plates out of team + tournament logos so they
-   * sit as true transparent assets on the matte page. */
+  /* Punch solid plates out of team/tournament logos — but skip light-on-dark
+   * crests (Worlds/MSI white DarkBG, EWC black SVG) which plateToAlpha would
+   * erase entirely. */
   useEffect(() => {
     let alive = true
     const blobUrls: string[] = []
+    const isLightOnDark = (url: string) =>
+      /WorldsDarkBG|MSIDarkBG|\/leagues\/ewc\.svg/i.test(url)
 
     const run = async () => {
       const next: Record<string, string> = {}
       await Promise.all(
         items.map(async (item) => {
-          if (item.kind === 'player') {
+          if (item.kind === 'player' || isLightOnDark(item.url)) {
             next[item.url] = item.url
             return
           }
@@ -402,11 +405,18 @@ export default function KnowsSection() {
       <div className="knows-stage">
         {items.map((item, i) => {
           const src = resolvedUrls[item.url] ?? item.url
+          const invert = /\/leagues\/ewc\.svg/i.test(item.url)
           return (
             <div key={`${item.url}-${i}`} className={`knows-img is-${item.kind}`} aria-hidden="true">
               <div className="knows-depth">
                 <div className="knows-img-inner">
-                  <img src={src} alt="" loading="lazy" decoding="async" />
+                  <img
+                    src={src}
+                    alt=""
+                    loading="lazy"
+                    decoding="async"
+                    className={invert ? 'knows-logo-invert' : undefined}
+                  />
                 </div>
               </div>
             </div>
