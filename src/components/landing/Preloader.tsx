@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react'
 import gsap from 'gsap'
 import { useGSAP } from '@gsap/react'
-import { reducedMotion, scrambleText } from './motion'
+import { reducedMotion } from './motion'
 
 gsap.registerPlugin(useGSAP)
 
@@ -9,16 +9,44 @@ interface PreloaderProps {
   onComplete: () => void
 }
 
-const VERBS = ['understand', 'analyze', 'predict'] as const
+const PROMISE_TEXT = 'understand, analyze, and predict lolesports'
+
+/* The blocky N letterform — same proportions as the 3D hero geometry
+ * (W 1.9 / H 2.5 / stem 0.52 / knee 0.98), scaled into a 380×500 box. */
+const N_SCALE = 200
+const N_W = 1.9 * N_SCALE
+const N_H = 2.5 * N_SCALE
+const N_T = 0.52 * N_SCALE
+const N_K = 0.98 * N_SCALE
+
+const N_PATH = [
+  `M 0 ${N_H}`,
+  `L 0 0`,
+  `L ${N_T} 0`,
+  `L ${N_W - N_T} ${N_H - N_K}`,
+  `L ${N_W - N_T} 0`,
+  `L ${N_W} 0`,
+  `L ${N_W} ${N_H}`,
+  `L ${N_W - N_T} ${N_H}`,
+  `L ${N_T} ${N_K}`,
+  `L ${N_T} ${N_H}`,
+  'Z',
+].join(' ')
+
+/* Construction guides — horizontal/vertical hairlines through the letter's
+ * structural coordinates, plus the two diagonal rails of the stroke. */
+const GUIDE_X = [0, N_T, N_W - N_T, N_W]
+const GUIDE_Y = [0, N_K, N_H - N_K, N_H]
 
 /**
- * Signal-lock loader. Three verbs cycle through a masked line while a mono
- * readout acquires the feed, then the full promise locks and the plate
- * splits open into the hero. ≤2.8s, never traps the page.
+ * Blueprint loader (alche-style construction plate): guide lines extend
+ * across the plate, the N letterform draws itself stroke-first, a dotted
+ * compass circle rotates behind it, and the promise line types out beneath.
+ * The drawn N then hands off into the 3D glass N as the plate dissolves.
  */
 export default function Preloader({ onComplete }: PreloaderProps) {
   const rootRef = useRef<HTMLDivElement>(null)
-  const readoutRef = useRef<HTMLSpanElement>(null)
+  const typeRef = useRef<HTMLSpanElement>(null)
   const [done, setDone] = useState(false)
   const completedRef = useRef(false)
 
@@ -39,94 +67,90 @@ export default function Preloader({ onComplete }: PreloaderProps) {
         return
       }
 
-      const verbs = gsap.utils.toArray<HTMLElement>(root.querySelectorAll('.preloader-verb'))
-      const subject = root.querySelector('.preloader-subject')
-      const bar = root.querySelector('.preloader-bar-fill')
-      const brand = root.querySelector('.preloader-brand')
-      const panels = root.querySelectorAll('.preloader-panel')
-      const frame = root.querySelector('.preloader-frame')
-      const readout = readoutRef.current
+      const guides = root.querySelectorAll<SVGLineElement>('.preloader-guide')
+      const letter = root.querySelector<SVGPathElement>('.preloader-letter')
+      const circle = root.querySelector<SVGCircleElement>('.preloader-circle')
+      const svg = root.querySelector('.preloader-blueprint')
+      const typeEl = typeRef.current
+      const plate = root.querySelector('.preloader-plate')
 
-      const progress = { pct: 0 }
-      const labels = ['acquiring feed', 'indexing seasons', 'rating rosters', 'signal locked']
-
-      const tl = gsap.timeline({
-        defaults: { ease: 'power4.out' },
-        onComplete: finish,
+      /* Stroke-draw setup. */
+      const letterLength = letter?.getTotalLength() ?? 0
+      if (letter) {
+        letter.style.strokeDasharray = `${letterLength}`
+        letter.style.strokeDashoffset = `${letterLength}`
+      }
+      guides.forEach((line) => {
+        const len = Math.hypot(
+          Number(line.getAttribute('x2')) - Number(line.getAttribute('x1')),
+          Number(line.getAttribute('y2')) - Number(line.getAttribute('y1')),
+        )
+        line.style.strokeDasharray = `${len}`
+        line.style.strokeDashoffset = `${len}`
       })
 
-      /* Frame + brand establish. */
-      tl.fromTo(frame, { autoAlpha: 0, scale: 0.965 }, { autoAlpha: 1, scale: 1, duration: 0.4 })
-      tl.fromTo(
-        brand,
-        { autoAlpha: 0, y: 12, filter: 'blur(6px)' },
-        { autoAlpha: 1, y: 0, filter: 'blur(0px)', duration: 0.45 },
-        0.05,
-      )
+      const tl = gsap.timeline({ onComplete: finish })
 
-      /* Readout counts up alongside the verb cycle. */
+      /* 1 — construction guides sweep across the plate. */
+      tl.to(guides, {
+        strokeDashoffset: 0,
+        duration: 0.9,
+        stagger: 0.05,
+        ease: 'power3.inOut',
+      })
+
+      /* Compass circle fades up and slowly turns throughout. */
+      if (circle) {
+        tl.fromTo(circle, { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.6 }, 0.35)
+        gsap.to(circle, {
+          rotation: 360,
+          duration: 26,
+          repeat: -1,
+          ease: 'none',
+          transformOrigin: 'center center',
+          svgOrigin: `${N_W / 2} ${N_H / 2}`,
+        })
+      }
+
+      /* 2 — the letterform draws itself. */
+      if (letter) {
+        tl.to(
+          letter,
+          { strokeDashoffset: 0, duration: 1.35, ease: 'power2.inOut' },
+          0.5,
+        )
+      }
+
+      /* 3 — the promise types out under the mark. */
+      const typing = { chars: 0 }
       tl.to(
-        progress,
+        typing,
         {
-          pct: 100,
-          duration: 1.75,
-          ease: 'power2.inOut',
+          chars: PROMISE_TEXT.length,
+          duration: PROMISE_TEXT.length * 0.028,
+          ease: 'none',
           onUpdate: () => {
-            if (!readout) return
-            const pct = Math.round(progress.pct)
-            const label = labels[Math.min(labels.length - 1, Math.floor((pct / 101) * labels.length))]
-            readout.textContent = `${label} · ${String(pct).padStart(3, '0')}%`
+            if (typeEl) typeEl.textContent = PROMISE_TEXT.slice(0, Math.round(typing.chars))
           },
         },
-        0.2,
-      )
-      tl.fromTo(
-        bar,
-        { scaleX: 0, transformOrigin: 'left center' },
-        { scaleX: 1, duration: 1.75, ease: 'power2.inOut' },
-        0.2,
+        0.95,
       )
 
-      /* Verb cycle — each rises through the mask and hands off. */
-      verbs.forEach((verb, i) => {
-        const at = 0.28 + i * 0.42
-        tl.fromTo(
-          verb,
-          { yPercent: 112 },
-          { yPercent: 0, duration: 0.4, ease: 'power4.out' },
-          at,
-        )
-        if (i < verbs.length - 1) {
-          tl.to(verb, { yPercent: -112, duration: 0.34, ease: 'power3.in' }, at + 0.42)
-        }
-      })
-
-      /* Subject locks in beside the final verb. */
-      tl.fromTo(
-        subject,
-        { autoAlpha: 0, x: 14, filter: 'blur(8px)' },
-        { autoAlpha: 1, x: 0, filter: 'blur(0px)', duration: 0.5 },
-        0.28 + (VERBS.length - 1) * 0.42 + 0.1,
-      )
-      tl.add(() => {
-        scrambleText(root.querySelector('.preloader-subject-inner'), 'lolesports', 0.55)
-      }, '<')
-
-      /* Plate splits — twin panels wipe vertically, frame dissolves. */
-      tl.to(frame, { autoAlpha: 0, duration: 0.3, ease: 'power2.in' }, '+=0.32')
+      /* 4 — hand-off: guides retreat, the N inflates toward the 3D mark's
+       * scale and dissolves as the hero scene fades in underneath. */
+      tl.to(guides, { autoAlpha: 0, duration: 0.4, ease: 'power2.in' }, '+=0.45')
+      tl.to(circle, { autoAlpha: 0, duration: 0.4 }, '<')
       tl.to(
-        panels,
-        {
-          yPercent: -100,
-          duration: 0.75,
-          ease: 'power4.inOut',
-          stagger: 0.09,
-        },
-        '<+0.05',
+        svg,
+        { scale: 1.22, duration: 0.85, ease: 'power3.inOut', transformOrigin: 'center center' },
+        '<',
       )
+      tl.to(letter, { autoAlpha: 0, duration: 0.55, ease: 'power2.in' }, '<+0.3')
+      tl.to(root.querySelector('.preloader-type'), { autoAlpha: 0, duration: 0.4 }, '<')
+      tl.to(plate, { autoAlpha: 0, duration: 0.7, ease: 'power2.inOut' }, '<+0.15')
 
       /* Safety: never trap the page behind the loader. */
-      const safety = window.setTimeout(finish, 4200)
+      const safety = window.setTimeout(finish, 5200)
       return () => window.clearTimeout(safety)
     },
     { scope: rootRef },
@@ -136,40 +160,67 @@ export default function Preloader({ onComplete }: PreloaderProps) {
 
   return (
     <div className="preloader" ref={rootRef} aria-hidden="true">
-      <div className="preloader-panel preloader-panel--a" />
-      <div className="preloader-panel preloader-panel--b" />
+      <div className="preloader-plate">
+        <svg
+          className="preloader-blueprint"
+          viewBox={`${-N_W * 1.6} ${-N_H * 0.5} ${N_W * 4.2} ${N_H * 2}`}
+          fill="none"
+          aria-hidden="true"
+        >
+          {/* Guides span the whole plate through the letter's coordinates. */}
+          {GUIDE_X.map((x) => (
+            <line
+              key={`gx-${x}`}
+              className="preloader-guide"
+              x1={x}
+              y1={-N_H * 0.5}
+              x2={x}
+              y2={N_H * 1.5}
+            />
+          ))}
+          {GUIDE_Y.map((y) => (
+            <line
+              key={`gy-${y}`}
+              className="preloader-guide"
+              x1={-N_W * 1.6}
+              y1={y}
+              x2={N_W * 2.6}
+              y2={y}
+            />
+          ))}
+          {/* Diagonal construction rails along the stroke. */}
+          <line
+            className="preloader-guide"
+            x1={N_T - N_W * 0.8}
+            y1={N_K - N_K * 1.55}
+            x2={N_W - N_T + N_W * 0.8}
+            y2={N_H - N_K + N_K * 1.55}
+          />
+          <line
+            className="preloader-guide"
+            x1={0 - N_W * 0.8}
+            y1={0 - N_K * 1.55}
+            x2={N_W + N_W * 0.8}
+            y2={N_H + N_K * 1.55}
+          />
 
-      <div className="preloader-frame">
-        <span className="preloader-corner preloader-corner--tl" />
-        <span className="preloader-corner preloader-corner--tr" />
-        <span className="preloader-corner preloader-corner--bl" />
-        <span className="preloader-corner preloader-corner--br" />
+          {/* Dotted compass circle. */}
+          <circle
+            className="preloader-circle"
+            cx={N_W / 2}
+            cy={N_H / 2}
+            r={N_H * 0.66}
+            strokeDasharray="2 9"
+          />
 
-        <div className="preloader-brand">
-          nucky<span className="preloader-dot">.</span>
-        </div>
+          {/* The letterform itself. */}
+          <path className="preloader-letter" d={N_PATH} />
+        </svg>
 
-        <div className="preloader-line">
-          <span className="preloader-verb-mask">
-            {VERBS.map((verb) => (
-              <span className="preloader-verb" key={verb}>
-                {verb}
-              </span>
-            ))}
-          </span>
-          <span className="preloader-subject">
-            <span className="preloader-subject-inner">lolesports</span>
-          </span>
-        </div>
-
-        <div className="preloader-meta">
-          <span className="preloader-readout" ref={readoutRef}>
-            acquiring feed · 000%
-          </span>
-          <span className="preloader-bar">
-            <span className="preloader-bar-fill" />
-          </span>
-        </div>
+        <p className="preloader-type">
+          <span ref={typeRef} />
+          <span className="type-caret" />
+        </p>
       </div>
     </div>
   )

@@ -111,7 +111,8 @@ export default function PricingSection({
             <li>no account required to browse</li>
           </ul>
           <Link className="landing-btn landing-btn-ghost" to="/dashboard" data-magnetic>
-            open dashboard
+            <span className="btn-label">open dashboard</span>
+            <span className="landing-btn-icon" aria-hidden="true">→</span>
           </Link>
         </article>
 
@@ -142,7 +143,10 @@ export default function PricingSection({
             onClick={onSubscribe}
             data-magnetic
           >
-            {checkoutLoading ? 'redirecting…' : signedIn ? 'subscribe' : 'create account to subscribe'}
+            <span className="btn-label">
+              {checkoutLoading ? 'redirecting…' : signedIn ? 'subscribe' : 'create account to subscribe'}
+            </span>
+            <span className="landing-btn-icon" aria-hidden="true">→</span>
           </button>
           {checkoutError ? <p className="price-error">{checkoutError}</p> : null}
         </article>

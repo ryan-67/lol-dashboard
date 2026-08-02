@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { lazy, Suspense, useEffect, useRef, useState } from 'react'
 import { useLocation } from 'react-router-dom'
 import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
@@ -6,14 +6,17 @@ import { useGSAP } from '@gsap/react'
 import AuthModal from '../components/AuthModal'
 import Preloader from '../components/landing/Preloader'
 import CursorTrail from '../components/landing/CursorTrail'
+import LetterGlitch from '../components/landing/LetterGlitch'
 import HeroSection from '../components/landing/HeroSection'
 import FeaturesGallery from '../components/landing/FeaturesGallery'
 import KnowsSection from '../components/landing/KnowsSection'
+import CoverageSection from '../components/landing/CoverageSection'
 import ProofGallery from '../components/landing/ProofGallery'
 import PricingSection from '../components/landing/PricingSection'
 import FaqSection from '../components/landing/FaqSection'
 import FinalCtaSection from '../components/landing/FinalCtaSection'
 import {
+  coarsePointer,
   getLandingLenis,
   initAccentDrift,
   initLandingLenis,
@@ -34,6 +37,9 @@ import { startStripeCheckout } from '../lib/billing'
 
 gsap.registerPlugin(ScrollTrigger, useGSAP)
 
+/* Heavy R3F chunk — the persistent glass N scene behind the whole page. */
+const HeroN = lazy(() => import('../components/landing/HeroN'))
+
 type AuthView = 'signin' | 'signup'
 
 export default function Landing() {
@@ -41,6 +47,12 @@ export default function Landing() {
   const { homePath } = useViewPreference()
   const location = useLocation()
   const rootRef = useRef<HTMLDivElement>(null)
+  const sceneRef = useRef<HTMLDivElement>(null)
+
+  /* Scene progress refs — read every frame by the R3F loop, written by
+   * ScrollTriggers here. No React re-renders on scroll. */
+  const heroProgressRef = useRef(0)
+  const pageProgressRef = useRef(0)
 
   const [introDone, setIntroDone] = useState(false)
   const [scorecard, setScorecard] = useState<AccuracyScorecard | null>(null)
@@ -49,6 +61,9 @@ export default function Landing() {
   const [authView, setAuthView] = useState<AuthView>('signin')
   const [checkoutError, setCheckoutError] = useState<string | null>(null)
   const [checkoutLoading, setCheckoutLoading] = useState(false)
+
+  const reduce = reducedMotion()
+  const compactScene = coarsePointer()
 
   /* Silky document scroll — Lenis driven through the GSAP ticker. */
   useEffect(() => initLandingLenis(), [])
@@ -90,9 +105,61 @@ export default function Landing() {
     return () => window.cancelAnimationFrame(frame)
   }, [location.hash])
 
+  /* Persistent scene choreography: hero progress spins the N to the right
+   * as the story arrives; page progress keeps it rotating in place; the
+   * layer itself dims to a faint presence once the hero hands off. */
+  useGSAP(
+    () => {
+      const root = rootRef.current
+      const scene = sceneRef.current
+      if (!root || !scene || reduce) return
+
+      const hero = root.querySelector<HTMLElement>('.hero')
+      if (hero) {
+        ScrollTrigger.create({
+          trigger: hero,
+          start: 'top top',
+          end: 'bottom top',
+          scrub: true,
+          onUpdate: (self) => {
+            heroProgressRef.current = self.progress
+          },
+        })
+      }
+
+      ScrollTrigger.create({
+        trigger: root,
+        start: 'top top',
+        end: 'bottom bottom',
+        scrub: true,
+        onUpdate: (self) => {
+          pageProgressRef.current = self.progress
+        },
+      })
+
+      /* Faint persistence — full presence in the hero, ~1/4 strength for
+       * the rest of the story so section content stays readable. */
+      gsap.fromTo(
+        scene,
+        { opacity: 1 },
+        {
+          opacity: 0.24,
+          ease: 'none',
+          scrollTrigger: {
+            trigger: hero ?? root,
+            start: 'center top',
+            end: 'bottom top',
+            scrub: true,
+          },
+        },
+      )
+    },
+    { scope: rootRef, dependencies: [reduce] },
+  )
+
   /* Page-wide motion systems: kinetic text, reveal presets, parallax,
-   * magnetic + tilt hover, accent atmosphere, footer handoff. Section
-   * choreography lives inside each section component. */
+   * magnetic + tilt hover, accent atmosphere. Section choreography lives
+   * inside each section component. */
   useGSAP(
     () => {
       const root = rootRef.current
@@ -104,26 +171,6 @@ export default function Landing() {
       const cleanupMagnetic = initMagnetic(root)
       const cleanupTilt = initTiltHover(root)
       const cleanupAccent = initAccentDrift(root)
-
-      /* Footer parallax handoff (footer lives in LandingLayout). */
-      const footer = document.querySelector('.landing-footer')
-      if (footer && !reducedMotion()) {
-        gsap.fromTo(
-          footer,
-          { yPercent: -10, autoAlpha: 0.75 },
-          {
-            yPercent: 0,
-            autoAlpha: 1,
-            ease: 'none',
-            scrollTrigger: {
-              trigger: footer,
-              start: 'top bottom',
-              end: 'top 55%',
-              scrub: 1,
-            },
-          },
-        )
-      }
 
       const refreshTimer = window.setTimeout(() => ScrollTrigger.refresh(), 450)
       return () => {
@@ -170,6 +217,27 @@ export default function Landing() {
       <div className="landing-ambient" aria-hidden="true">
         <div className="landing-ambient-grid" />
         <div className="landing-ambient-glow" data-parallax-layer data-speed="-0.08" />
+        <LetterGlitch />
+      </div>
+
+      {/* Persistent glass N scene — fixed behind every section, faint after
+       * the hero, rotating with scroll as the transition catalyst. */}
+      <div
+        className={`landing-scene${introDone ? ' is-live' : ''}`}
+        ref={sceneRef}
+        aria-hidden="true"
+      >
+        {reduce ? (
+          <div className="hero-static">
+            <span className="hero-static-mark">
+              N<span className="hero-static-dot">.</span>
+            </span>
+          </div>
+        ) : (
+          <Suspense fallback={null}>
+            <HeroN heroRef={heroProgressRef} pageRef={pageProgressRef} compact={compactScene} />
+          </Suspense>
+        )}
       </div>
 
       <div className="landing-content">
@@ -183,6 +251,8 @@ export default function Landing() {
         <FeaturesGallery />
 
         <KnowsSection />
+
+        <CoverageSection />
 
         <ProofGallery scorecard={scorecard} updatedLabel={scorecardUpdated ?? null} />
 

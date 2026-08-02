@@ -371,6 +371,126 @@ export function animateStatCounter(
   })
 }
 
+/* ---------- hyper-text hover (magicui-style letter scramble) ---------- */
+
+const HYPER_CHARS = 'abcdefghijklmnopqrstuvwxyz'
+
+/**
+ * Letter-scramble-on-hover for [data-hyper] links: each character spins
+ * through random glyphs then locks left-to-right (magicui HyperText feel).
+ * Layout-safe — the element keeps its own width via ch-locked spans.
+ */
+export function initHyperText(root: ParentNode = document): () => void {
+  if (reducedMotion()) return () => {}
+
+  const cleanups: Array<() => void> = []
+
+  gsap.utils.toArray<HTMLElement>(root.querySelectorAll('[data-hyper]')).forEach((element) => {
+    const original = element.textContent || ''
+    if (!original.trim()) return
+    let raf = 0
+
+    const play = () => {
+      window.cancelAnimationFrame(raf)
+      const started = performance.now()
+      const perChar = 46
+      const spins = 2.6
+
+      const frame = (now: number) => {
+        const elapsed = now - started
+        const locked = Math.floor(elapsed / perChar)
+        let out = ''
+        for (let i = 0; i < original.length; i++) {
+          const char = original[i]!
+          if (char === ' ' || i < locked - spins) {
+            out += char
+          } else {
+            out += HYPER_CHARS[Math.floor(Math.random() * HYPER_CHARS.length)]
+          }
+        }
+        element.textContent = out
+        if (locked - spins < original.length) {
+          raf = window.requestAnimationFrame(frame)
+        } else {
+          element.textContent = original
+        }
+      }
+      raf = window.requestAnimationFrame(frame)
+    }
+
+    const stop = () => {
+      window.cancelAnimationFrame(raf)
+      element.textContent = original
+    }
+
+    element.addEventListener('mouseenter', play)
+    element.addEventListener('focus', play)
+    element.addEventListener('mouseleave', stop)
+    element.addEventListener('blur', stop)
+    cleanups.push(() => {
+      window.cancelAnimationFrame(raf)
+      element.removeEventListener('mouseenter', play)
+      element.removeEventListener('focus', play)
+      element.removeEventListener('mouseleave', stop)
+      element.removeEventListener('blur', stop)
+      element.textContent = original
+    })
+  })
+
+  return () => cleanups.forEach((fn) => fn())
+}
+
+/* ---------- type / delete / retype word cycle ---------- */
+
+/**
+ * ReactBits TextType-style rotation: the word is typed out, holds, deletes,
+ * and the next candidate types in. Returns a cleanup. The element should sit
+ * next to a CSS caret (see .type-caret).
+ */
+export function initTypeCycle(
+  element: HTMLElement | null,
+  words: readonly string[],
+  opts?: { typeMs?: number; deleteMs?: number; holdMs?: number },
+): () => void {
+  if (!element || !words.length) return () => {}
+
+  if (reducedMotion()) {
+    element.textContent = words[0]!
+    return () => {}
+  }
+
+  const { typeMs = 62, deleteMs = 34, holdMs = 2100 } = opts ?? {}
+  let wordIndex = 0
+  let timer = 0
+
+  const schedule = (fn: () => void, ms: number) => {
+    timer = window.setTimeout(fn, ms)
+  }
+
+  const typeWord = (word: string, at: number) => {
+    element.textContent = word.slice(0, at)
+    if (at < word.length) {
+      schedule(() => typeWord(word, at + 1), typeMs + Math.random() * 34)
+      return
+    }
+    schedule(() => deleteWord(word, word.length), holdMs)
+  }
+
+  const deleteWord = (word: string, at: number) => {
+    element.textContent = word.slice(0, at)
+    if (at > 0) {
+      schedule(() => deleteWord(word, at - 1), deleteMs)
+      return
+    }
+    wordIndex = (wordIndex + 1) % words.length
+    schedule(() => typeWord(words[wordIndex]!, 0), 260)
+  }
+
+  typeWord(words[0]!, 0)
+
+  return () => window.clearTimeout(timer)
+}
+
 const SCRAMBLE_CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789<>/\\|+=~'
 
 /** Left-to-right scramble reveal (per the animmaster_slider_5 reference). */

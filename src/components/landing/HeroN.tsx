@@ -14,9 +14,11 @@ import {
   Shape,
 } from 'three'
 
-interface HeroNProps {
+interface SceneProgress {
   /** 0 → hero owns the viewport, 1 → hero fully scrolled away. */
-  scrollRef: MutableRefObject<number>
+  heroRef: MutableRefObject<number>
+  /** 0 → top of page, 1 → bottom. Drives the persistent rotation. */
+  pageRef: MutableRefObject<number>
   /** Lower fidelity path for small screens. */
   compact?: boolean
 }
@@ -71,7 +73,6 @@ function useWordmarkTexture(): CanvasTexture | null {
       ctx.textAlign = 'center'
       ctx.textBaseline = 'middle'
 
-      /* Soft echo behind the main mark for spatial depth. */
       ctx.font = '650 400px "IBM Plex Sans", sans-serif'
       ctx.fillStyle = 'rgba(243, 240, 231, 0.92)'
       ctx.fillText('nucky', canvas.width / 2, canvas.height / 2 + 20)
@@ -104,34 +105,45 @@ function useWordmarkTexture(): CanvasTexture | null {
   return texture
 }
 
-function Wordmark({ scrollRef }: { scrollRef: MutableRefObject<number> }) {
+interface WordmarkProps {
+  heroRef: MutableRefObject<number>
+}
+
+function Wordmark({ heroRef }: WordmarkProps) {
   const texture = useWordmarkTexture()
   const groupRef = useRef<Group>(null)
+  const mainRef = useRef<Mesh>(null)
+  const echoRef = useRef<Mesh>(null)
 
   useFrame((state) => {
     const group = groupRef.current
     if (!group) return
-    const p = scrollRef.current
-    /* The mark drifts against the pointer for parallax and slides upward
-     * as the hero hands off to the story. */
+    const p = heroRef.current
+    /* Parallax against the pointer; lifts and dissolves as the hero hands
+     * off so only the glass N persists into the story. */
     group.position.x = MathUtils.damp(group.position.x, -state.pointer.x * 0.34, 2.4, 1 / 60)
     group.position.y = MathUtils.damp(
       group.position.y,
-      -state.pointer.y * 0.2 + p * 2.6,
+      -state.pointer.y * 0.2 + p * 3.1,
       2.4,
       1 / 60,
     )
+    const fade = MathUtils.clamp(1 - p * 1.65, 0, 1)
+    const mainMat = mainRef.current?.material as { opacity?: number } | undefined
+    const echoMat = echoRef.current?.material as { opacity?: number } | undefined
+    if (mainMat) mainMat.opacity = 0.98 * fade
+    if (echoMat) echoMat.opacity = 0.05 * fade
   })
 
   if (!texture) return null
 
   return (
     <group ref={groupRef}>
-      <mesh position={[0, 0, -2.7]}>
+      <mesh ref={mainRef} position={[0, 0, -2.7]}>
         <planeGeometry args={[10.8, 3.375]} />
         <meshBasicMaterial map={texture} transparent opacity={0.98} toneMapped={false} />
       </mesh>
-      <mesh position={[0.5, -0.4, -5.2]} scale={1.7}>
+      <mesh ref={echoRef} position={[0.5, -0.4, -5.2]} scale={1.7}>
         <planeGeometry args={[10.8, 3.375]} />
         <meshBasicMaterial map={texture} transparent opacity={0.05} toneMapped={false} />
       </mesh>
@@ -142,7 +154,7 @@ function Wordmark({ scrollRef }: { scrollRef: MutableRefObject<number> }) {
 const ACCENT_A = new Color('#8fe7ee')
 const ACCENT_B = new Color('#bff0e9')
 
-function GlassN({ scrollRef, compact }: HeroNProps) {
+function GlassN({ heroRef, pageRef, compact }: SceneProgress) {
   const meshRef = useRef<Mesh>(null)
   const geometry = useMemo(buildNGeometry, [])
 
@@ -152,16 +164,22 @@ function GlassN({ scrollRef, compact }: HeroNProps) {
     const mesh = meshRef.current
     if (!mesh) return
     const time = state.clock.getElapsedTime()
-    const p = scrollRef.current
+    const hero = heroRef.current
+    const page = pageRef.current
 
-    /* Idle drift + pointer steer + scroll hand-off, all damped so the
-     * material feels weighted rather than springy. */
-    const targetRy = Math.sin(time * 0.22) * 0.34 + state.pointer.x * 0.5 + p * 1.9
-    const targetRx = Math.cos(time * 0.17) * 0.12 - state.pointer.y * 0.34 + p * 0.4
+    /* Idle drift + pointer steer + the persistent scroll rotation: the N
+     * spins right as the hero hands off (alche-style reveal) and keeps
+     * turning in place for the rest of the page — the transition catalyst. */
+    const targetRy =
+      Math.sin(time * 0.22) * 0.3 + state.pointer.x * 0.5 + hero * 2.4 + page * 5.6
+    const targetRx = Math.cos(time * 0.17) * 0.1 - state.pointer.y * 0.3 + hero * 0.25
     mesh.rotation.y = MathUtils.damp(mesh.rotation.y, targetRy, 2.6, 1 / 60)
     mesh.rotation.x = MathUtils.damp(mesh.rotation.x, targetRx, 2.6, 1 / 60)
-    mesh.position.y = Math.sin(time * 0.6) * 0.07 - p * 1.4
-    mesh.position.z = p * 2.2
+
+    /* Recede slightly as the hero exits, then hold — centered and faint
+     * behind every section. */
+    mesh.position.y = Math.sin(time * 0.6) * 0.07
+    mesh.position.z = MathUtils.damp(mesh.position.z, -hero * 1.7, 2.2, 1 / 60)
 
     /* Slow ambient tint cycle around the turquoise signature. */
     const material = mesh.material as { color?: Color }
@@ -251,11 +269,13 @@ function StudioRig() {
 }
 
 /**
- * Hero centerpiece: an extruded glass N refracting the nucky wordmark
- * suspended behind it, over a slow particle drift. Pointer steers the
- * material; scroll hands the composition off to the story below.
+ * Persistent brand scene: the extruded glass N (refracting the in-scene
+ * nucky wordmark) lives behind the whole landing page. During the hero it
+ * owns the viewport; afterwards the wordmark dissolves and the N stays
+ * centered, faint, rotating in place with scroll — the transition catalyst
+ * between sections. The page-level container controls its overall opacity.
  */
-export default function HeroN({ scrollRef, compact }: HeroNProps) {
+export default function HeroN({ heroRef, pageRef, compact }: SceneProgress) {
   return (
     <Canvas
       dpr={compact ? [1, 1.4] : [1, 1.8]}
@@ -266,8 +286,8 @@ export default function HeroN({ scrollRef, compact }: HeroNProps) {
       eventPrefix="client"
     >
       <StudioRig />
-      <Wordmark scrollRef={scrollRef} />
-      <GlassN scrollRef={scrollRef} compact={compact} />
+      <Wordmark heroRef={heroRef} />
+      <GlassN heroRef={heroRef} pageRef={pageRef} compact={compact} />
       <DriftField compact={compact} />
     </Canvas>
   )

@@ -4,9 +4,7 @@ import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import { useGSAP } from '@gsap/react'
 import { MOTION, reducedMotion, scrambleText } from './motion'
 import { formatLL, formatPct, type AccuracyScorecard } from '../../lib/accuracyScorecard'
-import { leagueLogoUrl } from '../../lib/entities'
-import imgModel from '../assets/prediction_model.png'
-import imgMatchup from '../assets/matchup.png'
+import ModelTrainingLoop from './ModelTrainingLoop'
 
 gsap.registerPlugin(ScrollTrigger, useGSAP)
 
@@ -14,17 +12,6 @@ interface ProofGalleryProps {
   scorecard: AccuracyScorecard | null
   updatedLabel: string | null
 }
-
-const LEAGUES = [
-  { key: 'LCK', kind: 'league' },
-  { key: 'LPL', kind: 'league' },
-  { key: 'LEC', kind: 'league' },
-  { key: 'LCS', kind: 'league' },
-  { key: 'Worlds', kind: 'international' },
-  { key: 'MSI', kind: 'international' },
-  { key: 'First Stand', kind: 'international' },
-  { key: 'EWC', kind: 'international' },
-] as const
 
 const FACTORS = [
   {
@@ -50,9 +37,10 @@ const FACTORS = [
 ] as const
 
 /**
- * Proof gallery — a second pinned horizontal walk, type-and-data forward
- * where the features gallery is media forward: coverage, how the engine
- * reads a series, and the published receipts.
+ * Model gallery — a pinned horizontal walk through the engine: a live
+ * gradient-boosted training vignette with the four factor reads, then the
+ * published walk-forward receipts broken out per tier-1 league. Panels
+ * angle in 3D as they traverse the stage (alche works-gallery language).
  */
 export default function ProofGallery({ scorecard, updatedLabel }: ProofGalleryProps) {
   const rootRef = useRef<HTMLElement>(null)
@@ -63,6 +51,7 @@ export default function ProofGallery({ scorecard, updatedLabel }: ProofGalleryPr
   const baseLL = scorecard?.aggregate.baseline.log_loss ?? 0.703
   const holdout = scorecard?.holdoutRows ?? 718
   const passing = scorecard?.aggregate.beatsBaseline ?? true
+  const leagues = scorecard?.byLeague ?? []
 
   useGSAP(
     () => {
@@ -77,7 +66,10 @@ export default function ProofGallery({ scorecard, updatedLabel }: ProofGalleryPr
         const rail = root.querySelector<HTMLElement>('.pg-rail-fill')
         if (!track || !stage) return
 
+        const panels = gsap.utils.toArray<HTMLElement>(root.querySelectorAll('.pg-panel'))
         const distance = () => track.scrollWidth - window.innerWidth
+
+        gsap.set(track, { transformPerspective: 1400 })
 
         const scrub = gsap.to(track, {
           x: () => -distance(),
@@ -92,32 +84,17 @@ export default function ProofGallery({ scorecard, updatedLabel }: ProofGalleryPr
             invalidateOnRefresh: true,
             onUpdate: (self) => {
               if (rail) gsap.set(rail, { scaleX: self.progress })
+              /* Panels angle toward the center of the stage — planes in a
+               * gallery, not flat cards. */
+              const mid = window.innerWidth / 2
+              panels.forEach((panel) => {
+                const rect = panel.getBoundingClientRect()
+                const off = (rect.left + rect.width / 2 - mid) / mid
+                gsap.set(panel, { rotationY: gsap.utils.clamp(-9, 9, off * 9) })
+              })
             },
           },
         })
-
-        /* Coverage — chips cascade into the shelf. */
-        const coverage = root.querySelector<HTMLElement>('.pg-panel--coverage')
-        if (coverage) {
-          gsap.fromTo(
-            coverage.querySelectorAll('.pg-league'),
-            { autoAlpha: 0, y: 44, rotationZ: () => gsap.utils.random(-5, 5) },
-            {
-              autoAlpha: 1,
-              y: 0,
-              rotationZ: 0,
-              duration: 0.8,
-              stagger: 0.07,
-              ease: MOTION.easeOut,
-              scrollTrigger: {
-                trigger: coverage,
-                containerAnimation: scrub,
-                start: 'left 70%',
-                once: true,
-              },
-            },
-          )
-        }
 
         /* Factors — hairlines draw, keywords scramble in. */
         root.querySelectorAll<HTMLElement>('.pg-factor').forEach((row, i) => {
@@ -160,7 +137,7 @@ export default function ProofGallery({ scorecard, updatedLabel }: ProofGalleryPr
             scrollTrigger: {
               trigger: receipts,
               containerAnimation: scrub,
-              start: 'left 62%',
+              start: 'left 70%',
               once: true,
             },
           })
@@ -175,13 +152,13 @@ export default function ProofGallery({ scorecard, updatedLabel }: ProofGalleryPr
             .fromTo(
               receipts.querySelectorAll('.pg-bar-fill'),
               { scaleX: 0, transformOrigin: 'left center' },
-              { scaleX: 1, duration: 1.1, stagger: 0.16, ease: 'power3.out' },
+              { scaleX: 1, duration: 1.1, stagger: 0.1, ease: 'power3.out' },
               0.2,
             )
             .fromTo(
-              receipts.querySelectorAll('.pg-cell'),
+              receipts.querySelectorAll('.pg-cell, .pg-league-row'),
               { autoAlpha: 0, y: 22 },
-              { autoAlpha: 1, y: 0, duration: 0.7, stagger: 0.09, ease: MOTION.easeOut },
+              { autoAlpha: 1, y: 0, duration: 0.7, stagger: 0.07, ease: MOTION.easeOut },
               0.4,
             )
         }
@@ -200,106 +177,114 @@ export default function ProofGallery({ scorecard, updatedLabel }: ProofGalleryPr
       ref={rootRef}
       id="model"
       data-accent-hue="210"
-      aria-label="Coverage, model, and published receipts"
+      aria-label="Inside the model and its published receipts"
     >
-      <div className="section-head landing-inner">
-        <p className="section-label" data-reveal="blur-in">the proof</p>
-        <h2 className="section-title" data-motion-text>
-          audited in public, every retrain.
-        </h2>
-      </div>
-
       <div className="pg-stage">
         <div className="pg-track">
-          {/* Panel 1 — coverage */}
-          <article className="pg-panel pg-panel--coverage">
-            <div className="pg-panel-head">
-              <p className="pg-kicker">coverage</p>
-              <h3 className="pg-title">
-                every tier-1 stage.
-                <br />
-                every international.
-              </h3>
-            </div>
-            <div className="pg-league-shelf" aria-label="Covered leagues and tournaments">
-              {LEAGUES.map((league) => {
-                const src = leagueLogoUrl(league.key)
-                return (
-                  <div className={`pg-league kind-${league.kind}`} key={league.key}>
-                    {src ? <img src={src} alt="" loading="lazy" /> : null}
-                    <span>{league.key}</span>
-                  </div>
-                )
-              })}
-            </div>
-            <p className="pg-panel-foot">8 tier-1 circuits · twelve seasons deep</p>
-          </article>
-
-          {/* Panel 2 — how the engine reads a series */}
+          {/* Panel 1 — inside the model */}
           <article className="pg-panel pg-panel--engine">
-            <div
-              className="pg-engine-backdrop"
-              style={{ backgroundImage: `url(${imgMatchup})` }}
-              aria-hidden="true"
-            />
             <div className="pg-panel-head">
               <p className="pg-kicker">inside the model</p>
               <h3 className="pg-title">an engine, not a gut feeling.</h3>
             </div>
-            <div className="pg-factors">
-              {FACTORS.map((factor) => (
-                <div className="pg-factor" key={factor.index}>
-                  <span className="pg-factor-line" aria-hidden="true" />
-                  <span className="pg-factor-index">{factor.index}</span>
-                  <h4 className="pg-factor-keyword" data-text={factor.keyword}>
-                    {factor.keyword}
-                  </h4>
-                  <p className="pg-factor-body">{factor.body}</p>
-                </div>
-              ))}
+
+            <div className="pg-engine-body">
+              <div className="pg-loop-frame" data-tilt="2.6">
+                <ModelTrainingLoop />
+                <span className="pg-loop-caption">
+                  walk-forward retrain · live render, not a mockup
+                </span>
+              </div>
+
+              <div className="pg-factors">
+                {FACTORS.map((factor) => (
+                  <div className="pg-factor" key={factor.index}>
+                    <span className="pg-factor-line" aria-hidden="true" />
+                    <span className="pg-factor-index">{factor.index}</span>
+                    <h4 className="pg-factor-keyword" data-text={factor.keyword}>
+                      {factor.keyword}
+                    </h4>
+                    <p className="pg-factor-body">{factor.body}</p>
+                  </div>
+                ))}
+              </div>
             </div>
           </article>
 
-          {/* Panel 3 — receipts */}
+          {/* Panel 2 — receipts, broken out per league */}
           <article className="pg-panel pg-panel--receipts">
-            <div
-              className="pg-engine-backdrop"
-              style={{ backgroundImage: `url(${imgModel})` }}
-              aria-hidden="true"
-            />
             <div className="pg-panel-head">
               <p className="pg-kicker">walk-forward receipts</p>
               <h3 className="pg-title">the numbers, published.</h3>
             </div>
 
             <div className="pg-receipts">
-              <div className="pg-acc">
-                <span className="pg-acc-value">{formatPct(acc)}</span>
-                <span className="pg-acc-caption">
-                  prediction accuracy · {holdout.toLocaleString()} holdout games
-                </span>
+              <div className="pg-receipts-lead">
+                <div className="pg-acc">
+                  <span className="pg-acc-value">{formatPct(acc)}</span>
+                  <span className="pg-acc-caption">
+                    prediction accuracy · {holdout.toLocaleString()} holdout games
+                  </span>
+                </div>
+
+                <div className="pg-bars">
+                  <div className="pg-bar">
+                    <span className="pg-bar-label">nucky model</span>
+                    <span className="pg-bar-track">
+                      <span
+                        className="pg-bar-fill is-model"
+                        style={{ width: `${(acc * 100).toFixed(1)}%` }}
+                      />
+                    </span>
+                    <span className="pg-bar-num">{formatPct(acc)}</span>
+                  </div>
+                  <div className="pg-bar">
+                    <span className="pg-bar-label">naive baseline</span>
+                    <span className="pg-bar-track">
+                      <span
+                        className="pg-bar-fill"
+                        style={{ width: `${(baseAcc * 100).toFixed(1)}%` }}
+                      />
+                    </span>
+                    <span className="pg-bar-num">{formatPct(baseAcc)}</span>
+                  </div>
+                </div>
               </div>
 
-              <div className="pg-bars">
-                <div className="pg-bar">
-                  <span className="pg-bar-label">nucky model</span>
-                  <span className="pg-bar-track">
-                    <span
-                      className="pg-bar-fill is-model"
-                      style={{ width: `${(acc * 100).toFixed(1)}%` }}
-                    />
-                  </span>
-                  <span className="pg-bar-num">{formatPct(acc)}</span>
+              {/* Per-league breakout — every tier-1 slice in the holdout. */}
+              <div className="pg-league-table" aria-label="Accuracy by league">
+                <div className="pg-league-row is-head" aria-hidden="true">
+                  <span>league</span>
+                  <span>accuracy</span>
+                  <span>vs baseline</span>
+                  <span>games</span>
                 </div>
-                <div className="pg-bar">
-                  <span className="pg-bar-label">naive baseline</span>
-                  <span className="pg-bar-track">
+                {leagues.map((slice) => (
+                  <div className="pg-league-row" key={slice.key}>
+                    <span className="pg-league-key">{slice.key.toLowerCase()}</span>
+                    <span className="pg-league-acc">
+                      <span className="pg-league-bar">
+                        <span
+                          className="pg-bar-fill is-model"
+                          style={{ width: `${(slice.model.accuracy * 100).toFixed(1)}%` }}
+                        />
+                      </span>
+                      {formatPct(slice.model.accuracy)}
+                    </span>
                     <span
-                      className="pg-bar-fill"
-                      style={{ width: `${(baseAcc * 100).toFixed(1)}%` }}
-                    />
+                      className={`pg-league-delta${slice.beatsBaseline ? ' is-up' : ''}`}
+                    >
+                      {slice.beatsBaseline ? '+' : ''}
+                      {((slice.model.accuracy - slice.baseline.accuracy) * 100).toFixed(1)}pt
+                    </span>
+                    <span className="pg-league-n">{slice.n}</span>
+                  </div>
+                ))}
+                <div className="pg-league-row is-foot" aria-hidden="true">
+                  <span className="pg-league-key">internationals</span>
+                  <span className="pg-league-note" style={{ gridColumn: '2 / -1' }}>
+                    worlds · msi · first stand · ewc — counted in the aggregate scorecard above
                   </span>
-                  <span className="pg-bar-num">{formatPct(baseAcc)}</span>
                 </div>
               </div>
 

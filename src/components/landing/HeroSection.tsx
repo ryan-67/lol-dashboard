@@ -1,11 +1,9 @@
-import { lazy, Suspense, useRef } from 'react'
+import { useRef } from 'react'
 import { Link } from 'react-router-dom'
 import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import { useGSAP } from '@gsap/react'
-import { coarsePointer, MOTION, reducedMotion } from './motion'
-
-const HeroN = lazy(() => import('./HeroN'))
+import { initTypeCycle, MOTION, reducedMotion } from './motion'
 
 gsap.registerPlugin(ScrollTrigger, useGSAP)
 
@@ -16,10 +14,12 @@ interface HeroSectionProps {
   onCreateAccount: () => void
 }
 
+const CYCLE_VERBS = ['understands', 'analyzes', 'predicts'] as const
+
 /**
- * First viewport — one composition, brand first. The glass N and in-scene
- * nucky wordmark carry the identity; DOM contributes a single promise line,
- * one CTA group, and a scroll cue. No stat strips.
+ * First viewport — one composition, brand first. The persistent glass N
+ * scene (mounted at page level) carries the identity; this section owns the
+ * typed promise line, one CTA group, and the scroll cue.
  */
 export default function HeroSection({
   introDone,
@@ -28,9 +28,17 @@ export default function HeroSection({
   onCreateAccount,
 }: HeroSectionProps) {
   const rootRef = useRef<HTMLElement>(null)
-  const scrollRef = useRef(0)
+  const verbRef = useRef<HTMLSpanElement>(null)
   const reduce = reducedMotion()
-  const compact = coarsePointer()
+
+  /* Typed verb rotation — starts once the loader hands off. */
+  useGSAP(
+    () => {
+      if (!introDone) return
+      return initTypeCycle(verbRef.current, CYCLE_VERBS)
+    },
+    { scope: rootRef, dependencies: [introDone] },
+  )
 
   useGSAP(
     () => {
@@ -41,17 +49,6 @@ export default function HeroSection({
         gsap.set(root.querySelectorAll('.hero-stagger'), { autoAlpha: 1, y: 0 })
         return
       }
-
-      /* Feed hero scroll progress to the 3D scene (N recedes / wordmark lifts). */
-      const feed = ScrollTrigger.create({
-        trigger: root,
-        start: 'top top',
-        end: 'bottom 35%',
-        scrub: true,
-        onUpdate: (self) => {
-          scrollRef.current = self.progress
-        },
-      })
 
       /* DOM copy drifts up slightly faster than the scene for depth. */
       gsap.to(root.querySelector('.hero-copy'), {
@@ -65,8 +62,6 @@ export default function HeroSection({
           scrub: MOTION.scrub,
         },
       })
-
-      return () => feed.kill()
     },
     { scope: rootRef, dependencies: [reduce] },
   )
@@ -79,29 +74,23 @@ export default function HeroSection({
 
       const tl = gsap.timeline({ defaults: { ease: MOTION.easeOut } })
       tl.fromTo(
-        root.querySelector('.hero-scene'),
-        { autoAlpha: 0, scale: 1.035 },
-        { autoAlpha: 1, scale: 1, duration: 1.3, ease: 'power2.out' },
+        root.querySelectorAll('.hero-stagger'),
+        { autoAlpha: 0, y: 26, filter: 'blur(7px)' },
+        {
+          autoAlpha: 1,
+          y: 0,
+          filter: 'blur(0px)',
+          duration: 0.9,
+          stagger: 0.11,
+          clearProps: 'filter',
+        },
+        0.3,
+      ).fromTo(
+        root.querySelector('.hero-scroll-cue'),
+        { autoAlpha: 0 },
+        { autoAlpha: 1, duration: 0.7 },
+        '-=0.3',
       )
-        .fromTo(
-          root.querySelectorAll('.hero-stagger'),
-          { autoAlpha: 0, y: 26, filter: 'blur(7px)' },
-          {
-            autoAlpha: 1,
-            y: 0,
-            filter: 'blur(0px)',
-            duration: 0.9,
-            stagger: 0.11,
-            clearProps: 'filter',
-          },
-          '-=0.75',
-        )
-        .fromTo(
-          root.querySelector('.hero-scroll-cue'),
-          { autoAlpha: 0 },
-          { autoAlpha: 1, duration: 0.7 },
-          '-=0.3',
-        )
     },
     { scope: rootRef, dependencies: [introDone, reduce] },
   )
@@ -115,20 +104,6 @@ export default function HeroSection({
     >
       <h1 className="sr-only">nucky — understand, analyze, and predict lolesports</h1>
 
-      <div className="hero-scene" aria-hidden="true">
-        {!reduce ? (
-          <Suspense fallback={null}>
-            <HeroN scrollRef={scrollRef} compact={compact} />
-          </Suspense>
-        ) : (
-          <div className="hero-static">
-            <span className="hero-static-mark">
-              nucky<span className="hero-static-dot">.</span>
-            </span>
-          </div>
-        )}
-      </div>
-
       <div className="hero-inner">
         <div className="hero-copy">
           <p className="hero-eyebrow hero-stagger" style={{ opacity: 0 }}>
@@ -136,15 +111,20 @@ export default function HeroSection({
             the lolesports signal
           </p>
 
-          <p className="hero-promise hero-stagger" style={{ opacity: 0 }}>
-            understand, analyze, and predict tier-1 League of Legends esports —
-            twelve years of pro-play memory read by an analyst that answers with evidence.
+          <p className="hero-promise hero-stagger" style={{ opacity: 0 }} aria-hidden="true">
+            nucky{' '}
+            <span className="hero-verb">
+              <span ref={verbRef}>{reduce ? CYCLE_VERBS[0] : ''}</span>
+              <span className="type-caret" />
+            </span>{' '}
+            tier-1 lolesports
           </p>
+          <p className="sr-only">nucky understands, analyzes, and predicts tier-1 lolesports</p>
 
           <div className="hero-actions hero-stagger" style={{ opacity: 0 }}>
             {signedIn ? (
               <Link className="landing-btn landing-btn-primary" to={homePath} data-magnetic>
-                enter nucky
+                <span className="btn-label">enter nucky</span>
                 <span className="landing-btn-icon" aria-hidden="true">→</span>
               </Link>
             ) : (
@@ -154,12 +134,13 @@ export default function HeroSection({
                 onClick={onCreateAccount}
                 data-magnetic
               >
-                enter nucky
+                <span className="btn-label">enter nucky</span>
                 <span className="landing-btn-icon" aria-hidden="true">→</span>
               </button>
             )}
             <Link className="landing-btn landing-btn-ghost" to="/dashboard" data-magnetic>
-              browse free
+              <span className="btn-label">browse free</span>
+              <span className="landing-btn-icon" aria-hidden="true">→</span>
             </Link>
           </div>
         </div>

@@ -47,10 +47,11 @@ const CHAPTERS: Chapter[] = [
 ]
 
 /**
- * Features gallery — a pinned horizontal chapter walk through the real
- * product. The track scrubs sideways while media counter-parallaxes and
- * chapter copy locks in per panel. Mobile / reduced motion fall back to a
- * vertical stack.
+ * Features gallery — the hero hands straight into this pinned horizontal
+ * walk (no section head, alche-style): product frames ride the track as
+ * angled 3D planes that flatten through center, media keeps its native
+ * aspect ratio, and the whole stage stays transparent so the glass N and
+ * atmosphere read through. Mobile / reduced motion fall back to a stack.
  */
 export default function FeaturesGallery() {
   const rootRef = useRef<HTMLElement>(null)
@@ -76,7 +77,12 @@ export default function FeaturesGallery() {
         const counter = root.querySelector<HTMLElement>('.fg-counter-current')
         if (!track || !stage) return
 
+        const panels = gsap.utils.toArray<HTMLElement>(root.querySelectorAll('.fg-panel'))
+        const medias = gsap.utils.toArray<HTMLElement>(root.querySelectorAll('.fg-media'))
         const distance = () => track.scrollWidth - window.innerWidth
+
+        gsap.set(track, { transformPerspective: 1500 })
+        medias.forEach((media) => gsap.set(media, { transformPerspective: 1200 }))
 
         const scrub = gsap.to(track, {
           x: () => -distance(),
@@ -99,51 +105,45 @@ export default function FeaturesGallery() {
                 const label = `0${idx}`
                 if (counter.textContent !== label) counter.textContent = label
               }
+              /* 3D gallery physics — frames arrive angled toward the
+               * viewer and flatten as they cross center (alche works). */
+              const mid = window.innerWidth / 2
+              panels.forEach((panel, i) => {
+                const rect = panel.getBoundingClientRect()
+                const off = gsap.utils.clamp(
+                  -1,
+                  1,
+                  (rect.left + rect.width / 2 - mid) / mid,
+                )
+                gsap.set(medias[i]!, {
+                  rotationY: off * 16,
+                  z: -Math.abs(off) * 90,
+                })
+              })
             },
           },
         })
 
-        const panels = gsap.utils.toArray<HTMLElement>(root.querySelectorAll('.fg-panel'))
-
         panels.forEach((panel) => {
-          /* Media counter-parallax inside each frame — the image travels
-           * against the track so the window feels dimensional. */
-          panel.querySelectorAll<HTMLElement>('.fg-media-img').forEach((img) => {
-            gsap.fromTo(
-              img,
-              { xPercent: -7 },
-              {
-                xPercent: 7,
-                ease: 'none',
-                scrollTrigger: {
-                  trigger: panel,
-                  containerAnimation: scrub,
-                  start: 'left right',
-                  end: 'right left',
-                  scrub: true,
-                },
-              },
-            )
-          })
-
           /* Copy locks in as the chapter arrives. */
           const kicker = panel.querySelector<HTMLElement>('.fg-kicker span')
           const copyTl = gsap.timeline({
             scrollTrigger: {
               trigger: panel,
               containerAnimation: scrub,
-              start: 'left 72%',
+              start: 'left 78%',
               once: true,
             },
           })
           copyTl
             .fromTo(
-              panel.querySelector('.fg-frame'),
-              { clipPath: 'inset(6% 12% 6% 12% round 10px)', scale: 0.985 },
+              panel.querySelectorAll('.fg-frame'),
+              { clipPath: 'inset(8% 10% 8% 10% round 12px)', scale: 0.97 },
               {
-                clipPath: 'inset(0% 0% 0% 0% round 10px)',
+                clipPath: 'inset(0% 0% 0% 0% round 12px)',
                 scale: 1,
                 duration: 1.1,
+                stagger: 0.1,
                 ease: 'power4.out',
               },
               0,
@@ -220,13 +220,6 @@ export default function FeaturesGallery() {
       data-accent-hue="188"
       aria-label="What nucky is made of"
     >
-      <div className="section-head landing-inner">
-        <p className="section-label" data-reveal="blur-in">the instrument</p>
-        <h2 className="section-title" data-motion-text>
-          three instruments. one signal.
-        </h2>
-      </div>
-
       <div className="fg-stage">
         <div className="fg-track">
           {CHAPTERS.map((chapter) => (
@@ -238,23 +231,38 @@ export default function FeaturesGallery() {
               <div className="fg-media">
                 {chapter.key === 'dashboard' ? (
                   <>
-                    <div className="fg-frame fg-frame--main">
-                      <img className="fg-media-img" src={imgPom} alt="nucky hub — player of the month spotlight" loading="lazy" />
+                    <div className="fg-frame fg-frame--pom" data-tilt="3">
+                      <img
+                        className="fg-media-img"
+                        src={imgPom}
+                        alt="nucky hub — player of the month spotlight"
+                        loading="lazy"
+                      />
                     </div>
-                    <div className="fg-frame fg-frame--float" data-parallax-layer data-speed="-0.05">
-                      <img className="fg-media-img" src={imgMatchup} alt="matchup comparison view" loading="lazy" />
+                    <div className="fg-frame fg-frame--matchup" data-tilt="4">
+                      <img
+                        className="fg-media-img"
+                        src={imgMatchup}
+                        alt="matchup comparison view"
+                        loading="lazy"
+                      />
                     </div>
                   </>
                 ) : null}
 
                 {chapter.key === 'model' ? (
-                  <div className="fg-frame fg-frame--main">
-                    <img className="fg-media-img" src={imgModel} alt="nucky prediction model interface" loading="lazy" />
+                  <div className="fg-frame fg-frame--model" data-tilt="3">
+                    <img
+                      className="fg-media-img"
+                      src={imgModel}
+                      alt="nucky prediction model interface"
+                      loading="lazy"
+                    />
                   </div>
                 ) : null}
 
                 {chapter.key === 'analyst' ? (
-                  <div className="fg-frame fg-frame--main fg-frame--video">
+                  <div className="fg-frame fg-frame--video">
                     <video
                       className="fg-media-img"
                       ref={videoRef}

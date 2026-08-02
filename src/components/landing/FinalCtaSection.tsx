@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import { useGSAP } from '@gsap/react'
-import { MOTION, reducedMotion } from './motion'
+import { initHyperText, reducedMotion } from './motion'
 
 gsap.registerPlugin(ScrollTrigger, useGSAP)
 
@@ -13,9 +13,25 @@ interface FinalCtaSectionProps {
   onCreateAccount: () => void
 }
 
+const FINALE_LINKS = [
+  { to: '/dashboard', label: 'dashboard' },
+  { to: '/#features', label: 'product' },
+  { to: '/#model', label: 'model' },
+  { to: '/#pricing', label: 'pricing' },
+  { to: '/#faq', label: 'faq' },
+  { to: '/contact', label: 'contact' },
+]
+
+const FINALE_LEGAL = [
+  { to: '/private-policy', label: 'privacy' },
+  { to: '/terms', label: 'terms' },
+]
+
 /**
- * Closing brand plane — the wordmark returns at architectural scale and
- * fills with signal as it scrubs through, then hands off into the product.
+ * Closing brand plane (alche end-frame language): scrolling to the bottom
+ * wipes into a full plate that is just "nucky" at architectural scale, with
+ * the site links and the two CTAs beneath it. The persistent glass N and
+ * atmosphere glow faintly behind the wordmark.
  */
 export default function FinalCtaSection({
   signedIn,
@@ -29,40 +45,55 @@ export default function FinalCtaSection({
       const root = rootRef.current
       if (!root) return
 
-      const fill = root.querySelector<HTMLElement>('.finale-mark-fill')
+      const cleanupHyper = initHyperText(root)
+
+      const wipe = root.querySelector<HTMLElement>('.finale-wipe')
+      const mark = root.querySelector<HTMLElement>('.finale-mark')
+      const rows = root.querySelectorAll<HTMLElement>('.finale-row')
 
       if (reducedMotion()) {
-        gsap.set(fill, { clipPath: 'inset(0% 0% 0% 0%)' })
-        return
+        gsap.set(wipe, { autoAlpha: 0 })
+        gsap.set([mark, rows], { autoAlpha: 1 })
+        return cleanupHyper
       }
 
-      /* The outline wordmark floods with light as it crosses the viewport. */
-      gsap.fromTo(
-        fill,
-        { clipPath: 'inset(0% 100% 0% 0%)' },
-        {
-          clipPath: 'inset(0% 0% 0% 0%)',
-          ease: 'none',
-          scrollTrigger: {
-            trigger: root.querySelector('.finale-mark'),
-            start: 'top 80%',
-            end: 'center 42%',
-            scrub: MOTION.scrub,
-          },
-        },
-      )
-
-      /* Slow spatial drift on the mark for ambient life. */
-      gsap.to(root.querySelector('.finale-mark'), {
-        yPercent: -8,
-        ease: 'none',
+      /* Page transition — the plate wipes up, then the wordmark inflates
+       * from below the fold and the link rows settle in. */
+      const tl = gsap.timeline({
         scrollTrigger: {
           trigger: root,
-          start: 'top bottom',
-          end: 'bottom top',
-          scrub: 1.2,
+          start: 'top 82%',
+          end: 'top 12%',
+          scrub: 1,
         },
       })
+      tl.fromTo(wipe, { yPercent: 0 }, { yPercent: -100, duration: 0.45, ease: 'power2.inOut' })
+      tl.fromTo(
+        mark,
+        { yPercent: 34, autoAlpha: 0 },
+        { yPercent: 0, autoAlpha: 1, duration: 0.5, ease: 'power3.out' },
+        0.18,
+      )
+      tl.fromTo(
+        rows,
+        { autoAlpha: 0, y: 30 },
+        { autoAlpha: 1, y: 0, duration: 0.32, stagger: 0.08, ease: 'power3.out' },
+        0.5,
+      )
+
+      /* Ambient — the wordmark breathes very slowly once revealed. */
+      const breathe = gsap.to(mark, {
+        scale: 1.015,
+        duration: 5.5,
+        ease: 'sine.inOut',
+        yoyo: true,
+        repeat: -1,
+      })
+
+      return () => {
+        cleanupHyper()
+        breathe.kill()
+      }
     },
     { scope: rootRef },
   )
@@ -75,27 +106,22 @@ export default function FinalCtaSection({
       data-accent-hue="195"
       aria-label="Get started with nucky"
     >
-      <div className="finale-mark" aria-hidden="true">
-        <span className="finale-mark-outline">nucky</span>
-        <span className="finale-mark-fill">nucky</span>
-      </div>
+      <div className="finale-wipe" aria-hidden="true" />
 
-      <div className="finale-inner landing-inner">
-        <p className="finale-label" data-reveal="blur-in">the signal is live</p>
-        <h2 className="finale-title" data-motion-text>
-          stop guessing. start reading the signal.
-        </h2>
-        <p className="finale-sub" data-reveal="fade-up">
-          Browse the free dashboard today. Bring the analyst in when you want the evidence explained.
-        </p>
-        <div className="finale-actions" data-reveal="fade-up">
+      <div className="finale-plane">
+        <div className="finale-mark">
+          nucky<span className="finale-mark-dot">.</span>
+        </div>
+
+        <div className="finale-row finale-actions">
           <Link className="landing-btn landing-btn-primary landing-btn-lg" to="/dashboard" data-magnetic>
-            open the dashboard
+            <span className="btn-label">open the dashboard</span>
             <span className="landing-btn-icon" aria-hidden="true">→</span>
           </Link>
           {signedIn ? (
             <Link className="landing-btn landing-btn-ghost landing-btn-lg" to={homePath} data-magnetic>
-              open app
+              <span className="btn-label">open app</span>
+              <span className="landing-btn-icon" aria-hidden="true">→</span>
             </Link>
           ) : (
             <button
@@ -104,9 +130,32 @@ export default function FinalCtaSection({
               onClick={onCreateAccount}
               data-magnetic
             >
-              create account
+              <span className="btn-label">create account</span>
+              <span className="landing-btn-icon" aria-hidden="true">→</span>
             </button>
           )}
+        </div>
+
+        <div className="finale-row finale-links" aria-label="Site">
+          {FINALE_LINKS.map((link) => (
+            <Link key={link.label} to={link.to} className="finale-link" data-hyper>
+              {link.label}
+            </Link>
+          ))}
+        </div>
+
+        <div className="finale-row finale-meta">
+          <span>© 2026 nucky · geonbu@nucky.gg</span>
+          <span className="finale-meta-links">
+            {FINALE_LEGAL.map((link) => (
+              <Link key={link.label} to={link.to} className="finale-link" data-hyper>
+                {link.label}
+              </Link>
+            ))}
+          </span>
+          <span className="finale-riot">
+            not endorsed by Riot Games · League of Legends is a trademark of Riot Games, Inc.
+          </span>
         </div>
       </div>
     </section>

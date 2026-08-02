@@ -100,8 +100,9 @@ function buildItems(): KnowsItem[] {
   }))
 }
 
-const KNOWS_WORDS = ['nucky', 'knows']
-const ANALYZES_WORDS = ['nucky', 'analyzes']
+const TITLE_A = ['nucky', 'understands']
+const TITLE_B = ['nucky', 'analyzes']
+const TITLE_C = ['nucky', 'predicts']
 
 /**
  * "nucky knows / nucky analyzes" — pinned scattered-field reveal, upgraded
@@ -155,8 +156,9 @@ export default function KnowsSection() {
       if (!stage) return
 
       const imgs = gsap.utils.toArray<HTMLElement>(root.querySelectorAll('.knows-img'))
-      const knowsWords = root.querySelectorAll('.knows-title--a .lw-word')
-      const analyzesWords = root.querySelectorAll('.knows-title--b .lw-word')
+      const wordsA = root.querySelectorAll('.knows-title--a .lw-word')
+      const wordsB = root.querySelectorAll('.knows-title--b .lw-word')
+      const wordsC = root.querySelectorAll('.knows-title--c .lw-word')
       const lead = root.querySelector('.knows-lead')
 
       const scatterX = (i: number) =>
@@ -177,8 +179,8 @@ export default function KnowsSection() {
             y: scatterY(i),
           })
         })
-        gsap.set([knowsWords, lead], { autoAlpha: 1, yPercent: 0 })
-        gsap.set(analyzesWords, { autoAlpha: 0 })
+        gsap.set([wordsA, lead], { autoAlpha: 1, yPercent: 0 })
+        gsap.set([wordsB, wordsC], { autoAlpha: 0 })
         return
       }
 
@@ -193,8 +195,9 @@ export default function KnowsSection() {
           scale: 0.3,
           autoAlpha: 0,
         })
-        gsap.set(knowsWords, { yPercent: 118 })
-        gsap.set(analyzesWords, { yPercent: 118 })
+        gsap.set(wordsA, { yPercent: 118 })
+        gsap.set(wordsB, { yPercent: 118 })
+        gsap.set(wordsC, { yPercent: 118 })
         gsap.set(lead, { autoAlpha: 0, y: 18 })
 
         const tl = gsap.timeline({
@@ -202,7 +205,7 @@ export default function KnowsSection() {
           scrollTrigger: {
             trigger: root,
             start: 'top top',
-            end: '+=240%',
+            end: '+=280%',
             scrub: MOTION.scrub,
             pin: true,
             anticipatePin: 1,
@@ -210,8 +213,8 @@ export default function KnowsSection() {
           },
         })
 
-        /* Phase A — "nucky knows" rises. */
-        tl.to(knowsWords, {
+        /* Phase A — "nucky understands" rises. */
+        tl.to(wordsA, {
           yPercent: 0,
           duration: 0.1,
           stagger: 0.03,
@@ -248,42 +251,51 @@ export default function KnowsSection() {
           0.34,
         )
 
-        /* Phase D — headline swap: knows → analyzes. */
-        tl.to(
-          knowsWords,
-          { yPercent: -118, duration: 0.08, stagger: 0.02, ease: 'power2.in' },
-          0.62,
-        )
-        tl.to(
-          analyzesWords,
-          { yPercent: 0, duration: 0.09, stagger: 0.03, ease: 'power3.out' },
-          0.68,
-        )
-        tl.to(lead, { autoAlpha: 1, y: 0, duration: 0.09, ease: 'power2.out' }, 0.72)
+        /* Phase D — headline cycle: understands → analyzes → predicts. */
+        tl.to(wordsA, { yPercent: -118, duration: 0.07, stagger: 0.02, ease: 'power2.in' }, 0.56)
+        tl.to(wordsB, { yPercent: 0, duration: 0.08, stagger: 0.03, ease: 'power3.out' }, 0.61)
+        tl.to(lead, { autoAlpha: 1, y: 0, duration: 0.08, ease: 'power2.out' }, 0.64)
+        tl.to(wordsB, { yPercent: -118, duration: 0.07, stagger: 0.02, ease: 'power2.in' }, 0.78)
+        tl.to(wordsC, { yPercent: 0, duration: 0.08, stagger: 0.03, ease: 'power3.out' }, 0.83)
 
         /* Scroll drift — planes exit at depth-scaled speeds. */
         tl.to(
           imgs,
           {
             y: (i) => scatterY(i) - 18 - items[i]!.depth * 26,
-            duration: 0.24,
+            duration: 0.22,
             ease: 'none',
           },
-          0.76,
+          0.78,
         )
 
-        /* Idle breathing — each entity floats on its own phase. */
-        const floats = imgs.map((el, i) => {
+        /* Ambient life — every settled entity keeps floating and slowly
+         * turning in 3D on its own phase (persistent, not entrance-only). */
+        gsap.set(imgs.map((el) => el.querySelector('.knows-img-inner')), {
+          transformPerspective: 700,
+        })
+        const floats = imgs.flatMap((el, i) => {
           const inner = el.querySelector('.knows-img-inner')
-          if (!inner) return null
-          return gsap.to(inner, {
-            y: gsap.utils.random(-10, -18),
-            duration: gsap.utils.random(2.6, 4.4),
-            ease: 'sine.inOut',
-            yoyo: true,
-            repeat: -1,
-            delay: (i % 5) * 0.35,
-          })
+          if (!inner) return []
+          return [
+            gsap.to(inner, {
+              y: gsap.utils.random(-10, -18),
+              duration: gsap.utils.random(2.6, 4.4),
+              ease: 'sine.inOut',
+              yoyo: true,
+              repeat: -1,
+              delay: (i % 5) * 0.35,
+            }),
+            gsap.to(inner, {
+              rotationY: gsap.utils.random(-14, 14),
+              rotationX: gsap.utils.random(-8, 8),
+              duration: gsap.utils.random(3.4, 5.6),
+              ease: 'sine.inOut',
+              yoyo: true,
+              repeat: -1,
+              delay: (i % 7) * 0.3,
+            }),
+          ]
         })
 
         /* Pointer steer — the field looks toward the cursor, near plane
@@ -341,11 +353,11 @@ export default function KnowsSection() {
       mm.add('(max-width: 768px)', () => {
         /* Mobile: no pin — headline reveal + staggered grid fade. */
         gsap.set(imgs, { clearProps: 'all' })
-        gsap.set(knowsWords, { yPercent: 118 })
-        gsap.set(analyzesWords, { yPercent: 0, autoAlpha: 0 })
+        gsap.set(wordsA, { yPercent: 118 })
+        gsap.set([wordsB, wordsC], { yPercent: 0, autoAlpha: 0 })
         gsap.set(lead, { autoAlpha: 0, y: 14 })
 
-        gsap.to(knowsWords, {
+        gsap.to(wordsA, {
           yPercent: 0,
           duration: 0.9,
           stagger: 0.06,
@@ -402,15 +414,22 @@ export default function KnowsSection() {
         })}
 
         <div className="knows-heading">
-          <h2 className="knows-title knows-title--a" aria-label="nucky knows">
-            {KNOWS_WORDS.map((word) => (
+          <h2 className="knows-title knows-title--a" aria-label="nucky understands">
+            {TITLE_A.map((word) => (
               <span className="lw-mask" key={word} aria-hidden="true">
                 <span className="lw-word">{word}</span>
               </span>
             ))}
           </h2>
           <h2 className="knows-title knows-title--b" aria-label="nucky analyzes">
-            {ANALYZES_WORDS.map((word) => (
+            {TITLE_B.map((word) => (
+              <span className="lw-mask" key={word} aria-hidden="true">
+                <span className="lw-word">{word}</span>
+              </span>
+            ))}
+          </h2>
+          <h2 className="knows-title knows-title--c" aria-label="nucky predicts">
+            {TITLE_C.map((word) => (
               <span className="lw-mask" key={word} aria-hidden="true">
                 <span className="lw-word">{word}</span>
               </span>
