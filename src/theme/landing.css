@@ -840,10 +840,15 @@ html.no-motion [data-motion-text],
 
 .fg-frame {
   overflow: hidden;
-  border: 1px solid var(--border-subtle);
+  /* Thin accent-tinted border + layered drop so screenshots sit on the
+   * atmosphere as physical plates instead of floating pixels. */
+  border: 1px solid color-mix(in srgb, var(--accent) 26%, rgba(255, 255, 255, 0.16));
   border-radius: 12px;
   background: color-mix(in srgb, var(--bg-surface) 78%, transparent);
-  box-shadow: 0 30px 90px rgba(0, 0, 0, 0.55);
+  box-shadow:
+    0 34px 90px rgba(0, 0, 0, 0.62),
+    0 10px 30px rgba(0, 0, 0, 0.5),
+    0 0 26px color-mix(in srgb, var(--accent) 10%, transparent);
   will-change: clip-path, transform;
   transform-style: preserve-3d;
 }
@@ -971,6 +976,25 @@ html.no-motion [data-motion-text],
   width: 10px;
   height: 1px;
   background: var(--accent-dim);
+}
+
+/* Readability — a faint dark vignette hugs the copy block and the type
+ * carries a soft drop so it stays legible over the glitch field / glass N. */
+.fg-copy::before {
+  content: '';
+  position: absolute;
+  inset: -34px -40px;
+  z-index: -1;
+  border-radius: 24px;
+  background: radial-gradient(ellipse at 32% 42%, rgba(3, 8, 10, 0.74), rgba(3, 8, 10, 0) 74%);
+  pointer-events: none;
+}
+
+.fg-title,
+.fg-body,
+.fg-specs li,
+.fg-kicker {
+  text-shadow: 0 2px 16px rgba(0, 0, 0, 0.85);
 }
 
 @media (max-width: 899px) {
@@ -1105,14 +1129,25 @@ html.no-motion [data-motion-text],
 .knows-title {
   grid-area: 1 / 1;
   margin: 0;
+  width: 100%;
   font-size: clamp(2.8rem, 7.4vw, 6.8rem);
   font-weight: 650;
   letter-spacing: -0.045em;
   line-height: 1;
   color: var(--text-primary);
-  display: flex;
-  gap: clamp(1.4rem, 9vw, 9rem);
-  justify-content: center;
+  /* Symmetric two-column grid — the gap straddles the exact viewport
+   * center, so "nucky" ends and the verb starts equidistant from it. */
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  column-gap: clamp(1.4rem, 9vw, 9rem);
+}
+
+.knows-title .lw-mask:first-child {
+  justify-self: end;
+}
+
+.knows-title .lw-mask:last-child {
+  justify-self: start;
 }
 
 .knows-title--a .lw-mask:last-child .lw-word,
@@ -1382,9 +1417,13 @@ html.no-motion [data-motion-text],
 
 .pg-loop-frame {
   position: relative;
-  border: 1px solid var(--border-subtle);
+  border: 1px solid color-mix(in srgb, var(--accent) 24%, rgba(255, 255, 255, 0.14));
   border-radius: 14px;
   background: color-mix(in srgb, #04090a 82%, transparent);
+  box-shadow:
+    0 28px 80px rgba(0, 0, 0, 0.58),
+    0 8px 26px rgba(0, 0, 0, 0.46),
+    0 0 22px color-mix(in srgb, var(--accent) 9%, transparent);
   padding: 12px 12px 34px;
   will-change: transform;
 }
@@ -1426,6 +1465,16 @@ html.no-motion [data-motion-text],
   letter-spacing: -0.03em;
   line-height: 1.05;
   color: var(--text-primary);
+}
+
+/* Model-panel type gets the same soft drop as the product gallery so it
+ * reads cleanly against the glass N drifting behind the plate. */
+.pg-title,
+.pg-kicker,
+.pg-factor-keyword,
+.pg-factor-body,
+.pg-acc-caption {
+  text-shadow: 0 2px 14px rgba(0, 0, 0, 0.82);
 }
 
 .pg-panel-foot {

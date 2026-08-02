@@ -16,23 +16,23 @@ interface ProofGalleryProps {
 const FACTORS = [
   {
     index: '01',
-    keyword: 'gradient-boosted training',
-    body: 'Retrained after every match day. Scored only on series it has never seen.',
+    keyword: 'trained on every tier-1 game',
+    body: 'Thousands of historical matches, retrained walk-forward after every match day — scored only on series it has never seen.',
   },
   {
     index: '02',
-    keyword: 'champion matchup evidence',
-    body: 'Same-role records, counter-picks, and comp archetypes from twelve years of drafts.',
+    keyword: 'team scores, per game',
+    body: 'In-game stats weighed against strength of opposition, the context of play, and how the draft and style were executed.',
   },
   {
     index: '03',
-    keyword: 'strength of opponents',
-    body: 'Series-grain Elo weights every result by who it came against.',
+    keyword: 'player scores, per game',
+    body: 'Role-opponent strength and contextual matchup execution — never one flat KDA average.',
   },
   {
     index: '04',
-    keyword: 'stats that matter, per role',
-    body: 'Role-weighted form curves instead of one flat KDA average.',
+    keyword: 'form, power, rankings',
+    body: 'Per-game statistical and contextual scores roll up into current-form power ratings for every player, team, and champion.',
   },
 ] as const
 
@@ -66,14 +66,18 @@ export default function ProofGallery({ scorecard, updatedLabel }: ProofGalleryPr
         if (!track || !stage) return
 
         const panels = gsap.utils.toArray<HTMLElement>(root.querySelectorAll('.pg-panel'))
-        /* Full-exit distance — every panel scrolls fully past (alche
-         * behavior) so the unpin happens on an empty stage. */
-        const distance = () => track.scrollWidth
+        /* Alche gallery travel: the stage pins empty, the engine panel rides
+         * in from the right edge, and every panel scrolls fully past so the
+         * unpin happens on an empty stage. */
+        const entry = () => window.innerWidth
+        const distance = () => track.scrollWidth + entry()
 
         gsap.set(track, { transformPerspective: 1400 })
 
-        const scrub = gsap.to(track, {
-          x: () => -distance(),
+        const scrub = gsap.fromTo(track, {
+          x: () => entry(),
+        }, {
+          x: () => -track.scrollWidth,
           ease: 'none',
           scrollTrigger: {
             trigger: stage,

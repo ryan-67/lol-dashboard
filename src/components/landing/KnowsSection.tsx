@@ -186,7 +186,7 @@ export default function KnowsSection() {
     let alive = true
     const blobUrls: string[] = []
     const isLightOnDark = (url: string) =>
-      /WorldsDarkBG|MSIDarkBG|\/leagues\/ewc\.svg/i.test(url)
+      /\/leagues\/(worlds|msi|ewc)\./i.test(url)
 
     const run = async () => {
       const next: Record<string, string> = {}
@@ -512,7 +512,7 @@ export default function KnowsSection() {
             ))}
           </h2>
           <p className="knows-lead">
-            every tier-1 player, team, champion, and tournament — twelve years deep
+            every tier-1 game scored — current form, not a stats archive
           </p>
         </div>
       </div>

@@ -25,24 +25,24 @@ const CHAPTERS: Chapter[] = [
     key: 'dashboard',
     index: '01',
     kicker: 'the dashboard',
-    title: 'every tier-1 stage, instrumented',
-    body: 'Radars, form curves, matchup history, and player spotlights across LCK, LPL, LEC, and LCS — free to browse, no account required.',
-    specs: ['players · teams · champions', 'league / year / split filters', 'auto-refreshing pro data'],
+    title: 'current form, instrumented',
+    body: 'Every chart reads from the model\u2019s scores \u2014 form curves, radars, matchup history, and player spotlights that show who is performing right now across LCK, LPL, LEC, and LCS. Not a stats archive; a live read on form.',
+    specs: ['model-scored players · teams · champions', 'form curves · radars · rankings', 'free to browse, no account required'],
   },
   {
     key: 'model',
     index: '02',
-    kicker: 'the prediction model',
-    title: 'a report card, not a gut feeling',
-    body: 'A walk-forward engine retrained after every match day and scored only on series it has never seen. Accuracy and log-loss, published for anyone to audit.',
-    specs: ['win probability + confidence', 'draft edges · win conditions', 'out-of-fold, never curve-fit'],
+    kicker: 'the prediction model — the core',
+    title: 'one engine underneath it all',
+    body: 'nucky is built on its prediction model. Trained on thousands of tier-1 games, it scores every match statistically and contextually \u2014 and everything else on the site reads from those scores. Accuracy and log-loss, published for anyone to audit.',
+    specs: ['every tier-1 game scored', 'win probability + confidence', 'out-of-fold, never curve-fit'],
   },
   {
     key: 'analyst',
     index: '03',
     kicker: 'the ai analyst',
     title: 'ask it why. it shows receipts.',
-    body: 'nucky answers from retrieved evidence — twelve years of matches, ratings, and drafts — and says when the evidence is not there.',
+    body: 'nucky answers from the model\u2019s scores and retrieved evidence \u2014 twelve years of matches, ratings, and drafts \u2014 and says when the evidence is not there.',
     specs: ['retrieval-grounded answers', 'prediction packets with drivers', 'twelve years of memory'],
   },
 ]
@@ -78,17 +78,20 @@ export default function FeaturesGallery() {
 
         const panels = gsap.utils.toArray<HTMLElement>(root.querySelectorAll('.fg-panel'))
         const medias = gsap.utils.toArray<HTMLElement>(root.querySelectorAll('.fg-media'))
-        /* Full-exit distance (alche gallery behavior): the track travels its
-         * entire width, so the last panel crosses center and disappears off
-         * the left edge before the pin releases — no content is left
-         * mid-viewport to "jump" when the next section takes over. */
-        const distance = () => track.scrollWidth
+        /* Alche gallery travel: the track starts one viewport to the right
+         * (the stage pins empty, then chapter 01 rides in from the right
+         * edge) and travels until the last panel fully exits off the left —
+         * no content is left mid-viewport to "jump" at either end. */
+        const entry = () => window.innerWidth
+        const distance = () => track.scrollWidth + entry()
 
         gsap.set(track, { transformPerspective: 1500 })
         medias.forEach((media) => gsap.set(media, { transformPerspective: 1200 }))
 
-        const scrub = gsap.to(track, {
-          x: () => -distance(),
+        const scrub = gsap.fromTo(track, {
+          x: () => entry(),
+        }, {
+          x: () => -track.scrollWidth,
           ease: 'none',
           scrollTrigger: {
             trigger: stage,

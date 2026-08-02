@@ -86,11 +86,11 @@ export default function PricingSection({
       <div className="section-head">
         <p className="section-label" data-reveal="blur-in">pricing</p>
         <h2 className="section-title" data-motion-text>
-          free analytics. paid analyst.
+          the current is free. the future is paid.
         </h2>
         <p className="section-lead" data-reveal="fade-up">
-          Browse the statistics dashboard without an account. Subscribe when you want retrieval,
-          model explanations, and conversational analysis.
+          Current-form analysis — the model&rsquo;s scores, rankings, and trends — is free to
+          browse, no account required. Predictions of what happens next are part of the paid plan.
         </p>
       </div>
 
@@ -102,12 +102,13 @@ export default function PricingSection({
             <span className="price-amount-per">/ forever</span>
           </div>
           <p className="price-desc">
-            Tier-1 analytics across players, teams, champions, matchups, and tournaments.
+            Current-form analytics across players, teams, champions, matchups, and tournaments —
+            the model&rsquo;s scores, visualized.
           </p>
           <ul className="price-list">
-            <li>league, year, and split filters</li>
+            <li>current form + trends — no future predictions</li>
             <li>radars, form charts, rankings, and trends</li>
-            <li>auto-refreshing professional match data</li>
+            <li>league, year, and split filters</li>
             <li>no account required to browse</li>
           </ul>
           <Link className="landing-btn landing-btn-ghost" to="/dashboard" data-magnetic>
@@ -127,14 +128,14 @@ export default function PricingSection({
             <span className="price-amount-per">/ month</span>
           </div>
           <p className="price-desc">
-            Retrieval-augmented conversation, grounded analyses, and structured series predictions.
-            Full launch pricing is planned at $5 per month.
+            The future, unlocked — structured series predictions, win probabilities, and
+            retrieval-augmented conversation. Full launch pricing is planned at $5 per month.
           </p>
           <ul className="price-list">
+            <li>series predictions with model drivers</li>
+            <li>win probability + confidence, per series</li>
             <li>LoL esports-specific retrieval and tools</li>
-            <li>prediction packets with model drivers</li>
-            <li>usage caps during active beta</li>
-            <li>cancel anytime through Stripe</li>
+            <li>cancel anytime through Stripe · beta usage caps</li>
           </ul>
           <button
             type="button"

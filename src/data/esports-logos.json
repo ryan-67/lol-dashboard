@@ -2,15 +2,15 @@
   "source": "https://esports-api.lolesports.com/persisted/gw",
   "syncedAt": "2026-06-29T06:58:19.852186Z",
   "leagues": {
-    "Worlds": "https://static.lolesports.com/leagues/1592594612171_WorldsDarkBG.png",
-    "MSI": "https://static.lolesports.com/leagues/1592594634248_MSIDarkBG.png",
+    "Worlds": "/leagues/worlds.png",
+    "MSI": "/leagues/msi.png",
     "EWC": "/leagues/ewc.svg",
     "Esports World Cup": "/leagues/ewc.svg",
-    "First Stand": "https://static.lolesports.com/leagues/1740042025201_RG_LOL_FIRST_STAND_LOGO_VOLT_ALPHA.png",
-    "LCS": "https://static.lolesports.com/leagues/1706356907418_LCSNew-01-FullonDark.png",
-    "LEC": "https://static.lolesports.com/leagues/1592516184297_LEC-01-FullonDark.png",
-    "LCK": "https://static.lolesports.com/leagues/lck-color-on-black.png",
-    "LPL": "https://static.lolesports.com/leagues/1592516115322_LPL-01-FullonDark.png"
+    "First Stand": "/leagues/first-stand.png",
+    "LCS": "/leagues/lcs.png",
+    "LEC": "/leagues/lec.png",
+    "LCK": "/leagues/lck.png",
+    "LPL": "/leagues/lpl.png"
   },
   "teamsByEsportsSlug": {
     "pentagram": "https://lolstatic-a.akamaihd.net/esports-assets/production/team/pentagram-5udx4g7f.png",
