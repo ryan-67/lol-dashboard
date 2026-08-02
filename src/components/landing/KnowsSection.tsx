@@ -4,6 +4,7 @@ import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import { useGSAP } from '@gsap/react'
 import { coarsePointer, MOTION, plateToAlpha, reducedMotion } from './motion'
 import { leagueLogoUrl, teamLogoUrlFromName } from '../../lib/entities'
+import { championIconUrl, ddragonChampionKey } from '../../lib/entities/assets'
 import { LANDING_PLAYER_PORTRAITS } from '../../data/landingPortraits'
 
 gsap.registerPlugin(ScrollTrigger, useGSAP)
@@ -33,42 +34,100 @@ const TEAMS = [
   'FlyQuest',
   'KT Rolster',
   'Dplus Kia',
+  'JD Gaming',
+  'Weibo Gaming',
+  'LNG Esports',
+  'Cloud9',
+  'Team Liquid',
+  '100 Thieves',
+  'DRX',
+  'Nongshim RedForce',
+  'Team Vitality',
+  'Movistar KOI',
 ]
 
-const TOURNAMENTS = ['Worlds', 'MSI', 'First Stand', 'EWC']
+const TOURNAMENTS = ['Worlds', 'MSI', 'First Stand', 'EWC', 'LCK', 'LPL', 'LEC', 'LCS']
 
-const PLAYERS = ['Faker', 'Chovy', 'Canyon', 'Caps', 'Knight', 'Bin', 'Viper', 'Zeus']
+const PLAYERS = Object.keys(LANDING_PLAYER_PORTRAITS)
+
+const CHAMPIONS = [
+  'Ahri',
+  'Azir',
+  'Lee Sin',
+  'Yasuo',
+  'Zed',
+  'Sylas',
+  'Aatrox',
+  'Jinx',
+  "Kai'Sa",
+  'Orianna',
+  'Renekton',
+  'Gnar',
+  'Viktor',
+  'Ashe',
+  "K'Sante",
+  'Rumble',
+]
 
 /* Scattered field positions (percent of stage) — the center stays clear for
  * the headline. Depth pushes items into three planes for parallax. */
 const SCATTER_POSITIONS = [
-  { top: 8, left: 6 },
-  { top: 6, left: 26 },
-  { top: 10, left: 48 },
-  { top: 7, left: 70 },
-  { top: 12, left: 90 },
-  { top: 30, left: 4 },
-  { top: 28, left: 22 },
-  { top: 32, left: 78 },
-  { top: 27, left: 94 },
-  { top: 52, left: 8 },
-  { top: 55, left: 92 },
-  { top: 70, left: 5 },
-  { top: 74, left: 24 },
-  { top: 68, left: 44 },
-  { top: 76, left: 62 },
-  { top: 71, left: 80 },
-  { top: 88, left: 14 },
-  { top: 90, left: 38 },
-  { top: 86, left: 66 },
-  { top: 90, left: 88 },
-  { top: 48, left: 30 },
-  { top: 50, left: 70 },
+  /* top band */
+  { top: 5, left: 4 },
+  { top: 9, left: 13 },
+  { top: 4, left: 22 },
+  { top: 10, left: 31 },
+  { top: 6, left: 40 },
+  { top: 11, left: 49 },
+  { top: 5, left: 58 },
+  { top: 9, left: 67 },
+  { top: 4, left: 76 },
+  { top: 10, left: 85 },
+  { top: 6, left: 94 },
+  /* upper band */
+  { top: 20, left: 7 },
+  { top: 24, left: 18 },
+  { top: 19, left: 30 },
+  { top: 23, left: 44 },
+  { top: 20, left: 58 },
+  { top: 24, left: 71 },
+  { top: 19, left: 84 },
+  { top: 23, left: 95 },
+  /* mid flanks — center stays clear for the headline */
+  { top: 37, left: 4 },
+  { top: 46, left: 10 },
+  { top: 55, left: 4 },
+  { top: 40, left: 96 },
+  { top: 49, left: 90 },
+  { top: 58, left: 96 },
+  { top: 36, left: 18 },
+  { top: 38, left: 82 },
+  /* lower band */
+  { top: 68, left: 6 },
+  { top: 72, left: 17 },
+  { top: 67, left: 29 },
+  { top: 73, left: 43 },
+  { top: 68, left: 57 },
+  { top: 72, left: 70 },
+  { top: 67, left: 82 },
+  { top: 72, left: 93 },
+  /* bottom band */
+  { top: 84, left: 4 },
+  { top: 90, left: 13 },
+  { top: 85, left: 22 },
+  { top: 91, left: 31 },
+  { top: 86, left: 40 },
+  { top: 90, left: 49 },
+  { top: 85, left: 58 },
+  { top: 91, left: 67 },
+  { top: 86, left: 76 },
+  { top: 90, left: 85 },
+  { top: 85, left: 94 },
 ]
 
 interface KnowsItem {
   url: string
-  kind: 'team' | 'tournament' | 'player'
+  kind: 'team' | 'tournament' | 'player' | 'champion'
   pos: { top: number; left: number }
   depth: number
 }
@@ -89,7 +148,12 @@ function buildItems(): KnowsItem[] {
     kind: 'player' as const,
   })).filter((item) => Boolean(item.url))
 
-  const mixed = shuffle([...teamItems, ...tournamentItems, ...playerItems])
+  const championItems = CHAMPIONS.map((name) => ({
+    url: championIconUrl(ddragonChampionKey(name)),
+    kind: 'champion' as const,
+  }))
+
+  const mixed = shuffle([...teamItems, ...tournamentItems, ...playerItems, ...championItems])
   const positions = shuffle(SCATTER_POSITIONS)
 
   return mixed.slice(0, positions.length).map((item, i) => ({
@@ -128,7 +192,9 @@ export default function KnowsSection() {
       const next: Record<string, string> = {}
       await Promise.all(
         items.map(async (item) => {
-          if (item.kind === 'player' || isLightOnDark(item.url)) {
+          /* Players and champion art are full-bleed photos; light-on-dark
+           * crests would be erased by the punch. Both keep raw assets. */
+          if (item.kind === 'player' || item.kind === 'champion' || isLightOnDark(item.url)) {
             next[item.url] = item.url
             return
           }

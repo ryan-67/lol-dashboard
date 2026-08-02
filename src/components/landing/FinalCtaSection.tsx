@@ -158,68 +158,74 @@ export default function FinalCtaSection({
       <div className="finale-wipe" aria-hidden="true" />
 
       <div className="finale-plane">
-        <h2 className="finale-mark" aria-label="nucky">
-          {MARK.split('').map((char, i) => (
-            <span
-              key={`${char}-${i}`}
-              className="finale-letter"
-              data-char={char}
-              aria-hidden="true"
-            >
-              {char}
+        {/* The wordmark owns the plate — alche end-frame scale. */}
+        <div className="finale-center">
+          <h2 className="finale-mark" aria-label="nucky">
+            {MARK.split('').map((char, i) => (
+              <span
+                key={`${char}-${i}`}
+                className="finale-letter"
+                data-char={char}
+                aria-hidden="true"
+              >
+                {char}
+              </span>
+            ))}
+            <span className="finale-letter finale-mark-dot" data-char="." aria-hidden="true">
+              .
             </span>
-          ))}
-          <span className="finale-letter finale-mark-dot" data-char="." aria-hidden="true">
-            .
-          </span>
-        </h2>
-
-        <div className="finale-row finale-actions">
-          <Link className="landing-btn landing-btn-primary landing-btn-lg" to="/dashboard" data-magnetic>
-            <span className="btn-label">open the dashboard</span>
-            <span className="landing-btn-icon" aria-hidden="true">→</span>
-          </Link>
-          {signedIn ? (
-            <Link className="landing-btn landing-btn-ghost landing-btn-lg" to={homePath} data-magnetic>
-              <span className="btn-label">open app</span>
-              <span className="landing-btn-icon" aria-hidden="true">→</span>
-            </Link>
-          ) : (
-            <button
-              type="button"
-              className="landing-btn landing-btn-ghost landing-btn-lg"
-              onClick={onCreateAccount}
-              data-magnetic
-            >
-              <span className="btn-label">create account</span>
-              <span className="landing-btn-icon" aria-hidden="true">→</span>
-            </button>
-          )}
+          </h2>
         </div>
 
-        <div className="finale-row finale-links" aria-label="Site">
-          {FINALE_LINKS.map((link) => (
-            <Link key={link.label} to={link.to} className="finale-link" data-hyper>
-              {link.label}
+        {/* Everything else lives at the bottom of the plate. */}
+        <div className="finale-bottom">
+          <div className="finale-row finale-actions">
+            <Link className="landing-btn landing-btn-primary landing-btn-lg" to="/dashboard" data-magnetic>
+              <span className="btn-label">open the dashboard</span>
+              <span className="landing-btn-icon" aria-hidden="true">→</span>
             </Link>
-          ))}
-        </div>
+            {signedIn ? (
+              <Link className="landing-btn landing-btn-ghost landing-btn-lg" to={homePath} data-magnetic>
+                <span className="btn-label">open app</span>
+                <span className="landing-btn-icon" aria-hidden="true">→</span>
+              </Link>
+            ) : (
+              <button
+                type="button"
+                className="landing-btn landing-btn-ghost landing-btn-lg"
+                onClick={onCreateAccount}
+                data-magnetic
+              >
+                <span className="btn-label">create account</span>
+                <span className="landing-btn-icon" aria-hidden="true">→</span>
+              </button>
+            )}
+          </div>
 
-        <div className="finale-row finale-meta">
-          <span>© 2026 nucky · geonbu@nucky.gg</span>
-          <span className="finale-meta-links">
-            {FINALE_LEGAL.map((link) => (
+          <div className="finale-row finale-links" aria-label="Site">
+            {FINALE_LINKS.map((link) => (
               <Link key={link.label} to={link.to} className="finale-link" data-hyper>
                 {link.label}
               </Link>
             ))}
-            <Link to="/contact" className="finale-link" data-hyper>
-              contact
-            </Link>
-          </span>
-          <span className="finale-riot">
-            not endorsed by Riot Games · League of Legends is a trademark of Riot Games, Inc.
-          </span>
+          </div>
+
+          <div className="finale-row finale-meta">
+            <span>© 2026 nucky · geonbu@nucky.gg</span>
+            <span className="finale-meta-links">
+              {FINALE_LEGAL.map((link) => (
+                <Link key={link.label} to={link.to} className="finale-link" data-hyper>
+                  {link.label}
+                </Link>
+              ))}
+              <Link to="/contact" className="finale-link" data-hyper>
+                contact
+              </Link>
+            </span>
+            <span className="finale-riot">
+              not endorsed by Riot Games · League of Legends is a trademark of Riot Games, Inc.
+            </span>
+          </div>
         </div>
       </div>
     </section>

@@ -74,8 +74,10 @@ export default function Preloader({ onComplete }: PreloaderProps) {
       const typeEl = typeRef.current
       const plate = root.querySelector('.preloader-plate')
 
-      /* Stroke-draw setup. */
-      const letterLength = letter?.getTotalLength() ?? 0
+      /* Stroke-draw setup. A tiny dash overshoot plus clearing the pattern
+       * once the tween lands guarantees the outline fully closes (measured
+       * length can undershoot the rendered path with miter joins). */
+      const letterLength = (letter?.getTotalLength() ?? 0) * 1.005
       if (letter) {
         letter.style.strokeDasharray = `${letterLength}`
         letter.style.strokeDashoffset = `${letterLength}`
@@ -112,11 +114,20 @@ export default function Preloader({ onComplete }: PreloaderProps) {
         })
       }
 
-      /* 2 — the letterform draws itself. */
+      /* 2 — the letterform draws itself, then the dash pattern clears so
+       * the full outline is guaranteed regardless of length rounding. */
       if (letter) {
         tl.to(
           letter,
-          { strokeDashoffset: 0, duration: 1.35, ease: 'power2.inOut' },
+          {
+            strokeDashoffset: 0,
+            duration: 1.5,
+            ease: 'power2.inOut',
+            onComplete: () => {
+              letter.style.strokeDasharray = 'none'
+              letter.style.strokeDashoffset = '0'
+            },
+          },
           0.5,
         )
       }
@@ -137,8 +148,9 @@ export default function Preloader({ onComplete }: PreloaderProps) {
       )
 
       /* 4 — hand-off: guides retreat, the N inflates toward the 3D mark's
-       * scale and dissolves as the hero scene fades in underneath. */
-      tl.to(guides, { autoAlpha: 0, duration: 0.4, ease: 'power2.in' }, '+=0.45')
+       * scale and dissolves as the hero scene fades in underneath. The wait
+       * anchors after the draw finishes so the outline always completes. */
+      tl.to(guides, { autoAlpha: 0, duration: 0.4, ease: 'power2.in' }, 2.15)
       tl.to(circle, { autoAlpha: 0, duration: 0.4 }, '<')
       tl.to(
         svg,

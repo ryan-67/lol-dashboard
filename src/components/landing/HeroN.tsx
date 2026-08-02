@@ -1,13 +1,16 @@
 import { useEffect, useMemo, useRef, useState, type MutableRefObject } from 'react'
 import { Canvas, useFrame } from '@react-three/fiber'
-import { Environment, Lightformer, MeshTransmissionMaterial, Outlines } from '@react-three/drei'
+import { Environment, Lightformer, MeshTransmissionMaterial } from '@react-three/drei'
 import {
   AdditiveBlending,
   BackSide,
   CanvasTexture,
   Color,
+  EdgesGeometry,
   ExtrudeGeometry,
   Group,
+  LineBasicMaterial,
+  LineSegments,
   LinearFilter,
   MathUtils,
   Mesh,
@@ -164,9 +167,17 @@ function GlassN({ heroRef, pageRef, finaleRef, compact }: SceneProgress) {
   const groupRef = useRef<Group>(null)
   const meshRef = useRef<Mesh>(null)
   const shellRef = useRef<Mesh>(null)
+  const edgesRef = useRef<LineSegments>(null)
   const geometry = useMemo(buildNGeometry, [])
+  const edges = useMemo(() => new EdgesGeometry(geometry, 14), [geometry])
 
-  useEffect(() => () => geometry.dispose(), [geometry])
+  useEffect(
+    () => () => {
+      geometry.dispose()
+      edges.dispose()
+    },
+    [geometry, edges],
+  )
 
   useFrame((state, delta) => {
     const group = groupRef.current
@@ -229,6 +240,12 @@ function GlassN({ heroRef, pageRef, finaleRef, compact }: SceneProgress) {
       shellMat.opacity = MathUtils.clamp(midPresence + finale * 0.4, 0.18, 0.72)
       if (shellMat.color) shellMat.color.copy(EDGE_COLOR).lerp(EDGE_FINALE, finale)
     }
+    const edgeMat = edgesRef.current?.material as LineBasicMaterial | undefined
+    if (edgeMat) {
+      const midPresence = hero > 0.2 ? 0.85 : 0.6
+      edgeMat.opacity = MathUtils.clamp(midPresence + finale * 0.3, 0.5, 1)
+      edgeMat.color.copy(EDGE_COLOR).lerp(EDGE_FINALE, finale)
+    }
   })
 
   return (
@@ -263,15 +280,17 @@ function GlassN({ heroRef, pageRef, finaleRef, compact }: SceneProgress) {
           backside={!compact}
           backsideThickness={0.42}
         />
-        <Outlines
-          thickness={compact ? 1.6 : 2.4}
+      </mesh>
+      {/* Off-white edge wireframe — crisp silhouette on matte black. */}
+      <lineSegments ref={edgesRef} geometry={edges}>
+        <lineBasicMaterial
           color="#f3f0e7"
-          opacity={0.85}
           transparent
-          screenspace
+          opacity={0.75}
+          depthWrite={false}
           toneMapped={false}
         />
-      </mesh>
+      </lineSegments>
     </group>
   )
 }
