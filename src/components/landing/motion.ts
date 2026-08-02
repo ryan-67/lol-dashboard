@@ -43,9 +43,12 @@ export function initLandingLenis(): () => void {
   if (reducedMotion()) return () => {}
 
   const lenis = new Lenis({
-    lerp: 0.085,
+    /* Slightly softer than the prior pass — silkier inertia across long
+     * pin runs without feeling floaty. */
+    lerp: 0.072,
     smoothWheel: true,
-    wheelMultiplier: 0.92,
+    wheelMultiplier: 0.86,
+    touchMultiplier: 1.05,
     syncTouch: false,
   })
   landingLenis = lenis
@@ -57,7 +60,12 @@ export function initLandingLenis(): () => void {
   gsap.ticker.add(raf)
   gsap.ticker.lagSmoothing(0)
 
+  /* One late refresh after layout + fonts settle so pin distances match
+   * measured track widths (avoids end-of-gallery micro-jumps). */
+  const refreshTimer = window.setTimeout(() => ScrollTrigger.refresh(), 700)
+
   return () => {
+    window.clearTimeout(refreshTimer)
     gsap.ticker.remove(raf)
     lenis.destroy()
     if (landingLenis === lenis) landingLenis = null

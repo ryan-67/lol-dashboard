@@ -1,7 +1,15 @@
 import { useEffect, useRef } from 'react'
 import { reducedMotion } from './motion'
 
-const GLYPHS = '01アイウエオカキクケコサシスセソタチツナニヌネノnucky<>/\\+=·'
+/* Korean + English + math / currency / punctuation — no katakana. Hangul
+ * falls back through Malgun Gothic / Apple SD Gothic Neo when the mono
+ * face lacks CJK coverage. */
+const GLYPHS =
+  '가나다라마바사아자차카타파하너키분석예측승패ㄱㄴㄷㄹㅁㅂㅅㅇㅈㅊㅋㅌㅍㅎ' +
+  'nuckyabcdefghijklmnopqrstuvwxyz0123456789' +
+  '+−×÷=≠≈∞√π∑∫<>≤≥±°·' +
+  '?$₩#%¥@&*|/\\_[]{}()«»'
+
 const CELL = 34
 /* Slightly less muted than the first pass — still atmospheric, not a matrix wall. */
 const BASE_ALPHA = 0.11
@@ -10,7 +18,7 @@ const MUTATE_MS = 80
 
 /**
  * Faint glitching glyph field (reactbits letter-glitch language, heavily
- * muted): a sparse mono character grid drifts through random mutations and
+ * muted): a sparse character grid drifts through random mutations and
  * brightens slightly around the pointer. Fixed behind everything; skipped
  * entirely under reduced motion.
  */
@@ -45,7 +53,8 @@ export default function LetterGlitch() {
         /* Sparse field — a few more lit cells than before for readable atmosphere. */
         alpha: Math.random() < 0.3 ? Math.random() : 0,
       }))
-      ctx.font = '11px "Noto Sans Mono", monospace'
+      ctx.font =
+        '11px "Noto Sans Mono", "Malgun Gothic", "Apple SD Gothic Neo", "Noto Sans KR", monospace'
       ctx.textAlign = 'center'
       ctx.textBaseline = 'middle'
     }

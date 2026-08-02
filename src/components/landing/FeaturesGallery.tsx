@@ -94,7 +94,7 @@ export default function FeaturesGallery() {
             trigger: stage,
             start: 'top top',
             end: () => `+=${distance()}`,
-            scrub: 1,
+            scrub: MOTION.scrub,
             pin: true,
             anticipatePin: 1,
             invalidateOnRefresh: true,
