@@ -1,5 +1,6 @@
 import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
+import Lenis from 'lenis'
 
 gsap.registerPlugin(ScrollTrigger)
 
@@ -26,6 +27,128 @@ export const reducedMotion = (): boolean =>
 
 export const coarsePointer = (): boolean =>
   typeof window !== 'undefined' && window.matchMedia('(pointer: coarse)').matches
+
+/* ---------- Lenis smooth scroll (landing surface) ---------- */
+
+let landingLenis: Lenis | null = null
+
+export const getLandingLenis = (): Lenis | null => landingLenis
+
+/**
+ * Silky document-level smooth scroll for the marketing surface, driven
+ * through the GSAP ticker so ScrollTrigger pins/scrubs stay phase-locked
+ * (cinematic-gsap-lenis-motion-system skill wiring).
+ */
+export function initLandingLenis(): () => void {
+  if (reducedMotion()) return () => {}
+
+  const lenis = new Lenis({
+    lerp: 0.085,
+    smoothWheel: true,
+    wheelMultiplier: 0.92,
+    syncTouch: false,
+  })
+  landingLenis = lenis
+  lenis.on('scroll', ScrollTrigger.update)
+
+  const raf = (time: number) => {
+    lenis.raf(time * 1000)
+  }
+  gsap.ticker.add(raf)
+  gsap.ticker.lagSmoothing(0)
+
+  return () => {
+    gsap.ticker.remove(raf)
+    lenis.destroy()
+    if (landingLenis === lenis) landingLenis = null
+  }
+}
+
+/* ---------- rotating accent atmosphere ---------- */
+
+/**
+ * Alche-like accent color switches: sections declare `data-accent-hue` and
+ * the page's `--la-h` custom property glides between them as they take the
+ * viewport. Turquoise (195) stays the home signature.
+ */
+export function initAccentDrift(root: HTMLElement): () => void {
+  const state = { hue: 195 }
+  const apply = () => {
+    root.style.setProperty('--la-h', state.hue.toFixed(2))
+  }
+  apply()
+
+  if (reducedMotion()) return () => {}
+
+  const triggers: ScrollTrigger[] = []
+  gsap.utils.toArray<HTMLElement>(root.querySelectorAll('[data-accent-hue]')).forEach((el) => {
+    const hue = Number(el.dataset.accentHue || 195)
+    const glide = (target: number) => {
+      gsap.to(state, {
+        hue: target,
+        duration: 1.4,
+        ease: 'power2.inOut',
+        overwrite: 'auto',
+        onUpdate: apply,
+      })
+    }
+    triggers.push(
+      ScrollTrigger.create({
+        trigger: el,
+        start: 'top 55%',
+        end: 'bottom 45%',
+        onEnter: () => glide(hue),
+        onEnterBack: () => glide(hue),
+        onLeaveBack: () => glide(195),
+      }),
+    )
+  })
+
+  return () => {
+    triggers.forEach((trigger) => trigger.kill())
+    gsap.killTweensOf(state)
+  }
+}
+
+/* ---------- physical tilt hover ---------- */
+
+/** Material-feeling card tilt (rotateX/Y under 4deg) for [data-tilt]. */
+export function initTiltHover(root: HTMLElement): () => void {
+  if (reducedMotion() || coarsePointer()) return () => {}
+
+  const cleanups: Array<() => void> = []
+
+  gsap.utils.toArray<HTMLElement>(root.querySelectorAll('[data-tilt]')).forEach((element) => {
+    const strength = Number(element.dataset.tilt || 3.4)
+    const rxTo = gsap.quickTo(element, 'rotationX', { duration: 0.55, ease: 'power3.out' })
+    const ryTo = gsap.quickTo(element, 'rotationY', { duration: 0.55, ease: 'power3.out' })
+    const yTo = gsap.quickTo(element, 'y', { duration: 0.55, ease: 'power3.out' })
+    gsap.set(element, { transformPerspective: 900 })
+
+    const handleMove = (event: PointerEvent) => {
+      const rect = element.getBoundingClientRect()
+      const px = (event.clientX - rect.left) / rect.width - 0.5
+      const py = (event.clientY - rect.top) / rect.height - 0.5
+      rxTo(-py * strength)
+      ryTo(px * strength)
+      yTo(-3)
+    }
+    const handleLeave = () => {
+      rxTo(0)
+      ryTo(0)
+      yTo(0)
+    }
+
+    element.addEventListener('pointermove', handleMove)
+    element.addEventListener('pointerleave', handleLeave)
+    cleanups.push(() => {
+      element.removeEventListener('pointermove', handleMove)
+      element.removeEventListener('pointerleave', handleLeave)
+    })
+  })
+
+  return () => cleanups.forEach((fn) => fn())
+}
 
 /** Wrap each word in a masked span pair for kinetic reveals. */
 export function splitWords(element: HTMLElement): void {

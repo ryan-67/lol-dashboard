@@ -6,31 +6,27 @@ import { useGSAP } from '@gsap/react'
 import AuthModal from '../components/AuthModal'
 import Preloader from '../components/landing/Preloader'
 import CursorTrail from '../components/landing/CursorTrail'
-import WireframeCompanion from '../components/landing/WireframeCompanion'
 import HeroSection from '../components/landing/HeroSection'
+import FeaturesGallery from '../components/landing/FeaturesGallery'
 import KnowsSection from '../components/landing/KnowsSection'
-import WhatIsSection from '../components/landing/WhatIsSection'
-import LeaguesSection from '../components/landing/LeaguesSection'
-import ModelEngineSection from '../components/landing/ModelEngineSection'
-import TrackRecordSection from '../components/landing/TrackRecordSection'
+import ProofGallery from '../components/landing/ProofGallery'
 import PricingSection from '../components/landing/PricingSection'
 import FaqSection from '../components/landing/FaqSection'
-import SignalSection from '../components/landing/SignalSection'
 import FinalCtaSection from '../components/landing/FinalCtaSection'
 import {
+  getLandingLenis,
+  initAccentDrift,
+  initLandingLenis,
   initMagnetic,
   initParallaxLayers,
   initScrollReveals,
   initTextReveals,
+  initTiltHover,
   reducedMotion,
 } from '../components/landing/motion'
 import { useViewPreference } from '../context/ViewPreferenceContext'
 import { useAuth } from '../context/AuthContext'
-import {
-  fetchAccuracyScorecard,
-  formatPct,
-  type AccuracyScorecard,
-} from '../lib/accuracyScorecard'
+import { fetchAccuracyScorecard, type AccuracyScorecard } from '../lib/accuracyScorecard'
 import { fetchModelMetadata } from '../lib/loadModelMetadata'
 import { formatModelUpdatedDate } from '../lib/format'
 import { DEFAULT_TIMEZONE } from '../lib/timezones'
@@ -54,7 +50,10 @@ export default function Landing() {
   const [checkoutError, setCheckoutError] = useState<string | null>(null)
   const [checkoutLoading, setCheckoutLoading] = useState(false)
 
-  /* Live scorecard + model metadata (kept from the previous surface). */
+  /* Silky document scroll — Lenis driven through the GSAP ticker. */
+  useEffect(() => initLandingLenis(), [])
+
+  /* Live scorecard + model metadata. */
   useEffect(() => {
     let alive = true
     const load = (force = false) => {
@@ -77,22 +76,23 @@ export default function Landing() {
     }
   }, [])
 
-  /* Hash deep links (/#pricing etc). */
+  /* Hash deep links (/#pricing etc) — respect pinned sections via Lenis. */
   useEffect(() => {
     if (!location.hash) return
     const id = location.hash.slice(1)
     const frame = window.requestAnimationFrame(() => {
-      document.getElementById(id)?.scrollIntoView({
-        behavior: reducedMotion() ? 'auto' : 'smooth',
-        block: 'start',
-      })
+      const target = document.getElementById(id)
+      if (!target) return
+      const lenis = getLandingLenis()
+      if (lenis) lenis.scrollTo(target, { offset: -8, duration: 1.1 })
+      else target.scrollIntoView({ behavior: reducedMotion() ? 'auto' : 'smooth', block: 'start' })
     })
     return () => window.cancelAnimationFrame(frame)
   }, [location.hash])
 
   /* Page-wide motion systems: kinetic text, reveal presets, parallax,
-   * magnetic hover, footer handoff. Section-specific choreography lives
-   * inside each section component. */
+   * magnetic + tilt hover, accent atmosphere, footer handoff. Section
+   * choreography lives inside each section component. */
   useGSAP(
     () => {
       const root = rootRef.current
@@ -102,6 +102,8 @@ export default function Landing() {
       initScrollReveals(root)
       initParallaxLayers(root)
       const cleanupMagnetic = initMagnetic(root)
+      const cleanupTilt = initTiltHover(root)
+      const cleanupAccent = initAccentDrift(root)
 
       /* Footer parallax handoff (footer lives in LandingLayout). */
       const footer = document.querySelector('.landing-footer')
@@ -127,6 +129,8 @@ export default function Landing() {
       return () => {
         window.clearTimeout(refreshTimer)
         cleanupMagnetic?.()
+        cleanupTilt()
+        cleanupAccent()
       }
     },
     { scope: rootRef },
@@ -153,9 +157,6 @@ export default function Landing() {
     }
   }
 
-  const accuracyLabel = scorecard
-    ? formatPct(scorecard.aggregate.model.accuracy)
-    : null
   const scorecardUpdated = formatModelUpdatedDate(modelUpdatedIso ?? scorecard?.generatedAt, {
     timeZone: DEFAULT_TIMEZONE,
   })
@@ -171,26 +172,19 @@ export default function Landing() {
         <div className="landing-ambient-glow" data-parallax-layer data-speed="-0.08" />
       </div>
 
-      <WireframeCompanion />
-
       <div className="landing-content">
         <HeroSection
           introDone={introDone}
           signedIn={Boolean(user)}
           homePath={homePath}
-          accuracyLabel={accuracyLabel}
           onCreateAccount={() => openAuth('signup')}
         />
 
+        <FeaturesGallery />
+
         <KnowsSection />
 
-        <WhatIsSection />
-
-        <LeaguesSection />
-
-        <ModelEngineSection />
-
-        <TrackRecordSection scorecard={scorecard} updatedLabel={scorecardUpdated ?? null} />
+        <ProofGallery scorecard={scorecard} updatedLabel={scorecardUpdated ?? null} />
 
         <PricingSection
           signedIn={Boolean(user)}
@@ -200,8 +194,6 @@ export default function Landing() {
         />
 
         <FaqSection />
-
-        <SignalSection />
 
         <FinalCtaSection
           signedIn={Boolean(user)}

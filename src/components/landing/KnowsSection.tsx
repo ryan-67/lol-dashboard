@@ -2,11 +2,8 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import { useGSAP } from '@gsap/react'
-import { MOTION, plateToAlpha, reducedMotion } from './motion'
-import {
-  leagueLogoUrl,
-  teamLogoUrlFromName,
-} from '../../lib/entities'
+import { coarsePointer, MOTION, plateToAlpha, reducedMotion } from './motion'
+import { leagueLogoUrl, teamLogoUrlFromName } from '../../lib/entities'
 import { LANDING_PLAYER_PORTRAITS } from '../../data/landingPortraits'
 
 gsap.registerPlugin(ScrollTrigger, useGSAP)
@@ -43,7 +40,7 @@ const TOURNAMENTS = ['Worlds', 'MSI', 'First Stand', 'EWC']
 const PLAYERS = ['Faker', 'Chovy', 'Canyon', 'Caps', 'Knight', 'Bin', 'Viper', 'Zeus']
 
 /* Scattered field positions (percent of stage) — the center stays clear for
- * the headline. Mirrors the "gallery of fame" reference layout. */
+ * the headline. Depth pushes items into three planes for parallax. */
 const SCATTER_POSITIONS = [
   { top: 8, left: 6 },
   { top: 6, left: 26 },
@@ -73,6 +70,7 @@ interface KnowsItem {
   url: string
   kind: 'team' | 'tournament' | 'player'
   pos: { top: number; left: number }
+  depth: number
 }
 
 function buildItems(): KnowsItem[] {
@@ -97,6 +95,8 @@ function buildItems(): KnowsItem[] {
   return mixed.slice(0, positions.length).map((item, i) => ({
     ...item,
     pos: positions[i]!,
+    /* Three depth planes: far 0.45, mid 0.72, near 1. */
+    depth: [0.45, 0.72, 1][i % 3]!,
   }))
 }
 
@@ -104,9 +104,10 @@ const KNOWS_WORDS = ['nucky', 'knows']
 const ANALYZES_WORDS = ['nucky', 'analyzes']
 
 /**
- * "nucky knows / nucky analyzes" — pinned scattered-image reveal.
- * Images stack at center, scale up, then scatter to field positions while
- * the headline swaps. Adapted from the animmaster hero_21 reference.
+ * "nucky knows / nucky analyzes" — pinned scattered-field reveal, upgraded
+ * into a depth field (animmaster_3d_20 language): items live on three
+ * parallax planes, the whole field steers gently with the pointer, and the
+ * settled field keeps breathing.
  */
 export default function KnowsSection() {
   const rootRef = useRef<HTMLElement>(null)
@@ -114,8 +115,7 @@ export default function KnowsSection() {
   const [resolvedUrls, setResolvedUrls] = useState<Record<string, string>>({})
 
   /* Punch solid white/black plates out of team + tournament logos so they
-   * sit as true transparent assets on the matte page. Player portraits stay
-   * as-is (photo cutouts aren't available). */
+   * sit as true transparent assets on the matte page. */
   useEffect(() => {
     let alive = true
     const blobUrls: string[] = []
@@ -159,17 +159,22 @@ export default function KnowsSection() {
       const analyzesWords = root.querySelectorAll('.knows-title--b .lw-word')
       const lead = root.querySelector('.knows-lead')
 
+      const scatterX = (i: number) =>
+        ((items[i]!.pos.left - 50) / 100) * stage.clientWidth * (0.72 + items[i]!.depth * 0.28)
+      const scatterY = (i: number) =>
+        ((items[i]!.pos.top - 50) / 100) * stage.clientHeight * (0.72 + items[i]!.depth * 0.28)
+
       if (reducedMotion()) {
         imgs.forEach((el, i) => {
           const item = items[i]
           if (!item) return
           gsap.set(el, {
-            autoAlpha: 1,
-            scale: 1,
+            autoAlpha: 0.35 + item.depth * 0.65,
+            scale: 0.35 + item.depth * 0.3,
             xPercent: -50,
             yPercent: -50,
-            x: () => ((item.pos.left - 50) / 100) * stage.clientWidth,
-            y: () => ((item.pos.top - 50) / 100) * stage.clientHeight,
+            x: scatterX(i),
+            y: scatterY(i),
           })
         })
         gsap.set([knowsWords, lead], { autoAlpha: 1, yPercent: 0 })
@@ -213,7 +218,7 @@ export default function KnowsSection() {
           ease: 'power3.out',
         })
 
-        /* Phase B — images bloom from the center stack. */
+        /* Phase B — entities bloom from the center stack. */
         tl.to(
           imgs,
           {
@@ -226,13 +231,16 @@ export default function KnowsSection() {
           0.08,
         )
 
-        /* Phase C — scatter to field positions and settle smaller. */
+        /* Phase C — scatter into the depth field: far plane smaller,
+         * dimmer, softly blurred; near plane crisp and large. */
         tl.to(
           imgs,
           {
-            x: (i) => ((items[i]!.pos.left - 50) / 100) * stage.clientWidth,
-            y: (i) => ((items[i]!.pos.top - 50) / 100) * stage.clientHeight,
-            scale: 0.52,
+            x: (i) => scatterX(i),
+            y: (i) => scatterY(i),
+            scale: (i) => 0.3 + items[i]!.depth * 0.34,
+            autoAlpha: (i) => 0.4 + items[i]!.depth * 0.6,
+            filter: (i) => `blur(${((1 - items[i]!.depth) * 2.4).toFixed(1)}px)`,
             duration: 0.26,
             stagger: 0.008,
             ease: 'power2.inOut',
@@ -253,16 +261,81 @@ export default function KnowsSection() {
         )
         tl.to(lead, { autoAlpha: 1, y: 0, duration: 0.09, ease: 'power2.out' }, 0.72)
 
-        /* Ambient — the settled field drifts slightly for depth. */
+        /* Scroll drift — planes exit at depth-scaled speeds. */
         tl.to(
           imgs,
           {
-            y: (i) => ((items[i]!.pos.top - 50) / 100) * stage.clientHeight - 24,
+            y: (i) => scatterY(i) - 18 - items[i]!.depth * 26,
             duration: 0.24,
             ease: 'none',
           },
           0.76,
         )
+
+        /* Idle breathing — each entity floats on its own phase. */
+        const floats = imgs.map((el, i) => {
+          const inner = el.querySelector('.knows-img-inner')
+          if (!inner) return null
+          return gsap.to(inner, {
+            y: gsap.utils.random(-10, -18),
+            duration: gsap.utils.random(2.6, 4.4),
+            ease: 'sine.inOut',
+            yoyo: true,
+            repeat: -1,
+            delay: (i % 5) * 0.35,
+          })
+        })
+
+        /* Pointer steer — the field looks toward the cursor, near plane
+         * moving furthest (fine pointers only). */
+        const cleanupPointer: Array<() => void> = []
+        if (!coarsePointer()) {
+          const setters = imgs.map((el, i) => ({
+            depth: items[i]!.depth,
+            xTo: gsap.quickTo(el.querySelector('.knows-depth'), 'x', {
+              duration: 0.9,
+              ease: 'power3.out',
+            }),
+            yTo: gsap.quickTo(el.querySelector('.knows-depth'), 'y', {
+              duration: 0.9,
+              ease: 'power3.out',
+            }),
+          }))
+          const rotTo = gsap.quickTo(stage, 'rotationY', { duration: 1.1, ease: 'power3.out' })
+          const rotXTo = gsap.quickTo(stage, 'rotationX', { duration: 1.1, ease: 'power3.out' })
+          gsap.set(stage, { transformPerspective: 1100 })
+
+          const handleMove = (event: PointerEvent) => {
+            const rect = stage.getBoundingClientRect()
+            const nx = (event.clientX - rect.left) / rect.width - 0.5
+            const ny = (event.clientY - rect.top) / rect.height - 0.5
+            setters.forEach(({ depth, xTo, yTo }) => {
+              xTo(nx * 46 * depth)
+              yTo(ny * 30 * depth)
+            })
+            rotTo(nx * 2.4)
+            rotXTo(-ny * 1.8)
+          }
+          const handleLeave = () => {
+            setters.forEach(({ xTo, yTo }) => {
+              xTo(0)
+              yTo(0)
+            })
+            rotTo(0)
+            rotXTo(0)
+          }
+          stage.addEventListener('pointermove', handleMove)
+          stage.addEventListener('pointerleave', handleLeave)
+          cleanupPointer.push(() => {
+            stage.removeEventListener('pointermove', handleMove)
+            stage.removeEventListener('pointerleave', handleLeave)
+          })
+        }
+
+        return () => {
+          floats.forEach((tween) => tween?.kill())
+          cleanupPointer.forEach((fn) => fn())
+        }
       })
 
       mm.add('(max-width: 768px)', () => {
@@ -311,11 +384,7 @@ export default function KnowsSection() {
       className="knows"
       ref={rootRef}
       id="knows"
-      data-companion="point-up"
-      data-companion-x="0"
-      data-companion-y="34"
-      data-companion-scale="0.4"
-      data-companion-opacity="0.85"
+      data-accent-hue="172"
       aria-label="nucky knows the players, teams, and tournaments"
     >
       <div className="knows-stage">
@@ -323,8 +392,10 @@ export default function KnowsSection() {
           const src = resolvedUrls[item.url] ?? item.url
           return (
             <div key={`${item.url}-${i}`} className={`knows-img is-${item.kind}`} aria-hidden="true">
-              <div className="knows-img-inner">
-                <img src={src} alt="" loading="lazy" decoding="async" />
+              <div className="knows-depth">
+                <div className="knows-img-inner">
+                  <img src={src} alt="" loading="lazy" decoding="async" />
+                </div>
               </div>
             </div>
           )

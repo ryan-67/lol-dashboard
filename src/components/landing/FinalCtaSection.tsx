@@ -1,4 +1,11 @@
+import { useRef } from 'react'
 import { Link } from 'react-router-dom'
+import gsap from 'gsap'
+import { ScrollTrigger } from 'gsap/ScrollTrigger'
+import { useGSAP } from '@gsap/react'
+import { MOTION, reducedMotion } from './motion'
+
+gsap.registerPlugin(ScrollTrigger, useGSAP)
 
 interface FinalCtaSectionProps {
   signedIn: boolean
@@ -6,25 +13,75 @@ interface FinalCtaSectionProps {
   onCreateAccount: () => void
 }
 
-/** Closing moment — the wireframe returns to the full shush pose behind the CTA. */
+/**
+ * Closing brand plane — the wordmark returns at architectural scale and
+ * fills with signal as it scrubs through, then hands off into the product.
+ */
 export default function FinalCtaSection({
   signedIn,
   homePath,
   onCreateAccount,
 }: FinalCtaSectionProps) {
+  const rootRef = useRef<HTMLElement>(null)
+
+  useGSAP(
+    () => {
+      const root = rootRef.current
+      if (!root) return
+
+      const fill = root.querySelector<HTMLElement>('.finale-mark-fill')
+
+      if (reducedMotion()) {
+        gsap.set(fill, { clipPath: 'inset(0% 0% 0% 0%)' })
+        return
+      }
+
+      /* The outline wordmark floods with light as it crosses the viewport. */
+      gsap.fromTo(
+        fill,
+        { clipPath: 'inset(0% 100% 0% 0%)' },
+        {
+          clipPath: 'inset(0% 0% 0% 0%)',
+          ease: 'none',
+          scrollTrigger: {
+            trigger: root.querySelector('.finale-mark'),
+            start: 'top 80%',
+            end: 'center 42%',
+            scrub: MOTION.scrub,
+          },
+        },
+      )
+
+      /* Slow spatial drift on the mark for ambient life. */
+      gsap.to(root.querySelector('.finale-mark'), {
+        yPercent: -8,
+        ease: 'none',
+        scrollTrigger: {
+          trigger: root,
+          start: 'top bottom',
+          end: 'bottom top',
+          scrub: 1.2,
+        },
+      })
+    },
+    { scope: rootRef },
+  )
+
   return (
     <section
       className="finale"
+      ref={rootRef}
       id="get-started"
-      data-companion="front"
-      data-companion-x="0"
-      data-companion-y="0"
-      data-companion-scale="0.9"
-      data-companion-opacity="0.9"
+      data-accent-hue="195"
       aria-label="Get started with nucky"
     >
+      <div className="finale-mark" aria-hidden="true">
+        <span className="finale-mark-outline">nucky</span>
+        <span className="finale-mark-fill">nucky</span>
+      </div>
+
       <div className="finale-inner landing-inner">
-        <p className="finale-label" data-reveal="blur-in">the signal is quiet. that&apos;s the point.</p>
+        <p className="finale-label" data-reveal="blur-in">the signal is live</p>
         <h2 className="finale-title" data-motion-text>
           stop guessing. start reading the signal.
         </h2>
