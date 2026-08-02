@@ -18,10 +18,20 @@ const LEAGUES = [
   { key: 'EWC', kind: 'international' },
 ] as const
 
+/**
+ * Light-on-dark crests: Worlds/MSI are white DarkBG PNGs; EWC is a black SVG.
+ * Running plateToAlpha on them punches the logo itself (white or black) to
+ * transparent — skip the punch and invert the black SVG instead.
+ */
+const LIGHT_ON_DARK = new Set<string>(['Worlds', 'MSI', 'EWC'])
+const INVERT_LOGO = new Set<string>(['EWC'])
+
 interface CoverageItem {
   key: string
   kind: 'league' | 'international'
   url: string
+  lightOnDark: boolean
+  invert: boolean
 }
 
 /**
@@ -39,13 +49,16 @@ export default function CoverageSection() {
         key: league.key,
         kind: league.kind,
         url: leagueLogoUrl(league.key) ?? '',
+        lightOnDark: LIGHT_ON_DARK.has(league.key),
+        invert: INVERT_LOGO.has(league.key),
       })).filter((item) => Boolean(item.url)),
     [],
   )
 
   const [resolvedUrls, setResolvedUrls] = useState<Record<string, string>>({})
 
-  /* Punch logo plates out to true transparency for the matte page. */
+  /* Punch solid plates out of colored crests only — light-on-dark marks keep
+   * their white (or inverted black) ink so they stay visible on matte black. */
   useEffect(() => {
     let alive = true
     const blobUrls: string[] = []
@@ -54,6 +67,10 @@ export default function CoverageSection() {
       const next: Record<string, string> = {}
       await Promise.all(
         items.map(async (item) => {
+          if (item.lightOnDark) {
+            next[item.url] = item.url
+            return
+          }
           try {
             const transparent = await plateToAlpha(item.url)
             if (transparent !== item.url) blobUrls.push(transparent)
@@ -240,7 +257,13 @@ export default function CoverageSection() {
         {items.map((item) => (
           <div className={`cov-card kind-${item.kind}`} key={item.key} aria-hidden="true">
             <div className="cov-card-inner">
-              <img src={resolvedUrls[item.url] ?? item.url} alt="" loading="lazy" decoding="async" />
+              <img
+                src={resolvedUrls[item.url] ?? item.url}
+                alt=""
+                loading="lazy"
+                decoding="async"
+                className={item.invert ? 'cov-logo-invert' : undefined}
+              />
               <span>{item.key}</span>
             </div>
           </div>
