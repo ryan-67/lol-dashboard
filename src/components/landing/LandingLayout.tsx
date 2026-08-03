@@ -28,7 +28,6 @@ export default function LandingLayout({ children }: LandingLayoutProps) {
   const [showAuth, setShowAuth] = useState(false)
   const [authView, setAuthView] = useState<AuthView>('signin')
   const [menuOpen, setMenuOpen] = useState(false)
-  const [scrolled, setScrolled] = useState(false)
 
   useEffect(() => {
     setMenuOpen(false)
@@ -41,13 +40,6 @@ export default function LandingLayout({ children }: LandingLayoutProps) {
     return initHyperText(header)
   }, [])
 
-  useEffect(() => {
-    const handleScroll = () => setScrolled(window.scrollY > 12)
-    handleScroll()
-    window.addEventListener('scroll', handleScroll, { passive: true })
-    return () => window.removeEventListener('scroll', handleScroll)
-  }, [])
-
   const openAuth = (view: AuthView) => {
     setAuthView(view)
     setShowAuth(true)
@@ -55,7 +47,7 @@ export default function LandingLayout({ children }: LandingLayoutProps) {
 
   return (
     <div className="landing-shell">
-      <header className={`landing-header${scrolled ? ' is-scrolled' : ''}`} ref={headerRef}>
+      <header className="landing-header" ref={headerRef}>
         <div className="landing-header-inner">
           <Link to="/" className="landing-brand" aria-label="nucky home">
             <BrandMark className="brand-mark--lg" />
