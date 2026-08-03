@@ -1,8 +1,8 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useMemo, useRef } from 'react'
 import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import { useGSAP } from '@gsap/react'
-import { MOTION, plateToAlpha, reducedMotion } from './motion'
+import { MOTION, reducedMotion } from './motion'
 import { leagueLogoUrl } from '../../lib/entities'
 
 gsap.registerPlugin(ScrollTrigger, useGSAP)
@@ -19,18 +19,16 @@ const LEAGUES = [
 ] as const
 
 /**
- * Light-on-dark crests: Worlds/MSI are white DarkBG PNGs; EWC is a black SVG.
- * Running plateToAlpha on them punches the logo itself (white or black) to
- * transparent — skip the punch and invert the black SVG instead.
+ * All eight crests are light-on-dark (DarkBG / FullonDark / color-on-black
+ * / alpha). plateToAlpha punches near-white ink — which IS the logo — so
+ * every crest is served raw. EWC is a black SVG; invert it to white.
  */
-const LIGHT_ON_DARK = new Set<string>(['Worlds', 'MSI', 'EWC'])
 const INVERT_LOGO = new Set<string>(['EWC'])
 
 interface CoverageItem {
   key: string
   kind: 'league' | 'international'
   url: string
-  lightOnDark: boolean
   invert: boolean
 }
 
@@ -49,46 +47,10 @@ export default function CoverageSection() {
         key: league.key,
         kind: league.kind,
         url: leagueLogoUrl(league.key) ?? '',
-        lightOnDark: LIGHT_ON_DARK.has(league.key),
         invert: INVERT_LOGO.has(league.key),
       })).filter((item) => Boolean(item.url)),
     [],
   )
-
-  const [resolvedUrls, setResolvedUrls] = useState<Record<string, string>>({})
-
-  /* Punch solid plates out of colored crests only — light-on-dark marks keep
-   * their white (or inverted black) ink so they stay visible on matte black. */
-  useEffect(() => {
-    let alive = true
-    const blobUrls: string[] = []
-
-    const run = async () => {
-      const next: Record<string, string> = {}
-      await Promise.all(
-        items.map(async (item) => {
-          if (item.lightOnDark) {
-            next[item.url] = item.url
-            return
-          }
-          try {
-            const transparent = await plateToAlpha(item.url)
-            if (transparent !== item.url) blobUrls.push(transparent)
-            next[item.url] = transparent
-          } catch {
-            next[item.url] = item.url
-          }
-        }),
-      )
-      if (alive) setResolvedUrls(next)
-    }
-
-    void run()
-    return () => {
-      alive = false
-      blobUrls.forEach((url) => URL.revokeObjectURL(url))
-    }
-  }, [items])
 
   useGSAP(
     () => {
@@ -258,7 +220,7 @@ export default function CoverageSection() {
           <div className={`cov-card kind-${item.kind}`} key={item.key} aria-hidden="true">
             <div className="cov-card-inner">
               <img
-                src={resolvedUrls[item.url] ?? item.url}
+                src={item.url}
                 alt=""
                 loading="lazy"
                 decoding="async"

@@ -19,6 +19,19 @@
   --accent-dim: oklch(0.64 0.09 var(--la-h));
   --accent-bg: oklch(0.8 0.115 var(--la-h) / 0.12);
   --accent-glow: oklch(0.8 0.115 var(--la-h) / 0.22);
+
+  /* Landing type hierarchy — cream primary, lighter secondary/tertiary
+   * so body + meta stay legible over the glass N and glitch field. */
+  --text-primary: #f5f2ea;
+  --text-secondary: #ddd8cc;
+  --text-tertiary: #b0aaa0;
+
+  /* Shared translucent plate (matches the free pricing card). Opaque
+   * enough for cream type, translucent enough for the 3D N to read. */
+  --landing-plate-bg: color-mix(in srgb, var(--bg-surface) 68%, transparent);
+  --landing-plate-blur: blur(6px);
+  --landing-plate-radius: 16px;
+  --landing-plate-border: 1px solid var(--border-subtle);
 }
 
 .landing-content {
@@ -921,6 +934,12 @@ html.no-motion [data-motion-text],
   display: flex;
   flex-direction: column;
   gap: 16px;
+  padding: clamp(22px, 2.8vw, 36px);
+  border: var(--landing-plate-border);
+  border-radius: var(--landing-plate-radius);
+  background: var(--landing-plate-bg);
+  backdrop-filter: var(--landing-plate-blur);
+  -webkit-backdrop-filter: var(--landing-plate-blur);
 }
 
 .fg-kicker {
@@ -965,7 +984,7 @@ html.no-motion [data-motion-text],
   font-family: var(--font-mono);
   font-size: 11.5px;
   letter-spacing: 0.06em;
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
 }
 
 .fg-specs li::before {
@@ -978,23 +997,11 @@ html.no-motion [data-motion-text],
   background: var(--accent-dim);
 }
 
-/* Readability — a faint dark vignette hugs the copy block and the type
- * carries a soft drop so it stays legible over the glitch field / glass N. */
-.fg-copy::before {
-  content: '';
-  position: absolute;
-  inset: -34px -40px;
-  z-index: -1;
-  border-radius: 24px;
-  background: radial-gradient(ellipse at 32% 42%, rgba(3, 8, 10, 0.74), rgba(3, 8, 10, 0) 74%);
-  pointer-events: none;
-}
-
 .fg-title,
 .fg-body,
 .fg-specs li,
 .fg-kicker {
-  text-shadow: 0 2px 16px rgba(0, 0, 0, 0.85);
+  text-shadow: 0 1px 10px rgba(0, 0, 0, 0.55);
 }
 
 @media (max-width: 899px) {
@@ -1269,10 +1276,11 @@ html.no-motion [data-motion-text],
   align-items: center;
   gap: 10px;
   padding: 18px 12px 14px;
-  border: 1px solid var(--border-subtle);
+  border: var(--landing-plate-border);
   border-radius: 14px;
-  background: color-mix(in srgb, var(--bg-surface) 62%, transparent);
-  backdrop-filter: blur(4px);
+  background: var(--landing-plate-bg);
+  backdrop-filter: var(--landing-plate-blur);
+  -webkit-backdrop-filter: var(--landing-plate-blur);
   transform-style: preserve-3d;
   will-change: transform;
   transition: border-color 240ms var(--ease-out), box-shadow 240ms var(--ease-out);
@@ -1299,7 +1307,7 @@ html.no-motion [data-motion-text],
   font-size: 10px;
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: var(--text-secondary);
+  color: var(--text-primary);
 }
 
 .cov-heading {
@@ -1340,7 +1348,7 @@ html.no-motion [data-motion-text],
   font-size: 11px;
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
 }
 
 @media (max-width: 899px) {
@@ -1398,11 +1406,13 @@ html.no-motion [data-motion-text],
   justify-content: center;
   gap: clamp(22px, 3.6vh, 40px);
   padding: clamp(28px, 4vw, 60px);
-  border: 1px solid var(--border-hairline);
+  border: var(--landing-plate-border);
   border-radius: 18px;
-  /* Mostly transparent — the glass N reads through the plate. */
-  background: color-mix(in srgb, var(--bg-surface) 34%, transparent);
-  backdrop-filter: blur(3px);
+  /* Same translucent plate as the free pricing card — N still reads
+   * through, cream type stays clearly legible. */
+  background: var(--landing-plate-bg);
+  backdrop-filter: var(--landing-plate-blur);
+  -webkit-backdrop-filter: var(--landing-plate-blur);
   overflow: hidden;
   will-change: transform;
 }
@@ -1474,7 +1484,7 @@ html.no-motion [data-motion-text],
 .pg-factor-keyword,
 .pg-factor-body,
 .pg-acc-caption {
-  text-shadow: 0 2px 14px rgba(0, 0, 0, 0.82);
+  text-shadow: 0 1px 10px rgba(0, 0, 0, 0.5);
 }
 
 .pg-panel-foot {
@@ -1826,11 +1836,12 @@ html.no-motion [data-motion-text],
   flex-direction: column;
   gap: 16px;
   padding: clamp(28px, 4vw, 44px);
-  border: 1px solid var(--border-subtle);
-  border-radius: 16px;
-  /* Translucent plate — the scene reads through, copy stays legible. */
-  background: color-mix(in srgb, var(--bg-surface) 58%, transparent);
-  backdrop-filter: blur(4px);
+  border: var(--landing-plate-border);
+  border-radius: var(--landing-plate-radius);
+  /* Shared landing plate — free card is the reference look. */
+  background: var(--landing-plate-bg);
+  backdrop-filter: var(--landing-plate-blur);
+  -webkit-backdrop-filter: var(--landing-plate-blur);
   overflow: hidden;
   transition: border-color 260ms var(--ease-out), box-shadow 260ms var(--ease-out);
   will-change: transform;
@@ -2002,9 +2013,14 @@ html.no-motion [data-motion-text],
 }
 
 .faq-list {
-  max-width: 720px;
+  max-width: 760px;
   margin-inline: auto;
-  border-top: 1px solid var(--border-subtle);
+  padding: 8px clamp(18px, 2.4vw, 28px);
+  border: var(--landing-plate-border);
+  border-radius: var(--landing-plate-radius);
+  background: var(--landing-plate-bg);
+  backdrop-filter: var(--landing-plate-blur);
+  -webkit-backdrop-filter: var(--landing-plate-blur);
 }
 
 .faq-contact {
@@ -2016,8 +2032,13 @@ html.no-motion [data-motion-text],
   transition: background 260ms var(--ease-out);
 }
 
+.faq-item:last-child {
+  border-bottom: none;
+}
+
 .faq-item.is-open {
-  background: color-mix(in oklab, var(--accent-bg) 30%, transparent);
+  background: color-mix(in oklab, var(--accent-bg) 35%, transparent);
+  border-radius: 10px;
 }
 
 .faq-question {
@@ -2117,7 +2138,7 @@ html.no-motion [data-motion-text],
   margin: 0;
   padding: 0 10px 24px 43px;
   max-width: 64ch;
-  font-size: 0.94rem;
+  font-size: 0.96rem;
   line-height: 1.7;
   color: var(--text-secondary);
 }
@@ -2125,7 +2146,7 @@ html.no-motion [data-motion-text],
 .faq-contact {
   margin: 34px 0 0;
   font-size: 13px;
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
 }
 
 .faq-contact a {

@@ -185,8 +185,9 @@ export default function KnowsSection() {
   useEffect(() => {
     let alive = true
     const blobUrls: string[] = []
-    const isLightOnDark = (url: string) =>
-      /\/leagues\/(worlds|msi|ewc)\./i.test(url)
+    /* Every vendored league crest is light-on-dark — plateToAlpha would
+     * punch the logo ink itself. Skip the whole /leagues/ folder. */
+    const isLightOnDark = (url: string) => /\/leagues\//i.test(url)
 
     const run = async () => {
       const next: Record<string, string> = {}
