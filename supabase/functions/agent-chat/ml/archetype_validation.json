@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-03T23:38:04.512117+00:00",
+  "generatedAt": "2026-08-04T03:10:25.932206+00:00",
   "championsCurated": 172,
   "primaryRoleValidation": {
     "checked": 120,
@@ -65,7 +65,7 @@
         ],
         "empiricalPrimaryRole": "support",
         "roleShift": false,
-        "totalGames": 138
+        "totalGames": 139
       },
       {
         "champion": "Tristana",
@@ -153,9 +153,9 @@
   },
   "scalingTagValidation": {
     "lane_bully": {
-      "checked": 37,
+      "checked": 38,
       "agree": 4,
-      "agreementRatePct": 10.8,
+      "agreementRatePct": 10.5,
       "mismatches": [
         {
           "champion": "Aatrox",
@@ -182,8 +182,8 @@
           "champion": "Ambessa",
           "curatedLaneBully": true,
           "empiricalLaneBully": false,
-          "vsRoleMedianGd15": -47.5,
-          "games": 820
+          "vsRoleMedianGd15": -48.4,
+          "games": 821
         },
         {
           "champion": "Aphelios",
@@ -210,8 +210,8 @@
           "champion": "Cassiopeia",
           "curatedLaneBully": true,
           "empiricalLaneBully": false,
-          "vsRoleMedianGd15": 112.9,
-          "games": 260
+          "vsRoleMedianGd15": 107.1,
+          "games": 261
         },
         {
           "champion": "Corki",
@@ -273,8 +273,8 @@
           "champion": "Lee Sin",
           "curatedLaneBully": false,
           "empiricalLaneBully": true,
-          "vsRoleMedianGd15": 178.2,
-          "games": 271
+          "vsRoleMedianGd15": 183.7,
+          "games": 272
         },
         {
           "champion": "Lillia",
@@ -323,7 +323,7 @@
           "curatedLate": true,
           "empiricalLateGameScaler": false,
           "scalingCurve": "late",
-          "games": 260
+          "games": 261
         },
         {
           "champion": "Cho'Gath",
@@ -344,7 +344,7 @@
           "curatedLate": false,
           "empiricalLateGameScaler": true,
           "scalingCurve": "mid",
-          "games": 877
+          "games": 878
         },
         {
           "champion": "Gangplank",
@@ -400,7 +400,7 @@
           "curatedLate": false,
           "empiricalLateGameScaler": true,
           "scalingCurve": "early",
-          "games": 271
+          "games": 272
         },
         {
           "champion": "Leona",
@@ -589,7 +589,7 @@
           "curatedEarly": true,
           "empiricalFrontLoaded": false,
           "scalingCurve": "early",
-          "games": 271
+          "games": 272
         }
       ]
     }
@@ -605,7 +605,7 @@
         "defenderTag": "cc_heavy",
         "label": "Mobility escapes hard-CC/engage",
         "status": "validated",
-        "gamesWithCondition": 5586,
+        "gamesWithCondition": 5588,
         "winrateWithCondition": 50.1,
         "gamesWithout": 147,
         "winrateWithout": 52.4,
@@ -616,7 +616,7 @@
         "defenderTag": "engage",
         "label": "Mobility escapes engage comps",
         "status": "validated",
-        "gamesWithCondition": 5434,
+        "gamesWithCondition": 5436,
         "winrateWithCondition": 50.3,
         "gamesWithout": 299,
         "winrateWithout": 46.5,
@@ -627,22 +627,22 @@
         "defenderTag": "burst",
         "label": "Tanks blunt burst-heavy comps",
         "status": "validated",
-        "gamesWithCondition": 3745,
+        "gamesWithCondition": 3746,
         "winrateWithCondition": 49.5,
-        "gamesWithout": 1636,
+        "gamesWithout": 1637,
         "winrateWithout": 48.2,
-        "liftPp": 1.4
+        "liftPp": 1.3
       },
       {
         "attackerTag": "poke",
         "defenderTag": "dive",
         "label": "Poke checks dive comps before they close",
         "status": "validated",
-        "gamesWithCondition": 5809,
-        "winrateWithCondition": 49.5,
+        "gamesWithCondition": 5810,
+        "winrateWithCondition": 49.4,
         "gamesWithout": 384,
         "winrateWithout": 50.0,
-        "liftPp": -0.5
+        "liftPp": -0.6
       },
       {
         "attackerTag": "split_push",
@@ -660,7 +660,7 @@
         "defenderTag": "dive",
         "label": "Peel/anti-dive protects into dive comps",
         "status": "validated",
-        "gamesWithCondition": 4036,
+        "gamesWithCondition": 4037,
         "winrateWithCondition": 50.7,
         "gamesWithout": 279,
         "winrateWithout": 47.0,
