@@ -1,8 +1,8 @@
-# nuckyAI ML pipeline (Phase 1 + 2)
+# nuckyAI ML pipeline
 
-Implements the Feature Mart (Phase 1) and Series Outcome Model v1 (Phase 2) from
-[`docs/nuckyAI_model.md`](../../docs/nuckyAI_model.md). Offline, local-only —
-no Supabase Storage upload yet (Phase 3 scope).
+Public training / export scripts for nucky’s series outcome, draft, ratings, and
+accuracy-scorecard artifacts. Detailed proprietary model-design notes stay local
+(not published). Offline training runs locally or in GitHub Actions.
 
 ## Setup
 
@@ -15,15 +15,11 @@ uses, from the same Google Drive folder). Optional: `SUPABASE_URL` /
 `SUPABASE_SERVICE_ROLE_KEY` in `.env` to pull the Cito gold-timeline supplement
 (best-effort — the pipeline runs fine without it).
 
-**As of 2026-07-09 this pipeline is no longer a manual, separately-maintained data
-source.** `.github/workflows/refresh-data.yml` — the same Action that keeps the live
-nucky.gg dashboard current every 2 hours — now runs this entire pipeline and commits
-the regenerated `supabase/functions/agent-chat/ml/*.json` artifacts automatically
-whenever new OE data lands on Drive (see `docs/nuckyAI_model.md` §8.9). `lol/` on a CI
-runner is backed by `scripts/ensure_oe_history.py`, which backfills full multi-year OE
-history on a cache miss since the dashboard refresh's scheduled runs only fetch the
-current year. Running the steps below manually is still fully supported for local
-iteration/debugging — you just don't *need* to anymore to keep the model current.
+**CI-linked:** `.github/workflows/refresh-data.yml` — the same Action that keeps the
+live nucky.gg dashboard current every ~2 hours — runs this pipeline and commits
+regenerated `supabase/functions/agent-chat/ml/*.json` artifacts when new match data
+lands. `lol/` on a CI runner is backed by `scripts/ensure_oe_history.py` (history
+backfill on cache miss). Manual local runs below are still supported for iteration.
 
 ## Pipeline
 

@@ -16,6 +16,30 @@ public/data/*
 
 # Local brainstorm / agent scratch
 .superpowers/
+.tmp/
+.agents/
+.cursor/
+.playwright-mcp/
+skills-lock.json
+
+# Internal strategy / design docs (local only — not for public SaaS clone)
+docs/nucky_v2.md
+docs/nucky_v3.md
+docs/nucky_v4.md
+docs/nuckyAI_model.md
+docs/data-sources-research.md
+docs/CITOAPI.md
+docs/cito/
+docs/fable-5-*.md
+docs/opus-5-*.md
+docs/alche-*.md
+docs/superpowers/
+docs/animation-toolkit-setup.md
+nuckyAI_scope.txt
+nuckyLive_scope.txt
+nuckyAI_eval_log.md
+nuckymodel_test.txt
+nucky.txt
 
 # Environment (never commit secrets)
 .env
