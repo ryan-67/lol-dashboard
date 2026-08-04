@@ -1,23 +1,23 @@
 {
-  "generatedAt": "2026-08-04T14:48:25.833349+00:00",
+  "generatedAt": "2026-08-04T20:19:53.713665+00:00",
   "algo": "xgboost",
-  "featureCount": 872,
-  "holdoutRows": 874,
-  "holdoutSeries": 437,
+  "featureCount": 856,
+  "holdoutRows": 878,
+  "holdoutSeries": 439,
   "dateRange": [
     "2026-03-16",
-    "2026-08-02"
+    "2026-08-03"
   ],
   "aggregate": {
     "model": {
-      "log_loss": 0.6064,
-      "brier": 0.2093,
-      "accuracy": 0.6835
+      "log_loss": 0.6032,
+      "brier": 0.2092,
+      "accuracy": 0.673
     },
     "baseline": {
-      "log_loss": 0.7109,
-      "brier": 0.2485,
-      "accuracy": 0.5998
+      "log_loss": 0.7054,
+      "brier": 0.2464,
+      "accuracy": 0.6017
     },
     "beatsBaseline": true
   },
@@ -26,9 +26,9 @@
       "key": "LCK",
       "n": 210,
       "model": {
-        "log_loss": 0.6022,
-        "brier": 0.2074,
-        "accuracy": 0.6669
+        "log_loss": 0.6008,
+        "brier": 0.2086,
+        "accuracy": 0.6958
       },
       "baseline": {
         "log_loss": 0.7376,
@@ -41,9 +41,9 @@
       "key": "EWC",
       "n": 204,
       "model": {
-        "log_loss": 0.654,
-        "brier": 0.2279,
-        "accuracy": 0.6609
+        "log_loss": 0.6632,
+        "brier": 0.2315,
+        "accuracy": 0.598
       },
       "baseline": {
         "log_loss": 0.7323,
@@ -56,9 +56,9 @@
       "key": "LPL",
       "n": 176,
       "model": {
-        "log_loss": 0.6571,
-        "brier": 0.2305,
-        "accuracy": 0.6372
+        "log_loss": 0.6451,
+        "brier": 0.2269,
+        "accuracy": 0.6568
       },
       "baseline": {
         "log_loss": 0.7403,
@@ -69,16 +69,16 @@
     },
     {
       "key": "LEC",
-      "n": 130,
+      "n": 134,
       "model": {
-        "log_loss": 0.5924,
-        "brier": 0.2025,
-        "accuracy": 0.7137
+        "log_loss": 0.5597,
+        "brier": 0.1915,
+        "accuracy": 0.7143
       },
       "baseline": {
-        "log_loss": 0.6687,
-        "brier": 0.2364,
-        "accuracy": 0.6215
+        "log_loss": 0.6381,
+        "brier": 0.224,
+        "accuracy": 0.6318
       },
       "beatsBaseline": true
     },
@@ -86,9 +86,9 @@
       "key": "LCS",
       "n": 88,
       "model": {
-        "log_loss": 0.5127,
-        "brier": 0.177,
-        "accuracy": 0.7158
+        "log_loss": 0.5102,
+        "brier": 0.1767,
+        "accuracy": 0.7034
       },
       "baseline": {
         "log_loss": 0.6088,
@@ -101,9 +101,9 @@
       "key": "MSI",
       "n": 40,
       "model": {
-        "log_loss": 0.5356,
-        "brier": 0.178,
-        "accuracy": 0.7676
+        "log_loss": 0.5601,
+        "brier": 0.1906,
+        "accuracy": 0.745
       },
       "baseline": {
         "log_loss": 0.727,
@@ -118,9 +118,9 @@
       "key": "16.09",
       "n": 184,
       "model": {
-        "log_loss": 0.6516,
-        "brier": 0.2314,
-        "accuracy": 0.6313
+        "log_loss": 0.6494,
+        "brier": 0.2284,
+        "accuracy": 0.6366
       },
       "baseline": {
         "log_loss": 0.7177,
@@ -133,9 +133,9 @@
       "key": "16.08",
       "n": 162,
       "model": {
-        "log_loss": 0.5096,
-        "brier": 0.1665,
-        "accuracy": 0.7744
+        "log_loss": 0.4964,
+        "brier": 0.1611,
+        "accuracy": 0.781
       },
       "baseline": {
         "log_loss": 0.6198,
@@ -148,9 +148,9 @@
       "key": "16.07",
       "n": 146,
       "model": {
-        "log_loss": 0.6555,
-        "brier": 0.2259,
-        "accuracy": 0.6772
+        "log_loss": 0.6506,
+        "brier": 0.2241,
+        "accuracy": 0.6846
       },
       "baseline": {
         "log_loss": 0.705,
@@ -163,9 +163,9 @@
       "key": "16.1",
       "n": 122,
       "model": {
-        "log_loss": 0.5786,
-        "brier": 0.1954,
-        "accuracy": 0.7233
+        "log_loss": 0.566,
+        "brier": 0.191,
+        "accuracy": 0.7176
       },
       "baseline": {
         "log_loss": 0.6681,
@@ -178,9 +178,9 @@
       "key": "16.13",
       "n": 94,
       "model": {
-        "log_loss": 0.5671,
-        "brier": 0.1954,
-        "accuracy": 0.7159
+        "log_loss": 0.5812,
+        "brier": 0.2029,
+        "accuracy": 0.6509
       },
       "baseline": {
         "log_loss": 0.7259,
@@ -193,9 +193,9 @@
       "key": "16.11",
       "n": 46,
       "model": {
-        "log_loss": 0.7513,
-        "brier": 0.2617,
-        "accuracy": 0.6372
+        "log_loss": 0.7665,
+        "brier": 0.2704,
+        "accuracy": 0.5475
       },
       "baseline": {
         "log_loss": 0.8055,
@@ -208,9 +208,9 @@
       "key": "16.14",
       "n": 40,
       "model": {
-        "log_loss": 0.7695,
-        "brier": 0.28,
-        "accuracy": 0.4931
+        "log_loss": 0.7923,
+        "brier": 0.2956,
+        "accuracy": 0.5199
       },
       "baseline": {
         "log_loss": 0.8121,
@@ -223,125 +223,125 @@
   "byConfidenceBucket": [
     {
       "key": "strong_>=25pp",
-      "n": 471,
+      "n": 466,
       "model": {
-        "log_loss": 0.5492,
-        "brier": 0.1832,
-        "accuracy": 0.7558
+        "log_loss": 0.501,
+        "brier": 0.1631,
+        "accuracy": 0.7864
       },
       "baseline": {
-        "log_loss": 0.6499,
-        "brier": 0.226,
-        "accuracy": 0.6403
+        "log_loss": 0.6281,
+        "brier": 0.217,
+        "accuracy": 0.6547
       },
       "beatsBaseline": true
     },
     {
       "key": "clear_15_25pp",
-      "n": 175,
+      "n": 177,
       "model": {
-        "log_loss": 0.6472,
-        "brier": 0.227,
-        "accuracy": 0.6572
+        "log_loss": 0.7429,
+        "brier": 0.2721,
+        "accuracy": 0.5448
       },
       "baseline": {
-        "log_loss": 0.7689,
-        "brier": 0.2737,
-        "accuracy": 0.5443
-      },
-      "beatsBaseline": true
-    },
-    {
-      "key": "coin_flip_<8pp",
-      "n": 119,
-      "model": {
-        "log_loss": 0.6963,
-        "brier": 0.2516,
-        "accuracy": 0.5233
-      },
-      "baseline": {
-        "log_loss": 0.7771,
-        "brier": 0.2734,
-        "accuracy": 0.5735
+        "log_loss": 0.8418,
+        "brier": 0.2933,
+        "accuracy": 0.535
       },
       "beatsBaseline": true
     },
     {
       "key": "lean_8_15pp",
-      "n": 109,
+      "n": 120,
       "model": {
-        "log_loss": 0.6731,
-        "brier": 0.24,
-        "accuracy": 0.6061
+        "log_loss": 0.6861,
+        "brier": 0.2463,
+        "accuracy": 0.5826
       },
       "baseline": {
-        "log_loss": 0.7889,
-        "brier": 0.2709,
-        "accuracy": 0.5571
+        "log_loss": 0.8067,
+        "brier": 0.2872,
+        "accuracy": 0.5101
       },
       "beatsBaseline": true
+    },
+    {
+      "key": "coin_flip_<8pp",
+      "n": 115,
+      "model": {
+        "log_loss": 0.6967,
+        "brier": 0.2518,
+        "accuracy": 0.5275
+      },
+      "baseline": {
+        "log_loss": 0.6957,
+        "brier": 0.2477,
+        "accuracy": 0.5893
+      },
+      "beatsBaseline": false
     }
   ],
   "calibration": [
     {
       "bin": "0.0-0.1",
-      "n": 75,
-      "predicted_mean": 0.0714624673128128,
-      "actual_rate": 0.12
+      "n": 73,
+      "predicted_mean": 0.06842239201068878,
+      "actual_rate": 0.1232876712328767
     },
     {
       "bin": "0.1-0.2",
-      "n": 104,
-      "predicted_mean": 0.15463972091674805,
-      "actual_rate": 0.2692307692307692
+      "n": 107,
+      "predicted_mean": 0.15429244935512543,
+      "actual_rate": 0.21495327102803738
     },
     {
       "bin": "0.2-0.3",
       "n": 99,
-      "predicted_mean": 0.24753861129283905,
-      "actual_rate": 0.35353535353535354
+      "predicted_mean": 0.24640071392059326,
+      "actual_rate": 0.37373737373737376
     },
     {
       "bin": "0.3-0.4",
-      "n": 84,
-      "predicted_mean": 0.34973108768463135,
-      "actual_rate": 0.36904761904761907
+      "n": 87,
+      "predicted_mean": 0.3498299717903137,
+      "actual_rate": 0.3793103448275862
     },
     {
       "bin": "0.4-0.5",
-      "n": 73,
-      "predicted_mean": 0.4523123502731323,
-      "actual_rate": 0.3972602739726027
+      "n": 77,
+      "predicted_mean": 0.45105427503585815,
+      "actual_rate": 0.4675324675324675
     },
     {
       "bin": "0.5-0.6",
-      "n": 70,
-      "predicted_mean": 0.5462354421615601,
-      "actual_rate": 0.5285714285714286
+      "n": 74,
+      "predicted_mean": 0.5562973618507385,
+      "actual_rate": 0.5675675675675675
     },
     {
       "bin": "0.6-0.7",
-      "n": 87,
-      "predicted_mean": 0.6500052809715271,
-      "actual_rate": 0.6551724137931034
+      "n": 83,
+      "predicted_mean": 0.652383029460907,
+      "actual_rate": 0.5903614457831325
     },
     {
       "bin": "0.7-0.8",
-      "n": 102,
-      "predicted_mean": 0.7515860795974731,
-      "actual_rate": 0.6274509803921569
+      "n": 105,
+      "predicted_mean": 0.7522314786911011,
+      "actual_rate": 0.6095238095238096
     },
     {
       "bin": "0.8-0.9",
-      "n": 107,
-      "predicted_mean": 0.8473482728004456,
-      "actual_rate": 0.7476635514018691
+      "n": 105,
+      "predicted_mean": 0.851809024810791,
+      "actual_rate": 0.8095238095238095
     },
     {
       "bin": "0.9-1.0",
-      "n": 73,
-      "predicted_mean": 0.9281209707260132,
-      "actual_rate": 0.8904109589041096
+      "n": 68,
+      "predicted_mean": 0.929715633392334,
+      "actual_rate": 0.8676470588235294
     }
   ],
   "gprBenchmark": {
