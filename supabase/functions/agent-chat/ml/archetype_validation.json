@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-04T03:10:25.932206+00:00",
+  "generatedAt": "2026-08-04T11:11:42.407578+00:00",
   "championsCurated": 172,
   "primaryRoleValidation": {
     "checked": 120,
@@ -287,8 +287,8 @@
           "champion": "Lucian",
           "curatedLaneBully": true,
           "empiricalLaneBully": false,
-          "vsRoleMedianGd15": 23.6,
-          "games": 482
+          "vsRoleMedianGd15": 20.0,
+          "games": 483
         },
         {
           "champion": "Lux",
@@ -428,7 +428,7 @@
           "curatedLate": false,
           "empiricalLateGameScaler": true,
           "scalingCurve": "mid",
-          "games": 198
+          "games": 199
         },
         {
           "champion": "Miss Fortune",
@@ -477,7 +477,7 @@
           "curatedEarly": false,
           "empiricalFrontLoaded": true,
           "scalingCurve": "mid",
-          "games": 434
+          "games": 435
         },
         {
           "champion": "Bard",
@@ -547,7 +547,7 @@
           "curatedEarly": true,
           "empiricalFrontLoaded": false,
           "scalingCurve": "early",
-          "games": 588
+          "games": 589
         },
         {
           "champion": "K'Sante",
@@ -605,8 +605,8 @@
         "defenderTag": "cc_heavy",
         "label": "Mobility escapes hard-CC/engage",
         "status": "validated",
-        "gamesWithCondition": 5588,
-        "winrateWithCondition": 50.1,
+        "gamesWithCondition": 5589,
+        "winrateWithCondition": 50.0,
         "gamesWithout": 147,
         "winrateWithout": 52.4,
         "liftPp": -2.3
@@ -618,20 +618,20 @@
         "status": "validated",
         "gamesWithCondition": 5436,
         "winrateWithCondition": 50.3,
-        "gamesWithout": 299,
-        "winrateWithout": 46.5,
-        "liftPp": 3.8
+        "gamesWithout": 300,
+        "winrateWithout": 46.3,
+        "liftPp": 4.0
       },
       {
         "attackerTag": "tank",
         "defenderTag": "burst",
         "label": "Tanks blunt burst-heavy comps",
         "status": "validated",
-        "gamesWithCondition": 3746,
+        "gamesWithCondition": 3747,
         "winrateWithCondition": 49.5,
-        "gamesWithout": 1637,
+        "gamesWithout": 1638,
         "winrateWithout": 48.2,
-        "liftPp": 1.3
+        "liftPp": 1.4
       },
       {
         "attackerTag": "poke",
@@ -640,7 +640,7 @@
         "status": "validated",
         "gamesWithCondition": 5810,
         "winrateWithCondition": 49.4,
-        "gamesWithout": 384,
+        "gamesWithout": 386,
         "winrateWithout": 50.0,
         "liftPp": -0.6
       },
@@ -662,7 +662,7 @@
         "status": "validated",
         "gamesWithCondition": 4037,
         "winrateWithCondition": 50.7,
-        "gamesWithout": 279,
+        "gamesWithout": 281,
         "winrateWithout": 47.0,
         "liftPp": 3.7
       }

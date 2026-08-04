@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-04T03:09:52.313300+00:00",
+  "generatedAt": "2026-08-04T11:11:14.328096+00:00",
   "methodology": "Same-role matrix: direct-lane champ-vs-champ win rate + avg GD@15 delta, min 6 meetings. Draft-order reconstruction uses OE's firstPick flag + the standard competitive ban/pick slot pattern to recover true reveal order (not column order) for the counter-pick validation. Cross-role lift validates hand-curated archetype tag interactions against realized win rates, not assumed.",
   "sameRoleMatchups": {
     "top": {
@@ -189,9 +189,9 @@
       },
       "Rumble": {
         "Jayce": {
-          "games": 50,
-          "winrate": 54.0,
-          "avgGd15Delta": -508.0
+          "games": 51,
+          "winrate": 54.9,
+          "avgGd15Delta": -509.7
         },
         "K'Sante": {
           "games": 161,
@@ -266,9 +266,9 @@
       },
       "Jayce": {
         "Rumble": {
-          "games": 50,
-          "winrate": 46.0,
-          "avgGd15Delta": 508.0
+          "games": 51,
+          "winrate": 45.1,
+          "avgGd15Delta": 509.7
         },
         "Ambessa": {
           "games": 51,
@@ -1364,9 +1364,9 @@
           "avgGd15Delta": 248.8
         },
         "Poppy": {
-          "games": 6,
-          "winrate": 33.3,
-          "avgGd15Delta": -464.8
+          "games": 7,
+          "winrate": 28.6,
+          "avgGd15Delta": -529.3
         },
         "Zyra": {
           "games": 7,
@@ -2014,9 +2014,9 @@
           "avgGd15Delta": -311.9
         },
         "Maokai": {
-          "games": 6,
-          "winrate": 66.7,
-          "avgGd15Delta": 464.8
+          "games": 7,
+          "winrate": 71.4,
+          "avgGd15Delta": 529.3
         },
         "Jarvan IV": {
           "games": 16,
@@ -3935,9 +3935,9 @@
           "avgGd15Delta": -236.2
         },
         "Lucian": {
-          "games": 31,
-          "winrate": 58.1,
-          "avgGd15Delta": 209.4
+          "games": 32,
+          "winrate": 59.4,
+          "avgGd15Delta": 327.7
         },
         "Yunara": {
           "games": 24,
@@ -4960,9 +4960,9 @@
           "avgGd15Delta": 350.2
         },
         "Ashe": {
-          "games": 31,
-          "winrate": 41.9,
-          "avgGd15Delta": -209.4
+          "games": 32,
+          "winrate": 40.6,
+          "avgGd15Delta": -327.7
         },
         "Xayah": {
           "games": 37,
@@ -6089,9 +6089,9 @@
           "avgGd15Delta": 318.1
         },
         "Milio": {
-          "games": 26,
-          "winrate": 53.8,
-          "avgGd15Delta": 102.0
+          "games": 27,
+          "winrate": 55.6,
+          "avgGd15Delta": 169.0
         },
         "Rell": {
           "games": 7,
@@ -6333,9 +6333,9 @@
           "avgGd15Delta": -554.6
         },
         "Seraphine": {
-          "games": 26,
-          "winrate": 46.2,
-          "avgGd15Delta": -102.0
+          "games": 27,
+          "winrate": 44.4,
+          "avgGd15Delta": -169.0
         },
         "Neeko": {
           "games": 7,
@@ -6394,9 +6394,9 @@
     }
   },
   "counterPickSignal": {
-    "sampleGames": 7570,
+    "sampleGames": 7572,
     "gamesWithAnyCounterPick": 2300,
-    "gamesWithZeroCounterPicks": 5270,
+    "gamesWithZeroCounterPicks": 5272,
     "winrateWithAnyCounterPick": 54.6,
     "winrateWithZeroCounterPicks": 48.0,
     "note": "counterRate = share of a team's picks that matched the same-role matrix's definition of a favorable (>=55% WR, min sample) response to the enemy's most recently revealed champion at pick time (true reconstructed draft order, not column order). Zero-inflated distribution (landing >=1 matrix-defined counter is uncommon), so split is 'any counter-pick' vs 'none', gated at 40 games minimum before trusting the split. This is a retrospective correlation, NOT yet wired into the trained model as a feature \u2014 doing so safely requires a walk-forward (prior-games-only) version of the matchup matrix to avoid leakage, same discipline as region_elo.py's Elo lookups.",
@@ -6408,8 +6408,8 @@
       "defenderTag": "cc_heavy",
       "label": "Mobility escapes hard-CC/engage",
       "status": "validated",
-      "gamesWithCondition": 5588,
-      "winrateWithCondition": 50.1,
+      "gamesWithCondition": 5589,
+      "winrateWithCondition": 50.0,
       "gamesWithout": 147,
       "winrateWithout": 52.4,
       "liftPp": -2.3
@@ -6421,20 +6421,20 @@
       "status": "validated",
       "gamesWithCondition": 5436,
       "winrateWithCondition": 50.3,
-      "gamesWithout": 299,
-      "winrateWithout": 46.5,
-      "liftPp": 3.8
+      "gamesWithout": 300,
+      "winrateWithout": 46.3,
+      "liftPp": 4.0
     },
     {
       "attackerTag": "tank",
       "defenderTag": "burst",
       "label": "Tanks blunt burst-heavy comps",
       "status": "validated",
-      "gamesWithCondition": 3746,
+      "gamesWithCondition": 3747,
       "winrateWithCondition": 49.5,
-      "gamesWithout": 1637,
+      "gamesWithout": 1638,
       "winrateWithout": 48.2,
-      "liftPp": 1.3
+      "liftPp": 1.4
     },
     {
       "attackerTag": "poke",
@@ -6443,7 +6443,7 @@
       "status": "validated",
       "gamesWithCondition": 5810,
       "winrateWithCondition": 49.4,
-      "gamesWithout": 384,
+      "gamesWithout": 386,
       "winrateWithout": 50.0,
       "liftPp": -0.6
     },
@@ -6465,7 +6465,7 @@
       "status": "validated",
       "gamesWithCondition": 4037,
       "winrateWithCondition": 50.7,
-      "gamesWithout": 279,
+      "gamesWithout": 281,
       "winrateWithout": 47.0,
       "liftPp": 3.7
     }
