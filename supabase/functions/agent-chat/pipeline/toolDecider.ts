@@ -2,10 +2,11 @@
 //
 // Decides WHERE to source data for an allowed prompt, then fetches it. Sources, in
 // tiered priority:
-//   1. Oracle's Elixir (oe_slices) — verified pro stats via deterministic analyst tools
+//   1. Deterministic analyst tools — oe_slices pro stats (OE history + Riot warehouse
+//      current rows) plus cito_schedules (Riot GW warehouse) for schedule/results
 //   2. RAG knowledge base (documents / pgvector) — patch/reddit/kalshi/liquipedia chunks
-//   3. CitoAPI — structured esports data (transfers, rankings, trends, schedule, meta)
-//   4. Web fallback (Tavily) — only when OE + RAG + Cito cannot cover the ask
+//   3. CitoAPI — legacy structured fallback (transfers, rankings, trends, meta)
+//   4. Web fallback (Tavily) — only when the above cannot cover the ask
 //
 // Always assumes the CURRENT day/split/year (from client_now → WORLD_CONTEXT) unless the
 // dashboard filters or the message name another. Returns raw evidence; cross-verification
@@ -374,7 +375,12 @@ export async function decideAndFetch(deps: DecideDeps): Promise<Evidence> {
     matchStats = mergeToolResults(analystCtx);
     analystToolNames = analystCtx.tools.map((t) => t.tool);
     if (analystToolNames.length) sources.oracleElixir = true;
-    if (analystToolNames.includes("schedule_lookup")) sources.schedule = true;
+    if (
+      analystToolNames.includes("schedule_lookup") ||
+      analystToolNames.includes("recent_results")
+    ) {
+      sources.schedule = true;
+    }
     if (analystCtx.tools[0]?.data?.split) {
       resolvedSplit = String(analystCtx.tools[0].data.split);
     }

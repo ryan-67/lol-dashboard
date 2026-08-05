@@ -710,40 +710,65 @@ export async function runScheduleLookup(
   }
 
   const leagueFilter = message.match(/\b(LCK|LPL|LEC|LCS)\b/i)?.[1]?.toUpperCase();
-  const query = service
-    .from("esports_schedules")
-    .select("league, split, team_a, team_b, scheduled_at, status, score, source_url")
+
+  // Current SoR: cito_schedules is fed by the Riot GW warehouse sync (docs/nucky_v4.md §15.2).
+  const sinceIso = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+  const warehouseQuery = service
+    .from("cito_schedules")
+    .select(
+      "league, tournament_name, block_name, team_a, team_b, scheduled_at, status, team_a_score, team_b_score, best_of",
+    )
+    .in("status", ["scheduled", "live", "unstarted", "tbd"])
+    .gte("scheduled_at", sinceIso)
     .order("scheduled_at", { ascending: true })
     .limit(15);
-
   if (leagueFilter) {
-    query.eq("league", leagueFilter);
+    warehouseQuery.eq("league", leagueFilter);
   } else if (league !== "All Tier 1") {
-    query.eq("league", league);
+    warehouseQuery.eq("league", league);
   }
 
-  if (split) query.eq("split", split);
+  const warehouse = await warehouseQuery;
+  let rows: Array<Record<string, unknown>> = warehouse.error ? [] : warehouse.data ?? [];
+  let source = "cito_schedules (riot gw warehouse)";
 
-  const { data, error } = await query;
-  if (error) {
-    return {
-      tool: "schedule_lookup",
-      data: {
-        split,
-        league,
-        matches: [],
-        note: `schedule table unavailable: ${error.message}`,
-      },
-    };
+  // Legacy fallback (rag-indexer esports_schedules) when the warehouse has nothing.
+  if (!rows.length) {
+    const legacyQuery = service
+      .from("esports_schedules")
+      .select("league, split, team_a, team_b, scheduled_at, status, score, source_url")
+      .order("scheduled_at", { ascending: true })
+      .limit(15);
+    if (leagueFilter) {
+      legacyQuery.eq("league", leagueFilter);
+    } else if (league !== "All Tier 1") {
+      legacyQuery.eq("league", league);
+    }
+    if (split) legacyQuery.eq("split", split);
+
+    const legacy = await legacyQuery;
+    if (legacy.error) {
+      return {
+        tool: "schedule_lookup",
+        data: {
+          split,
+          league,
+          matches: [],
+          note: `schedule tables unavailable: ${warehouse.error?.message ?? ""} / ${legacy.error.message}`,
+        },
+      };
+    }
+    rows = legacy.data ?? [];
+    source = "esports_schedules";
   }
 
-  let rows = data ?? [];
   const mentionedTeams = extractTeams(message, teamsForFilter);
   if (mentionedTeams.length) {
     const names = new Set(mentionedTeams.map((t) => t.name.toLowerCase()));
     rows = rows.filter(
-      (r: { team_a: string; team_b: string }) =>
-        names.has(r.team_a.toLowerCase()) || names.has(r.team_b.toLowerCase()),
+      (r) =>
+        names.has(String(r.team_a ?? "").toLowerCase()) ||
+        names.has(String(r.team_b ?? "").toLowerCase()),
     );
   }
 
@@ -753,7 +778,73 @@ export async function runScheduleLookup(
       split,
       league: leagueFilter ?? league,
       matches: rows,
-      source: "esports_schedules",
+      source,
+    },
+  };
+}
+
+/**
+ * Completed series results from the Riot GW warehouse (`cito_schedules`).
+ * Answers "who won in the LCK this weekend?" without waiting for OE shards.
+ */
+export async function runRecentResults(
+  service: SupabaseClient,
+  message: string,
+  league: string,
+): Promise<ToolResult | null> {
+  const asksResults = /\b(who won|winners?|results?|scores?|standings)\b/i.test(message);
+  const asksRecent =
+    /\b(weekend|this week|past week|last week|recent|recently|lately|yesterday|today|last few days)\b/i
+      .test(message);
+  if (!asksResults || !asksRecent) return null;
+
+  const leagueFilter = message.match(/\b(LCK|LPL|LEC|LCS)\b/i)?.[1]?.toUpperCase();
+  const sinceDays = /\b(month|monthly|past 30)\b/i.test(message) ? 30 : 14;
+  const sinceIso = new Date(Date.now() - sinceDays * 24 * 60 * 60 * 1000).toISOString();
+
+  const query = service
+    .from("cito_schedules")
+    .select(
+      "league, tournament_name, block_name, team_a, team_b, scheduled_at, status, team_a_score, team_b_score, winner_team, best_of",
+    )
+    .in("status", ["completed", "finished", "done"])
+    .gte("scheduled_at", sinceIso)
+    .order("scheduled_at", { ascending: false })
+    .limit(20);
+  if (leagueFilter) {
+    query.eq("league", leagueFilter);
+  } else if (league !== "All Tier 1") {
+    query.eq("league", league);
+  }
+
+  const { data, error } = await query;
+  if (error) {
+    return {
+      tool: "recent_results",
+      data: { league, series: [], note: `results table unavailable: ${error.message}` },
+    };
+  }
+
+  const rows = (data ?? []).map((r) => ({
+    league: r.league,
+    tournament: r.tournament_name ?? r.block_name ?? null,
+    teamA: r.team_a,
+    teamB: r.team_b,
+    score: typeof r.team_a_score === "number" && typeof r.team_b_score === "number"
+      ? `${r.team_a_score}-${r.team_b_score}`
+      : null,
+    winner: r.winner_team ?? null,
+    date: typeof r.scheduled_at === "string" ? r.scheduled_at.slice(0, 10) : null,
+    bestOf: r.best_of ?? null,
+  }));
+
+  return {
+    tool: "recent_results",
+    data: {
+      league: leagueFilter ?? league,
+      sinceDays,
+      series: rows,
+      source: "cito_schedules (riot gw warehouse)",
     },
   };
 }
@@ -1206,6 +1297,7 @@ export async function buildAnalystContext(
     runChampionMeta(message, bundle),
     runTeamForm(message, bundle),
     runLaneMatchup(message, bundle),
+    await runRecentResults(service, message, analystLeague),
     await runScheduleLookup(service, message, analystLeague, bundle.split, bundle.teams),
   ].filter((t): t is ToolResult => t !== null);
 

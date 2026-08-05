@@ -1,33 +1,37 @@
-# Refresh Dashboard Data (v3 — Cito-primary current; OE historical backbone)
+# Refresh Dashboard Data (v4 — Riot warehouse primary; OE historical backbone; Cito soft fallback)
 #
 # Autonomous flow (every 2h + manual dispatch):
-# 1) check: Cito completed-series fingerprint (current) + OE Drive CSV (backfill)
-# 2) sync-current (ALWAYS):
-#      - sync Cito schedules + scores → cito_schedules
-#      - sync external schedules (Leaguepedia EWC)
-#      - poll live drafts → cito_match_drafts + public/data/cito_live_drafts.json
-#      - sync Cito player-stats (box scores) → cache + OE-shaped ML supplement
-#      - generate recaps for Cito-complete series (full AI when player-stats present)
-#      - bump Elo when cito_changed
-#      - sync Cito postgame gold (soft)
-#      - commit caches; save cito_sync_state watermark
-# 3) refresh-current-ml when cito_changed:
-#      - restore cached OE CSV history + Cito player-stats supplement
+# 1) check: OE Drive CSV fingerprint (historical backfill trigger only)
+# 2) sync-current (ALWAYS — Riot GW + Live Stats is the Current SoR):
+#      - Riot ingest: schedules → cito_schedules + riot_schedule_cache.json;
+#        Live Stats box scores → data/riot/games/ warehouse;
+#        OE-shaped supplement → data/ml/riot_oe_supplement.csv;
+#        player box scores → cito_player_stats_cache.json + cito_player_game_stats
+#      - QA completeness gate (hard fail if tier-1 coverage broken)
+#      - Cito schedule sync (SOFT fallback during migration)
+#      - external schedules + live drafts (soft)
+#      - recaps for completed series (warehouse box scores)
+#      - Elo bump when new games landed
+#      - commit warehouse + caches
+# 3) refresh-current-ml when new Riot games landed:
+#      - restore cached OE CSV history + regenerate Riot supplement
 #      - full ML retrain / ratings / insights publish (does NOT wait on OE Drive)
 # 4) refresh-oe-ml ONLY when OE Drive advanced OR force_oe_ml:
-#      - OE CSV download → ingest → seed oe_slices (historical dashboard + chat backbone)
-#      - full ML retrain (backfill when Drive moves)
+#      - OE CSV download → ingest (+ Riot supplement rows) → seed oe_slices
+#      - full ML retrain (historical backfill when Drive moves)
 #
-# Recaps + model refresh are Cito-primary for in-game stats. OE remains multi-year history.
+# Riot GW + Live Stats is primary for current form. OE remains multi-year history.
+# Cito is a demoted soft fallback (docs/nucky_v4.md §15).
 #
-# Secrets: SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, CITO_API_KEY
-# Optional: GOOGLE_SERVICE_ACCOUNT_KEY, OE_DRIVE_FOLDER_ID, OPENROUTER_API_KEY,
-#           SUPABASE_ACCESS_TOKEN
+# Secrets: SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY
+# Optional: CITO_API_KEY (fallback), GOOGLE_SERVICE_ACCOUNT_KEY, OE_DRIVE_FOLDER_ID,
+#           OPENROUTER_API_KEY, SUPABASE_ACCESS_TOKEN
 #
 # Apply migrations:
 #   supabase/migrations/oe_sync_state.sql
 #   supabase/migrations/20260801120000_cito_sync_and_drafts.sql
 #   supabase/migrations/20260801140000_cito_player_game_stats.sql
+#   supabase/migrations/20260805090000_riot_sync_state.sql
 
 name: Refresh Dashboard Data
 
@@ -67,22 +71,11 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     outputs:
-      cito_changed: ${{ steps.result.outputs.cito_changed }}
       oe_changed: ${{ steps.result.outputs.oe_changed }}
       run_oe_ml: ${{ steps.result.outputs.run_oe_ml }}
-      run_cito_elo: ${{ steps.result.outputs.run_cito_elo }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: npm
-
-      - name: Install Node dependencies
-        run: npm ci
 
       - name: Setup Python
         uses: actions/setup-python@v5
@@ -94,57 +87,47 @@ jobs:
       - name: Install Python dependencies
         run: pip install -r scripts/requirements-ingest.txt
 
-      - name: Determine Cito / OE refresh needs
+      - name: Determine OE historical refresh need
         id: result
         env:
-          CITO_API_KEY: ${{ secrets.CITO_API_KEY }}
           GOOGLE_SERVICE_ACCOUNT_KEY: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_KEY }}
           OE_DRIVE_FOLDER_ID: ${{ secrets.OE_DRIVE_FOLDER_ID }}
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
         run: |
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            echo "cito_changed=true" >> "$GITHUB_OUTPUT"
-            echo "run_cito_elo=true" >> "$GITHUB_OUTPUT"
-            if [ "${{ inputs.force_oe_ml }}" = "true" ]; then
-              echo "oe_changed=true" >> "$GITHUB_OUTPUT"
-              echo "run_oe_ml=true" >> "$GITHUB_OUTPUT"
-            else
-              oe=$(python scripts/check_oe_drive.py --format github || echo true)
-              echo "oe_changed=$oe" >> "$GITHUB_OUTPUT"
-              echo "run_oe_ml=$oe" >> "$GITHUB_OUTPUT"
-            fi
-            echo "Manual run — sync-current + Cito Elo; OE/ML only if Drive moved or force_oe_ml."
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ inputs.force_oe_ml }}" = "true" ]; then
+            echo "oe_changed=true" >> "$GITHUB_OUTPUT"
+            echo "run_oe_ml=true" >> "$GITHUB_OUTPUT"
+            echo "Manual run with force_oe_ml — OE ingest + full retrain."
             exit 0
           fi
-
-          cito=$(npx tsx scripts/cito/check-cito-updates.ts --format github || echo true)
-          echo "cito_changed=$cito" >> "$GITHUB_OUTPUT"
-          echo "run_cito_elo=$cito" >> "$GITHUB_OUTPUT"
-          echo "Cito completed-series advanced: $cito"
-
           oe=$(python scripts/check_oe_drive.py --format github || echo true)
           echo "oe_changed=$oe" >> "$GITHUB_OUTPUT"
-          echo "OE Drive CSV changed: $oe"
+          echo "run_oe_ml=$oe" >> "$GITHUB_OUTPUT"
+          echo "OE Drive CSV changed: $oe (Riot current ingest always runs)"
 
-          # OE/ML is historical backfill only — never triggered by Cito alone.
-          if [ "$oe" = "true" ]; then
-            echo "run_oe_ml=true" >> "$GITHUB_OUTPUT"
-            echo "Will run OE ingest + full ML retrain (Drive advanced)."
-          else
-            echo "run_oe_ml=false" >> "$GITHUB_OUTPUT"
-            echo "OE unchanged — skip full retrain; Cito Elo bump handles current rankings."
-          fi
-
-  # Primary path — always keeps Hub/Board/recaps fresh from Cito.
+  # Primary path — Riot GW + Live Stats keeps Hub/Board/recaps fresh every run.
   sync-current:
     needs: check
     if: needs.check.result == 'success'
     runs-on: ubuntu-latest
     timeout-minutes: 60
+    outputs:
+      riot_new: ${{ steps.riot_ingest.outputs.riot_new }}
+      riot_new_games: ${{ steps.riot_ingest.outputs.riot_new_games }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+          cache-dependency-path: scripts/requirements-ingest.txt
+
+      - name: Install Python dependencies
+        run: pip install -r scripts/requirements-ingest.txt
 
       - name: Setup Node
         uses: actions/setup-node@v4
@@ -155,7 +138,18 @@ jobs:
       - name: Install Node dependencies
         run: npm ci
 
-      - name: Sync Cito league schedules (series scores + bracket blocks)
+      - name: Riot warehouse ingest (schedules + Live Stats box scores) [HARD]
+        id: riot_ingest
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: python scripts/riot/ingest_riot.py --days 14
+
+      - name: Riot warehouse QA completeness gate [HARD]
+        run: python scripts/riot/qa_completeness.py --days 7
+
+      - name: Sync Cito league schedules (SOFT fallback during migration)
+        continue-on-error: true
         env:
           CITO_API_KEY: ${{ secrets.CITO_API_KEY }}
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
@@ -174,7 +168,7 @@ jobs:
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
         run: npm run sync:cito-live-drafts -- --hours 8 --max 30
 
-      - name: Sync Cito player box scores (recaps + ML supplement)
+      - name: Sync Cito player box scores (SOFT fallback supplement)
         continue-on-error: true
         env:
           CITO_API_KEY: ${{ secrets.CITO_API_KEY }}
@@ -182,7 +176,7 @@ jobs:
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
         run: npm run sync:cito-player-stats -- --max-matches 30 --days 21
 
-      - name: Generate weekly recap summaries (Cito-complete; no OE wait)
+      - name: Generate weekly recap summaries (warehouse box scores)
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
@@ -191,28 +185,23 @@ jobs:
           RECAP_REGENERATE: ${{ github.event_name == 'workflow_dispatch' && inputs.regenerate_recaps && '1' || '0' }}
         run: npm run generate:weekly-recap
 
-      - name: Bump Elo / power rankings from new Cito series
-        if: needs.check.outputs.run_cito_elo == 'true'
+      - name: Bump Elo / power rankings from new completed series
+        if: steps.riot_ingest.outputs.riot_new == 'true' || github.event_name == 'workflow_dispatch'
         continue-on-error: true
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
         run: npm run bump:elo-cito
 
-      - name: Sync Cito postgame gold timelines
-        continue-on-error: true
-        env:
-          CITO_API_KEY: ${{ secrets.CITO_API_KEY }}
-          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-        run: npm run sync:cito-postgame -- --max-matches 20
-
-      - name: Commit Cito schedule + drafts + Elo bump
+      - name: Commit Riot warehouse + current caches
         continue-on-error: true
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add \
+            data/riot \
+            data/ml/riot_oe_supplement.csv \
+            public/data/riot_schedule_cache.json \
             public/data/cito_schedule_cache.json \
             public/data/cito_live_drafts.json \
             public/data/cito_player_stats_cache.json \
@@ -222,24 +211,21 @@ jobs:
             supabase/functions/agent-chat/ml/region_strength.json \
             || true
           if ! git diff --staged --quiet; then
-            git commit -m "chore(data): sync Cito current (schedule, drafts, stats, Elo)"
+            git commit -m "chore(data): sync Riot warehouse current (schedule, box scores, recaps)"
             git push || (git fetch origin main && git rebase origin/main && git push)
           else
-            echo "Cito current caches unchanged — skip commit."
+            echo "Current caches unchanged — skip commit."
           fi
 
-      - name: Save Cito sync watermark
-        continue-on-error: true
-        env:
-          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-        run: npm run save:cito-sync-state
-
-  # Current model refresh — OE history cache + fresh Cito box scores (no Drive wait).
+  # Current model refresh — OE history cache + fresh Riot warehouse rows (no Drive wait).
   # Skipped when refresh-oe-ml also runs (that job retrains after OE ingest).
   refresh-current-ml:
     needs: [check, sync-current]
-    if: needs.check.result == 'success' && needs.check.outputs.run_cito_elo == 'true' && needs.check.outputs.run_oe_ml != 'true'
+    if: >-
+      needs.check.result == 'success' &&
+      needs.sync-current.result == 'success' &&
+      (needs.sync-current.outputs.riot_new == 'true' || github.event_name == 'workflow_dispatch') &&
+      needs.check.outputs.run_oe_ml != 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 180
     steps:
@@ -291,7 +277,29 @@ jobs:
           OE_DRIVE_FOLDER_ID: ${{ secrets.OE_DRIVE_FOLDER_ID }}
         run: python scripts/ensure_oe_history.py --min-years 4
 
-      - name: Sync Cito player-stats → OE supplement CSV
+      - name: Regenerate Riot warehouse supplement (delta fetch on committed cache)
+        run: python scripts/riot/ingest_riot.py --days 14 --no-supabase
+
+      - name: Rebuild current-year dashboard shards (OE cache + Riot supplement)
+        env:
+          OE_DOWNLOAD_YEARS: current
+        run: python scripts/ingest_csv.py
+
+      - name: Publish current-year shards to repo
+        env:
+          OE_CDN_PUBLISH_YEARS: current
+        run: python scripts/publish_oe_cdn_to_git.py
+
+      - name: Seed Supabase oe_slices (current year)
+        continue-on-error: true
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          OE_DOWNLOAD_YEARS: current
+        run: python scripts/seed_supabase.py
+
+      - name: Sync Cito player-stats → OE supplement CSV (SOFT fallback)
+        continue-on-error: true
         env:
           CITO_API_KEY: ${{ secrets.CITO_API_KEY }}
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
@@ -303,7 +311,7 @@ jobs:
         continue-on-error: ${{ github.event_name != 'workflow_dispatch' }}
         run: pip install -r scripts/requirements-ml.txt
 
-      - name: Retrain model from OE history + Cito current box scores
+      - name: Retrain model from OE history + Riot warehouse current rows
         if: steps.ml_deps.outcome == 'success'
         continue-on-error: ${{ github.event_name != 'workflow_dispatch' }}
         id: ml_retrain
@@ -328,13 +336,26 @@ jobs:
         if: steps.ml_retrain.outcome == 'success'
         run: python scripts/ml/publish_model_to_site.py --outcome success
 
+      - name: Record ML freshness after soft-fail (cron only)
+        if: always() && steps.ml_deps.outcome == 'success' && steps.ml_retrain.outcome != 'success'
+        continue-on-error: true
+        env:
+          RETRAIN_OUTCOME: ${{ steps.ml_retrain.outcome }}
+        run: |
+          outcome="${RETRAIN_OUTCOME:-failure}"
+          python scripts/ml/write_ml_freshness.py --outcome "$outcome"
+          echo "::warning::ML retrain did not succeed (outcome=$outcome). See public/data/ml_freshness.json"
+
       - name: Commit published model artifacts
-        if: steps.ml_publish.outcome == 'success'
+        if: always() && (steps.ml_publish.outcome == 'success' || steps.ml_retrain.outcome != 'success') && steps.ml_deps.outcome == 'success'
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
+          git pull --rebase origin main || true
           git add supabase/functions/agent-chat/ml/ || true
           git add \
+            data/riot \
+            data/ml/riot_oe_supplement.csv \
             public/data/player_ratings.json \
             public/data/region_strength.json \
             public/data/accuracy_scorecard.json \
@@ -343,7 +364,11 @@ jobs:
             public/data/ml_freshness.json \
             public/data/cito_player_stats_cache.json || true
           if ! git diff --staged --quiet; then
-            git commit -m "chore(ml): refresh model from Cito current box scores"
+            if [ "${{ steps.ml_retrain.outcome }}" = "success" ]; then
+              git commit -m "chore(ml): refresh model from Riot warehouse current rows"
+            else
+              git commit -m "chore(ml): record freshness after soft-fail retrain"
+            fi
             git push || (git fetch origin main && git rebase origin/main && git push)
           else
             echo "Model artifacts unchanged — skip commit."
@@ -366,7 +391,7 @@ jobs:
             exit 0
           fi
           npx supabase functions deploy agent-chat --project-ref "$REF" --use-api
-          echo "Deployed agent-chat with Cito-refreshed ml/ artifacts to project $REF."
+          echo "Deployed agent-chat with Riot-refreshed ml/ artifacts to project $REF."
 
   # Historical backbone — OE deep stats + full ML retrain when Drive CSV advances.
   refresh-oe-ml:
@@ -421,7 +446,11 @@ jobs:
           OE_DRIVE_FOLDER_ID: ${{ secrets.OE_DRIVE_FOLDER_ID }}
         run: python scripts/ensure_oe_history.py --min-years 4
 
-      - name: Ingest CSVs into slice JSON shards
+      - name: Refresh Riot warehouse supplement (shards + mart current rows)
+        continue-on-error: true
+        run: python scripts/riot/ingest_riot.py --days 14 --no-supabase
+
+      - name: Ingest CSVs into slice JSON shards (OE + Riot supplement)
         env:
           OE_DOWNLOAD_YEARS: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.download_scope || 'current' }}
         run: python scripts/ingest_csv.py
@@ -444,7 +473,7 @@ jobs:
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
         run: python scripts/verify_supabase_seed.py
 
-      - name: Backfill gol.gg gold timelines (Cito fallback)
+      - name: Backfill gol.gg gold timelines (fallback)
         continue-on-error: true
         id: gol_gold
         run: python scripts/backfill_gol_gold_timelines.py --year 2026 --max-fetch 50 --missing-only
@@ -463,7 +492,7 @@ jobs:
             echo "gol gold cache unchanged — skip commit."
           fi
 
-      - name: Setup Node (Cito player-stats sync)
+      - name: Setup Node (fallback syncs)
         uses: actions/setup-node@v4
         with:
           node-version: '20'
@@ -472,7 +501,7 @@ jobs:
       - name: Install Node dependencies
         run: npm ci
 
-      - name: Sync Cito player-stats → OE supplement (merge into mart)
+      - name: Sync Cito player-stats → OE supplement (SOFT fallback)
         continue-on-error: true
         env:
           CITO_API_KEY: ${{ secrets.CITO_API_KEY }}
@@ -525,8 +554,11 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
+          git pull --rebase origin main || true
           git add supabase/functions/agent-chat/ml/ || true
           git add \
+            data/riot \
+            data/ml/riot_oe_supplement.csv \
             public/data/player_ratings.json \
             public/data/region_strength.json \
             public/data/accuracy_scorecard.json \
@@ -570,4 +602,5 @@ jobs:
           OE_DRIVE_FOLDER_ID: ${{ secrets.OE_DRIVE_FOLDER_ID }}
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-        run: python scripts/save_oe_drive_state.py
+        run: |
+          python scripts/save_oe_drive_state.py

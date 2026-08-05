@@ -101,6 +101,12 @@ scripts/rag-indexer/tsconfig.json
 data/ml/*
 # ...except curated (hand-maintained, not regenerated) config:
 !data/ml/roster_overrides.json
+# ...and the Riot warehouse OE-shaped supplement (Current SoR rows for mart + shards):
+!data/ml/riot_oe_supplement.csv
+
+# Riot warehouse cache (data/riot/) is committed for incremental CI ingest,
+# except local scratch logs:
+data/riot/backfill_log.txt
 
 # Agent skills (runtime deps / browsers stay local)
 .agents/skills/**/node_modules/

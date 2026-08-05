@@ -264,30 +264,63 @@ def _flag(v) -> bool:
         return False
 
 
+PLAYER_SCAN_COLS = {
+    "gameid", "date", "league", "position", "teamname", "result", "champion",
+    "playername", "name", "datacompleteness", "gamelength",
+    "golddiffat15", "csdiffat15", "xpdiffat15", "golddiffat25",
+    "killsat15", "assistsat15",
+    "kills", "deaths", "assists", "teamkills",
+    "damageshare", "dpm", "earnedgoldshare", "earned gpm",
+    "wardskilled", "visionscore", "firstbloodkill", "firstbloodassist",
+}
+
+RIOT_SUPPLEMENT_PATH = ROOT / "data" / "ml" / "riot_oe_supplement.csv"
+
+
+def _read_player_scan_csv(path: Path) -> pd.DataFrame:
+    df = pd.read_csv(path, usecols=lambda c: c in PLAYER_SCAN_COLS, low_memory=False)
+    df.columns = [c.strip() for c in df.columns]
+    df = df[df["league"].astype(str).str.strip().isin(ALL_ALLOWED_LEAGUE_CODES)]
+    df = df[df.get("datacompleteness", "").astype(str).str.strip().isin(ALLOWED_COMPLETENESS)]
+    pos = df["position"].astype(str).str.lower()
+    return df[~pos.eq("team")]
+
+
 def load_rows(years: tuple[str, ...] | list[str] | None = None) -> pd.DataFrame:
     """Load player-game rows. `years` defaults to YEARS (2025-2026, the current
     ranking window); the feature mart passes a wider range so its walk-forward
-    roster-strength rolling feature isn't sparse on older training rows."""
+    roster-strength rolling feature isn't sparse on older training rows.
+
+    Appends the Riot warehouse supplement (Current SoR) so ratings include
+    games OE has not published yet — OE rows win on the same (day, team).
+    """
     years = tuple(years) if years else YEARS
     rows: list[dict] = []
     for path in discover_local_csv_files(LOL_DIR):
         if not any(path.name.startswith(y) for y in years):
             continue
         print(f"  Player scan: {path.name}", file=sys.stderr)
-        df = pd.read_csv(path, usecols=lambda c: c in {
-            "gameid", "date", "league", "position", "teamname", "result", "champion",
-            "playername", "name", "datacompleteness", "gamelength",
-            "golddiffat15", "csdiffat15", "xpdiffat15", "golddiffat25",
-            "killsat15", "assistsat15",
-            "kills", "deaths", "assists", "teamkills",
-            "damageshare", "dpm", "earnedgoldshare", "earned gpm",
-            "wardskilled", "visionscore", "firstbloodkill", "firstbloodassist",
-        }, low_memory=False)
-        df.columns = [c.strip() for c in df.columns]
-        df = df[df["league"].astype(str).str.strip().isin(ALL_ALLOWED_LEAGUE_CODES)]
-        df = df[df.get("datacompleteness", "").astype(str).str.strip().isin(ALLOWED_COMPLETENESS)]
-        pos = df["position"].astype(str).str.lower()
-        df = df[~pos.eq("team")]
+        _rows_from_df(_read_player_scan_csv(path), rows)
+
+    if RIOT_SUPPLEMENT_PATH.exists():
+        supp = _read_player_scan_csv(RIOT_SUPPLEMENT_PATH)
+        supp = supp[supp["date"].astype(str).str[:4].isin([str(y) for y in years])]
+        oe_keys = {(r["date"], r["team"]) for r in rows}
+        supp_rows: list[dict] = []
+        _rows_from_df(supp, supp_rows)
+        added = [r for r in supp_rows if (r["date"], r["team"]) not in oe_keys]
+        if added:
+            print(
+                f"  Player scan: riot_oe_supplement.csv (+{len(added)} warehouse rows, "
+                f"{len(supp_rows) - len(added)} shadowed by OE)",
+                file=sys.stderr,
+            )
+            rows.extend(added)
+
+    return pd.DataFrame(rows)
+
+
+def _rows_from_df(df: pd.DataFrame, rows: list[dict]) -> None:
         for _, row in df.iterrows():
             row = normalize_oe_row(row.to_dict())
             role = _norm_pos(row.get("position", ""))
@@ -370,7 +403,6 @@ def load_rows(years: tuple[str, ...] | list[str] | None = None) -> pd.DataFrame:
                 "first_blood": first_blood,
                 "playmaking15": ka15,
             })
-    return pd.DataFrame(rows)
 
 
 def add_opponents(df: pd.DataFrame) -> pd.DataFrame:
@@ -514,14 +546,31 @@ def add_duo_partner_context(df: pd.DataFrame) -> pd.DataFrame:
 def add_composite_z(df: pd.DataFrame) -> pd.DataFrame:
     """Role-weighted blend of the per-stat z-columns, computed once for the
     whole dataset (used both as the pass-1 opponent-skill reference input and
-    as the base value pass-2 adjusts)."""
+    as the base value pass-2 adjusts).
+
+    Availability-aware (V4-3): Riot warehouse rows have no xpd15 / visionscore /
+    absolute dpm, so weights are renormalized over the stats present per row —
+    otherwise every Current-SoR game would read as artificially neutral. Rows
+    with under half the weight mass available keep the old neutral-fill
+    behavior (shrinkage rather than trusting two stats to carry a rating).
+    """
     df = df.copy()
     df["composite_z"] = np.nan
     for role, weights_map in ROLE_STAT_WEIGHTS.items():
         mask = df["role"] == role
-        df.loc[mask, "composite_z"] = sum(
+        if not mask.any():
+            continue
+        total_w = sum(weights_map.values())
+        weighted = sum(
             df.loc[mask, f"z_{stat}"].fillna(0) * w for stat, w in weights_map.items()
         )
+        avail_w = sum(
+            df.loc[mask, f"z_{stat}"].notna().astype(float) * w
+            for stat, w in weights_map.items()
+        )
+        renorm = weighted * (total_w / avail_w.clip(lower=1e-9))
+        use_renorm = avail_w >= (total_w * 0.5)
+        df.loc[mask, "composite_z"] = np.where(use_renorm, renorm, weighted)
     return df
 
 

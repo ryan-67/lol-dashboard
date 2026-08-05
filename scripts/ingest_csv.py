@@ -1499,6 +1499,25 @@ def load_existing_manifest() -> tuple[YearFilesMap, list[str]]:
     return dict(year_files), list(splits)
 
 
+RIOT_SUPPLEMENT_PATH = ROOT / "data" / "ml" / "riot_oe_supplement.csv"
+
+
+def iter_riot_supplement_rows(scoped_years):
+    """OE-shaped rows from the Riot warehouse export (Current SoR).
+
+    Regenerate with: python scripts/riot/export_supplement.py
+    """
+    if not RIOT_SUPPLEMENT_PATH.exists():
+        return
+    with RIOT_SUPPLEMENT_PATH.open("r", encoding="utf-8") as f:
+        reader = csv.DictReader(f)
+        for row in reader:
+            year = str(row.get("year", "")).strip()
+            if scoped_years is not None and year not in scoped_years:
+                continue
+            yield row
+
+
 def ingest():
     csv_files = discover_local_csv_files(LOL_DIR)
     ingest_scope = os.environ.get("OE_DOWNLOAD_YEARS", "").strip()
@@ -1554,13 +1573,44 @@ def ingest():
     if guest_teams:
         print(f"  International guest teams ({len(guest_teams)}): {', '.join(sorted(guest_teams)[:12])}")
 
+    # Pass 1c: Riot warehouse supplement teams (OE mapping wins on conflicts).
+    for row in iter_riot_supplement_rows(scoped_years):
+        league = row.get("league", "")
+        team_name = (row.get("teamname") or "").strip()
+        if league in TARGET_LEAGUES and team_name:
+            team_to_league.setdefault(team_name, league)
+
     # Pass 2: aggregate into canonical split/league buckets.
+    oe_day_teams: set[tuple[str, str]] = set()
     for csv_path in csv_files:
         print(f"Reading {csv_path.name}...")
         with csv_path.open("r", encoding="utf-8") as f:
             reader = csv.DictReader(f)
             for row in reader:
+                day = str(row.get("date", "")).strip()[:10]
+                team = str(row.get("teamname", "")).strip()
+                if day and team:
+                    oe_day_teams.add((day, team))
                 process_row(row, buckets, team_to_league, guest_teams)
+
+    # Pass 2b: Riot warehouse supplement (Current SoR) — fills the OE freshness
+    # hole so Form/gameLogs include this week's games. OE rows win on the same
+    # (calendar day, team); riot-only games flow through the same aggregator.
+    supplement_used = 0
+    supplement_skipped = 0
+    for row in iter_riot_supplement_rows(scoped_years):
+        day = str(row.get("date", "")).strip()[:10]
+        team = str(row.get("teamname", "")).strip()
+        if day and team and (day, team) in oe_day_teams:
+            supplement_skipped += 1
+            continue
+        process_row(row, buckets, team_to_league, guest_teams)
+        supplement_used += 1
+    if supplement_used or supplement_skipped:
+        print(
+            f"Riot warehouse supplement: ingested {supplement_used} rows "
+            f"(skipped {supplement_skipped} already covered by OE)"
+        )
 
     global_game_teams, global_catalog_teams = build_global_game_teams_and_catalog(buckets)
 

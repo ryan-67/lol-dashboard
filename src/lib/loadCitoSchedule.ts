@@ -29,7 +29,10 @@ const INTERNATIONAL_SCHEDULE_LEAGUES = new Set([
   'First Stand',
   'Esports World Cup',
 ])
-const SCHEDULE_CACHE_URL = `${import.meta.env.BASE_URL}data/cito_schedule_cache.json`
+// Riot GW warehouse cache is the Current SoR; the Cito cache is a soft
+// migration fallback filling match_ids the Riot sync has not covered yet.
+const RIOT_SCHEDULE_CACHE_URL = `${import.meta.env.BASE_URL}data/riot_schedule_cache.json`
+const CITO_SCHEDULE_CACHE_URL = `${import.meta.env.BASE_URL}data/cito_schedule_cache.json`
 
 let scheduleCachePromise: Promise<CitoScheduleRow[]> | null = null
 
@@ -75,15 +78,29 @@ function scheduleRowPriority(row: CitoScheduleRow): number {
   return 4
 }
 
+async function fetchScheduleCacheRows(url: string): Promise<CitoScheduleRow[]> {
+  try {
+    const res = await fetch(url)
+    if (!res.ok) return []
+    const body = (await res.json()) as { rows?: CitoScheduleRow[] }
+    return body.rows ?? []
+  } catch {
+    return []
+  }
+}
+
 async function loadScheduleCache(): Promise<CitoScheduleRow[]> {
   if (!scheduleCachePromise) {
-    scheduleCachePromise = fetch(SCHEDULE_CACHE_URL)
-      .then(async (res) => {
-        if (!res.ok) return []
-        const body = (await res.json()) as { rows?: CitoScheduleRow[] }
-        return body.rows ?? []
-      })
-      .catch(() => [])
+    scheduleCachePromise = (async () => {
+      const [riotRows, citoRows] = await Promise.all([
+        fetchScheduleCacheRows(RIOT_SCHEDULE_CACHE_URL),
+        fetchScheduleCacheRows(CITO_SCHEDULE_CACHE_URL),
+      ])
+      const byId = new Map<string, CitoScheduleRow>()
+      for (const row of citoRows) byId.set(row.match_id, row)
+      for (const row of riotRows) byId.set(row.match_id, row)
+      return [...byId.values()]
+    })()
   }
   return scheduleCachePromise
 }
