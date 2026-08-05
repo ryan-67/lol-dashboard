@@ -85,7 +85,12 @@ def record_to_cache_rows(record: dict[str, Any]) -> list[dict[str, Any]]:
                 "gd25": at25.get("gold_diff"),
                 "gameLengthMinutes": minutes,
                 "payload": {
-                    "source": "riot_livestats",
+                    "source": (
+                        "cito_gapfill"
+                        if record.get("source") == "cito_gapfill"
+                        or (record.get("qa") or {}).get("gapFill")
+                        else "riot_livestats"
+                    ),
                     "killParticipation": p.get("killParticipation"),
                     "atMinutes": p.get("atMinutes") or {},
                 },

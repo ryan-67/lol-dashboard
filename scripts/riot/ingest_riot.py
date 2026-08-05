@@ -7,8 +7,9 @@ Pipeline (docs/nucky_v4.md §15):
   2. For completed tier-1 series in the lookback window, fetch game ids via
      getEventDetails and pull Live Stats box scores + @minute snapshots for
      games not already cached in data/riot/games/
-  3. Export data/ml/riot_oe_supplement.csv (ML mart + dashboard shards)
-  4. Merge public/data/cito_player_stats_cache.json + upsert
+  3. Cito gap-fill for any series still missing warehouse games
+  4. Export data/ml/riot_oe_supplement.csv (ML mart + dashboard shards)
+  5. Merge public/data/cito_player_stats_cache.json + upsert
      cito_player_game_stats (recap SeriesFacts)
 
 Incremental: cached games are never re-fetched, so steady-state runs only cost
@@ -94,6 +95,11 @@ def _is_complete_record(path: Path) -> bool:
         record = json.loads(path.read_text(encoding="utf-8"))
     except (json.JSONDecodeError, OSError):
         return False
+    if len(record.get("players") or []) < 8:
+        return False
+    # Cito gap-fill rows are final box scores without Live Stats frames.
+    if record.get("source") == "cito_gapfill":
+        return True
     length_s = record.get("gameLengthSeconds")
     if not length_s:
         return False
@@ -174,7 +180,8 @@ def main() -> None:
     parser.add_argument("--schedule-days", type=int, default=None, help="Schedule walk lookback (default: max(days, 21))")
     parser.add_argument("--max-series", type=int, default=120, help="Max completed series to check per run")
     parser.add_argument("--supplement-days", type=int, default=400, help="Supplement CSV window from game cache")
-    parser.add_argument("--no-supabase", action="store_true", help="Skip Supabase upserts (local dev)")
+    parser.add_argument("--no-supabase", action="store_true", help="Skip Supabase upserts (local dry)")
+    parser.add_argument("--no-gap-fill", action="store_true", help="Skip Cito gap-fill for uncovered series")
     args = parser.parse_args()
 
     _load_env()
@@ -188,6 +195,16 @@ def main() -> None:
 
     print("== Live Stats box scores ==")
     new_games, failures = ingest_box_scores(rows, args.days, args.max_series)
+
+    gap_new = 0
+    gap_targets = 0
+    gap_still = 0
+    if not args.no_gap_fill:
+        print("== Cito gap-fill (uncovered / partial series) ==")
+        from riot.gap_fill import gap_fill_uncovered
+
+        gap_new, gap_targets, gap_still = gap_fill_uncovered(rows, args.days)
+        new_games += gap_new
 
     print("== Export OE supplement ==")
     supplement_rows = write_supplement(days=args.supplement_days)
@@ -208,6 +225,9 @@ def main() -> None:
         "schedule_rows": len(rows),
         "new_games": new_games,
         "fetch_failures": failures,
+        "gap_fill_games": gap_new,
+        "gap_fill_targets": gap_targets,
+        "gap_fill_still_open": gap_still,
         "supplement_rows": supplement_rows,
         "player_cache_rows": len(cache_rows),
     }

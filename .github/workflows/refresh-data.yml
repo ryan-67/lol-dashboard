@@ -5,6 +5,7 @@
 # 2) sync-current (ALWAYS — Riot GW + Live Stats is the Current SoR):
 #      - Riot ingest: schedules → cito_schedules + riot_schedule_cache.json;
 #        Live Stats box scores → data/riot/games/ warehouse;
+#        Cito gap-fill for uncovered/partial series → same warehouse (source=cito_gapfill);
 #        OE-shaped supplement → data/ml/riot_oe_supplement.csv;
 #        player box scores → cito_player_stats_cache.json + cito_player_game_stats
 #      - QA completeness gate (hard fail if tier-1 coverage broken)
@@ -138,11 +139,12 @@ jobs:
       - name: Install Node dependencies
         run: npm ci
 
-      - name: Riot warehouse ingest (schedules + Live Stats box scores) [HARD]
+      - name: Riot warehouse ingest (schedules + Live Stats + Cito gap-fill) [HARD]
         id: riot_ingest
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          CITO_API_KEY: ${{ secrets.CITO_API_KEY }}
         run: python scripts/riot/ingest_riot.py --days 14
 
       - name: Riot warehouse QA completeness gate [HARD]
@@ -278,6 +280,8 @@ jobs:
         run: python scripts/ensure_oe_history.py --min-years 4
 
       - name: Regenerate Riot warehouse supplement (delta fetch on committed cache)
+        env:
+          CITO_API_KEY: ${{ secrets.CITO_API_KEY }}
         run: python scripts/riot/ingest_riot.py --days 14 --no-supabase
 
       - name: Rebuild current-year dashboard shards (OE cache + Riot supplement)
@@ -448,6 +452,8 @@ jobs:
 
       - name: Refresh Riot warehouse supplement (shards + mart current rows)
         continue-on-error: true
+        env:
+          CITO_API_KEY: ${{ secrets.CITO_API_KEY }}
         run: python scripts/riot/ingest_riot.py --days 14 --no-supabase
 
       - name: Ingest CSVs into slice JSON shards (OE + Riot supplement)

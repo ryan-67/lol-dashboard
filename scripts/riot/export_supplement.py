@@ -130,6 +130,7 @@ def game_to_oe_rows(record: dict) -> list[dict]:
     minutes = (length_s / 60.0) if length_s else None
     date = _oe_date(record)
     year = date[:4]
+    is_gapfill = record.get("source") == "cito_gapfill" or (record.get("qa") or {}).get("gapFill")
     base = {
         "gameid": f"lol-game-{record['gameId']}",
         "datacompleteness": "partial",
@@ -145,7 +146,7 @@ def game_to_oe_rows(record: dict) -> list[dict]:
         "teamid": "",
         "gamelength": length_s if length_s else "",
         "cito_source": 1,
-        "riot_source": 1,
+        "riot_source": 0 if is_gapfill else 1,
     }
 
     players = record.get("players") or []

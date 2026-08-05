@@ -3,12 +3,14 @@
 
 Checks, per tier-1 league WITH completed series in the lookback window:
   - series coverage: ≥ --min-series-coverage of completed series have ≥1
-    warehouse game record
+    warehouse game record (Riot Live Stats OR Cito gap-fill)
   - full coverage:   ≥ --min-full of completed series have all games cached
-  - GD@15 coverage:  ≥ --min-gd15 of cached in-window games have a usable
-    @15 snapshot (skew < 90s) or were sub-15-minute games
+  - GD@15 coverage:  ≥ --min-gd15 of Riot (non-gapfill) in-window games have a
+    usable @15 snapshot (skew < 90s) or were sub-15-minute games
 
 Offseason-safe: leagues with zero completed series in-window are skipped.
+GW 0-0 "completed" stubs with no warehouse games are excluded from the gate
+(schedule lag / cancelled events) — gap-fill may still recover them.
 Exits non-zero on failure so refresh-data.yml hard-fails before publish.
 
 Usage: python scripts/riot/qa_completeness.py --days 14
@@ -42,6 +44,7 @@ def main() -> None:
     parser.add_argument("--min-series-coverage", type=float, default=0.95)
     parser.add_argument("--min-full", type=float, default=0.70)
     parser.add_argument("--min-gd15", type=float, default=0.80)
+    parser.add_argument("--max-gapfill-rate", type=float, default=0.25)
     args = parser.parse_args()
 
     if not SNAPSHOT_PATH.exists():
@@ -64,6 +67,8 @@ def main() -> None:
     games_by_series: dict[str, list[dict]] = {}
     gd15_ok = 0
     gd15_total = 0
+    gapfill_games = 0
+    riot_games = 0
     for path in GAMES_DIR.glob("*.json") if GAMES_DIR.exists() else []:
         try:
             record = json.loads(path.read_text(encoding="utf-8"))
@@ -75,11 +80,34 @@ def main() -> None:
         sid = str(record.get("seriesMatchId") or "")
         games_by_series.setdefault(sid, []).append(record)
 
+        is_gapfill = record.get("source") == "cito_gapfill" or (record.get("qa") or {}).get("gapFill")
+        if is_gapfill:
+            gapfill_games += 1
+            # Gap-fill rows rarely have Live Stats mid-game frames — exclude
+            # from GD@15 denominator so they don't tank the snapshot gate.
+            continue
+
+        riot_games += 1
         gd15_total += 1
         length_s = record.get("gameLengthSeconds") or 0
         has_gd15 = "15" in ((record.get("players") or [{}])[0].get("atMinutes") or {})
         if has_gd15 or (0 < length_s < 15 * 60):
             gd15_ok += 1
+
+    # Drop empty 0-0 "completed" stubs that never produced warehouse games —
+    # GW lag / cancelled events. Gap-fill may still write them; if so they stay.
+    gated_series = []
+    skipped_stubs = 0
+    for row in series:
+        expected = (row.get("team_a_score") or 0) + (row.get("team_b_score") or 0)
+        games = games_by_series.get(str(row.get("match_id")), [])
+        if expected == 0 and not games:
+            skipped_stubs += 1
+            continue
+        gated_series.append(row)
+    series = gated_series
+    if skipped_stubs:
+        print(f"  NOTICE: skipped {skipped_stubs} empty 0-0 completed stub(s) from gate")
 
     failures: list[str] = []
     leagues = sorted({str(r.get("league")) for r in series})
@@ -91,11 +119,17 @@ def main() -> None:
         rows = [r for r in series if str(r.get("league")) == league]
         covered = 0
         full = 0
+        gapfilled_series = 0
         for row in rows:
             games = games_by_series.get(str(row.get("match_id")), [])
             expected = (row.get("team_a_score") or 0) + (row.get("team_b_score") or 0)
             if games:
                 covered += 1
+            if any(
+                g.get("source") == "cito_gapfill" or (g.get("qa") or {}).get("gapFill")
+                for g in games
+            ):
+                gapfilled_series += 1
             if games and (expected == 0 or len(games) >= expected):
                 full += 1
         cov = covered / len(rows)
@@ -111,13 +145,28 @@ def main() -> None:
                 f"{league}: full-series coverage {full_cov:.0%} < {args.min_full:.0%} ({full}/{len(rows)})"
             )
             status = "FAIL"
-        print(f"  {league}: {len(rows)} series, covered {cov:.0%}, full {full_cov:.0%} [{status}]")
+        gap_note = f", gapfill_series={gapfilled_series}" if gapfilled_series else ""
+        print(
+            f"  {league}: {len(rows)} series, covered {cov:.0%}, full {full_cov:.0%} "
+            f"[{status}]{gap_note}"
+        )
 
     if gd15_total:
         gd15_rate = gd15_ok / gd15_total
-        print(f"  GD@15 snapshot coverage: {gd15_rate:.0%} ({gd15_ok}/{gd15_total} games)")
+        print(f"  GD@15 snapshot coverage (Riot only): {gd15_rate:.0%} ({gd15_ok}/{gd15_total} games)")
         if gd15_rate < args.min_gd15:
             failures.append(f"GD@15 coverage {gd15_rate:.0%} < {args.min_gd15:.0%}")
+    else:
+        print("  GD@15 snapshot coverage (Riot only): n/a (no Riot games in window)")
+
+    total_games = riot_games + gapfill_games
+    if total_games:
+        gap_rate = gapfill_games / total_games
+        print(f"  Gap-fill share: {gap_rate:.0%} ({gapfill_games}/{total_games} games)")
+        if gap_rate > args.max_gapfill_rate:
+            failures.append(
+                f"gap-fill rate {gap_rate:.0%} > {args.max_gapfill_rate:.0%} — Riot Live Stats may be degrading"
+            )
 
     if failures:
         print("\nFAIL - warehouse completeness gate:")
