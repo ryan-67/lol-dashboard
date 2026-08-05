@@ -2,6 +2,7 @@ public/data/*
 !public/data/oe_slices.json
 !public/data/oe_slices_*.json
 !public/data/cito_schedule_cache.json
+!public/data/riot_schedule_cache.json
 !public/data/cito_live_drafts.json
 !public/data/cito_player_stats_cache.json
 !public/data/external_schedule_cache.json
@@ -23,9 +24,9 @@ public/data/*
 skills-lock.json
 
 # Internal strategy / design docs (local only — not for public SaaS clone)
+# nucky_v4.md is tracked: it is the canonical Riot warehouse cutover plan.
 docs/nucky_v2.md
 docs/nucky_v3.md
-docs/nucky_v4.md
 docs/nuckyAI_model.md
 docs/data-sources-research.md
 docs/CITOAPI.md
@@ -91,6 +92,7 @@ supabase/migrations/**
 !supabase/migrations/avatars_storage.sql
 !supabase/migrations/20260801120000_cito_sync_and_drafts.sql
 !supabase/migrations/20260801140000_cito_player_game_stats.sql
+!supabase/migrations/20260805090000_riot_sync_state.sql
 
 scripts/rag-indexer/src/
 scripts/rag-indexer/tsconfig.json
