@@ -197,10 +197,13 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
   const filteredTeams = data?.teams ?? []
   const filteredChampions = data?.champions ?? []
 
+  // When form tabs use ALL splits (default), hub and tab merges are identical —
+  // skip a second full-year mergeSlices pass (~22k gameLogs).
   const weeklyHubData = useMemo(() => {
     if (!store) return null
+    if (selectedSplits.includes('ALL') && data) return data
     return mergeWeeklyHubFromFilters(store, selectedLeagues, selectedYears)
-  }, [store, selectedLeagues, selectedYears])
+  }, [store, selectedLeagues, selectedYears, selectedSplits, data])
 
   const weeklyHubPlayers = weeklyHubData?.players ?? []
   const weeklyHubTeams = weeklyHubData?.teams ?? []

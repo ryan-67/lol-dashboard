@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { lazy, Suspense, useEffect, useRef, type ReactNode } from 'react'
 import { Navigate, Routes, Route, useLocation, useParams } from 'react-router-dom'
 import Lenis from 'lenis'
 import gsap from 'gsap'
@@ -16,24 +16,26 @@ import DashboardFrame from './components/shell/DashboardFrame'
 import ChatPane from './components/shell/ChatPane'
 import SubscriberGate from './components/shell/SubscriberGate'
 import Landing from './pages/Landing'
-import Overview from './pages/Overview'
-import Players from './pages/Players'
-import Teams from './pages/Teams'
-import Champions from './pages/Champions'
-import Tournaments from './pages/Tournaments'
-import Predictions from './pages/Predictions'
-import PlayerPage from './pages/entities/PlayerPage'
-import TeamPage from './pages/entities/TeamPage'
-import ChampionPage from './pages/entities/ChampionPage'
-import TournamentPage from './pages/entities/TournamentPage'
-import SeriesPage from './pages/entities/SeriesPage'
-import PredictionPreviewPage from './pages/entities/PredictionPreviewPage'
 import PrivatePolicy from './pages/PrivatePolicy'
 import Terms from './pages/Terms'
 import Contact from './pages/Contact'
 import UserProfile from './pages/UserProfile'
 import AuthCallback from './pages/AuthCallback'
 import ResetPassword from './pages/ResetPassword'
+import SignalLoader from './components/ui/SignalLoader'
+
+const Overview = lazy(() => import('./pages/Overview'))
+const Players = lazy(() => import('./pages/Players'))
+const Teams = lazy(() => import('./pages/Teams'))
+const Champions = lazy(() => import('./pages/Champions'))
+const Tournaments = lazy(() => import('./pages/Tournaments'))
+const Predictions = lazy(() => import('./pages/Predictions'))
+const PlayerPage = lazy(() => import('./pages/entities/PlayerPage'))
+const TeamPage = lazy(() => import('./pages/entities/TeamPage'))
+const ChampionPage = lazy(() => import('./pages/entities/ChampionPage'))
+const TournamentPage = lazy(() => import('./pages/entities/TournamentPage'))
+const SeriesPage = lazy(() => import('./pages/entities/SeriesPage'))
+const PredictionPreviewPage = lazy(() => import('./pages/entities/PredictionPreviewPage'))
 
 const APP_SHELL_PREFIXES = ['/duo', '/chat', '/dashboard', '/profile', '/contact']
 
@@ -42,6 +44,18 @@ function isAppShellPath(pathname: string): boolean {
 }
 
 gsap.registerPlugin(ScrollTrigger)
+
+function RouteFallback() {
+  return (
+    <div className="dash-frame-loading" aria-busy="true">
+      <SignalLoader compact label="loading…" />
+    </div>
+  )
+}
+
+function LazyPage({ children }: { children: ReactNode }) {
+  return <Suspense fallback={<RouteFallback />}>{children}</Suspense>
+}
 
 function SmoothScroll({ children }: { children: React.ReactNode }) {
   const location = useLocation()
@@ -137,6 +151,110 @@ function LegacyEntityRedirect({ type }: { type: 'players' | 'teams' | 'champions
   return <Navigate to={`${prefix}/${type}/${slug}`} replace />
 }
 
+function DashboardRoutes() {
+  return (
+    <>
+      <Route
+        index
+        element={
+          <LazyPage>
+            <Overview />
+          </LazyPage>
+        }
+      />
+      <Route
+        path="players"
+        element={
+          <LazyPage>
+            <Players />
+          </LazyPage>
+        }
+      />
+      <Route
+        path="teams"
+        element={
+          <LazyPage>
+            <Teams />
+          </LazyPage>
+        }
+      />
+      <Route
+        path="champions"
+        element={
+          <LazyPage>
+            <Champions />
+          </LazyPage>
+        }
+      />
+      <Route path="matchups" element={<Navigate to=".." replace />} />
+      <Route
+        path="tournaments"
+        element={
+          <LazyPage>
+            <Tournaments />
+          </LazyPage>
+        }
+      />
+      <Route
+        path="predictions"
+        element={
+          <LazyPage>
+            <Predictions />
+          </LazyPage>
+        }
+      />
+      <Route
+        path="predictions/:matchId"
+        element={
+          <LazyPage>
+            <PredictionPreviewPage />
+          </LazyPage>
+        }
+      />
+      <Route
+        path="players/:slug"
+        element={
+          <LazyPage>
+            <PlayerPage />
+          </LazyPage>
+        }
+      />
+      <Route
+        path="teams/:slug"
+        element={
+          <LazyPage>
+            <TeamPage />
+          </LazyPage>
+        }
+      />
+      <Route
+        path="champions/:slug"
+        element={
+          <LazyPage>
+            <ChampionPage />
+          </LazyPage>
+        }
+      />
+      <Route
+        path="tournaments/:slug"
+        element={
+          <LazyPage>
+            <TournamentPage />
+          </LazyPage>
+        }
+      />
+      <Route
+        path="series/:seriesId"
+        element={
+          <LazyPage>
+            <SeriesPage />
+          </LazyPage>
+        }
+      />
+    </>
+  )
+}
+
 function AppRoutes() {
   return (
     <Routes>
@@ -164,11 +282,14 @@ function AppRoutes() {
       <Route path="/auth/callback" element={<AuthCallback />} />
       <Route path="/auth/reset-password" element={<ResetPassword />} />
 
+      {/* OE / DashboardProvider only on app-shell — landing never downloads year shards. */}
       <Route
         element={
-          <ChatSessionProvider>
-            <AppShell />
-          </ChatSessionProvider>
+          <DashboardProvider>
+            <ChatSessionProvider>
+              <AppShell />
+            </ChatSessionProvider>
+          </DashboardProvider>
         }
       >
         <Route
@@ -179,19 +300,7 @@ function AppRoutes() {
             </SubscriberGate>
           }
         >
-          <Route index element={<Overview />} />
-          <Route path="players" element={<Players />} />
-          <Route path="teams" element={<Teams />} />
-          <Route path="champions" element={<Champions />} />
-          <Route path="matchups" element={<Navigate to="/duo" replace />} />
-          <Route path="tournaments" element={<Tournaments />} />
-          <Route path="predictions" element={<Predictions />} />
-          <Route path="predictions/:matchId" element={<PredictionPreviewPage />} />
-          <Route path="players/:slug" element={<PlayerPage />} />
-          <Route path="teams/:slug" element={<TeamPage />} />
-          <Route path="champions/:slug" element={<ChampionPage />} />
-          <Route path="tournaments/:slug" element={<TournamentPage />} />
-          <Route path="series/:seriesId" element={<SeriesPage />} />
+          {DashboardRoutes()}
         </Route>
 
         <Route
@@ -204,19 +313,7 @@ function AppRoutes() {
         />
 
         <Route path="/dashboard" element={<DashboardFrame />}>
-          <Route index element={<Overview />} />
-          <Route path="players" element={<Players />} />
-          <Route path="teams" element={<Teams />} />
-          <Route path="champions" element={<Champions />} />
-          <Route path="matchups" element={<Navigate to="/dashboard" replace />} />
-          <Route path="tournaments" element={<Tournaments />} />
-          <Route path="predictions" element={<Predictions />} />
-          <Route path="predictions/:matchId" element={<PredictionPreviewPage />} />
-          <Route path="players/:slug" element={<PlayerPage />} />
-          <Route path="teams/:slug" element={<TeamPage />} />
-          <Route path="champions/:slug" element={<ChampionPage />} />
-          <Route path="tournaments/:slug" element={<TournamentPage />} />
-          <Route path="series/:seriesId" element={<SeriesPage />} />
+          {DashboardRoutes()}
         </Route>
 
         <Route path="/profile" element={<UserProfile />} />
@@ -232,18 +329,12 @@ function AppRoutes() {
       <Route path="/matchups" element={<Navigate to="/dashboard" replace />} />
       <Route path="/tournaments" element={<Navigate to="/dashboard/tournaments" replace />} />
       <Route path="/predictions" element={<Navigate to="/dashboard/predictions" replace />} />
-      <Route
-        path="/predictions/:matchId"
-        element={<LegacyPredictionRedirect />}
-      />
+      <Route path="/predictions/:matchId" element={<LegacyPredictionRedirect />} />
       <Route path="/players/:slug" element={<LegacyEntityRedirect type="players" />} />
       <Route path="/teams/:slug" element={<LegacyEntityRedirect type="teams" />} />
       <Route path="/champions/:slug" element={<LegacyEntityRedirect type="champions" />} />
       <Route path="/tournaments/:slug" element={<LegacyEntityRedirect type="tournaments" />} />
-      <Route
-        path="/series/:seriesId"
-        element={<LegacySeriesRedirect />}
-      />
+      <Route path="/series/:seriesId" element={<LegacySeriesRedirect />} />
     </Routes>
   )
 }
@@ -268,11 +359,9 @@ function App() {
       <TimezoneProvider>
         <ProfileProvider>
           <ViewPreferenceProvider>
-            <DashboardProvider>
-              <SmoothScroll>
-                <AppRoutes />
-              </SmoothScroll>
-            </DashboardProvider>
+            <SmoothScroll>
+              <AppRoutes />
+            </SmoothScroll>
           </ViewPreferenceProvider>
         </ProfileProvider>
       </TimezoneProvider>

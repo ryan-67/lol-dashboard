@@ -36,8 +36,8 @@ export async function fetchLiveDraftsBundle(force = false): Promise<LiveDraftsBu
   if (!force && cache) return cache
   if (!force && inflight) return inflight
 
-  inflight = fetch(`${import.meta.env.BASE_URL}data/cito_live_drafts.json?t=${Date.now()}`, {
-    cache: 'no-store',
+  inflight = fetch(`${import.meta.env.BASE_URL}data/cito_live_drafts.json`, {
+    cache: force ? 'reload' : 'default',
   })
     .then(async (res) => {
       if (!res.ok) return { generatedAt: '', drafts: [] }

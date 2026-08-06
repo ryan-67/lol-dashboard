@@ -43,7 +43,7 @@ export async function fetchRegionStrength(opts?: {
   if (cache && !stale && !opts?.force) return cache
   if (inflight) return inflight
 
-  inflight = fetch(`/data/region_strength.json?t=${Date.now()}`, { cache: 'no-store' })
+  inflight = fetch('/data/region_strength.json', { cache: opts?.force ? 'reload' : 'default' })
     .then(async (res) => {
       if (!res.ok) return cache
       const data = (await res.json()) as RegionStrengthBundle

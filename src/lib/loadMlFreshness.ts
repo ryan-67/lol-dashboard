@@ -11,17 +11,22 @@ export interface MlFreshness {
 }
 
 let cache: MlFreshness | null = null
+let cacheAt = 0
 let inflight: Promise<MlFreshness | null> | null = null
 
+const ARTIFACT_TTL_MS = 5 * 60_000
+
 export async function fetchMlFreshness(opts?: { force?: boolean }): Promise<MlFreshness | null> {
-  if (cache && !opts?.force) return cache
+  const stale = !cache || Date.now() - cacheAt > ARTIFACT_TTL_MS
+  if (cache && !stale && !opts?.force) return cache
   if (inflight) return inflight
 
-  inflight = fetch(`/data/ml_freshness.json?t=${Date.now()}`, { cache: 'no-store' })
+  inflight = fetch('/data/ml_freshness.json', { cache: opts?.force ? 'reload' : 'default' })
     .then(async (res) => {
       if (!res.ok) return null
       const data = (await res.json()) as MlFreshness
       cache = data
+      cacheAt = Date.now()
       return data
     })
     .catch(() => null)

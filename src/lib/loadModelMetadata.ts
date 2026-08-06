@@ -22,7 +22,7 @@ export async function fetchModelMetadata(opts?: {
   if (cache && !stale && !opts?.force) return cache
   if (inflight) return inflight
 
-  inflight = fetch(`/data/model_metadata.json?t=${Date.now()}`, { cache: 'no-store' })
+  inflight = fetch('/data/model_metadata.json', { cache: opts?.force ? 'reload' : 'default' })
     .then(async (res) => {
       if (!res.ok) return cache
       const data = (await res.json()) as ModelMetadata

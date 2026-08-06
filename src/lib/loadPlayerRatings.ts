@@ -36,7 +36,8 @@ export async function fetchPlayerRatings(opts?: {
   if (cache && !stale && !opts?.force) return cache
   if (inflight) return inflight
 
-  inflight = fetch(`/data/player_ratings.json?t=${Date.now()}`, { cache: 'no-store' })
+  // Prefer HTTP/CDN cache; memory TTL still refreshes after retrain publishes.
+  inflight = fetch('/data/player_ratings.json', { cache: opts?.force ? 'reload' : 'default' })
     .then(async (res) => {
       if (!res.ok) return cache
       const data = (await res.json()) as PlayerRatingsBundle

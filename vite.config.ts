@@ -9,6 +9,19 @@ export default defineConfig(({ mode }) => {
 
   return {
     plugins: [react()],
+    build: {
+      rollupOptions: {
+        output: {
+          manualChunks(id) {
+            if (!id.includes('node_modules')) return
+            if (id.includes('recharts') || id.includes('d3-')) return 'charts'
+            if (id.includes('gsap')) return 'gsap'
+            if (id.includes('three') || id.includes('@react-three')) return 'three'
+            if (id.includes('@supabase')) return 'supabase'
+            if (id.includes('lenis')) return 'lenis'
+          },
+        },
+      },
+    },
   }
 })
-

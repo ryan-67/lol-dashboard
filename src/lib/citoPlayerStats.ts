@@ -53,10 +53,9 @@ export async function fetchCitoPlayerStatsBundle(
   if (!force && cache) return cache
   if (!force && inflight) return inflight
 
-  inflight = fetch(
-    `${import.meta.env.BASE_URL}data/cito_player_stats_cache.json?t=${Date.now()}`,
-    { cache: 'no-store' },
-  )
+  inflight = fetch(`${import.meta.env.BASE_URL}data/cito_player_stats_cache.json`, {
+    cache: force ? 'reload' : 'default',
+  })
     .then(async (res) => {
       if (!res.ok) return { generatedAt: '', rows: [] }
       const json = (await res.json()) as Partial<CitoPlayerStatsBundle>

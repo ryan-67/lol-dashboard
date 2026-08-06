@@ -683,7 +683,7 @@ export function revealDashboardSections(root: Element | null) {
   })
 }
 
-/** Route-level sweep: content clips in behind a turquoise scanline. */
+/** Route-level fade — short enough that tab switches do not feel like a network wait. */
 export function routeSweepIn(element: Element | null) {
   if (!element) return
   if (reducedMotion()) {
@@ -695,17 +695,15 @@ export function routeSweepIn(element: Element | null) {
   tl.fromTo(
     element,
     {
-      opacity: 0,
-      y: 26,
-      clipPath: 'inset(0% 0% 100% 0%)',
+      opacity: 0.35,
+      y: 8,
     },
     {
       opacity: 1,
       y: 0,
-      clipPath: 'inset(0% 0% 0% 0%)',
-      duration: 0.55,
-      ease: 'power3.out',
-      clearProps: 'clipPath,transform',
+      duration: 0.22,
+      ease: 'power2.out',
+      clearProps: 'transform',
     },
   )
   return tl

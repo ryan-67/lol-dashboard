@@ -14,6 +14,7 @@ export default function DashboardFrame() {
   const innerRef = useRef<HTMLDivElement>(null)
   const mainRef = useRef<HTMLDivElement>(null)
   const swapRef = useRef<HTMLDivElement>(null)
+  const prevPathRef = useRef(location.pathname)
 
   /**
    * Smooth scroll attaches to whichever element actually owns overflow:
@@ -37,6 +38,10 @@ export default function DashboardFrame() {
 
   useEffect(() => {
     if (loading || error) return
+    const pathChanged = prevPathRef.current !== location.pathname
+    prevPathRef.current = location.pathname
+    // Keep Outlet mounted across tabs — only run a short sweep when the path changes.
+    if (!pathChanged) return
     const tween = routeSweepIn(swapRef.current)
     return () => {
       tween?.kill()
@@ -98,11 +103,7 @@ export default function DashboardFrame() {
           ) : null}
 
           {!error ? (
-            <div
-              key={location.pathname}
-              ref={swapRef}
-              className="tab-content dash-reveal-ready"
-            >
+            <div ref={swapRef} className="tab-content dash-reveal-ready">
               <span className="tab-content-scanline" aria-hidden="true" />
               <Outlet />
             </div>

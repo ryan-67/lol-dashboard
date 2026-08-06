@@ -106,7 +106,9 @@ export async function fetchAccuracyScorecard(opts?: {
   if (cache && !stale && !opts?.force) return cache
   if (inflight) return inflight
 
-  inflight = fetch(`/data/accuracy_scorecard.json?t=${Date.now()}`, { cache: 'no-store' })
+  inflight = fetch('/data/accuracy_scorecard.json', {
+    cache: opts?.force ? 'reload' : 'default',
+  })
     .then(async (res) => {
       if (!res.ok) return cache ?? FALLBACK
       const data = (await res.json()) as AccuracyScorecard

@@ -1,6 +1,7 @@
 # nucky.gg v4 — Data Reliability & Product Hardening
 
-> Status: **Source direction locked + OE-parity evaluated (2026-08-04)** — implement V4-1 next  
+> Status: **V4 warehouse cutover shipped (2026-08-05)** · **Active P0: dashboard cold-load / tab lag** · **Next P0: nuckyAI quality**  
+> **Blocked:** GitHub Actions major outage (2026-08-06) — hosted runners failing/queueing; cannot verify Refresh Dashboard Data until [githubstatus.com](https://www.githubstatus.com) recovers.  
 > Supersedes the *data strategy* of `docs/nucky_v3.md` §9 for source-of-record decisions.  
 > Keeps v3 product IA (Hub / Board / current-form / future paid) as the UI contract.  
 > Related: `docs/data-sources-research.md` (Jul 2026 enrichment notes), `docs/CITOAPI.md`, Aug 3 prod audit.  
@@ -106,11 +107,21 @@ These are product/engineering outcomes. The data research in §5–7 chooses *ho
 2. “This week / recent form” questions must not claim a split hasn’t started when Hub lists those series.  
 3. Keep OE for deep history; keep fail-closed when *no* source has the fact — but never prefer stale OE over fresh Current SoR.
 
-### P1 — Dashboard load time
+### P0 — Dashboard load time (active 2026-08-06)
 
-1. Hub/Board first paint from small Cito/schedule caches — do not wait on ~36 MB OE year shards.  
-2. Lazy-load Form/entity OE (or new warehouse) slices.  
-3. Prefer split/league-scoped payloads over full-year dumps.
+Friends report ~15s loads / “high ping” feel. Root cause: ~40.5 MB OE year shards + full client merge on `DashboardProvider` mount (including landing), duplicate hub merge, eager route JS, Outlet remount + GSAP on every tab.
+
+**Phase A (shipping now):**
+1. Defer `DashboardProvider` / OE fetch off landing + legal/auth routes.  
+2. Reuse one `mergeSlices` when hub filters ≡ dashboard (`selectedSplits` includes `ALL`).  
+3. `React.lazy` dashboard/entity routes + Vite `manualChunks` for recharts/gsap.  
+4. Stop `no-store` + timestamp cache-bust on small ML artifacts.  
+5. Drop pathname-keyed Outlet remount; shorten route sweep.
+
+**Phase B (follow-up):**
+6. Lean hub bootstrap JSON (schedules + aggregates) — Hub interactive without both OE shards.  
+7. Index vs detail payloads — gameLogs on entity/series / Form demand.  
+8. IndexedDB for year blobs if we still ship them (localStorage quota is dead).
 
 ### P2 — Model freshness
 
@@ -537,6 +548,19 @@ v3 leftovers (Community, chat analyst depth) resume after **V4-2**.
 14. GRID/LDP track when entity/access opens (V4-6).  
 15. Optional BALLDONTLIE trial only if paging ops hurt.
 
+### P0 next — nuckyAI quality (after dashboard perf)
+
+Intended: normal LLM chatbot UX, LoL-esports specialization (refuse off-topic / coding / stocks), accurate stats + prediction-model context, fill historical gap scraped from dashboard, entity disambiguation (Caps / Ice / Inspired).
+
+**TODOs:**
+1. Current tools read same warehouse as Hub (stop OE-first “Summer not started”).  
+2. Wire `buildAgentOEFilters` in `agent-chat`; stop dashboard filter pollution.  
+3. Entity disambiguation layer (team/league-aware; clarify short common-word names).  
+4. Historical multi-year OE/stat tools for career/all-time *numbers* (not titles-only via web).  
+5. Keep prediction packets aligned with Hub ratings (auto-deploy on retrain when Actions recovers).  
+6. Offline eval harness: hundreds of prompts against `/chat` (not Gmail login from agents).  
+7. UX: typeahead inserts into draft; streaming/history already OK.
+
 ---
 
 ## 11. Non-goals (v4)
@@ -697,3 +721,17 @@ Rollback: Cito sync steps still run soft; deleting the riot steps restores v3 be
 4. Spot-check: Hub Form non-empty for LCK/LPL this week; Predictions Board shows GW upcoming; ask nuckyAI "who won in the LCK this weekend?".
 5. No new secrets needed (GW uses the public lolesports key). `CITO_API_KEY` stays until fallback removal.
 6. Riot Portal `riot.txt` verification remains pending — orthogonal to this path (§15.1).
+
+### 15.8 Research changelog — dashboard perf + Actions (2026-08-06)
+
+- GitHub Actions **major outage**: runs #501/#502 failed/queued with “job was not acquired by Runner of type hosted”; concurrency set to `cancel-in-progress: true` (`8a38453`).
+- Hub scoring fixes (`d754450`) unverified in CI until Actions recovers.
+- Dashboard perf Phase A implemented: defer OE off landing, dedupe hub merge, lazy routes, artifact HTTP cache, lighter tab nav.
+- **Baseline (pre-Phase A):** ~40.5 MB OE shards (`p01` 22.3 + `p02` 18.2) on first `DashboardProvider` mount (including landing); ~15s friend-reported loads; tab remount + 0.55s GSAP sweep; single JS graph eager-loaded all dashboard pages.
+- **After Phase A (verified locally):**
+  - Landing / legal / auth: **no** `DashboardProvider` → **0** OE shard requests.
+  - App-shell (`/dashboard`, `/duo`, `/chat`, `/profile`, `/contact`): OE fetch starts only after entering shell.
+  - `selectedSplits=ALL` (default): single `mergeSlices` shared by tabs + weekly hub (no double ~22k gameLog merge).
+  - Vite chunks: `Overview` ~35 KB, `Players`/`Teams` lazy, `charts` ~569 KB, `gsap` ~123 KB, `three` ~945 KB split out of eager path; route JS loads on demand.
+  - Tab nav: Outlet no longer keyed by pathname (keeps mount); route sweep 0.55s clip → 0.22s fade.
+  - Small ML/schedule JSON: HTTP `default` cache (memory TTL 5m); no `?t=` / `no-store` busting.
