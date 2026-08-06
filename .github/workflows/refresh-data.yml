@@ -63,9 +63,13 @@ on:
 permissions:
   contents: write
 
+# Only the latest refresh matters. cancel-in-progress:true so a stuck/queued run
+# (e.g. GitHub hosted-runner outage) does not block the next schedule/dispatch
+# behind an indefinite concurrency queue. Overlapping crons are rare — sync is
+# usually <60m; ML retrain only when riot_new/OE moves.
 concurrency:
   group: refresh-dashboard-data
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   check:
