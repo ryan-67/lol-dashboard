@@ -34,6 +34,7 @@ import numpy as np
 import pandas as pd
 
 SCRIPTS_DIR = Path(__file__).resolve().parent
+ROOT = SCRIPTS_DIR.parents[1]
 if str(SCRIPTS_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPTS_DIR))
 
@@ -59,10 +60,12 @@ LEAGUE_WEIGHT = 0.2
 # tune against backtested calibration once scripts/ml/backtest_power_rating.py
 # exists.
 K_BY_TIER: dict[str, float] = {
-    "domestic_regular": 16.0,
-    "domestic_playoffs": 24.0,
-    "international_group": 24.0,
-    "international_playoffs": 40.0,
+    # Regular-season K raised so recent Bo3s (e.g. KT over T1/HLE, HLE series
+    # skids) move the published power board within a split — K=16 was too sticky.
+    "domestic_regular": 28.0,
+    "domestic_playoffs": 36.0,
+    "international_group": 32.0,
+    "international_playoffs": 48.0,
 }
 
 KEY_TEAM_STATS = ("golddiffat15", "golddiffat20", "dpm", "xpdiffat15", "csdiffat15")
@@ -344,6 +347,9 @@ def build_strength_snapshot(
 
     return {
         "generatedAt": pd.Timestamp.utcnow().isoformat(),
+        # Last series date included in the walk-forward — Cito bumps must only
+        # apply series scheduled after this to avoid double-counting Riot/OE rows.
+        "eloAsOf": as_of.date().isoformat(),
         "eloScale": ELO_SCALE,
         "baseRating": BASE_RATING,
         "teamWeight": TEAM_WEIGHT,
@@ -359,6 +365,7 @@ def build_strength_snapshot(
         "regions": {r: round(float(v), 1) for r, v in region_elo.items()},
         "teams": teams,
         "statBaselines": baselines,
+        "citoEloBump": None,
     }
 
 
@@ -381,6 +388,25 @@ def write_strength_snapshot(team_games: pd.DataFrame, out_path: Path) -> dict:
     out_path.parent.mkdir(parents=True, exist_ok=True)
     with out_path.open("w", encoding="utf-8") as f:
         json.dump(payload, f, separators=(",", ":"), allow_nan=False)
+    # Reset incremental bump ledger — walk-forward already includes Riot/OE series
+    # through eloAsOf; stale matchIds would otherwise block true lag-fill bumps.
+    bump_state = ROOT / "data" / "ml" / "artifacts" / "cito_elo_bump_state.json"
+    try:
+        bump_state.parent.mkdir(parents=True, exist_ok=True)
+        bump_state.write_text(
+            json.dumps(
+                {
+                    "matchIds": [],
+                    "updatedAt": payload.get("generatedAt"),
+                    "strengthGeneratedAt": payload.get("generatedAt"),
+                    "eloAsOf": payload.get("eloAsOf"),
+                },
+                indent=2,
+            ),
+            encoding="utf-8",
+        )
+    except OSError as exc:
+        print(f"WARNING: could not reset cito_elo_bump_state.json: {exc}", file=sys.stderr)
     return payload
 
 

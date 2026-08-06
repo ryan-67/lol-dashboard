@@ -4,10 +4,16 @@ import { useDashboard } from '../context/DashboardContext'
 import { type Player, type PlayerGameLog } from '../hooks/useDashboardData'
 import {
   ROLES,
-  computeOpScores,
+  computeRecencyWeightedOpScores,
   isDisplayableChampion,
   type RoleKey,
 } from '../lib/championAnalytics'
+import { calculateHottestTeams } from '../lib/hottestTeam'
+import {
+  fetchRegionStrength,
+  lookupTeamElo,
+  type RegionStrengthBundle,
+} from '../lib/loadRegionStrength'
 import {
   buildWeeklyChampionStatsFromPlayers,
   championOpStatBreakdown,
@@ -89,7 +95,7 @@ import {
   PERFORMANCE_SCORE_HINT,
   TEAM_SCORE_HINT,
 } from '../lib/metricHints'
-import { clampScore100, opScoreTo100, unitIntervalTo100 } from '../lib/scoreNormalize'
+import { opScoreTo100, unitIntervalTo100 } from '../lib/scoreNormalize'
 
 const OVERVIEW_SUBNAV_ITEMS: SectionSubnavItem[] = [
   { id: 'overview-recap', label: 'Recap' },
@@ -111,7 +117,9 @@ const HUB_COPY = {
     noPlayerData: 'No weekly game log data for this filter.',
     noTeamData: 'Not enough weekly team data.',
     noChampionData: 'No champion weekly sample for this filter.',
+    /** Initial visible series; full week is available via View more. */
     recapLimit: 8,
+    recapFetchLimit: 48,
     gamesLabel: (count: number) =>
       `${count} ${count === 1 ? 'game' : 'games'} this week`,
     statWr: 'Weekly WR',
@@ -132,7 +140,8 @@ const HUB_COPY = {
     noPlayerData: 'No monthly game log data for this filter.',
     noTeamData: 'Not enough monthly team data.',
     noChampionData: 'No champion monthly sample for this filter.',
-    recapLimit: 24,
+    recapLimit: 12,
+    recapFetchLimit: 80,
     gamesLabel: (count: number) =>
       `${count} ${count === 1 ? 'game' : 'games'} this month`,
     statWr: 'Monthly WR',
@@ -155,6 +164,7 @@ const HUB_COPY = {
     noTeamData: string
     noChampionData: string
     recapLimit: number
+    recapFetchLimit: number
     gamesLabel: (count: number) => string
     statWr: string
     statKda: string
@@ -175,19 +185,6 @@ interface OpponentLane {
   team: string
   player: string
   champion: string
-}
-
-interface TeamWeekStats {
-  team: string
-  weeklyWins: number
-  weeklyGames: number
-  weeklyWinrate: number
-  weeklyAvgKda: number
-  weeklyAvgGd15: number
-  weeklyObjControl: number
-  avgOpponentSplitWinrate: number
-  upsetWins: number
-  impressiveness: number
 }
 
 const METRIC_LABELS: Partial<Record<keyof Player, string>> = {
@@ -395,98 +392,6 @@ function highestDeltaStat(
   return best
 }
 
-function minMaxNorm(value: number, all: number[]): number {
-  const min = Math.min(...all)
-  const max = Math.max(...all)
-  if (max === min) return 50
-  return ((value - min) / (max - min)) * 100
-}
-
-function calculateHottestTeams(
-  weeklyPlayers: WeeklyPlayer[],
-  splitTeams: { name: string; winrate: number }[],
-): TeamWeekStats[] {
-  const splitWinrate = new Map(splitTeams.map((t) => [t.name, t.winrate]))
-  const teamMap = new Map<string, TeamWeekStats>()
-
-  for (const wp of weeklyPlayers) {
-    const t = wp.base.team
-    const entry = teamMap.get(t) ?? {
-      team: t,
-      weeklyWins: 0,
-      weeklyGames: 0,
-      weeklyWinrate: 0,
-      weeklyAvgKda: 0,
-      weeklyAvgGd15: 0,
-      weeklyObjControl: 0,
-      avgOpponentSplitWinrate: 0,
-      upsetWins: 0,
-      impressiveness: 0,
-    }
-
-    const unique = new Map<string, PlayerGameLog>()
-    for (const g of wp.weeklyGames) {
-      const key = `${g.date}|${g.opponent}|${g.result}`
-      if (!unique.has(key)) unique.set(key, g)
-    }
-    const matches = [...unique.values()]
-
-    const wins = matches.filter((m) => m.result === 1).length
-    entry.weeklyWins += wins
-    entry.weeklyGames += matches.length
-    entry.weeklyAvgKda += avg(matches.map((m) => m.kda))
-    entry.weeklyAvgGd15 += avg(matches.map((m) => m.gd15).filter((v): v is number => typeof v === 'number'))
-    entry.weeklyObjControl += avg(matches.map((m) => m.objControl ?? 0))
-
-    const teamSplit = splitWinrate.get(t) ?? 50
-    const oppWrs: number[] = []
-    for (const m of matches) {
-      const opp = m.opponent ?? ''
-      const wr = splitWinrate.get(opp) ?? 50
-      oppWrs.push(wr)
-      if (m.result === 1 && wr > teamSplit) entry.upsetWins += 1
-    }
-    entry.avgOpponentSplitWinrate += avg(oppWrs)
-    teamMap.set(t, entry)
-  }
-
-  const rows = [...teamMap.values()]
-    .filter((t) => t.weeklyGames > 0)
-    .map((t) => {
-      const div = 5
-      return {
-        ...t,
-        weeklyWinrate: (t.weeklyWins / Math.max(t.weeklyGames, 1)) * 100,
-        weeklyAvgKda: t.weeklyAvgKda / div,
-        weeklyAvgGd15: t.weeklyAvgGd15 / div,
-        weeklyObjControl: t.weeklyObjControl / div,
-        avgOpponentSplitWinrate: t.avgOpponentSplitWinrate / div,
-      }
-    })
-
-  if (!rows.length) return []
-
-  const wrs = rows.map((r) => r.weeklyWinrate)
-  const kdas = rows.map((r) => r.weeklyAvgKda)
-  const gds = rows.map((r) => r.weeklyAvgGd15)
-  const objs = rows.map((r) => r.weeklyObjControl)
-  const sos = rows.map((r) => r.avgOpponentSplitWinrate)
-
-  return rows
-    .map((r) => {
-      const score =
-        minMaxNorm(r.weeklyWinrate, wrs) * 0.42 +
-        minMaxNorm(r.weeklyAvgGd15, gds) * 0.18 +
-        minMaxNorm(r.weeklyAvgKda, kdas) * 0.14 +
-        minMaxNorm(r.weeklyObjControl, objs) * 0.12 +
-        minMaxNorm(r.avgOpponentSplitWinrate, sos) * 0.1 +
-        Math.min(r.upsetWins, 3) * 0.05
-      // Same 0–100 display band as power rankings / performance scores.
-      return { ...r, impressiveness: clampScore100(score * 100) }
-    })
-    .sort((a, b) => b.impressiveness - a.impressiveness)
-}
-
 function WeeklyRadar({
   player,
   role,
@@ -598,11 +503,15 @@ export default function Overview() {
   const copy = HUB_COPY[displayPeriod]
 
   const [citoResults, setCitoResults] = useState<CitoSeriesResult[]>([])
+  const [regionStrength, setRegionStrength] = useState<RegionStrengthBundle | null>(null)
 
   useEffect(() => {
     let cancelled = false
     void fetchCitoSeriesResults({ sinceDays: 45 }).then((rows) => {
       if (!cancelled) setCitoResults(rows)
+    })
+    void fetchRegionStrength().then((bundle) => {
+      if (!cancelled) setRegionStrength(bundle)
     })
     return () => {
       cancelled = true
@@ -635,11 +544,26 @@ export default function Overview() {
     const pool = tier1Weekly.length ? tier1Weekly : weeklyPlayers
     const tier1Teams = weeklyHubTeams.filter((t) => isTier1Team(t))
     const teamPool = tier1Teams.length ? tier1Teams : weeklyHubTeams
+    const eloMap = new Map<string, number>()
+    if (regionStrength?.teams) {
+      for (const [name] of Object.entries(regionStrength.teams)) {
+        const elo = lookupTeamElo(regionStrength, name)
+        if (elo != null) eloMap.set(name, elo)
+      }
+    }
     return calculateHottestTeams(
-      pool,
-      teamPool.map((t) => ({ name: t.name, winrate: t.winrate })),
+      pool.map((p) => ({
+        team: p.base.team,
+        role: p.role,
+        weeklyGames: p.weeklyGames,
+      })),
+      {
+        allPlayers: weeklyHubPlayers,
+        splitWinrates: teamPool.map((t) => ({ name: t.name, winrate: t.winrate })),
+        teamElo: eloMap.size ? eloMap : null,
+      },
     )
-  }, [weeklyPlayers, weeklyHubTeams])
+  }, [weeklyPlayers, weeklyHubTeams, weeklyHubPlayers, regionStrength])
   const hottestTeam = hottestTeams[0] ?? null
   const hottestTeamEntity = useMemo(
     () => (hottestTeam ? findTeamByName(weeklyHubTeams, hottestTeam.team) : null),
@@ -658,8 +582,12 @@ export default function Overview() {
 
   const topOpChampions = useMemo(() => {
     const displayable = filteredChampions.filter(isDisplayableChampion)
-    return computeOpScores(displayable, 1).all.slice(0, 10)
-  }, [filteredChampions])
+    return computeRecencyWeightedOpScores(displayable, {
+      asOf: hubWindow?.end ?? new Date(),
+      halfLifeDays: 14,
+      minPresence: 12,
+    }).all.slice(0, 10)
+  }, [filteredChampions, hubWindow])
 
   const templateRecapLines = useMemo(() => {
     if (!hubWindow) return []
@@ -670,8 +598,8 @@ export default function Overview() {
       league,
       weeklyHubGameCatalog,
       citoResults,
-    ).slice(0, copy.recapLimit)
-  }, [weeklyHubPlayers, weeklyHubTeams, hubWindow, league, copy.recapLimit, weeklyHubGameCatalog, citoResults])
+    )
+  }, [weeklyHubPlayers, weeklyHubTeams, hubWindow, league, weeklyHubGameCatalog, citoResults])
 
   const [cachedRecapLines, setCachedRecapLines] = useState<typeof templateRecapLines>([])
 
@@ -690,7 +618,7 @@ export default function Overview() {
       hubWindow.start,
       hubWindow.end,
       selectedLeagues,
-      copy.recapLimit,
+      copy.recapFetchLimit,
     )
       .then((lines) => {
         if (!cancelled) {
@@ -709,12 +637,12 @@ export default function Overview() {
     return () => {
       cancelled = true
     }
-  }, [hubWindow, selectedLeagues, copy.recapLimit])
+  }, [hubWindow, selectedLeagues, copy.recapFetchLimit])
 
   const weeklyRecapLines = mergeWeeklyRecapLines(
     cachedRecapLines,
     templateRecapLines,
-    copy.recapLimit,
+    copy.recapFetchLimit,
   )
 
   const sampleGames = useMemo(
@@ -858,6 +786,7 @@ export default function Overview() {
           players={weeklyHubPlayers}
           champions={weeklyHubChampions}
           title={copy.recapTitle}
+          initialVisible={copy.recapLimit}
         />
       )}
       </section>
@@ -1109,8 +1038,9 @@ export default function Overview() {
         <section className="card overview-hub-card">
           <h2 className="card-title">Champion Power Rankings</h2>
           <p className="card-subtitle">
-            Top 10 champions by OP score (presence, win rate, ban rate, and KDA z-scores) for the
-            current form lens — distinct from weekly Champion of the Week above.
+            Top 10 by recency-weighted OP score (14-day half-life on weekly presence/WR/ban) —
+            current patch priority, not full-split nostalgia. Distinct from Champion of the Week
+            above.
           </p>
           {topOpChampions.length === 0 ? (
             <p className="text-secondary">Not enough champion data for the current filters.</p>

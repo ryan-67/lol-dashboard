@@ -1185,6 +1185,11 @@
   gap: 0.7rem;
 }
 
+.overview-recap-more {
+  margin-top: 0.85rem;
+  color: var(--signal, #c45c5c);
+}
+
 .overview-recap-item {
   position: relative;
   grid-template-columns: 4.25rem 1fr;

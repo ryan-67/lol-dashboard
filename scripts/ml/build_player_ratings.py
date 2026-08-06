@@ -124,7 +124,8 @@ YEARS = ["2025", "2026"]
 
 MIN_PLAYER_GAMES = 8
 MIN_EFFECTIVE_GAMES = 4.0
-HALF_LIFE_DAYS = 50.0
+# Shorter half-life so recent form (EWC / early Summer Bo3s) surfaces on role boards.
+HALF_LIFE_DAYS = 28.0
 MIN_CHAMP_ROLE_GAMES = 8
 MIN_MATCHUP_PAIR_GAMES = 6  # (role, champion, opp_champion) triples — same gate as champ_matchups.py
 MIN_OPPONENT_REF_GAMES = 6  # games needed before trusting a player's pass-1 skill reference
@@ -135,7 +136,7 @@ ROLE_GLOBAL_WEIGHT = 0.55  # absolute level vs role
 MATCHUP_WEIGHT = 0.40  # laning-phase stats WITH a usable matchup-pair baseline
 CHAMP_CONTEXT_WEIGHT_LANING = 0.25
 ROLE_GLOBAL_WEIGHT_LANING = 0.35
-CURRENT_TEAM_WEIGHT = 1.35  # amplify games on the player's current roster
+CURRENT_TEAM_WEIGHT = 1.5  # amplify games on the player's current roster
 
 # Opponent-quality adjustment: reward beating a strong direct opponent,
 # dampen (don't amplify) the penalty for losing to one.

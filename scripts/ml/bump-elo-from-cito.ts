@@ -20,10 +20,10 @@ const TEAM_WEIGHT = 0.8
 const LEAGUE_WEIGHT = 0.2
 
 const K_BY_TIER: Record<string, number> = {
-  domestic_regular: 16,
-  domestic_playoffs: 24,
-  international_group: 24,
-  international_playoffs: 40,
+  domestic_regular: 28,
+  domestic_playoffs: 36,
+  international_group: 32,
+  international_playoffs: 48,
 }
 
 const INTL = new Set(['MSI', 'WORLDS', 'WLDS', 'FST', 'FIRST STAND', 'EWC'])
@@ -39,6 +39,8 @@ type StrengthTeam = {
 
 type StrengthBundle = {
   generatedAt: string
+  /** ISO date (YYYY-MM-DD) of last series included in OE/Riot walk-forward. */
+  eloAsOf?: string
   eloScale: number
   baseRating: number
   teamWeight: number
@@ -52,7 +54,7 @@ type StrengthBundle = {
     seriesApplied: number
     lookbackDays: number
     matchIds: string[]
-  }
+  } | null
 }
 
 type CitoRow = {
@@ -201,11 +203,18 @@ async function main(): Promise<void> {
   const rows = await fetchCompletedFromSupabase(sinceIso)
   console.log(`Loaded ${rows.length} completed Cito series since ${sinceIso.slice(0, 10)}`)
 
+  // Walk-forward already includes Riot/OE series through eloAsOf — only lag-fill newer ones.
+  const eloAsOf = bundle.eloAsOf ? Date.parse(`${bundle.eloAsOf}T23:59:59.999Z`) : NaN
+
   const pending = rows.filter((r) => {
     if (applied.has(r.match_id)) return false
     if (typeof r.score_a !== 'number' || typeof r.score_b !== 'number') return false
     if (!isValidSeriesScore(r.score_a, r.score_b)) return false
     if (!r.team_a || !r.team_b || r.team_a === 'TBD' || r.team_b === 'TBD') return false
+    if (Number.isFinite(eloAsOf) && r.scheduled_at) {
+      const scheduled = Date.parse(r.scheduled_at)
+      if (Number.isFinite(scheduled) && scheduled <= eloAsOf) return false
+    }
     return true
   })
 

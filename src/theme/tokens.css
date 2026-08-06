@@ -895,6 +895,27 @@ b,
   gap: 12px;
 }
 
+.overview-recap-more {
+  margin-top: 14px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--accent, #c45c5c);
+  font: inherit;
+  font-size: 0.85rem;
+  letter-spacing: 0.02em;
+  text-align: left;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.overview-recap-more:hover,
+.overview-recap-more:focus-visible {
+  color: var(--text-primary, #f0ece2);
+  outline: none;
+}
+
 .overview-recap-item {
   display: grid;
   grid-template-columns: 72px 1fr;

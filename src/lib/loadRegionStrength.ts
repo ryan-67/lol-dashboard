@@ -9,11 +9,19 @@ export interface RegionStrengthTeam {
 
 export interface RegionStrengthBundle {
   generatedAt: string
+  /** Last series date included in OE/Riot walk-forward (YYYY-MM-DD). */
+  eloAsOf?: string
   eloScale?: number
   baseRating?: number
   methodology?: string
   regions: Record<string, number>
   teams: Record<string, RegionStrengthTeam>
+  citoEloBump?: {
+    appliedAt: string
+    seriesApplied: number
+    lookbackDays: number
+    matchIds: string[]
+  } | null
 }
 
 let cache: RegionStrengthBundle | null = null

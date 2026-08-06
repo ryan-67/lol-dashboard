@@ -1,4 +1,4 @@
-import { useRef } from 'react'
+import { useEffect, useRef, useState, type KeyboardEvent } from 'react'
 import { Link } from 'react-router-dom'
 import { useGSAP } from '@gsap/react'
 import { seriesPath } from '../../lib/seriesPath'
@@ -24,6 +24,8 @@ interface WeeklyRecapProps {
   champions: Champion[]
   title?: string
   showSeriesLink?: boolean
+  /** How many series to show before View more (default: all). */
+  initialVisible?: number
 }
 
 function recapTournamentLeague(score: WeeklyRecapLine['score']): string | null {
@@ -144,12 +146,35 @@ export default function WeeklyRecap({
   champions,
   title = 'Weekly Recap',
   showSeriesLink = true,
+  initialVisible,
 }: WeeklyRecapProps) {
   const ref = useRef<HTMLDivElement>(null)
+  const [expanded, setExpanded] = useState(false)
+  const windowKey = `${windowLabel ?? ''}|${lines.length}|${lines[0]?.id ?? ''}`
+
+  useEffect(() => {
+    setExpanded(false)
+  }, [windowKey])
+
+  const cap = initialVisible && initialVisible > 0 ? initialVisible : lines.length
+  const hasMore = lines.length > cap
+  const visibleLines = expanded || !hasMore ? lines : lines.slice(0, cap)
+  const hiddenCount = Math.max(0, lines.length - cap)
+
+  const handleToggleExpanded = () => {
+    setExpanded((prev) => !prev)
+  }
+
+  const handleToggleKeyDown = (event: KeyboardEvent<HTMLButtonElement>) => {
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault()
+      handleToggleExpanded()
+    }
+  }
 
   useGSAP(() => scrollEntranceStagger(ref.current, '.overview-recap-item'), {
     scope: ref,
-    dependencies: [lines.length],
+    dependencies: [visibleLines.length, expanded],
   })
 
   return (
@@ -159,26 +184,45 @@ export default function WeeklyRecap({
       {!lines.length ? (
         <p className="text-secondary">no match results in this window for the current filter.</p>
       ) : (
-        <ul className="overview-recap-list">
-          {lines.map((line) => (
-            <li key={line.id} className="overview-recap-item">
-              <time className="overview-recap-date" dateTime={line.date}>
-                {line.dateLabel}
-              </time>
-              <div className="overview-recap-body">
-                <RecapScoreRow line={line} showSeriesLink={showSeriesLink} />
-                <div className="overview-recap-summary">
-                  <RecapSummaryBody
-                    line={line}
-                    players={players}
-                    champions={champions}
-                    allPlayers={players}
-                  />
+        <>
+          <ul className="overview-recap-list">
+            {visibleLines.map((line) => (
+              <li key={line.id} className="overview-recap-item">
+                <time className="overview-recap-date" dateTime={line.date}>
+                  {line.dateLabel}
+                </time>
+                <div className="overview-recap-body">
+                  <RecapScoreRow line={line} showSeriesLink={showSeriesLink} />
+                  <div className="overview-recap-summary">
+                    <RecapSummaryBody
+                      line={line}
+                      players={players}
+                      champions={champions}
+                      allPlayers={players}
+                    />
+                  </div>
                 </div>
-              </div>
-            </li>
-          ))}
-        </ul>
+              </li>
+            ))}
+          </ul>
+          {hasMore ? (
+            <button
+              type="button"
+              className="overview-recap-more"
+              onClick={handleToggleExpanded}
+              onKeyDown={handleToggleKeyDown}
+              tabIndex={0}
+              aria-expanded={expanded}
+              aria-label={
+                expanded
+                  ? 'Show fewer series recaps'
+                  : `Show ${hiddenCount} more series recaps in this window`
+              }
+            >
+              {expanded ? 'Show less' : `View more (${hiddenCount} more series)`}
+            </button>
+          ) : null}
+        </>
       )}
     </section>
   )

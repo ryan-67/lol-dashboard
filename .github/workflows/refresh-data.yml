@@ -340,6 +340,14 @@ jobs:
         if: steps.ml_retrain.outcome == 'success'
         run: python scripts/ml/publish_model_to_site.py --outcome success
 
+      - name: Lag-fill Elo for series after walk-forward as-of
+        if: steps.ml_retrain.outcome == 'success'
+        continue-on-error: true
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: npm run bump:elo-cito
+
       - name: Record ML freshness after soft-fail (cron only)
         if: always() && steps.ml_deps.outcome == 'success' && steps.ml_retrain.outcome != 'success'
         continue-on-error: true
@@ -360,6 +368,8 @@ jobs:
           git add \
             data/riot \
             data/ml/riot_oe_supplement.csv \
+            data/ml/artifacts/region_strength.json \
+            data/ml/artifacts/cito_elo_bump_state.json \
             public/data/player_ratings.json \
             public/data/region_strength.json \
             public/data/accuracy_scorecard.json \
@@ -545,6 +555,14 @@ jobs:
         if: steps.ml_retrain.outcome == 'success'
         run: python scripts/ml/publish_model_to_site.py --outcome success
 
+      - name: Lag-fill Elo for series after walk-forward as-of
+        if: steps.ml_retrain.outcome == 'success'
+        continue-on-error: true
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: npm run bump:elo-cito
+
       - name: Record ML freshness after soft-fail (cron only)
         if: always() && steps.ml_deps.outcome == 'success' && steps.ml_retrain.outcome != 'success'
         continue-on-error: true
@@ -565,6 +583,8 @@ jobs:
           git add \
             data/riot \
             data/ml/riot_oe_supplement.csv \
+            data/ml/artifacts/region_strength.json \
+            data/ml/artifacts/cito_elo_bump_state.json \
             public/data/player_ratings.json \
             public/data/region_strength.json \
             public/data/accuracy_scorecard.json \

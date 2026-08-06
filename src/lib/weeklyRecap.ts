@@ -1732,9 +1732,7 @@ export function buildWeeklyRecapLines(
     lines.push(shell)
   }
 
-  return lines
-    .sort((a, b) => b.date.localeCompare(a.date) || a.id.localeCompare(b.id))
-    .slice(0, 8)
+  return lines.sort((a, b) => b.date.localeCompare(a.date) || a.id.localeCompare(b.id))
 }
 
 function daysBetweenDates(a: string, b: string): number {

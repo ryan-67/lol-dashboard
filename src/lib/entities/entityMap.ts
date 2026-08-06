@@ -92,7 +92,7 @@ export const TEAM_ENTITIES: TeamEntityDef[] = [
   },
   {
     canonicalName: 'KT Rolster',
-    oeNames: ['KT Rolster', 'KT', 'KTR'],
+    oeNames: ['KT Rolster', 'kt Rolster', 'KT', 'KTR'],
     abbreviations: ['KT'],
     slug: 'kt-rolster',
     esportsSlug: 'kt-rolster',

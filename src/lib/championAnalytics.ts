@@ -377,12 +377,10 @@ export interface OpScoresResult {
   >
 }
 
-export function computeOpScores(
-  champions: Champion[],
-  minPicks = MIN_PICKS_OP,
+function scoreOpChampions(
+  eligible: Champion[],
   ctx?: ChampionRoleContext,
 ): OpScoresResult {
-  const eligible = champions.filter((c) => (c.games ?? c.picks) >= minPicks)
   if (!eligible.length) {
     return { top: null, runners: [], all: [], roleAverages: {} as OpScoresResult['roleAverages'] }
   }
@@ -450,6 +448,104 @@ export function computeOpScores(
     all: scored,
     roleAverages,
   }
+}
+
+export function computeOpScores(
+  champions: Champion[],
+  minPicks = MIN_PICKS_OP,
+  ctx?: ChampionRoleContext,
+): OpScoresResult {
+  const eligible = champions.filter((c) => (c.games ?? c.picks) >= minPicks)
+  return scoreOpChampions(eligible, ctx)
+}
+
+/** Meta moves faster than player/team form — short half-life for hub power boards. */
+export const CHAMPION_FORM_HALF_LIFE_DAYS = 14
+const MIN_FORM_WEIGHTED_PICKS = 4
+const MIN_FORM_PRESENCE = 12
+
+/**
+ * OP scores with exponential recency over weeklyStats so the hub board tracks
+ * current patch priority instead of full-split aggregates (Sett/Vel'Koz 1-game OP).
+ */
+export function computeRecencyWeightedOpScores(
+  champions: Champion[],
+  opts?: {
+    asOf?: Date
+    halfLifeDays?: number
+    minWeightedPicks?: number
+    minPresence?: number
+    ctx?: ChampionRoleContext
+  },
+): OpScoresResult {
+  const asOf = opts?.asOf ?? new Date()
+  const halfLife = opts?.halfLifeDays ?? CHAMPION_FORM_HALF_LIFE_DAYS
+  const minPicks = opts?.minWeightedPicks ?? MIN_FORM_WEIGHTED_PICKS
+  const minPresence = opts?.minPresence ?? MIN_FORM_PRESENCE
+  const decayLambda = Math.log(2) / Math.max(halfLife, 1)
+
+  const formChamps: Champion[] = []
+
+  for (const c of champions) {
+    const weeks = c.weeklyStats ?? []
+    if (!weeks.length) continue
+
+    let wPicks = 0
+    let wWins = 0
+    let wBans = 0
+    let wPresence = 0
+    let wPresenceMass = 0
+
+    for (const week of weeks) {
+      const weekStart = new Date(`${week.weekStart}T12:00:00Z`)
+      if (Number.isNaN(weekStart.getTime())) continue
+      const daysAgo = Math.max(0, (asOf.getTime() - weekStart.getTime()) / 86_400_000)
+      const w = Math.exp(-decayLambda * daysAgo)
+      const picks = week.picks ?? 0
+      if (picks <= 0 && !(week.bans > 0)) continue
+      wPicks += picks * w
+      const winrate = week.winrate ?? 0
+      const wins =
+        typeof week.wins === 'number' ? week.wins : (winrate / 100) * picks
+      wWins += wins * w
+      wBans += (week.bans ?? 0) * w
+      wPresence += (week.presence ?? 0) * w
+      wPresenceMass += w
+    }
+
+    if (wPicks < minPicks) continue
+    const presence = wPresenceMass > 0 ? wPresence / wPresenceMass : 0
+    if (presence < minPresence) continue
+
+    // Split presence into pick/ban shares from the same weekly buckets.
+    const draftMass = wPicks + wBans
+    const pickShare = draftMass > 0 ? wPicks / draftMass : 0.5
+    const pickRate = presence * pickShare
+    const banRate = presence * (1 - pickShare)
+
+    formChamps.push({
+      ...c,
+      picks: Math.round(wPicks),
+      bans: Math.round(wBans),
+      games: Math.round(wPicks),
+      presence: round(presence, 2),
+      pickRate: round(pickRate, 2),
+      banRate: round(banRate, 2),
+      winrate: wPicks > 0 ? round((wWins / wPicks) * 100, 2) : c.winrate,
+      // KDA still from longer sample — weekly buckets don't carry it.
+      avgKda: c.avgKda,
+    })
+  }
+
+  if (!formChamps.length) {
+    // Fall back to full-split OP with a presence floor so 1-game curios never top the board.
+    const gated = champions.filter(
+      (c) => (c.games ?? c.picks) >= MIN_PICKS_OP && (c.presence ?? 0) >= minPresence,
+    )
+    return scoreOpChampions(gated, opts?.ctx)
+  }
+
+  return scoreOpChampions(formChamps, opts?.ctx)
 }
 
 function round(value: number, digits: number): number {
