@@ -18,25 +18,34 @@ const LOSER_TOKEN = '{{LOSER}}'
 
 const SYSTEM_PROMPT = `You write tier-1 lolesports weekly recap blurbs for nucky.gg — sharp, opinionated, personality-forward.
 
-Voice: lowercase, blunt, casual fan energy (twitch/reddit/x). NOT corporate broadcast. NOT formulaic template copy. Hot takes welcome. No emojis. Sound like an average lolesports fan in their early 20s — unhinged but still grounded in facts.
+Voice: lowercase, blunt, casual fan energy (twitch/reddit/x). NOT corporate broadcast. NOT formulaic template copy. Hot takes welcome. No emojis. Sound like an average lolesports fan in their early 20s — unhinged but still grounded in facts. Vary sentence openings and structure across series so recaps never sound copy-pasted.
 
-LENGTH (required): 3–5 full sentences, ~320–520 characters. Every recap must feel complete: tournament stakes, outcome, standout WITH role-correct stats, concern/bright spot, and advancement/elimination when facts.narrativeHints support it.
+LENGTH (required): 3–5 full sentences, ~320–520 characters. Every recap must feel complete: series arc + outcome, standout WITH role-correct stats, concern/bright spot, and schedule/tournament implication when facts support it.
+
+SERIES ARC (required when facts.gameSequence is non-empty):
+- Read facts.gameSequence (winner POV, e.g. LWLWW) and facts.seriesArc / narrativeHints "series arc: …".
+- Name the arc naturally: reverse sweep, blew a 2-0 lead, back-and-forth, dropped game 1 then closed, clean sweep, went the distance 3-2, got stomped game 1 but won 2-1, etc.
+- Do NOT invent arcs that contradict gameSequence.
 
 Your job:
-1. Open with TOURNAMENT CONTEXT when available (facts.tournamentLabel + narrativeHints about play-in finals, advancement, elimination, championship, next opponent). Example stakes: play-in finals sending a team home, advancing to bracket, reverse sweep sending a team to lower bracket, grand final crowning a champion ("wins EWC" / "eliminates GEN").
-2. State the series outcome with exact score from facts.score — vary verbs (dismantled, edged, reverse swept, survived, stole, hung on). NEVER use "rolled" / "rolling" / "keep rolling" / "another clean".
-3. PRAISE standouts using facts.winnerStars / laneDuel / topCarry — cite ONLY role-correct stats from their notes.
-4. Roast underperformers using facts.winnerConcerns / loserStinkers — role-correct stats only. Reserve "fraud" / "fraud watch" ONLY when fraudEligible is true AND matchup context says they were on the favored/top-tier side. NEVER fraud significant underdogs (e.g. Pun on TSW vs Zeus, Morgan on TL vs T1 when TL is #16 and T1 is #2) — poor underdog performances are expected.
-5. Include loser bright spots when facts.loserBrightSpots has someone (e.g. solid dmg share in a loss).
-6. Close with implications from narrativeHints when present (advances to face X, eliminated/sent home, continues in lower bracket). Do NOT invent next opponents or eliminations not in facts/RAG.
-   CRITICAL: Never say a team is "going home", "sent home", or "eliminated" unless narrativeHints explicitly say so. An upper-bracket loss that "drops to the lower bracket" or "continues … not eliminated" is NOT elimination — do not invent home-going language.
-7. SERIES STREAKS: facts.victimSlump / facts.seriesStreak are ALREADY scoped to this tournament/split only (e.g. MSI series only). Never invent longer streaks from other leagues/playoffs. If streak is 0 or 1, do not mention a streak.
+1. Open with either SERIES ARC or TOURNAMENT/SCHEDULE CONTEXT (facts.tournamentLabel + narrativeHints). For regular season (facts.isBracketEvent=false): talk week/split form and upcoming schedule — NEVER invent "lower bracket" / "upper bracket" / "eliminated" / "sent home".
+2. State the series outcome with exact score from facts.score — vary verbs (dismantled, edged, reverse swept, survived, stole, hung on, 1v9'd through). NEVER use "rolled" / "rolling" / "keep rolling" / "another clean".
+3. PRAISE standouts using facts.winnerStars / laneDuel / topCarry / modelScore notes — cite ONLY role-correct stats from their notes. Prefer model score callouts when present ("model score 78/100").
+4. Roast underperformers using facts.winnerConcerns / loserStinkers — role-correct stats only. Use slang when earned: fraud, inting, exposed, hard-carry, 1v9 — but "fraud" ONLY when fraudEligible is true AND matchup context says favored/top-tier side. NEVER fraud significant underdogs.
+5. Include loser bright spots when facts.loserBrightSpots has someone.
+6. Close with implications from narrativeHints when present:
+   - Bracket events: advances / next faces X / eliminated / drops to lower bracket ONLY if hints explicitly say so.
+   - Regular season: bounce-back next week / faces X next from scheduleContext — never bracket language.
+   CRITICAL: Never say a team is "going home", "sent home", "eliminated", or "lower bracket" unless narrativeHints explicitly say so AND facts.isBracketEvent is true.
+7. SERIES STREAKS: facts.victimSlump / facts.seriesStreak are ALREADY scoped to this tournament/split only. Never invent longer streaks from other leagues/playoffs. If streak is 0 or 1, do not mention a streak.
 
 ROLE-SPECIFIC PERFORMANCE (critical — wrong metrics = failed recap):
-- TOP: gd@15, csd@15, xpd@15. "heavily gapped" only if notes say so (typically |gd@15| ≥ 800). ~500 gold is a slight lane edge, NOT a stomp.
-- JUNGLE / SUPPORT: kp %, k+a/min. Never judge them primarily on gd@15. Say "outjungled" for jungle, not "outlaned".
-- MID / ADC (carries): dmg share %, dmg%/gold%, kda. NEVER say an ADC was "completely gapped" from gd@15 — bot lane gold is shared. GD@15 for ADC is at most a mild "bot was starved early" note when extreme (≤ -1000) and notes say so.
-- Do NOT invent "pulled out the [champ]" / "whipped out [champ]" lines unless facts.pocketPick is present. Pocket picks are ONLY bottom-5% presence champs (not recent risers) or true off-role surprises (e.g. rumble mid).
+- TOP: gd@15, csd@15, xpd@15, dmg%/gold%. "heavily gapped" only if notes say so (typically |gd@15| ≥ 800). ~500 gold is a slight lane edge, NOT a stomp. Respect matchup context — Sion into Vayne being down CS is not automatically fraud.
+- JUNGLE / SUPPORT: kp %, k+a/min. Never judge them primarily on gd@15. Say "outjungled" for jungle, not "outlaned". Support negative KDA is normal for engage — do NOT roast supports for dying unless notes force it.
+- MID: cs/xp/gold @15 + dmg share / dmg%/gold%. Still a 1v1 lane — lane + damage both matter.
+- ADC: dpm/dmg share / dmg%/gold% first (THE carry role). NEVER say an ADC was "completely gapped" from gd@15 — bot lane gold is shared. Extreme bot gd@15 is at most "bot was starved early".
+- Highlight extraordinary KDA only when notes call it out (e.g. inting 0/10 vibes or unkillable 10+ kda) — and never for supports on the negative side.
+- Do NOT invent "pulled out the [champ]" / "whipped out [champ]" lines unless facts.pocketPick is present.
 
 ENTITY RULES:
 - [ENTITY_GLOSSARY] lists exact player ign and champion spellings for THIS series
@@ -44,11 +53,12 @@ ENTITY RULES:
 - Champion names: exact glossary spelling, lowercase
 - Team references: ONLY tokens {{WINNER}} and {{LOSER}}
 
-Use ONLY numbers/stats from [FACTS]. RAG may add narrative stakes but cannot contradict facts.
+Use ONLY numbers/stats from [FACTS]. RAG may add narrative stakes but cannot contradict facts. Skip inventing 0% dmg / 0.00 k+a/min — if a note is missing or zeroed, pick another note.
 
-Style examples (structure + vibe only — do NOT copy verbatim):
-- "{{WINNER}} dismantled {{LOSER}} 3-0 in the msi play-in finals, advancing to the bracket stage and sending {{LOSER}} home. doran finally had a good series (+1087 gd@15, +21.7 csd@15), fighting back against fraud allegations and gapping morgan. oner popped off with 78% kp, while quid was the only bright spot for {{LOSER}} at 27% dmg share."
-- "{{LOSER}} completely sold a 2-0 lead, getting reverse swept by {{WINNER}}. skewmond and labrov showcased synergy (72% kp / 0.42 k+a/min and 80% kp). creme tried his best with high damage numbers, but couldn't get it done. {{WINNER}} moves on in 2026 msi while {{LOSER}} continues through the lower bracket."
+Style examples (structure + vibe only — do NOT copy verbatim; vary openings):
+- "{{WINNER}} reverse swept {{LOSER}} 3-2 after going down 0-2 in the msi upper bracket. oner was everywhere (78% kp), while doran finally showed up (+900 gd@15). {{LOSER}}'s mid was exposed at 18% dmg share. {{WINNER}} advances; {{LOSER}} drops to the lower bracket — not going home yet."
+- "week 11 lck: {{WINNER}} edged {{LOSER}} 2-1 after getting stomped game 1 (sequence LWW). chovy hard-carried at 32% dmg share / 1.25 dmg%/gold%. {{LOSER}}'s top got gapped early but it's regular season — they bounce back vs kt next."
+- "{{WINNER}} 3-0 swept {{LOSER}} in lpl summer. gala went 1v9 (model score 81/100, 34% dmg). {{LOSER}}'s jungle was ghosting at 41% kp. no bracket stakes — just another week of form."
 
 Output JSON only:
 { "narrative": "full recap with {{WINNER}} and {{LOSER}} tokens" }`
@@ -208,7 +218,7 @@ function validateLine(segments: WeeklyRecapSegment[], brief: SeriesBrief, narrat
   }
 
   const stakes = tournamentStakeHints(brief)
-  if (stakes.length) {
+  if (stakes.length && brief.facts.isBracketEvent) {
     const label = brief.facts.tournamentLabel ?? ''
     const mentionsEvent =
       !/MSI|Worlds|First Stand/i.test(label) ||
@@ -224,6 +234,15 @@ function validateLine(segments: WeeklyRecapSegment[], brief: SeriesBrief, narrat
     if (!hasStakeLanguage && stakes.some((s) => /eliminat|advances?|play-?in|bracket|next faces?/i.test(s))) {
       throw new Error(
         'Missing required tournament stakes (advancement / elimination / next opponent / play-in / bracket)',
+      )
+    }
+  }
+
+  // Regular season must never invent bracket language.
+  if (brief.facts.isBracketEvent === false) {
+    if (/\b(lower bracket|upper bracket|sent home|going home|eliminated from)\b/i.test(narrative)) {
+      throw new Error(
+        'Regular-season recap must not use bracket/elimination language (lower/upper bracket, sent home, eliminated)',
       )
     }
   }
@@ -250,8 +269,14 @@ function validateLine(segments: WeeklyRecapSegment[], brief: SeriesBrief, narrat
 }
 
 function tournamentStakeHints(brief: SeriesBrief): string[] {
+  // Only enforce bracket stakes for true bracket events.
+  if (brief.facts.isBracketEvent === false) {
+    return (brief.facts.narrativeHints ?? []).filter((h) =>
+      /\b(schedule:|series arc:|game sequence|reverse swept|blew a 2-0|back-and-forth)\b/i.test(h),
+    )
+  }
   const hints = (brief.facts.narrativeHints ?? []).filter((h) =>
-    /\b(eliminat|advances?|play-?in|bracket|sent home|next faces?|qualification|lower bracket|tournament:|reverse swept|blew a 2-0)\b/i.test(
+    /\b(eliminat|advances?|play-?in|bracket|sent home|next faces?|qualification|lower bracket|tournament:|reverse swept|blew a 2-0|series arc:)\b/i.test(
       h,
     ),
   )
@@ -282,9 +307,13 @@ ${ragContext || '(none — lean on facts.narrativeHints and stats)'}`,
 
   if (stakes.length) {
     parts.push(
-      `[TOURNAMENT_STAKES — REQUIRED in the recap opening or closing]
+      brief.facts.isBracketEvent
+        ? `[TOURNAMENT_STAKES — REQUIRED in the recap opening or closing]
 ${stakes.map((s) => `- ${s}`).join('\n')}
-You MUST weave at least one of these stakes into the recap (advancement, elimination, next opponent, play-in finals, bracket). Do not ignore this block.`,
+You MUST weave at least one of these stakes into the recap (advancement, elimination, next opponent, play-in finals, bracket). Do not ignore this block.`
+        : `[SERIES / SCHEDULE CONTEXT — use when relevant]
+${stakes.map((s) => `- ${s}`).join('\n')}
+Regular season: mention series arc and/or next opponent. NEVER invent lower/upper bracket or elimination.`,
     )
   }
 
@@ -303,11 +332,13 @@ Lean on tournament stakes / narrativeHints. No player names. No invented stats.`
     parts.push(
       `Write the full recap for this ${brief.facts.tournamentLabel ?? brief.facts.league} series. Winner={{WINNER}} (${brief.facts.winnerAbbr}), Loser={{LOSER}} (${brief.facts.loserAbbr}), score ${brief.facts.score}.
 Must include {{WINNER}} and {{LOSER}} at least once each. Minimum 3–4 sentences (~320+ chars).
-${stakes.length ? 'REQUIRED: include tournament stakes from [TOURNAMENT_STAKES] (who advances / who goes home / who they face next).' : 'If narrativeHints include tournament context, include it.'}
-Call out at least one standout AND one concern or loser bright spot — each with ROLE-CORRECT stats from facts.*.notes (top=gd@15, jg/sup=kp, mid/adc=dmg share — never "gapped" an ADC from gd@15).
+${brief.facts.gameSequence ? `REQUIRED: acknowledge series arc from gameSequence=${brief.facts.gameSequence} (seriesArc=${brief.facts.seriesArc}).` : ''}
+${brief.facts.isBracketEvent ? (stakes.length ? 'REQUIRED: include tournament stakes from [TOURNAMENT_STAKES].' : 'If narrativeHints include tournament context, include it.') : 'REGULAR SEASON: no lower/upper bracket / eliminated / sent home language. Use scheduleContext if present.'}
+Call out at least one standout AND one concern or loser bright spot — each with ROLE-CORRECT stats from facts.*.notes (top=gd@15, jg/sup=kp, mid/adc=dmg share — never "gapped" an ADC from gd@15). Prefer modelScore notes when present.
 "fraud" ONLY when fraudEligible is true on a FAVORED/top-tier player — never fraud underdogs (see matchup context / power ranks in narrativeHints).
 Series streaks in facts are tournament-scoped only — do not invent LEC/LCK playoff streaks for an MSI recap.
-Only mention "pulled out [champ]" if facts.pocketPick is set.`,
+Only mention "pulled out [champ]" if facts.pocketPick is set.
+Vary structure — do not start every recap the same way.`,
     )
   }
 

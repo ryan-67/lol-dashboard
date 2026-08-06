@@ -6,7 +6,7 @@ import { recapTeamTag } from './recapTeamTag'
 import { analyzeSeriesMomentum } from './seriesMomentum'
 import { compareSeriesGames } from './seriesGrouping'
 import { findPocketPick } from './recapPocketPick'
-
+import { isBracketContextEvent } from './tournamentFormat'
 export interface PlayerPerformanceFact {
   name: string
   team: string
@@ -26,6 +26,8 @@ export interface PlayerPerformanceFact {
   champions: string[]
   /** True when "fraud" slang is appropriate — top-tier team / expected star, not a weak-side underdog. */
   fraudEligible?: boolean
+  /** 0–100 series model performance score when OE game logs + cohort available. */
+  modelScore?: number | null
   /** Role-weighted stat callouts the LLM should cite instead of defaulting to KDA. */
   notes: string[]
 }
@@ -51,9 +53,17 @@ export interface SeriesFacts {
   league: string
   /** Display label e.g. "2026 MSI" — use for stakes / advancement copy. */
   tournamentLabel: string
+  /** True when lower/upper bracket language is valid (playoffs / internationals). */
+  isBracketEvent: boolean
+  /** Regular-season / next-fixture schedule note (never lower-bracket wording). */
+  scheduleContext: string | null
   domWins: number
   vicWins: number
   gameCount: number
+  /** Winner-perspective sequence e.g. "LWLWW". */
+  gameSequence: string
+  /** Arc classifier: sweep / reverse_sweep / back_and_forth / … */
+  seriesArc: string
   reverseSweep: boolean
   blowout: boolean
   upset: boolean
@@ -281,33 +291,41 @@ function isStandoutByRole(p: PlayerPerformanceFact): boolean {
     case 'jungle':
       return p.avgKp >= 68 || p.avgKaPerMin >= 0.14 || p.notes.some((n) => n.includes('outjungled'))
     case 'mid':
-      return p.avgDmg >= 27 || p.avgDmgGoldRatio >= 1.15
+      return (p.avgDmg >= 27 && p.avgDmg > 0.5) || p.avgDmgGoldRatio >= 1.15
     case 'adc':
-      return p.avgDmg >= 27 || (p.avgKda >= 4 && p.avgDmg >= 24) || p.avgDmgGoldRatio >= 1.15
+      return (
+        (p.avgDmg >= 27 && p.avgDmg > 0.5) ||
+        (p.avgKda >= 4 && p.avgDmg >= 24) ||
+        p.avgDmgGoldRatio >= 1.15
+      )
     case 'support':
       return p.avgKp >= 72 || p.avgKaPerMin >= 0.12
     default:
-      return p.avgDmg >= 28 || p.avgKda >= 4
+      return (p.avgDmg >= 28 && p.avgDmg > 0.5) || p.avgKda >= 4
   }
 }
 
 function isConcernByRole(p: PlayerPerformanceFact): boolean {
-  if (p.notes.some((n) => n.includes('stinker') || n.includes('lost lane') || n.includes('outjungled by'))) {
+  if (p.notes.some((n) => n.includes('stinker') || n.includes('lost lane') || n.includes('outjungled by') || n.includes('inting'))) {
     return true
   }
   switch (p.role) {
     case 'top':
       return p.avgGd15 <= -80 || p.avgCsd15 <= -10
     case 'jungle':
-      return p.avgKp <= 48 || p.avgKaPerMin <= 0.08
+      return (p.avgKp > 0 && p.avgKp <= 48) || (p.avgKaPerMin > 0 && p.avgKaPerMin <= 0.08)
     case 'mid':
-      return p.avgDmg <= 22 || p.avgDmgGoldRatio <= 0.85
+      return (p.avgDmg > 0.5 && p.avgDmg <= 22) || (p.avgDmgGoldRatio > 0 && p.avgDmgGoldRatio <= 0.85)
     case 'adc':
-      return p.avgKda <= 2.2 || p.avgDmg <= 22 || p.avgDmgGoldRatio <= 0.85
+      return (
+        (p.avgKda > 0 && p.avgKda <= 2.2) ||
+        (p.avgDmg > 0.5 && p.avgDmg <= 22) ||
+        (p.avgDmgGoldRatio > 0 && p.avgDmgGoldRatio <= 0.85)
+      )
     case 'support':
-      return p.avgKp <= 55
+      return p.avgKp > 0 && p.avgKp <= 55
     default:
-      return p.avgKda < 2.2
+      return p.avgKda > 0 && p.avgKda < 2.2
   }
 }
 
@@ -472,14 +490,28 @@ function annotatePlayer(
   const notes: string[] = []
   const role = p.role
   const fraudEligible = isFraudEligible(p, matchup)
+  const hasDmg = p.avgDmg > 0.5
+  const hasKa = p.avgKaPerMin > 0.001
+  const hasLane = Math.abs(p.avgGd15) > 1 || Math.abs(p.avgCsd15) > 0.5
 
   if (p.champions.length) notes.push(`champs: ${p.champions.join(', ')}`)
+  if (typeof p.modelScore === 'number' && Number.isFinite(p.modelScore)) {
+    if (p.modelScore >= 72) {
+      notes.push(`model score ${p.modelScore.toFixed(0)}/100 — elite series performance`)
+    } else if (p.modelScore >= 60) {
+      notes.push(`model score ${p.modelScore.toFixed(0)}/100 — above average`)
+    } else if (p.modelScore <= 35) {
+      notes.push(`model score ${p.modelScore.toFixed(0)}/100 — miserable series by model`)
+    } else if (p.modelScore <= 45) {
+      notes.push(`model score ${p.modelScore.toFixed(0)}/100 — below average`)
+    }
+  }
 
   // Solo-lane GD@15 only — never call ADC/support "gapped" from bot-lane gold share.
-  if (roleUsesLaneGold(role) && wonLaneEveryGame(bucket, p.name)) {
+  if (roleUsesLaneGold(role) && hasLane && wonLaneEveryGame(bucket, p.name)) {
     notes.push(`outlaned opponent every game`)
   }
-  if (roleUsesLaneGold(role) && lostLaneEveryGame(bucket, p.name)) {
+  if (roleUsesLaneGold(role) && hasLane && lostLaneEveryGame(bucket, p.name)) {
     notes.push(`lost lane to opponent every game`)
     if (p.team !== seriesWinner && p.avgGd15 <= -800) {
       if (fraudEligible) {
@@ -501,6 +533,7 @@ function annotatePlayer(
   if (
     p.team === seriesWinner &&
     roleUsesLaneGold(role) &&
+    hasLane &&
     lostLaneEveryGame(bucket, p.name) &&
     p.avgGd15 <= -800
   ) {
@@ -511,66 +544,83 @@ function annotatePlayer(
     )
   }
 
+  // Extreme KDA callouts — skip supports for negative KDA (engage supports die a lot).
+  if (role !== 'support' && p.avgKda > 0 && p.avgKda < 1.2 && p.games >= 1) {
+    notes.push(`${p.avgKda.toFixed(1)} kda — inting / exposed`)
+  } else if (role !== 'support' && p.avgKda >= 8) {
+    notes.push(`${p.avgKda.toFixed(1)} kda — unkillable`)
+  }
+
   switch (role) {
     case 'top': {
-      // Early laning is the primary signal for tops.
-      if (p.avgGd15 >= 800) notes.push(`${fmtSigned(p.avgGd15)} gd@15 avg — lane kingdom`)
-      else if (p.avgGd15 >= 300) notes.push(`${fmtSigned(p.avgGd15)} gd@15 avg — won lane`)
-      else if (p.avgGd15 >= 100) notes.push(`${fmtSigned(p.avgGd15)} gd@15 avg — slight lane edge`)
-      else if (p.avgGd15 <= -800) notes.push(`${fmtSigned(p.avgGd15)} gd@15 avg — heavily gapped`)
-      else if (p.avgGd15 <= -300) notes.push(`${fmtSigned(p.avgGd15)} gd@15 avg — lost lane`)
-      if (Math.abs(p.avgXpd15) >= 80) notes.push(`${fmtSigned(p.avgXpd15)} xpd@15 avg`)
-      if (Math.abs(p.avgCsd15) >= 8) notes.push(`${fmtSigned(p.avgCsd15, 1)} cs@15 diff avg`)
+      if (hasLane) {
+        if (p.avgGd15 >= 800) notes.push(`${fmtSigned(p.avgGd15)} gd@15 avg — lane kingdom`)
+        else if (p.avgGd15 >= 300) notes.push(`${fmtSigned(p.avgGd15)} gd@15 avg — won lane`)
+        else if (p.avgGd15 >= 100) notes.push(`${fmtSigned(p.avgGd15)} gd@15 avg — slight lane edge`)
+        else if (p.avgGd15 <= -800) notes.push(`${fmtSigned(p.avgGd15)} gd@15 avg — heavily gapped`)
+        else if (p.avgGd15 <= -300) notes.push(`${fmtSigned(p.avgGd15)} gd@15 avg — lost lane`)
+        if (Math.abs(p.avgXpd15) >= 80) notes.push(`${fmtSigned(p.avgXpd15)} xpd@15 avg`)
+        if (Math.abs(p.avgCsd15) >= 8) notes.push(`${fmtSigned(p.avgCsd15, 1)} cs@15 diff avg`)
+      }
+      if (hasDmg && p.avgDmgGoldRatio >= 1.15) {
+        notes.push(`${p.avgDmgGoldRatio.toFixed(2)} dmg%/gold% — efficient top damage`)
+      }
       break
     }
     case 'jungle': {
-      // Map activity / early influence — not solo-lane gold.
       if (p.avgKp >= 72) notes.push(`${p.avgKp.toFixed(0)}% kp — early facilitator`)
-      else if (p.avgKp <= 45) notes.push(`${p.avgKp.toFixed(0)}% kp — low early impact`)
-      if (p.avgKaPerMin >= 0.16) notes.push(`${p.avgKaPerMin.toFixed(2)} k+a/min — active map`)
-      else if (p.avgKaPerMin <= 0.08) notes.push(`${p.avgKaPerMin.toFixed(2)} k+a/min — pretty inactive`)
+      else if (p.avgKp <= 45 && p.avgKp > 0) notes.push(`${p.avgKp.toFixed(0)}% kp — low early impact`)
+      if (hasKa) {
+        if (p.avgKaPerMin >= 0.16) notes.push(`${p.avgKaPerMin.toFixed(2)} k+a/min — active map`)
+        else if (p.avgKaPerMin <= 0.08) notes.push(`${p.avgKaPerMin.toFixed(2)} k+a/min — pretty inactive`)
+      }
+      if (hasDmg && p.avgDmg >= 26) notes.push(`${p.avgDmg.toFixed(0)}% dmg share — carry jungle`)
       break
     }
     case 'mid': {
-      // Carry impact: damage share / efficiency. GD@15 only as secondary lane note.
-      if (p.avgDmg >= 30) notes.push(`${p.avgDmg.toFixed(0)}% dmg share — hard carry`)
-      else if (p.avgDmg >= 25) notes.push(`${p.avgDmg.toFixed(0)}% dmg share — strong`)
-      else if (p.avgDmg <= 20) notes.push(`${p.avgDmg.toFixed(0)}% dmg share — quiet`)
+      if (hasDmg) {
+        if (p.avgDmg >= 30) notes.push(`${p.avgDmg.toFixed(0)}% dmg share — hard carry`)
+        else if (p.avgDmg >= 25) notes.push(`${p.avgDmg.toFixed(0)}% dmg share — strong`)
+        else if (p.avgDmg <= 20) notes.push(`${p.avgDmg.toFixed(0)}% dmg share — quiet`)
+      }
       if (p.avgDmgGoldRatio >= 1.2) notes.push(`${p.avgDmgGoldRatio.toFixed(2)} dmg%/gold% — efficient carry`)
-      else if (p.avgDmgGoldRatio > 0 && p.avgDmgGoldRatio <= 0.85) {
+      else if (hasDmg && p.avgDmgGoldRatio > 0 && p.avgDmgGoldRatio <= 0.85) {
         notes.push(`${p.avgDmgGoldRatio.toFixed(2)} dmg%/gold% — ate gold, low impact`)
       }
-      if (p.avgGd15 >= 400) notes.push(`${fmtSigned(p.avgGd15)} gd@15 — also won lane`)
-      else if (p.avgGd15 <= -800) notes.push(`${fmtSigned(p.avgGd15)} gd@15 — lost lane hard`)
+      if (hasLane) {
+        if (p.avgGd15 >= 400) notes.push(`${fmtSigned(p.avgGd15)} gd@15 — also won lane`)
+        else if (p.avgGd15 <= -800) notes.push(`${fmtSigned(p.avgGd15)} gd@15 — lost lane hard`)
+        if (Math.abs(p.avgCsd15) >= 10) notes.push(`${fmtSigned(p.avgCsd15, 1)} cs@15 diff`)
+      }
       break
     }
     case 'adc': {
-      // Carry roles: dmg share / efficiency. Never lead with GD@15 (bot shares gold).
-      if (p.avgDmg >= 30) notes.push(`${p.avgDmg.toFixed(0)}% dmg share — hard carry`)
-      else if (p.avgDmg >= 25) notes.push(`${p.avgDmg.toFixed(0)}% dmg share — solid output`)
-      else if (p.avgDmg <= 22) notes.push(`${p.avgDmg.toFixed(0)}% dmg share — low output`)
+      if (hasDmg) {
+        if (p.avgDmg >= 30) notes.push(`${p.avgDmg.toFixed(0)}% dmg share — hard-carry / 1v9`)
+        else if (p.avgDmg >= 25) notes.push(`${p.avgDmg.toFixed(0)}% dmg share — solid output`)
+        else if (p.avgDmg <= 22) notes.push(`${p.avgDmg.toFixed(0)}% dmg share — low output`)
+      }
       if (p.avgKda >= 5) notes.push(`${p.avgKda.toFixed(1)} kda — clean positioning`)
-      else if (p.avgKda < 2) notes.push(`${p.avgKda.toFixed(1)} kda — dying too much`)
+      else if (p.avgKda < 2 && p.avgKda > 0) notes.push(`${p.avgKda.toFixed(1)} kda — dying too much`)
       if (p.avgDmgGoldRatio >= 1.2) notes.push(`${p.avgDmgGoldRatio.toFixed(2)} dmg%/gold% — efficient`)
-      else if (p.avgDmgGoldRatio > 0 && p.avgDmgGoldRatio <= 0.85) {
+      else if (hasDmg && p.avgDmgGoldRatio > 0 && p.avgDmgGoldRatio <= 0.85) {
         notes.push(`${p.avgDmgGoldRatio.toFixed(2)} dmg%/gold% — resource hog`)
       }
-      // Optional mild bot-lane note only at extreme gaps; never "completely gapped".
-      if (p.avgGd15 <= -1000) {
+      if (hasLane && p.avgGd15 <= -1000) {
         notes.push(`${fmtSigned(p.avgGd15)} bot gd@15 — bot lane was starved early (shared gold, not solo gap)`)
       }
       break
     }
     case 'support': {
       if (p.avgKp >= 75) notes.push(`${p.avgKp.toFixed(0)}% kp — everywhere`)
-      else if (p.avgKp <= 52) notes.push(`${p.avgKp.toFixed(0)}% kp — low presence`)
-      if (p.avgKaPerMin >= 0.14) notes.push(`${p.avgKaPerMin.toFixed(2)} k+a/min`)
+      else if (p.avgKp <= 52 && p.avgKp > 0) notes.push(`${p.avgKp.toFixed(0)}% kp — low presence`)
+      if (hasKa && p.avgKaPerMin >= 0.14) notes.push(`${p.avgKaPerMin.toFixed(2)} k+a/min`)
       break
     }
     default: {
-      if (p.avgDmg >= 28) notes.push(`${p.avgDmg.toFixed(0)}% dmg share`)
+      if (hasDmg && p.avgDmg >= 28) notes.push(`${p.avgDmg.toFixed(0)}% dmg share`)
       if (p.avgKda >= 4) notes.push(`${p.avgKda.toFixed(1)} kda`)
-      else if (p.avgKda < 2) notes.push(`${p.avgKda.toFixed(1)} kda — stinker`)
+      else if (p.avgKda < 2 && p.avgKda > 0) notes.push(`${p.avgKda.toFixed(1)} kda — stinker`)
     }
   }
 
@@ -726,9 +776,14 @@ function buildNarrativeHints(opts: {
   loser: string
   tournamentLabel: string
   matchup: MatchupContext
+  arcHint?: string
+  sequenceLabel?: string
 }): string[] {
   const hints: string[] = []
   const event = opts.tournamentLabel || 'this event'
+  if (opts.arcHint) hints.push(opts.arcHint)
+  if (opts.sequenceLabel) hints.push(`game sequence (winner POV): ${opts.sequenceLabel}`)
+
   if (opts.leadBlownBy) {
     hints.push(`${recapTeamTag(opts.leadBlownBy)} blew a 2-0 lead and got reverse swept`)
   } else if (opts.reverseSweep) {
@@ -994,6 +1049,10 @@ export function buildSeriesFacts(
     champions?: Champion[]
     /** Global power ranks (1 = best) for favorite/underdog fraud gating. */
     powerRanks?: PowerRankMap
+    /** Optional model scores: lowercase ign → 0–100 series performance. */
+    modelScoresByPlayer?: Map<string, number>
+    /** Regular-season / next-fixture note (never lower-bracket wording). */
+    scheduleContext?: string | null
   },
 ): SeriesFacts {
   const winsA = bucket.games.filter((g) => g.winner === bucket.teamA).length
@@ -1013,39 +1072,86 @@ export function buildSeriesFacts(
   const tournamentLabel = seriesTournamentLabel(bucket, league)
   const orderedDates = [...bucket.games].sort((a, b) => a.date.localeCompare(b.date))
   const latestDate = orderedDates[orderedDates.length - 1]?.date ?? bucket.games[0]?.date ?? ''
+  const g0 = bucket.games[0]
+  const bracketEvent = isBracketContextEvent({
+    league,
+    tournamentLabel,
+    split: g0?.split,
+    playoffs: g0?.playoffs,
+    blockName: opts.bracketContext?.blockName,
+  })
 
   const matchup = buildMatchupContext(winnerCanon, loserCanon, teams, opts.powerRanks)
 
-  const playerStats = aggregateSeriesPlayerStats(bucket).map((p) =>
-    annotatePlayer(p, bucket, winner, teams, matchup),
-  )
+  const playerStats = aggregateSeriesPlayerStats(bucket).map((p) => {
+    const key = p.name.toLowerCase()
+    const modelScore = opts.modelScoresByPlayer?.get(key) ?? null
+    return annotatePlayer(
+      { ...p, modelScore },
+      bucket,
+      winner,
+      teams,
+      matchup,
+    )
+  })
   const laneDuel = findLaneDuelDomination(bucket)
   const winPlayers = playerStats.filter((p) => p.team === winner)
   const losePlayers = playerStats.filter((p) => p.team === loser)
 
   const ordered = [...bucket.games].sort(compareSeriesGames)
   const momentum = analyzeSeriesMomentum(bucket.games, winner)
-  const { reverseSweep, droppedGame1, leadBlownBy } = momentum
-  const messySeries = vicWins >= 2 && domWins >= 2 && bucket.games.length >= 4
+  const { reverseSweep, droppedGame1, leadBlownBy, sequenceLabel, seriesArc, arcHint } = momentum
+  const messySeries =
+    (vicWins >= 2 && domWins >= 2 && bucket.games.length >= 4) || seriesArc === 'back_and_forth'
 
   const winnerStars = winPlayers
-    .filter((p) => isStandoutByRole(p) || p.notes.some((n) => n.includes('standout')))
-    .sort((a, b) => playerImpactScore(b) - playerImpactScore(a))
+    .filter(
+      (p) =>
+        isStandoutByRole(p) ||
+        p.notes.some((n) => n.includes('standout')) ||
+        (typeof p.modelScore === 'number' && p.modelScore >= 65),
+    )
+    .sort((a, b) => {
+      const ms = (b.modelScore ?? 50) - (a.modelScore ?? 50)
+      if (Math.abs(ms) > 5) return ms
+      return playerImpactScore(b) - playerImpactScore(a)
+    })
     .slice(0, 4)
 
   const winnerConcerns = winPlayers
-    .filter((p) => isConcernByRole(p))
-    .sort((a, b) => playerImpactScore(a) - playerImpactScore(b))
+    .filter(
+      (p) =>
+        isConcernByRole(p) || (typeof p.modelScore === 'number' && p.modelScore <= 40),
+    )
+    .sort((a, b) => {
+      const ms = (a.modelScore ?? 50) - (b.modelScore ?? 50)
+      if (Math.abs(ms) > 5) return ms
+      return playerImpactScore(a) - playerImpactScore(b)
+    })
     .slice(0, 3)
 
   const loserStinkers = losePlayers
-    .filter((p) => isConcernByRole(p))
-    .sort((a, b) => playerImpactScore(a) - playerImpactScore(b))
+    .filter(
+      (p) =>
+        isConcernByRole(p) || (typeof p.modelScore === 'number' && p.modelScore <= 38),
+    )
+    .sort((a, b) => {
+      const ms = (a.modelScore ?? 50) - (b.modelScore ?? 50)
+      if (Math.abs(ms) > 5) return ms
+      return playerImpactScore(a) - playerImpactScore(b)
+    })
     .slice(0, 3)
 
   const loserBrightSpots = losePlayers
-    .filter((p) => isStandoutByRole(p))
-    .sort((a, b) => playerImpactScore(b) - playerImpactScore(a))
+    .filter(
+      (p) =>
+        isStandoutByRole(p) || (typeof p.modelScore === 'number' && p.modelScore >= 62),
+    )
+    .sort((a, b) => {
+      const ms = (b.modelScore ?? 50) - (a.modelScore ?? 50)
+      if (Math.abs(ms) > 5) return ms
+      return playerImpactScore(b) - playerImpactScore(a)
+    })
     .slice(0, 2)
 
   const topCarry = winnerStars[0] ?? null
@@ -1071,8 +1177,13 @@ export function buildSeriesFacts(
     winnerAbbr: recapTeamTag(g.winner),
   }))
 
+  const scheduleContext = opts.scheduleContext?.trim() || null
+
   const narrativeHints = [
     `tournament: ${tournamentLabel}`,
+    bracketEvent
+      ? 'event type: bracket / playoffs / international — bracket language OK when narrativeHints say so'
+      : 'event type: regular season — NEVER say lower bracket, upper bracket, eliminated, or sent home',
     ...buildNarrativeHints({
       reverseSweep,
       droppedGame1,
@@ -1088,17 +1199,22 @@ export function buildSeriesFacts(
       loser: loserCanon,
       tournamentLabel,
       matchup,
+      arcHint,
+      sequenceLabel,
     }),
     ...buildEarlyGameHints(bucket, winnerCanon, loserCanon),
-    ...buildTournamentImplicationHints(
-      winnerCanon,
-      loserCanon,
-      latestDate,
-      tournamentLabel,
-      league,
-      opts.tournamentPeers ?? [],
-      opts.bracketContext,
-    ),
+    ...(bracketEvent
+      ? buildTournamentImplicationHints(
+          winnerCanon,
+          loserCanon,
+          latestDate,
+          tournamentLabel,
+          league,
+          opts.tournamentPeers ?? [],
+          opts.bracketContext,
+        )
+      : []),
+    ...(scheduleContext ? [scheduleContext] : []),
   ]
 
   const laneDuelPlayer = laneDuel
@@ -1120,9 +1236,13 @@ export function buildSeriesFacts(
     score: `${domWins}-${vicWins}`,
     league,
     tournamentLabel,
+    isBracketEvent: bracketEvent,
+    scheduleContext,
     domWins,
     vicWins,
     gameCount: bucket.games.length,
+    gameSequence: sequenceLabel,
+    seriesArc,
     reverseSweep,
     blowout: domWins >= 2 && vicWins === 0,
     upset: upsetFromWr(domSplitWr, vicSplitWr),

@@ -210,9 +210,18 @@ async function main(): Promise<void> {
     const cachedClaimsHome =
       /\b(going home|sent home|eliminated from|will leave)\b/.test(cached)
     const nowContinues =
-      hints.includes('not eliminated') || hints.includes('lower bracket')
+      hints.includes('not eliminated') ||
+      (b.facts.isBracketEvent && hints.includes('lower bracket'))
     if (cachedClaimsHome && nowContinues) {
       console.log(`  stale elimination language ${b.seriesId} (will regenerate)`)
+      return true
+    }
+    // Re-generate regular-season blurbs that falsely invented lower/upper bracket.
+    if (
+      b.facts.isBracketEvent === false &&
+      /\b(lower bracket|upper bracket|sent home|going home)\b/.test(cached)
+    ) {
+      console.log(`  stale regular-season bracket language ${b.seriesId} (will regenerate)`)
       return true
     }
     return false

@@ -687,26 +687,76 @@ export function teamHasUpcomingInTournament(
   tournamentLabel: string,
   results: CitoSeriesResult[],
 ): boolean {
+  return Boolean(nextOpponentInContext(team, afterDate, tournamentLabel, results))
+}
+
+/**
+ * Next opponent for `team` after `afterDate` within the same event context.
+ * For regular season, matches by league (e.g. LCK) — not "lower bracket".
+ * For bracket events, prefers same tournament name / block tokens.
+ */
+export function nextOpponentInContext(
+  team: string,
+  afterDate: string,
+  tournamentLabel: string,
+  results: CitoSeriesResult[],
+): { opponent: string; date: string; blockName: string | null; tournamentName: string | null } | null {
   const after = dateOnly(afterDate)
-  const tokens = tournamentLabel
-    .toLowerCase()
-    .split(/[^a-z0-9]+/)
-    .filter((t) => t.length > 2)
+  const label = tournamentLabel.toLowerCase()
+  const isIntl = /\b(msi|worlds|wlds|first\s*stand|fst|ewc|esports\s*world\s*cup)\b/.test(label)
+  const isPlayoffs = /\bplayoffs?\b/.test(label)
+  const leagueToken = label.match(/\b(lck|lpl|lec|lcs|lta)\b/)?.[1] ?? null
+
+  let best: {
+    opponent: string
+    date: string
+    blockName: string | null
+    tournamentName: string | null
+  } | null = null
 
   for (const row of results) {
     const rowDate = dateOnly(row.scheduledAt)
     if (!rowDate || rowDate <= after) continue
     if (!teamMatches(team, row.teamA) && !teamMatches(team, row.teamB)) continue
+
     const hay = `${row.league} ${row.tournamentName ?? ''} ${row.blockName ?? ''}`.toLowerCase()
-    const matchesTournament =
-      tokens.length === 0 ||
-      tokens.some((t) => hay.includes(t)) ||
-      /msi|worlds|first\s*stand|\bewc\b|esports\s*world\s*cup/.test(hay)
-    if (!matchesTournament) continue
+    let matches = false
+    if (isIntl) {
+      matches =
+        /msi|worlds|first\s*stand|\bewc\b|esports\s*world\s*cup/.test(hay) ||
+        (row.tournamentName ?? '').toLowerCase().includes(label.split(/\s+/).slice(-1)[0] ?? '')
+    } else if (isPlayoffs) {
+      matches = /\bplayoffs?\b/.test(hay) && (!leagueToken || hay.includes(leagueToken))
+    } else if (leagueToken) {
+      // Regular season: same league is enough (next week fixture).
+      matches = hay.includes(leagueToken) || (row.league ?? '').toLowerCase().includes(leagueToken)
+    } else {
+      const tokens = label.split(/[^a-z0-9]+/).filter((t) => t.length > 2 && t !== '2026' && t !== '2025')
+      matches = tokens.some((t) => hay.includes(t))
+    }
+    if (!matches) continue
+
     const st = normalizeStatus(row.status)
-    if (COMPLETED_STATUS.has(st) || IN_PROGRESS_STATUS.has(st) || st === 'scheduled' || st === 'unstarted') {
-      return true
+    if (
+      !(
+        COMPLETED_STATUS.has(st) ||
+        IN_PROGRESS_STATUS.has(st) ||
+        st === 'scheduled' ||
+        st === 'unstarted'
+      )
+    ) {
+      continue
+    }
+
+    const opponent = teamMatches(team, row.teamA) ? row.teamB : row.teamA
+    if (!best || rowDate < best.date) {
+      best = {
+        opponent,
+        date: rowDate,
+        blockName: row.blockName ?? null,
+        tournamentName: row.tournamentName ?? null,
+      }
     }
   }
-  return false
+  return best
 }

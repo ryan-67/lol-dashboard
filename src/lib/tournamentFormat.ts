@@ -142,3 +142,46 @@ export function lossImpliesElimination(opts: {
   if (opts.format?.lossCanEliminateWithoutLower && opts.bracket !== 'unknown') return true
   return false
 }
+
+/**
+ * True only for events where lower/upper bracket language is valid.
+ * Regular-season weeks (LCK Summer Week 11, LEC Week 2, etc.) are NEVER
+ * bracket context — an upcoming fixture is just next week's schedule.
+ */
+export function isBracketContextEvent(opts: {
+  league?: string | null
+  tournamentLabel?: string | null
+  split?: string | null
+  playoffs?: boolean
+  blockName?: string | null
+  format?: TournamentFormat | null
+}): boolean {
+  const format =
+    opts.format ??
+    resolveTournamentFormat({
+      league: opts.league,
+      tournamentLabel: opts.tournamentLabel,
+      split: opts.split,
+      playoffs: opts.playoffs,
+      blockName: opts.blockName,
+    })
+  if (format) return true
+
+  const hay = [opts.league, opts.tournamentLabel, opts.split, opts.blockName]
+    .filter(Boolean)
+    .join(' ')
+    .toLowerCase()
+
+  if (/\b(msi|worlds|wlds|first\s*stand|fst|ewc|esports\s*world\s*cup)\b/.test(hay)) {
+    return true
+  }
+  if (/\bplayoffs?\b/.test(hay) || opts.playoffs) return true
+  if (/\b(upper|lower)\s*bracket\b|\bgrand\s*finals?\b|\bplay[\s-]?in\b/.test(hay)) {
+    return true
+  }
+  // Explicit regular-season week/group stage language.
+  if (/\bweek\s*\d+\b|\bregular\s*season\b|\bgroup\s*stage\b|\bsplit\b/.test(hay)) {
+    return false
+  }
+  return false
+}

@@ -1,7 +1,7 @@
 import type { GameCatalogEntry, Player, PlayerGameLog, Team } from '../hooks/useDashboardData'
 import { resolveTeamCanonicalName, teamMatchesCanonical } from './entities/slugs'
 import { findTeamByName } from './teamAnalytics'
-import { normalizePosition, type RoleKey } from './playerRadar'
+import { normalizePosition, computeGameScore, type RoleKey } from './playerRadar'
 import { buildSeriesFacts, type PowerRankMap, type SeriesFacts } from './recapFacts'
 import { findPocketPick } from './recapPocketPick'
 import { recapTeamTag } from './recapTeamTag'
@@ -29,10 +29,11 @@ import {
   type CitoSeriesResult,
   isInternationalContext,
   isSeriesReadyForRecap,
+  nextOpponentInContext,
   resolveSeriesScoreWithCito,
   teamHasUpcomingInTournament,
 } from './citoSeriesVerify'
-import { resolveTournamentFormat } from './tournamentFormat'
+import { isBracketContextEvent, resolveTournamentFormat } from './tournamentFormat'
 import {
   hasSufficientCitoBoxScores,
   rowsForMatch,
@@ -40,8 +41,66 @@ import {
   type CitoPlayerStatCacheRow,
   type CitoPlayerStatsBundle,
 } from './citoPlayerStats'
+import { unitIntervalTo100 } from './scoreNormalize'
 
 export type { SeriesFacts }
+
+function buildScheduleContextHint(
+  winner: string,
+  loser: string,
+  date: string,
+  tournamentLabel: string,
+  cito: CitoSeriesResult[],
+  bracketEvent: boolean,
+): string | null {
+  const nextW = nextOpponentInContext(winner, date, tournamentLabel, cito)
+  const nextL = nextOpponentInContext(loser, date, tournamentLabel, cito)
+  if (bracketEvent) {
+    // Bracket next-opponent language is handled in buildTournamentImplicationHints.
+    return null
+  }
+  const bits: string[] = []
+  if (nextW) {
+    bits.push(
+      `schedule: ${recapTeamTag(winner)} next faces ${recapTeamTag(nextW.opponent)} (${nextW.date}) — regular season, not a bracket`,
+    )
+  }
+  if (nextL) {
+    bits.push(
+      `schedule: ${recapTeamTag(loser)} looks to bounce back vs ${recapTeamTag(nextL.opponent)} (${nextL.date}) — regular season, not a bracket`,
+    )
+  }
+  return bits.length ? bits.join(' | ') : null
+}
+
+/** Average model game score (0–100) per player ign across series gameIds. */
+function buildSeriesModelScores(
+  players: Player[],
+  gameIds: string[],
+): Map<string, number> {
+  const out = new Map<string, number>()
+  if (!players.length || !gameIds.length) return out
+  const idSet = new Set(gameIds.filter(Boolean))
+  const sums = new Map<string, { total: number; n: number }>()
+
+  for (const p of players) {
+    const role = normalizePosition(p.position)
+    if (!role) continue
+    const ign = p.name.toLowerCase()
+    for (const g of p.gameLog ?? []) {
+      if (!g.gameId || !idSet.has(g.gameId)) continue
+      const score = unitIntervalTo100(computeGameScore(g, role, players))
+      const cur = sums.get(ign) ?? { total: 0, n: 0 }
+      cur.total += score
+      cur.n += 1
+      sums.set(ign, cur)
+    }
+  }
+  for (const [ign, { total, n }] of sums) {
+    if (n > 0) out.set(ign, total / n)
+  }
+  return out
+}
 
 function seriesResolveOpts(
   league: string | null | undefined,
@@ -1798,6 +1857,7 @@ export function parsedGamesFromCitoPlayerRows(
     const date = players[0]!.gameDate
     const league = (players[0]!.league || leagueHint || 'T1').toUpperCase()
     const length = players[0]!.gameLengthMinutes ?? 30
+    const gameNumber = players[0]!.gameNumber ?? null
 
     const roster: GamePlayer[] = players.map((p) => {
       const team = resolveTeamCanonicalName(p.teamName)
@@ -1834,9 +1894,16 @@ export function parsedGamesFromCitoPlayerRows(
       split: 'Summer',
       playoffs: false,
       oeYear: date.slice(0, 4),
-    })
+      // Used by compareSeriesGames when present on catalog-backed games; keep for sorting.
+      ...(typeof gameNumber === 'number' ? { gameNumber } : {}),
+    } as ParsedGame)
   }
-  return games.sort((a, b) => a.date.localeCompare(b.date) || a.id.localeCompare(b.id))
+  return games.sort((a, b) => {
+    const ga = (a as { gameNumber?: number }).gameNumber
+    const gb = (b as { gameNumber?: number }).gameNumber
+    if (typeof ga === 'number' && typeof gb === 'number' && ga !== gb) return ga - gb
+    return a.date.localeCompare(b.date) || a.id.localeCompare(b.id)
+  })
 }
 
 /**
@@ -1878,17 +1945,26 @@ export function buildCitoOnlySeriesBrief(
     tournamentLabel,
     blockName: row.blockName ?? resolved.blockName,
   })
-  const loserContinues = teamHasUpcomingInTournament(
+  const bracketEvent = isBracketContextEvent({
+    league: row.league,
+    tournamentLabel,
+    blockName: row.blockName ?? resolved.blockName,
+    format,
+  })
+  const citoPeersFull = citoPeers.length ? citoPeers : [row]
+  const loserContinues = bracketEvent
+    ? teamHasUpcomingInTournament(loser, date, tournamentLabel, citoPeersFull)
+    : false
+  const winnerContinues = bracketEvent
+    ? teamHasUpcomingInTournament(winner, date, tournamentLabel, citoPeersFull)
+    : false
+  const scheduleContext = buildScheduleContextHint(
+    winner,
     loser,
     date,
     tournamentLabel,
-    citoPeers.length ? citoPeers : [row],
-  )
-  const winnerContinues = teamHasUpcomingInTournament(
-    winner,
-    date,
-    tournamentLabel,
-    citoPeers.length ? citoPeers : [row],
+    citoPeersFull,
+    bracketEvent,
   )
 
   const domSplitWr = teamSplitWr(teams, winner)
@@ -1923,15 +1999,26 @@ export function buildCitoOnlySeriesBrief(
       seriesStreak: 0,
       victimSlump: 0,
       powerRanks,
-      bracketContext: {
-        blockName: resolved.blockName,
-        bracket: resolved.bracket,
-        loserContinues,
-        winnerContinues,
-        formatId: format?.id ?? null,
-        structure: format?.structure ?? null,
-        lossCanEliminateWithoutLower: format?.lossCanEliminateWithoutLower ?? null,
-      },
+      scheduleContext,
+      bracketContext: bracketEvent
+        ? {
+            blockName: resolved.blockName,
+            bracket: resolved.bracket,
+            loserContinues,
+            winnerContinues,
+            formatId: format?.id ?? null,
+            structure: format?.structure ?? null,
+            lossCanEliminateWithoutLower: format?.lossCanEliminateWithoutLower ?? null,
+          }
+        : {
+            blockName: resolved.blockName ?? row.blockName,
+            bracket: 'unknown',
+            loserContinues: false,
+            winnerContinues: false,
+            formatId: null,
+            structure: null,
+            lossCanEliminateWithoutLower: null,
+          },
     })
     facts.score = resolved.score
     facts.domWins = domWins
@@ -1941,18 +2028,13 @@ export function buildCitoOnlySeriesBrief(
     facts.winnerAbbr = recapTeamTag(winner)
     facts.loserAbbr = recapTeamTag(loser)
     facts.tournamentLabel = tournamentLabel
+    facts.isBracketEvent = bracketEvent
+    facts.scheduleContext = scheduleContext
     facts.narrativeHints = [
       `tournament: ${tournamentLabel}`,
-      `box scores from Cito player-stats (${citoGames.length} games) — OE lag fill`,
-      ...facts.narrativeHints,
+      `box scores from warehouse / Cito player-stats (${citoGames.length} games)`,
+      ...facts.narrativeHints.filter((h) => !h.startsWith('tournament:')),
     ]
-    if (loserContinues) {
-      facts.narrativeHints.push(
-        `${recapTeamTag(loser)} continues in the event (lower bracket / not eliminated)`,
-      )
-    } else if (format?.lossCanEliminateWithoutLower) {
-      facts.narrativeHints.push(`${recapTeamTag(loser)} is eliminated from ${tournamentLabel}`)
-    }
 
     const shell = buildCitoShellRecapLine(row)
     if (!shell) return null
@@ -1971,19 +2053,23 @@ export function buildCitoOnlySeriesBrief(
 
   const narrativeHints: string[] = [
     `tournament: ${tournamentLabel}`,
-    `score verified from Cito schedule (${resolved.score}) — player-stats not yet synced`,
+    bracketEvent
+      ? 'event type: bracket / playoffs / international — bracket language OK when narrativeHints say so'
+      : 'event type: regular season — NEVER say lower bracket, upper bracket, eliminated, or sent home',
+    `score verified from schedule (${resolved.score}) — player-stats not yet synced`,
   ]
-  if (loserContinues) {
+  if (bracketEvent && loserContinues) {
     narrativeHints.push(
-      `${recapTeamTag(loser)} continues in the event (lower bracket / not eliminated)`,
+      `${recapTeamTag(loser)} continues in ${tournamentLabel} (not eliminated)`,
     )
-  } else if (format?.lossCanEliminateWithoutLower) {
+  } else if (bracketEvent && format?.lossCanEliminateWithoutLower) {
     narrativeHints.push(`${recapTeamTag(loser)} is eliminated from ${tournamentLabel}`)
   }
-  if (winnerContinues) {
+  if (bracketEvent && winnerContinues) {
     narrativeHints.push(`${recapTeamTag(winner)} advances / continues in ${tournamentLabel}`)
   }
-  if (domWins >= 2 && vicWins === 0) narrativeHints.push('sweep')
+  if (scheduleContext) narrativeHints.push(scheduleContext)
+  if (domWins >= 2 && vicWins === 0) narrativeHints.push('clean sweep')
 
   const rankW = powerRanks?.get(resolveTeamCanonicalName(winner))
   const rankL = powerRanks?.get(resolveTeamCanonicalName(loser))
@@ -2001,9 +2087,13 @@ export function buildCitoOnlySeriesBrief(
     score: resolved.score,
     league,
     tournamentLabel,
+    isBracketEvent: bracketEvent,
+    scheduleContext,
     domWins,
     vicWins,
     gameCount: 0,
+    gameSequence: '',
+    seriesArc: domWins >= 2 && vicWins === 0 ? 'sweep' : 'standard',
     reverseSweep: false,
     blowout: domWins >= 2 && vicWins === 0,
     upset: vicSplitWr > domSplitWr + 8,
@@ -2046,11 +2136,13 @@ export function buildCitoOnlySeriesBrief(
       segments: [
         ...shell.segments,
         segText(
-          loserContinues
+          bracketEvent && loserContinues
             ? ` — ${recapTeamTag(loser)} continues`
-            : winnerContinues
+            : bracketEvent && winnerContinues
               ? ` — ${recapTeamTag(winner)} advances`
-              : '',
+              : !bracketEvent && scheduleContext
+                ? ''
+                : '',
         ),
       ].filter((s) => s.kind !== 'text' || s.value.length > 0),
     },
@@ -2214,8 +2306,32 @@ export function collectSeriesBriefs(
       playoffs: g0.playoffs,
       blockName: resolved.blockName,
     })
-    const loserContinues = teamHasUpcomingInTournament(victim, latestDate, tournamentLabel, cito)
-    const winnerContinues = teamHasUpcomingInTournament(dominant, latestDate, tournamentLabel, cito)
+    const bracketEvent = isBracketContextEvent({
+      league: g0.league,
+      tournamentLabel,
+      split: g0.split,
+      playoffs: g0.playoffs,
+      blockName: resolved.blockName,
+      format,
+    })
+    const loserContinues = bracketEvent
+      ? teamHasUpcomingInTournament(victim, latestDate, tournamentLabel, cito)
+      : false
+    const winnerContinues = bracketEvent
+      ? teamHasUpcomingInTournament(dominant, latestDate, tournamentLabel, cito)
+      : false
+    const scheduleContext = buildScheduleContextHint(
+      dominant,
+      victim,
+      latestDate,
+      tournamentLabel,
+      cito,
+      bracketEvent,
+    )
+    const modelScoresByPlayer = buildSeriesModelScores(
+      players,
+      bucket.games.map((g) => g.id),
+    )
 
     const facts = buildSeriesFacts(bucket, teams, weekCounts, {
       blowout: domWins >= 2 && vicWins === 0,
@@ -2225,6 +2341,8 @@ export function collectSeriesBriefs(
       tournamentPeers,
       champions: championMeta,
       powerRanks: options?.powerRanks,
+      modelScoresByPlayer,
+      scheduleContext,
       bracketContext: {
         blockName: resolved.blockName,
         bracket: resolved.bracket,
