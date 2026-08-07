@@ -12,6 +12,7 @@ public/data/*
 !public/data/region_strength.json
 !public/data/model_metadata.json
 !public/data/ml_freshness.json
+!public/data/hub_bootstrap.json
 !public/data/live-mock
 !public/data/live-mock/**
 
