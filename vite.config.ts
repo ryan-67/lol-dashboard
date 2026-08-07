@@ -10,6 +10,15 @@ export default defineConfig(({ mode }) => {
   return {
     plugins: [react()],
     build: {
+      // Don't modulepreload heavy async chunks on every route — Three/charts
+      // were being injected into /dashboard HTML and competing with OE bootstrap.
+      modulePreload: {
+        resolveDependencies(_filename, deps) {
+          return deps.filter(
+            (dep) => !/three|charts|Landing|CursorTrail|HeroN|KnowsSection/i.test(dep),
+          )
+        },
+      },
       rollupOptions: {
         output: {
           manualChunks(id) {
