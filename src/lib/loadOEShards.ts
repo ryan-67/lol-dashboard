@@ -4,6 +4,7 @@ import { expandSelectedLeagues } from './filterLabels'
 import { resolveSplitLabelsForMerge } from './filterOptions'
 import type { FetchOESlicesParams, OESliceRow } from './loadOEStore'
 import { idbReadYearSlices, idbWriteYearSlices } from './oeShardIdb'
+import { yieldToMain } from './yieldToMain'
 
 const MANIFEST_URL = `${import.meta.env.BASE_URL}data/oe_slices.json`
 
@@ -109,20 +110,42 @@ async function loadYearSlices(
       return fromIdb
     }
 
-    const slices: Record<string, DashboardSlice> = {}
-    const bodies = await Promise.all(
+    // Download parts in parallel (network), parse sequentially with yields
+    // so ~40 MB JSON.parse does not trip Chrome's "Page Unresponsive".
+    const texts = await Promise.all(
       filenames.map(async (filename) => {
         const url = `${import.meta.env.BASE_URL}data/${filename}`
-        return fetchJson<YearShardPayload>(url)
+        try {
+          const res = await fetch(url)
+          if (!res.ok) return null
+          return await res.text()
+        } catch {
+          return null
+        }
       }),
     )
-    for (const body of bodies) {
+
+    const slices: Record<string, DashboardSlice> = {}
+    for (const text of texts) {
+      if (!text) continue
+      await yieldToMain()
+      let body: YearShardPayload
+      try {
+        body = JSON.parse(text) as YearShardPayload
+      } catch {
+        continue
+      }
       if (body?.slices) Object.assign(slices, body.slices)
+      await yieldToMain()
     }
     if (!Object.keys(slices).length) return {}
 
     yearSliceCache.set(year, slices)
-    void idbWriteYearSlices(year, stamp, slices)
+    // Defer IDB write — structured clone of ~40 MB also blocks the main thread.
+    void (async () => {
+      await yieldToMain()
+      await idbWriteYearSlices(year, stamp, slices)
+    })()
     return slices
   })()
 

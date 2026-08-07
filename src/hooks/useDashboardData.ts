@@ -1,14 +1,18 @@
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useEffect, useCallback, useRef, startTransition } from 'react'
 import type { OEStore, OEStoreMeta } from '../lib/mergeSlices'
 import {
   buildStoreFromSliceRows,
   fetchOESliceCatalog,
   fetchOESlices,
 } from '../lib/loadOEStore'
-import { fetchHubBootstrap, storeFromHubBootstrap } from '../lib/loadHubBootstrap'
+import {
+  fetchHubBootstrap,
+  isHubBootstrapStore,
+  storeFromHubBootstrap,
+} from '../lib/loadHubBootstrap'
 import { sanitizeUserFacingError } from '../lib/userFacingError'
 import { DEFAULT_SPLIT } from '../lib/constants'
-import { expandSelectedLeagues } from '../lib/filterLabels'
+import { yieldToMain } from '../lib/yieldToMain'
 
 export interface DashboardMeta {
   source: string
@@ -244,8 +248,10 @@ interface UseDashboardDataReturn {
   lastUpdated: Date | null
   /** False while Hub is on lean bootstrap; true after full year shards merge. */
   oeDetailReady: boolean
-  /** Background full-shard fetch in flight (Hub already interactive). */
+  /** Full-shard fetch in flight (only when detail was requested). */
   oeDetailLoading: boolean
+  /** Load ~42 MB year shards on demand (entity pages / full match history). */
+  ensureOeDetail: () => Promise<void>
   selectedYears: string[]
   selectedSplits: string[]
   selectedLeagues: string[]
@@ -271,41 +277,74 @@ export function useDashboardData(): UseDashboardDataReturn {
   const hasStoreRef = useRef(false)
   const detailReadyRef = useRef(false)
   const fullFetchGen = useRef(0)
+  const detailInflightRef = useRef<Promise<void> | null>(null)
+  const yearsKeyRef = useRef(selectedYears.join('|'))
 
-  const loadFullStore = useCallback(
-    async (meta: OEStoreMeta, years: string[], leagues: string[]) => {
-      const gen = ++fullFetchGen.current
-      setOeDetailLoading(true)
-      try {
-        const rows = await fetchOESlices({
-          leagues: expandSelectedLeagues(leagues),
-          years,
-          splits: ['ALL'],
-          catalogSplits: meta.splits,
-        })
-        if (gen !== fullFetchGen.current) return
-        const nextStore = buildStoreFromSliceRows(meta, rows)
-        hasStoreRef.current = true
-        detailReadyRef.current = true
+  const loadFullStore = useCallback(async (meta: OEStoreMeta, years: string[]) => {
+    const gen = ++fullFetchGen.current
+    setOeDetailLoading(true)
+    try {
+      const rows = await fetchOESlices({
+        // League filter is merge-time; always pull full year shards.
+        leagues: ['All Tier 1'],
+        years,
+        splits: ['ALL'],
+        catalogSplits: meta.splits,
+      })
+      if (gen !== fullFetchGen.current) return
+      await yieldToMain()
+      const nextStore = buildStoreFromSliceRows(meta, rows)
+      await yieldToMain()
+      hasStoreRef.current = true
+      detailReadyRef.current = true
+      startTransition(() => {
         setStore(nextStore)
         setOeDetailReady(true)
         setLastUpdated(new Date(nextStore.meta.generated_at))
+      })
+    } finally {
+      if (gen === fullFetchGen.current) setOeDetailLoading(false)
+    }
+  }, [])
+
+  const ensureOeDetail = useCallback(async () => {
+    if (detailReadyRef.current) return
+    if (detailInflightRef.current) return detailInflightRef.current
+
+    detailInflightRef.current = (async () => {
+      try {
+        const meta = catalog ?? (await fetchOESliceCatalog())
+        if (!catalog) setCatalog(meta)
+        await loadFullStore(meta, selectedYears)
+      } catch (err) {
+        console.warn('[oe] on-demand full shard load failed', err)
+        if (!hasStoreRef.current) setError(sanitizeUserFacingError(err))
       } finally {
-        if (gen === fullFetchGen.current) setOeDetailLoading(false)
+        detailInflightRef.current = null
       }
-    },
-    [],
-  )
+    })()
+
+    return detailInflightRef.current
+  }, [catalog, selectedYears, loadFullStore])
 
   const fetchData = useCallback(async () => {
-    // Only blank the UI on cold load. League filters rebuild from cached shards;
-    // split changes merge in context and never hit this fetch.
+    const yearsKey = selectedYears.join('|')
+    const yearsChanged = yearsKeyRef.current !== yearsKey
+    yearsKeyRef.current = yearsKey
+
+    // League filter is client-side merge — never re-download for it.
     const cold = !hasStoreRef.current
-    if (cold) {
-      setLoading(true)
-      setOeDetailReady(false)
+    if (!cold && !yearsChanged) return
+
+    if (yearsChanged && hasStoreRef.current) {
+      hasStoreRef.current = false
       detailReadyRef.current = false
+      setStore(null)
+      setOeDetailReady(false)
     }
+    setLoading(true)
+    setOeDetailReady(false)
+    detailReadyRef.current = false
     setError(null)
 
     try {
@@ -314,9 +353,13 @@ export function useDashboardData(): UseDashboardDataReturn {
         setCatalog(meta)
       }
 
-      // Progressive: lean hub bootstrap for first paint, then full year shards.
-      // Bootstrap is single-year; skip when ALL years or multi-year selection.
-      if (cold && !selectedYears.includes('ALL') && selectedYears.length === 1) {
+      // List tabs (Overview / Players / …) stay on lean bootstrap.
+      // Full ~42 MB year parts load only via ensureOeDetail (entity pages) —
+      // same pattern as gol.gg / basketball-reference: view-scoped payloads.
+      const canBootstrap =
+        !selectedYears.includes('ALL') && selectedYears.length === 1
+
+      if (canBootstrap) {
         const boot = await fetchHubBootstrap()
         if (boot && boot.year === selectedYears[0] && boot.players.length) {
           const lean = storeFromHubBootstrap(boot)
@@ -324,16 +367,13 @@ export function useDashboardData(): UseDashboardDataReturn {
           setStore(lean)
           setLastUpdated(new Date(boot.asOf || boot.generatedAt))
           setLoading(false)
-          void loadFullStore(meta, selectedYears, selectedLeagues).catch((err) => {
-            // Keep bootstrap UI; surface error only if we never got a store.
-            if (!hasStoreRef.current) setError(sanitizeUserFacingError(err))
-            console.warn('[oe] full shard load failed; hub bootstrap still active', err)
-          })
+          setOeDetailReady(false)
           return
         }
       }
 
-      await loadFullStore(meta, selectedYears, selectedLeagues)
+      await loadFullStore(meta, selectedYears)
+      setOeDetailReady(true)
     } catch (err) {
       hasStoreRef.current = false
       detailReadyRef.current = false
@@ -343,12 +383,18 @@ export function useDashboardData(): UseDashboardDataReturn {
     } finally {
       setLoading(false)
     }
-    // selectedSplits intentionally omitted — fetch always uses splits: ['ALL'].
-  }, [catalog, selectedYears, selectedLeagues, loadFullStore])
+  }, [catalog, selectedYears, loadFullStore])
 
   useEffect(() => {
     void fetchData()
   }, [fetchData])
+
+  // If we somehow still have a bootstrap store after a forced full load race, keep flags honest.
+  useEffect(() => {
+    if (store && !isHubBootstrapStore(store) && detailReadyRef.current) {
+      setOeDetailReady(true)
+    }
+  }, [store])
 
   const setSelectedLeaguesSafe = useCallback((leagues: string[]) => {
     const next = leagues.length ? leagues : ['All Tier 1']
@@ -418,6 +464,7 @@ export function useDashboardData(): UseDashboardDataReturn {
     lastUpdated,
     oeDetailReady,
     oeDetailLoading,
+    ensureOeDetail,
     selectedYears,
     selectedSplits,
     selectedLeagues,

@@ -34,6 +34,8 @@ export interface OEStoreMeta {
   splits: string[]
   schema_version: string
   csv_files?: string[]
+  /** Lean hub payload — not a full year shard store. */
+  hub_bootstrap?: boolean
 }
 
 export interface OEStore {
@@ -213,6 +215,16 @@ export function selectSliceKeysFromFilters(
       if (store.slices[key]) keys.push(key)
     }
   }
+  // Hub bootstrap uses a synthetic "{year} Hub" split — fall back so season
+  // filter picks still render lean data until full shards load.
+  if (!keys.length && store.meta.hub_bootstrap) {
+    for (const league of tier1) {
+      for (const splitLabel of store.meta.splits) {
+        const key = sliceKey(splitLabel, league)
+        if (store.slices[key]) keys.push(key)
+      }
+    }
+  }
   return keys
 }
 
@@ -230,6 +242,14 @@ export function selectSliceKeys(
     for (const l of leagues) {
       const key = sliceKey(s, l)
       if (store.slices[key]) keys.push(key)
+    }
+  }
+  if (!keys.length && store.meta.hub_bootstrap) {
+    for (const l of leagues) {
+      for (const s of store.meta.splits) {
+        const key = sliceKey(s, l)
+        if (store.slices[key]) keys.push(key)
+      }
     }
   }
   return keys

@@ -25,8 +25,10 @@ interface DashboardContextValue {
   lastUpdated: Date | null
   /** Full year shards merged (entity match history complete). */
   oeDetailReady: boolean
-  /** Full shard download in background after hub bootstrap. */
+  /** Full shard download in flight (on-demand for entity pages). */
   oeDetailLoading: boolean
+  /** Request full OE year shards (entity / series pages). */
+  ensureOeDetail: () => Promise<void>
 
   league: string
   setLeague: (l: string) => void
@@ -72,6 +74,7 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
     lastUpdated,
     oeDetailReady,
     oeDetailLoading,
+    ensureOeDetail,
     selectedYears,
     selectedSplits,
     selectedLeagues,
@@ -226,6 +229,7 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
         lastUpdated,
         oeDetailReady,
         oeDetailLoading,
+        ensureOeDetail,
         league,
         setLeague,
         year,

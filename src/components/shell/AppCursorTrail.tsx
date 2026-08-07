@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { createCursorTrail } from '../../lib/cursorTrail'
 import { ambientTrailSupported } from '../../lib/ambientTrail'
+import { useDashboard } from '../../context/DashboardContext'
 
 /**
  * Product register of the shared turquoise fluid trail.
@@ -17,12 +18,17 @@ const RESTORE_DELAY = 420
 export default function AppCursorTrail() {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const [muted, setMuted] = useState(false)
+  const { loading, oeDetailLoading } = useDashboard()
+  const hydrateBusy = loading || oeDetailLoading
 
   useEffect(() => {
     const canvas = canvasRef.current
     if (!canvas || !ambientTrailSupported()) return
+    // Skip WebGL trail while OE JSON is parsing — it fights the main thread
+    // and reads as cursor lag / "Page Unresponsive".
+    if (hydrateBusy) return
     return createCursorTrail(canvas, { gain: 0.86 }) ?? undefined
-  }, [])
+  }, [hydrateBusy])
 
   useEffect(() => {
     if (!ambientTrailSupported()) return
@@ -74,7 +80,7 @@ export default function AppCursorTrail() {
 
   return (
     <canvas
-      className={`app-cursor-trail${muted ? ' is-muted' : ''}`}
+      className={`app-cursor-trail${muted || hydrateBusy ? ' is-muted' : ''}`}
       ref={canvasRef}
       aria-hidden="true"
     />

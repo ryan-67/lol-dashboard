@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useDeferredValue, useEffect, useMemo, useRef, useState } from 'react'
 import { useGSAP } from '@gsap/react'
 import { useDashboard } from '../context/DashboardContext'
 import { useAuth } from '../context/AuthContext'
@@ -38,6 +38,7 @@ const SUBNAV_ITEMS: SectionSubnavItem[] = [
 export default function Players() {
   const { user } = useAuth()
   const { filteredPlayers, league, split, selectedLeagues } = useDashboard()
+  const deferredPlayers = useDeferredValue(filteredPlayers)
   const [roleFilter, setRoleFilter] = useState<RoleFilter>('all')
   const [selectedPlayerKeys, setSelectedPlayerKeys] = useState<string[]>([])
   const [showTable, setShowTable] = useState(false)
@@ -49,13 +50,13 @@ export default function Players() {
 
   const players = useMemo(
     () =>
-      filteredPlayers
+      deferredPlayers
         .filter(isDisplayablePlayer)
         .filter((p) => (TIER1_LEAGUES as readonly string[]).includes(p.league))
         // Ranking boards keep a sample floor; early-split players still exist in
         // merged data for tournaments / entity pages / weekly hub.
         .filter((p) => p.games >= 5),
-    [filteredPlayers],
+    [deferredPlayers],
   )
 
   const tier1Players = players

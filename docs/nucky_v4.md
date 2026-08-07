@@ -118,10 +118,12 @@ Friends report ~15s loads / “high ping” feel. Root cause: ~40.5 MB OE year s
 4. Stop `no-store` + timestamp cache-bust on small ML artifacts.  
 5. Drop pathname-keyed Outlet remount; shorten route sweep.
 
-**Phase B (shipped 2026-08-06):**
-6. ~~Lean hub bootstrap~~ — `public/data/hub_bootstrap.json` (~2.4 MB: aggregates + 45d recentForm + window catalog). Hub paints from bootstrap; full ~42 MB year parts load in background. Built by `scripts/build_hub_bootstrap.py` (also hooked into ingest/export:shards).  
-7. ~~Index vs detail~~ — bootstrap = index; full shards = detail (entity/Players Form complete after `oeDetailReady`).  
-8. ~~IndexedDB~~ — replaces dead localStorage year-shard cache (`oeShardIdb.ts`).
+**Phase B (shipped 2026-08-06, hotfix 2026-08-07):**
+6. ~~Lean hub bootstrap~~ — `public/data/hub_bootstrap.json` (~2.4 MB: aggregates + 45d recentForm + window catalog). Built by `scripts/build_hub_bootstrap.py`.  
+7. ~~Index vs detail (on demand)~~ — list tabs (Overview / Players / Teams / …) stay on bootstrap only. Full ~42 MB year parts load **only** when opening entity/series pages (`ensureOeDetail`). Eager background hydrate was causing 20–25s loads + Chrome “Page Unresponsive” (JSON.parse of ~42 MB + N× split merge).  
+8. ~~IndexedDB~~ — year-shard cache (`oeShardIdb.ts`); writes deferred off the critical path.  
+9. ~~Hub store shape~~ — single synthetic `{year} Hub` split so ALL-splits merge does not multiply games/logs.  
+10. ~~Main-thread yields~~ — sequential year-part parse with `yieldToMain`; cursor trail muted during hydrate.
 
 ### P2 — Model freshness
 
@@ -735,8 +737,10 @@ Rollback: Cito sync steps still run soft; deleting the riot steps restores v3 be
   - Vite chunks: `Overview` ~35 KB, `Players`/`Teams` lazy, `charts` ~569 KB, `gsap` ~123 KB, `three` ~945 KB split out of eager path; route JS loads on demand.
   - Tab nav: Outlet no longer keyed by pathname (keeps mount); route sweep 0.55s clip → 0.22s fade.
   - Small ML/schedule JSON: HTTP `default` cache (memory TTL 5m); no `?t=` / `no-store` busting.
-- **Phase B (progressive payloads):**
+- **Phase B (progressive payloads, hotfix 2026-08-07):**
   - `hub_bootstrap.json` **~2.4 MB** (333 players w/ 45d form, window catalog) vs **~42 MB** year parts.
-  - Hub paints from bootstrap; full shards load in background (`oeDetailReady` / `oeDetailLoading`).
-  - Year shards cached in **IndexedDB** (localStorage quota was always exceeded).
+  - List tabs stay on bootstrap; full shards via `ensureOeDetail` on entity/series only (no eager background hydrate).
+  - Bootstrap store = single `{year} Hub` split (avoids N× merge freeze).
+  - Year-part JSON.parse yields to main thread; cursor trail off during hydrate.
+  - Year shards cached in **IndexedDB** (writes deferred).
   - Rebuild: `npm run build:hub-bootstrap` (also after ingest / export:shards).

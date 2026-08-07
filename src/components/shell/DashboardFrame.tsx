@@ -6,8 +6,17 @@ import { useDashboard } from '../../context/DashboardContext'
 import { refreshScrollTrigger, revealDashboardSections, routeSweepIn } from '../../theme/animations'
 import { registerAppScroller, scrollAppToTop } from '../../lib/appScroll'
 
+const needsFullOeDetail = (pathname: string): boolean => {
+  const path = pathname.replace(/^\/duo/, '/dashboard')
+  return (
+    /\/(players|teams|champions|tournaments)\/[^/]+/.test(path) ||
+    /\/series\/[^/]+/.test(path) ||
+    /\/predictions\/[^/]+/.test(path)
+  )
+}
+
 export default function DashboardFrame() {
-  const { loading, error, oeDetailLoading, oeDetailReady } = useDashboard()
+  const { loading, error, oeDetailLoading, oeDetailReady, ensureOeDetail } = useDashboard()
   const location = useLocation()
   const inDuo = location.pathname.startsWith('/duo')
   const frameRef = useRef<HTMLDivElement>(null)
@@ -15,6 +24,7 @@ export default function DashboardFrame() {
   const mainRef = useRef<HTMLDivElement>(null)
   const swapRef = useRef<HTMLDivElement>(null)
   const prevPathRef = useRef(location.pathname)
+  const wantsDetail = needsFullOeDetail(location.pathname)
 
   /**
    * Smooth scroll attaches to whichever element actually owns overflow:
@@ -56,6 +66,12 @@ export default function DashboardFrame() {
     })
     return () => window.cancelAnimationFrame(id)
   }, [location.pathname, loading, error])
+
+  // Entity / series pages need full match history — load on demand only.
+  useEffect(() => {
+    if (!wantsDetail || oeDetailReady || loading || error) return
+    void ensureOeDetail()
+  }, [wantsDetail, oeDetailReady, loading, error, ensureOeDetail])
 
   const isEntityPage =
     /\/(players|teams|champions|tournaments)\/[^/]+/.test(location.pathname) ||
@@ -102,7 +118,7 @@ export default function DashboardFrame() {
             </div>
           ) : null}
 
-          {!loading && oeDetailLoading && !oeDetailReady && !error ? (
+          {!loading && wantsDetail && oeDetailLoading && !oeDetailReady && !error ? (
             <p className="dash-detail-loading text-secondary text-sm" aria-live="polite">
               loading full match history…
             </p>

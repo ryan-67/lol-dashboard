@@ -389,19 +389,14 @@ export function highestDeltaStatForGame(
   for (const def of defs) {
     const value = gameMetricRaw(game, def.key, cohort)
     if (value == null) continue
-    const cohortAvg =
-      avgMetric(
-        cohort
-          .flatMap((c) => c.gameLog ?? [])
-          .map((g) => gameMetricRaw(g, def.key, cohort))
-          .filter((v): v is number => v != null),
-      ) ||
-      avgMetric(
-        cohort
-          .filter((c) => playerContributesToCohortAverage(c, def.key, cohort))
-          .map((c) => getMetricValue(c, def.key, { cohort, allowMissing: true }))
-          .filter((v): v is number => v != null),
-      )
+    // Use player aggregates — flatMapping every cohort gameLog is O(n·games)
+    // and freezes Overview standouts after full-shard hydrate.
+    const cohortAvg = avgMetric(
+      cohort
+        .filter((c) => playerContributesToCohortAverage(c, def.key, cohort))
+        .map((c) => getMetricValue(c, def.key, { cohort, allowMissing: true }))
+        .filter((v): v is number => v != null),
+    )
     const delta = value - cohortAvg
     if (!best || delta > best.delta) {
       best = {

@@ -22,6 +22,9 @@ export interface HubBootstrapPayload {
   }
 }
 
+/** Synthetic split so ALL-splits merge hits each player once (not N× per season label). */
+export const hubBootstrapSplit = (year: string): string => `${year} Hub`
+
 let cache: HubBootstrapPayload | null = null
 let inflight: Promise<HubBootstrapPayload | null> | null = null
 
@@ -51,12 +54,12 @@ export async function fetchHubBootstrap(opts?: {
 
 /**
  * Expand lean bootstrap into an OEStore so existing mergeSlices paths work.
- * Each year split|league key shares the same league-scoped lean slice (refs).
+ * One synthetic split per year — avoids duplicating players across every
+ * Winter/Spring/Summer key (which multiplied games and froze the main thread).
  */
 export function storeFromHubBootstrap(boot: HubBootstrapPayload): OEStore {
   const year = boot.year
-  const yearSplits = (boot.meta.splits ?? []).filter((s) => s.startsWith(`${year} `))
-  const splits = yearSplits.length ? yearSplits : [`${year} Summer`]
+  const hubSplit = hubBootstrapSplit(year)
 
   const playersByLeague = new Map<string, Player[]>()
   for (const p of boot.players) {
@@ -74,7 +77,6 @@ export function storeFromHubBootstrap(boot: HubBootstrapPayload): OEStore {
     teamsByLeague.set(league, list)
   }
 
-  // Champions are global in slices — attach full set to every league slice (shared ref).
   const champions = boot.champions
   const catalog = boot.gameCatalog ?? {}
   const emptyMatchups: DashboardSlice['matchups'] = []
@@ -88,28 +90,33 @@ export function storeFromHubBootstrap(boot: HubBootstrapPayload): OEStore {
   ]
 
   const slices: Record<string, DashboardSlice> = {}
-  for (const split of splits) {
-    for (const league of leagues) {
-      const key = `${split}|${league}`
-      slices[key] = {
-        players: playersByLeague.get(league) ?? [],
-        teams: teamsByLeague.get(league) ?? [],
-        champions,
-        matchups: emptyMatchups,
-        teamChampions: emptyTeamChamps,
-        rosterDepth: [],
-        gameCatalog: catalog,
-      }
+  for (const league of leagues) {
+    const key = `${hubSplit}|${league}`
+    slices[key] = {
+      players: playersByLeague.get(league) ?? [],
+      teams: teamsByLeague.get(league) ?? [],
+      champions,
+      matchups: emptyMatchups,
+      teamChampions: emptyTeamChamps,
+      rosterDepth: [],
+      gameCatalog: catalog,
     }
   }
 
   return {
     meta: {
       ...boot.meta,
+      // Keep catalog filters elsewhere; store meta drives merge key selection.
+      splits: [hubSplit],
       generated_at: boot.meta.generated_at || boot.generatedAt,
+      hub_bootstrap: true,
     },
     slices,
   }
+}
+
+export function isHubBootstrapStore(store: OEStore | null | undefined): boolean {
+  return Boolean(store?.meta?.hub_bootstrap)
 }
 
 export function invalidateHubBootstrapCache(): void {
