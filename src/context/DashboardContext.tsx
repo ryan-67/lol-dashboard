@@ -23,6 +23,10 @@ interface DashboardContextValue {
   loading: boolean
   error: string | null
   lastUpdated: Date | null
+  /** Full year shards merged (entity match history complete). */
+  oeDetailReady: boolean
+  /** Full shard download in background after hub bootstrap. */
+  oeDetailLoading: boolean
 
   league: string
   setLeague: (l: string) => void
@@ -66,6 +70,8 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
     loading,
     error,
     lastUpdated,
+    oeDetailReady,
+    oeDetailLoading,
     selectedYears,
     selectedSplits,
     selectedLeagues,
@@ -218,6 +224,8 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
         loading,
         error,
         lastUpdated,
+        oeDetailReady,
+        oeDetailLoading,
         league,
         setLeague,
         year,

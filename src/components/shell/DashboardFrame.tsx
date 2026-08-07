@@ -7,7 +7,7 @@ import { refreshScrollTrigger, revealDashboardSections, routeSweepIn } from '../
 import { registerAppScroller, scrollAppToTop } from '../../lib/appScroll'
 
 export default function DashboardFrame() {
-  const { loading, error } = useDashboard()
+  const { loading, error, oeDetailLoading, oeDetailReady } = useDashboard()
   const location = useLocation()
   const inDuo = location.pathname.startsWith('/duo')
   const frameRef = useRef<HTMLDivElement>(null)
@@ -100,6 +100,12 @@ export default function DashboardFrame() {
             <div className="dash-frame-loading">
               <SignalLoader compact label="loading dashboard data…" />
             </div>
+          ) : null}
+
+          {!loading && oeDetailLoading && !oeDetailReady && !error ? (
+            <p className="dash-detail-loading text-secondary text-sm" aria-live="polite">
+              loading full match history…
+            </p>
           ) : null}
 
           {!error ? (

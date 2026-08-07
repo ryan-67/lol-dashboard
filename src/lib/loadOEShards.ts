@@ -3,9 +3,25 @@ import { GUEST_LEAGUE } from './mergeSlices'
 import { expandSelectedLeagues } from './filterLabels'
 import { resolveSplitLabelsForMerge } from './filterOptions'
 import type { FetchOESlicesParams, OESliceRow } from './loadOEStore'
+import { idbReadYearSlices, idbWriteYearSlices } from './oeShardIdb'
 
 const MANIFEST_URL = `${import.meta.env.BASE_URL}data/oe_slices.json`
-const CACHE_VERSION = 'v2'
+
+/** Single file or part list when a year exceeds Cloudflare's 25 MiB asset cap. */
+export type YearShardRef = string | string[]
+
+interface ShardManifest {
+  meta: OEStoreMeta
+  year_files: Record<string, YearShardRef>
+}
+
+interface YearShardPayload {
+  slices: Record<string, DashboardSlice>
+}
+
+const manifestPromise: { current: Promise<ShardManifest | null> | null } = { current: null }
+const yearSliceCache = new Map<string, Record<string, DashboardSlice>>()
+const yearLoadInflight = new Map<string, Promise<Record<string, DashboardSlice>>>()
 
 function resolveTargetSplits(
   catalogSplits: string[],
@@ -39,26 +55,6 @@ function resolveTargetSplits(
   return [...expanded]
 }
 
-/** Single file or part list when a year exceeds Cloudflare's 25 MiB asset cap. */
-export type YearShardRef = string | string[]
-
-interface ShardManifest {
-  meta: OEStoreMeta
-  year_files: Record<string, YearShardRef>
-}
-
-interface YearShardPayload {
-  slices: Record<string, DashboardSlice>
-}
-
-interface LocalShardCache {
-  stamp: string
-  slices: Record<string, DashboardSlice>
-}
-
-const manifestPromise: { current: Promise<ShardManifest | null> | null } = { current: null }
-const yearSliceCache = new Map<string, Record<string, DashboardSlice>>()
-
 async function fetchJson<T>(url: string): Promise<T | null> {
   try {
     const res = await fetch(url)
@@ -85,31 +81,6 @@ export function catalogFromShardManifest(manifest: ShardManifest): OEStoreMeta {
   return manifest.meta
 }
 
-function localCacheKey(year: string): string {
-  return `nucky-oe-shard-${CACHE_VERSION}-${year}`
-}
-
-function readLocalShardCache(year: string, stamp: string): Record<string, DashboardSlice> | null {
-  try {
-    const raw = localStorage.getItem(localCacheKey(year))
-    if (!raw) return null
-    const parsed = JSON.parse(raw) as LocalShardCache
-    if (parsed.stamp !== stamp || !parsed.slices) return null
-    return parsed.slices
-  } catch {
-    return null
-  }
-}
-
-function writeLocalShardCache(year: string, stamp: string, slices: Record<string, DashboardSlice>): void {
-  try {
-    const payload: LocalShardCache = { stamp, slices }
-    localStorage.setItem(localCacheKey(year), JSON.stringify(payload))
-  } catch {
-    // Quota exceeded or private browsing — ignore.
-  }
-}
-
 function yearsForParams(years: string[], manifest: ShardManifest): string[] {
   if (years.includes('ALL')) return Object.keys(manifest.year_files)
   return years.filter((year) => manifest.year_files[year])
@@ -128,27 +99,39 @@ async function loadYearSlices(
   const memory = yearSliceCache.get(year)
   if (memory) return memory
 
-  const cached = readLocalShardCache(year, stamp)
-  if (cached) {
-    yearSliceCache.set(year, cached)
-    return cached
-  }
+  const pending = yearLoadInflight.get(year)
+  if (pending) return pending
 
-  const slices: Record<string, DashboardSlice> = {}
-  const bodies = await Promise.all(
-    filenames.map(async (filename) => {
-      const url = `${import.meta.env.BASE_URL}data/${filename}`
-      return fetchJson<YearShardPayload>(url)
-    }),
-  )
-  for (const body of bodies) {
-    if (body?.slices) Object.assign(slices, body.slices)
-  }
-  if (!Object.keys(slices).length) return {}
+  const load = (async () => {
+    const fromIdb = await idbReadYearSlices(year, stamp)
+    if (fromIdb && Object.keys(fromIdb).length) {
+      yearSliceCache.set(year, fromIdb)
+      return fromIdb
+    }
 
-  yearSliceCache.set(year, slices)
-  writeLocalShardCache(year, stamp, slices)
-  return slices
+    const slices: Record<string, DashboardSlice> = {}
+    const bodies = await Promise.all(
+      filenames.map(async (filename) => {
+        const url = `${import.meta.env.BASE_URL}data/${filename}`
+        return fetchJson<YearShardPayload>(url)
+      }),
+    )
+    for (const body of bodies) {
+      if (body?.slices) Object.assign(slices, body.slices)
+    }
+    if (!Object.keys(slices).length) return {}
+
+    yearSliceCache.set(year, slices)
+    void idbWriteYearSlices(year, stamp, slices)
+    return slices
+  })()
+
+  yearLoadInflight.set(year, load)
+  try {
+    return await load
+  } finally {
+    yearLoadInflight.delete(year)
+  }
 }
 
 async function loadAllShardSlices(years: string[]): Promise<Record<string, DashboardSlice>> {
@@ -206,4 +189,10 @@ export async function fetchOESliceCatalogFromShards(): Promise<OEStoreMeta | nul
 export function clearShardMemoryCache(): void {
   manifestPromise.current = null
   yearSliceCache.clear()
+  yearLoadInflight.clear()
+}
+
+/** True when full year slices for `year` are already in memory (not just bootstrap). */
+export function yearSlicesInMemory(year: string): boolean {
+  return yearSliceCache.has(year)
 }

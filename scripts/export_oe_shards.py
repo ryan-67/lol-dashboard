@@ -153,6 +153,18 @@ def main() -> None:
     print(f"Wrote {MANIFEST_NAME} ({manifest_path.stat().st_size / 1024:.1f} KB)")
     print(f"Exported {len(slices)} slice keys across {len(year_files)} year shard(s)")
 
+    # Lean Hub bootstrap so SPA first paint skips full year parts.
+    try:
+        from build_hub_bootstrap import build_bootstrap
+
+        current_year = max(year_files.keys(), key=lambda y: int(y) if y.isdigit() else 0)
+        payload = build_bootstrap(current_year, form_days=45, max_form_games=24)
+        boot_path = OUT_DIR / "hub_bootstrap.json"
+        boot_path.write_text(json.dumps(payload, separators=(",", ":"), ensure_ascii=False), encoding="utf-8")
+        print(f"Wrote hub_bootstrap.json ({boot_path.stat().st_size / 1e6:.2f} MB) for {current_year}")
+    except Exception as exc:  # noqa: BLE001 — soft; shards still usable
+        print(f"WARNING: hub_bootstrap build failed: {exc}", file=sys.stderr)
+
 
 if __name__ == "__main__":
     main()

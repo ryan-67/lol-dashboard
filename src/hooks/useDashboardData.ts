@@ -5,6 +5,7 @@ import {
   fetchOESliceCatalog,
   fetchOESlices,
 } from '../lib/loadOEStore'
+import { fetchHubBootstrap, storeFromHubBootstrap } from '../lib/loadHubBootstrap'
 import { sanitizeUserFacingError } from '../lib/userFacingError'
 import { DEFAULT_SPLIT } from '../lib/constants'
 import { expandSelectedLeagues } from '../lib/filterLabels'
@@ -241,6 +242,10 @@ interface UseDashboardDataReturn {
   loading: boolean
   error: string | null
   lastUpdated: Date | null
+  /** False while Hub is on lean bootstrap; true after full year shards merge. */
+  oeDetailReady: boolean
+  /** Background full-shard fetch in flight (Hub already interactive). */
+  oeDetailLoading: boolean
   selectedYears: string[]
   selectedSplits: string[]
   selectedLeagues: string[]
@@ -258,16 +263,49 @@ export function useDashboardData(): UseDashboardDataReturn {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null)
+  const [oeDetailReady, setOeDetailReady] = useState(false)
+  const [oeDetailLoading, setOeDetailLoading] = useState(false)
   const [selectedYears, setSelectedYearsState] = useState<string[]>(['2026'])
   const [selectedSplits, setSelectedSplitsState] = useState<string[]>([DEFAULT_SPLIT])
   const [selectedLeagues, setSelectedLeagues] = useState<string[]>(DEFAULT_LEAGUES)
   const hasStoreRef = useRef(false)
+  const detailReadyRef = useRef(false)
+  const fullFetchGen = useRef(0)
+
+  const loadFullStore = useCallback(
+    async (meta: OEStoreMeta, years: string[], leagues: string[]) => {
+      const gen = ++fullFetchGen.current
+      setOeDetailLoading(true)
+      try {
+        const rows = await fetchOESlices({
+          leagues: expandSelectedLeagues(leagues),
+          years,
+          splits: ['ALL'],
+          catalogSplits: meta.splits,
+        })
+        if (gen !== fullFetchGen.current) return
+        const nextStore = buildStoreFromSliceRows(meta, rows)
+        hasStoreRef.current = true
+        detailReadyRef.current = true
+        setStore(nextStore)
+        setOeDetailReady(true)
+        setLastUpdated(new Date(nextStore.meta.generated_at))
+      } finally {
+        if (gen === fullFetchGen.current) setOeDetailLoading(false)
+      }
+    },
+    [],
+  )
 
   const fetchData = useCallback(async () => {
     // Only blank the UI on cold load. League filters rebuild from cached shards;
     // split changes merge in context and never hit this fetch.
     const cold = !hasStoreRef.current
-    if (cold) setLoading(true)
+    if (cold) {
+      setLoading(true)
+      setOeDetailReady(false)
+      detailReadyRef.current = false
+    }
     setError(null)
 
     try {
@@ -276,27 +314,37 @@ export function useDashboardData(): UseDashboardDataReturn {
         setCatalog(meta)
       }
 
-      const rows = await fetchOESlices({
-        leagues: expandSelectedLeagues(selectedLeagues),
-        years: selectedYears,
-        // Load all splits for selected year(s) so weekly hub includes playoffs;
-        // dashboard tab filters still apply selected split at merge time.
-        splits: ['ALL'],
-        catalogSplits: meta.splits,
-      })
-      const nextStore = buildStoreFromSliceRows(meta, rows)
-      hasStoreRef.current = true
-      setStore(nextStore)
-      setLastUpdated(new Date(nextStore.meta.generated_at))
+      // Progressive: lean hub bootstrap for first paint, then full year shards.
+      // Bootstrap is single-year; skip when ALL years or multi-year selection.
+      if (cold && !selectedYears.includes('ALL') && selectedYears.length === 1) {
+        const boot = await fetchHubBootstrap()
+        if (boot && boot.year === selectedYears[0] && boot.players.length) {
+          const lean = storeFromHubBootstrap(boot)
+          hasStoreRef.current = true
+          setStore(lean)
+          setLastUpdated(new Date(boot.asOf || boot.generatedAt))
+          setLoading(false)
+          void loadFullStore(meta, selectedYears, selectedLeagues).catch((err) => {
+            // Keep bootstrap UI; surface error only if we never got a store.
+            if (!hasStoreRef.current) setError(sanitizeUserFacingError(err))
+            console.warn('[oe] full shard load failed; hub bootstrap still active', err)
+          })
+          return
+        }
+      }
+
+      await loadFullStore(meta, selectedYears, selectedLeagues)
     } catch (err) {
       hasStoreRef.current = false
+      detailReadyRef.current = false
       setStore(null)
+      setOeDetailReady(false)
       setError(sanitizeUserFacingError(err))
     } finally {
       setLoading(false)
     }
     // selectedSplits intentionally omitted — fetch always uses splits: ['ALL'].
-  }, [catalog, selectedYears, selectedLeagues])
+  }, [catalog, selectedYears, selectedLeagues, loadFullStore])
 
   useEffect(() => {
     void fetchData()
@@ -368,6 +416,8 @@ export function useDashboardData(): UseDashboardDataReturn {
     loading,
     error,
     lastUpdated,
+    oeDetailReady,
+    oeDetailLoading,
     selectedYears,
     selectedSplits,
     selectedLeagues,

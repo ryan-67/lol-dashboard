@@ -118,10 +118,10 @@ Friends report ~15s loads / “high ping” feel. Root cause: ~40.5 MB OE year s
 4. Stop `no-store` + timestamp cache-bust on small ML artifacts.  
 5. Drop pathname-keyed Outlet remount; shorten route sweep.
 
-**Phase B (follow-up):**
-6. Lean hub bootstrap JSON (schedules + aggregates) — Hub interactive without both OE shards.  
-7. Index vs detail payloads — gameLogs on entity/series / Form demand.  
-8. IndexedDB for year blobs if we still ship them (localStorage quota is dead).
+**Phase B (shipped 2026-08-06):**
+6. ~~Lean hub bootstrap~~ — `public/data/hub_bootstrap.json` (~2.4 MB: aggregates + 45d recentForm + window catalog). Hub paints from bootstrap; full ~42 MB year parts load in background. Built by `scripts/build_hub_bootstrap.py` (also hooked into ingest/export:shards).  
+7. ~~Index vs detail~~ — bootstrap = index; full shards = detail (entity/Players Form complete after `oeDetailReady`).  
+8. ~~IndexedDB~~ — replaces dead localStorage year-shard cache (`oeShardIdb.ts`).
 
 ### P2 — Model freshness
 
@@ -735,3 +735,8 @@ Rollback: Cito sync steps still run soft; deleting the riot steps restores v3 be
   - Vite chunks: `Overview` ~35 KB, `Players`/`Teams` lazy, `charts` ~569 KB, `gsap` ~123 KB, `three` ~945 KB split out of eager path; route JS loads on demand.
   - Tab nav: Outlet no longer keyed by pathname (keeps mount); route sweep 0.55s clip → 0.22s fade.
   - Small ML/schedule JSON: HTTP `default` cache (memory TTL 5m); no `?t=` / `no-store` busting.
+- **Phase B (progressive payloads):**
+  - `hub_bootstrap.json` **~2.4 MB** (333 players w/ 45d form, window catalog) vs **~42 MB** year parts.
+  - Hub paints from bootstrap; full shards load in background (`oeDetailReady` / `oeDetailLoading`).
+  - Year shards cached in **IndexedDB** (localStorage quota was always exceeded).
+  - Rebuild: `npm run build:hub-bootstrap` (also after ingest / export:shards).

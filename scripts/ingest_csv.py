@@ -1697,6 +1697,25 @@ def ingest():
     except Exception as err:
         print(f"  WARNING: gol.gg enrichment skipped: {err}", file=sys.stderr)
 
+    try:
+        from build_hub_bootstrap import build_bootstrap
+
+        years = sorted(
+            (y for y in merged_year_files if str(y).isdigit()),
+            key=lambda y: int(y),
+        )
+        current_year = years[-1] if years else "2026"
+        print(f"Building hub_bootstrap.json for {current_year}…")
+        payload = build_bootstrap(current_year, form_days=45, max_form_games=24)
+        boot_path = OUT_DIR / "hub_bootstrap.json"
+        boot_path.write_text(
+            json.dumps(payload, separators=(",", ":"), ensure_ascii=False),
+            encoding="utf-8",
+        )
+        print(f"  Wrote {boot_path.name} ({boot_path.stat().st_size / 1e6:.2f} MB)")
+    except Exception as err:
+        print(f"  WARNING: hub_bootstrap build skipped: {err}", file=sys.stderr)
+
 
 if __name__ == "__main__":
     ingest()
