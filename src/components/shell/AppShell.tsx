@@ -3,12 +3,14 @@ import { Outlet, useLocation } from 'react-router-dom'
 import AppSidebar from './AppSidebar'
 import AmbientField from './AmbientField'
 import { AMBIENT_TRAIL_EVENT, ambientTrailEnabled } from '../../lib/ambientTrail'
+import { useDashboard } from '../../context/DashboardContext'
 import '../../theme/shell.css'
 
 const AppCursorTrail = lazy(() => import('./AppCursorTrail'))
 
 export default function AppShell() {
   const location = useLocation()
+  const { loading, oeDetailLoading } = useDashboard()
   const mode = location.pathname.startsWith('/duo')
     ? 'duo'
     : location.pathname.startsWith('/chat')
@@ -16,6 +18,8 @@ export default function AppShell() {
       : 'dashboard'
 
   const [trailOn, setTrailOn] = useState(() => ambientTrailEnabled())
+  // Defer Three.js trail until OE bootstrap has painted — keeps first load snappy.
+  const trailAllowed = trailOn && !loading && !oeDetailLoading
 
   useEffect(() => {
     const handleTrailChange = () => setTrailOn(ambientTrailEnabled())
@@ -30,7 +34,7 @@ export default function AppShell() {
       <main className="app-shell-v2-main">
         <Outlet />
       </main>
-      {trailOn ? (
+      {trailAllowed ? (
         <Suspense fallback={null}>
           <AppCursorTrail />
         </Suspense>

@@ -1,5 +1,4 @@
-import { useDeferredValue, useEffect, useMemo, useRef, useState } from 'react'
-import { useGSAP } from '@gsap/react'
+import { lazy, Suspense, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react'
 import { useDashboard } from '../context/DashboardContext'
 import { useAuth } from '../context/AuthContext'
 import type { Player } from '../hooks/useDashboardData'
@@ -14,19 +13,19 @@ import {
   type RoleKey,
 } from '../lib/playerRadar'
 import RoleFilterBar from '../components/players/RoleFilterBar'
-import PlayerRadarChart from '../components/players/PlayerRadarChart'
 import PlayerDropdown from '../components/players/PlayerDropdown'
-import PlayerFormChart from '../components/players/PlayerFormChart'
-import PlayerTrendsCompare from '../components/players/PlayerTrendsCompare'
-import PlayerMetricsTableCard from '../components/players/PlayerMetricsTableCard'
 import { playerKey, resolveDefaultPlayerKey } from '../lib/playerAnalytics'
-import { scrollEntranceStagger, refreshScrollTrigger } from '../theme/animations'
 import { supabase } from '../lib/supabaseClient'
 import PageHeader, { PageHeaderReadout } from '../components/ui/PageHeader'
 import PowerRankingsPanel from '../components/rankings/PowerRankingsPanel'
 import SectionSubnav, { type SectionSubnavItem } from '../components/ui/SectionSubnav'
 import type { RatingRole } from '../lib/loadPlayerRatings'
 import { powerRegionsFromSelectedLeagues } from '../lib/powerRegionFilter'
+
+const PlayerRadarChart = lazy(() => import('../components/players/PlayerRadarChart'))
+const PlayerFormChart = lazy(() => import('../components/players/PlayerFormChart'))
+const PlayerTrendsCompare = lazy(() => import('../components/players/PlayerTrendsCompare'))
+const PlayerMetricsTableCard = lazy(() => import('../components/players/PlayerMetricsTableCard'))
 
 const SUBNAV_ITEMS: SectionSubnavItem[] = [
   { id: 'players-rankings', label: 'Rankings' },
@@ -37,7 +36,7 @@ const SUBNAV_ITEMS: SectionSubnavItem[] = [
 
 export default function Players() {
   const { user } = useAuth()
-  const { filteredPlayers, league, split, selectedLeagues } = useDashboard()
+  const { filteredPlayers, league, selectedLeagues } = useDashboard()
   const deferredPlayers = useDeferredValue(filteredPlayers)
   const [roleFilter, setRoleFilter] = useState<RoleFilter>('all')
   const [selectedPlayerKeys, setSelectedPlayerKeys] = useState<string[]>([])
@@ -79,12 +78,33 @@ export default function Players() {
 
   const powerRankingsRole: RatingRole = roleFilter === 'all' ? 'mid' : roleFilter
 
-  const radarGridRef = useRef<HTMLDivElement>(null)
-  const analyticsRef = useRef<HTMLDivElement>(null)
   const [favoritePlayerName, setFavoritePlayerName] = useState<string | null>(null)
   const [favoriteTeamName, setFavoriteTeamName] = useState<string | null>(null)
   const [favoritesLoaded, setFavoritesLoaded] = useState(false)
+  const [heavyReady, setHeavyReady] = useState(false)
   const userPickedRef = useRef(false)
+
+  // Rankings board first; defer Recharts radars/form until the tab is interactive.
+  useEffect(() => {
+    let cancelled = false
+    const arm = () => {
+      if (!cancelled) setHeavyReady(true)
+    }
+    let idleId: number | undefined
+    let timeoutId: ReturnType<typeof setTimeout> | undefined
+    if (typeof window !== 'undefined' && 'requestIdleCallback' in window) {
+      idleId = window.requestIdleCallback(arm, { timeout: 600 })
+    } else {
+      timeoutId = setTimeout(arm, 0)
+    }
+    return () => {
+      cancelled = true
+      if (idleId != null && 'cancelIdleCallback' in window) {
+        window.cancelIdleCallback(idleId)
+      }
+      if (timeoutId != null) clearTimeout(timeoutId)
+    }
+  }, [])
 
   useEffect(() => {
     async function loadProfileDefaults() {
@@ -131,24 +151,6 @@ export default function Players() {
     [players, selectedPlayerKeys],
   )
 
-  useGSAP(
-    () => {
-      scrollEntranceStagger(analyticsRef.current, '.player-chart-card')
-    },
-    { scope: analyticsRef, dependencies: [selectedPlayers.length, league, split] },
-  )
-
-  useGSAP(
-    () => {
-      scrollEntranceStagger(radarGridRef.current, '.radar-card')
-    },
-    { scope: radarGridRef, dependencies: [roleFilter, league, split, radarPlayers.length] },
-  )
-
-  useEffect(() => {
-    requestAnimationFrame(() => refreshScrollTrigger())
-  }, [roleFilter, league, split, showTable, radarPlayers.length, selectedPlayers.length])
-
   return (
     <div className="page-section">
       <PageHeader
@@ -177,36 +179,35 @@ export default function Players() {
       </section>
 
       <section id="players-radar" className="players-section">
-        {radarPlayers.length === 0 ? (
+        {!heavyReady ? (
+          <p className="text-secondary text-sm" aria-live="polite">
+            loading role radars…
+          </p>
+        ) : radarPlayers.length === 0 ? (
           <div className="empty-state">No players match the current filters.</div>
         ) : (
-          <div
-            ref={radarGridRef}
-            className={`radar-grid${roleFilter === 'all' ? ' radar-grid-5' : ''}`}
-          >
-            {radarPlayers.map(({ player, role }) => {
-              const cohort =
-                roleFilter === 'all'
-                  ? playersForRole(tier1Players, role)
-                  : playersForRole(players, role)
-              return (
-                <PlayerRadarChart
-                  key={`${player.name}-${player.team}-${role}`}
-                  player={player}
-                  role={role}
-                  cohort={cohort}
-                />
-              )
-            })}
-          </div>
+          <Suspense fallback={<p className="text-secondary text-sm">loading role radars…</p>}>
+            <div className={`radar-grid${roleFilter === 'all' ? ' radar-grid-5' : ''}`}>
+              {radarPlayers.map(({ player, role }) => {
+                const cohort =
+                  roleFilter === 'all'
+                    ? playersForRole(tier1Players, role)
+                    : playersForRole(players, role)
+                return (
+                  <PlayerRadarChart
+                    key={`${player.name}-${player.team}-${role}`}
+                    player={player}
+                    role={role}
+                    cohort={cohort}
+                  />
+                )
+              })}
+            </div>
+          </Suspense>
         )}
       </section>
 
-      <section
-        ref={analyticsRef}
-        id="players-compare"
-        className="players-section player-analytics-section"
-      >
+      <section id="players-compare" className="players-section player-analytics-section">
         <PlayerDropdown
           players={players}
           selectedKeys={selectedPlayerKeys}
@@ -217,12 +218,12 @@ export default function Players() {
             setSelectedPlayerKeys(keys)
           }}
         />
-        {selectedPlayers.length > 0 && (
-          <>
+        {heavyReady && selectedPlayers.length > 0 ? (
+          <Suspense fallback={<p className="text-secondary text-sm">loading form charts…</p>}>
             <PlayerTrendsCompare players={selectedPlayers} cohortPlayers={players} />
             <PlayerFormChart players={selectedPlayers} cohortPlayers={players} />
-          </>
-        )}
+          </Suspense>
+        ) : null}
       </section>
 
       <section id="players-tables" className="players-section">
@@ -232,13 +233,15 @@ export default function Players() {
           </button>
         </div>
 
-        {showTable && (
-          <PlayerMetricsTableCard
-            players={players}
-            filteredPlayers={roleFilteredPlayers}
-            roleFilter={roleFilter}
-          />
-        )}
+        {showTable ? (
+          <Suspense fallback={<p className="text-secondary text-sm">loading tables…</p>}>
+            <PlayerMetricsTableCard
+              players={players}
+              filteredPlayers={roleFilteredPlayers}
+              roleFilter={roleFilter}
+            />
+          </Suspense>
+        ) : null}
       </section>
     </div>
   )

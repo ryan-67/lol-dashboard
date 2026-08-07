@@ -9,20 +9,22 @@ import { TimezoneProvider } from './context/TimezoneContext'
 import { ViewPreferenceProvider, useViewPreference } from './context/ViewPreferenceContext'
 import { ProfileProvider } from './context/ProfileContext'
 import { ChatSessionProvider } from './context/ChatSessionContext'
-import LandingLayout from './components/landing/LandingLayout'
 import AppShell from './components/shell/AppShell'
 import DuoLayout from './components/shell/DuoLayout'
 import DashboardFrame from './components/shell/DashboardFrame'
 import ChatPane from './components/shell/ChatPane'
 import SubscriberGate from './components/shell/SubscriberGate'
-import Landing from './pages/Landing'
-import PrivatePolicy from './pages/PrivatePolicy'
-import Terms from './pages/Terms'
-import Contact from './pages/Contact'
-import UserProfile from './pages/UserProfile'
 import AuthCallback from './pages/AuthCallback'
 import ResetPassword from './pages/ResetPassword'
 import SignalLoader from './components/ui/SignalLoader'
+
+// Marketing / legal stay out of the dashboard entry graph (Landing pulls Three.js).
+const LandingLayout = lazy(() => import('./components/landing/LandingLayout'))
+const Landing = lazy(() => import('./pages/Landing'))
+const PrivatePolicy = lazy(() => import('./pages/PrivatePolicy'))
+const Terms = lazy(() => import('./pages/Terms'))
+const Contact = lazy(() => import('./pages/Contact'))
+const UserProfile = lazy(() => import('./pages/UserProfile'))
 
 const Overview = lazy(() => import('./pages/Overview'))
 const Players = lazy(() => import('./pages/Players'))
@@ -138,9 +140,11 @@ function HomeEntry() {
   if (user) return <Navigate to={homePath} replace />
 
   return (
-    <LandingLayout>
-      <Landing />
-    </LandingLayout>
+    <LazyPage>
+      <LandingLayout>
+        <Landing />
+      </LandingLayout>
+    </LazyPage>
   )
 }
 
@@ -265,17 +269,21 @@ function AppRoutes() {
       <Route
         path="/private-policy"
         element={
-          <LandingLayout>
-            <PrivatePolicy />
-          </LandingLayout>
+          <LazyPage>
+            <LandingLayout>
+              <PrivatePolicy />
+            </LandingLayout>
+          </LazyPage>
         }
       />
       <Route
         path="/terms"
         element={
-          <LandingLayout>
-            <Terms />
-          </LandingLayout>
+          <LazyPage>
+            <LandingLayout>
+              <Terms />
+            </LandingLayout>
+          </LazyPage>
         }
       />
 
@@ -316,8 +324,22 @@ function AppRoutes() {
           {DashboardRoutes()}
         </Route>
 
-        <Route path="/profile" element={<UserProfile />} />
-        <Route path="/contact" element={<Contact />} />
+        <Route
+          path="/profile"
+          element={
+            <LazyPage>
+              <UserProfile />
+            </LazyPage>
+          }
+        />
+        <Route
+          path="/contact"
+          element={
+            <LazyPage>
+              <Contact />
+            </LazyPage>
+          }
+        />
       </Route>
 
       <Route path="/nuckyai" element={<Navigate to="/chat" replace />} />

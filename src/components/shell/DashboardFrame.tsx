@@ -69,7 +69,8 @@ export default function DashboardFrame() {
 
   // Entity / series pages need full match history — load on demand only.
   useEffect(() => {
-    if (!wantsDetail || oeDetailReady || loading || error) return
+    if (!wantsDetail) return
+    if (oeDetailReady || loading || error) return
     void ensureOeDetail()
   }, [wantsDetail, oeDetailReady, loading, error, ensureOeDetail])
 
