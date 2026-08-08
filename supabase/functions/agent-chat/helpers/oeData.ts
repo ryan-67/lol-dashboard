@@ -638,6 +638,70 @@ export async function fetchSliceBundle(
   };
 }
 
+/**
+ * Merge multiple year/split slices for career / all-time number questions.
+ * Caps to recent years when `years` is ALL to keep edge latency sane.
+ */
+export async function fetchMultiSplitBundle(
+  service: SupabaseClient,
+  league: string,
+  years: string[] | "ALL",
+  maxYears = 3,
+): Promise<SliceBundle> {
+  const leagues = leaguesForFilter(league);
+  const { data: catalog, error: catalogError } = await service
+    .from("oe_slices")
+    .select("split, league")
+    .in("league", leagues)
+    .limit(4000);
+  if (catalogError) throw new Error(`oe_slices catalog failed: ${catalogError.message}`);
+
+  const allSplits = [
+    ...new Set(
+      ((catalog ?? []) as Array<{ split?: string }>)
+        .map((r) => String(r.split ?? ""))
+        .filter(Boolean),
+    ),
+  ];
+
+  const nowY = new Date().getUTCFullYear();
+  const yearList =
+    years === "ALL"
+      ? Array.from({ length: maxYears }, (_, i) => String(nowY - i))
+      : years.filter((y) => y && y !== "ALL");
+
+  const wantedSplits = allSplits.filter((s) => yearList.some((y) => s.startsWith(`${y} `)));
+  if (!wantedSplits.length) {
+    return fetchSliceBundle(service, league, undefined);
+  }
+
+  const { data, error } = await service
+    .from("oe_slices")
+    .select("league, split, data")
+    .in("league", leagues)
+    .in("split", wantedSplits);
+  if (error) throw new Error(`oe_slices multi-split fetch failed: ${error.message}`);
+
+  const rows = (data ?? []) as Array<{ league: string; data: Record<string, unknown> }>;
+  const label =
+    years === "ALL"
+      ? `ALL (${yearList[yearList.length - 1]}–${yearList[0]})`
+      : yearList.length === 1
+        ? `${yearList[0]} ALL`
+        : yearList.join("+");
+
+  return {
+    split: label,
+    league: league || "All Tier 1",
+    players: mergePlayers(rows),
+    teams: mergeTeams(rows),
+    champions: mergeChampions(rows),
+    matchups: mergeMatchups(rows),
+    teamChampions: mergeTeamChampions(rows),
+    rosterDepth: mergeRosterDepth(rows),
+  };
+}
+
 /** Resolve a team's roster (starters + subs by role) from rosterDepth, with player fallback. */
 export function getTeamRosterDepth(
   bundle: SliceBundle,

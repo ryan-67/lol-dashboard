@@ -14,7 +14,6 @@ import { supabase } from '../lib/supabaseClient'
 import { fetchSubscriptionState } from '../lib/subscription'
 import { pickThinkingMessage } from '../lib/nuckyThinking'
 import { useAuth } from './AuthContext'
-import { useDashboard } from './DashboardContext'
 import { useAgentChat } from '../components/nuckyai/useAgentChat'
 import type { ConversationRow, MessageRow, ProfileRow } from '../components/nuckyai/types'
 
@@ -49,14 +48,6 @@ const ChatSessionContext = createContext<ChatSessionContextValue | null>(null)
 
 export function ChatSessionProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth()
-  const {
-    league,
-    year,
-    split,
-    selectedLeagues,
-    selectedYears,
-    selectedSplits,
-  } = useDashboard()
   const [profile, setProfile] = useState<ProfileRow | null>(null)
   const [isSubscribed, setIsSubscribed] = useState(false)
   const [subscriptionReady, setSubscriptionReady] = useState(false)
@@ -192,18 +183,6 @@ export function ChatSessionProvider({ children }: { children: ReactNode }) {
     void loadMessages(fromQuery)
   }, [searchParams]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  const agentFilter = useMemo(
-    () => ({
-      league,
-      year,
-      split,
-      selectedLeagues,
-      selectedYears,
-      selectedSplits,
-    }),
-    [league, year, split, selectedLeagues, selectedYears, selectedSplits],
-  )
-
   const streamAssistant = useCallback(
     (message: string, options?: { skipUserAppend?: boolean }) => {
       const now = new Date().toISOString()
@@ -237,7 +216,6 @@ export function ChatSessionProvider({ children }: { children: ReactNode }) {
       void sendMessage({
         message,
         conversationId: activeConversationId ?? undefined,
-        filter: agentFilter,
         onMetadata: (conversationId) => {
           setActiveConversationId(conversationId)
           const next = new URLSearchParams(searchParams)
@@ -301,7 +279,7 @@ export function ChatSessionProvider({ children }: { children: ReactNode }) {
         },
       })
     },
-    [activeConversationId, agentFilter, loadConversations, searchParams, sendMessage, setSearchParams],
+    [activeConversationId, loadConversations, searchParams, sendMessage, setSearchParams],
   )
 
   const send = useCallback((message: string) => streamAssistant(message), [streamAssistant])

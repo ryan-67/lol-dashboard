@@ -3,6 +3,7 @@ import { messageMentionsPlayerToken } from "./agentIdentity.ts";
 import {
   type SliceBundle,
   buildStatSnapshot,
+  fetchMultiSplitBundle,
   fetchSliceBundle,
   getTeamRosterDepth,
   type MergedPlayer,
@@ -10,6 +11,16 @@ import {
 } from "./oeData.ts";
 import { getPlayerRatings } from "./mlArtifacts.ts";
 import { runChampionMatchupLookup } from "./championMatchupTool.ts";
+import {
+  extractPlayersWithClarifications,
+  PLAYER_ALIASES as SHARED_PLAYER_ALIASES,
+} from "./playerExtract.ts";
+import {
+  analyzeChampionCareer,
+  extractChampionName,
+  isChampionCareerQuestion,
+  isHistoricalQuestion,
+} from "./historicalAnalysis.ts";
 
 const TEAM_ALIASES: Record<string, string> = {
   t1: "T1",
@@ -26,22 +37,7 @@ const TEAM_ALIASES: Record<string, string> = {
 };
 
 const PLAYER_ALIASES: Record<string, string> = {
-  faker: "Faker",
-  chovy: "Chovy",
-  canyon: "Canyon",
-  oner: "Oner",
-  zeus: "Zeus",
-  keria: "Keria",
-  peyz: "Peyz",
-  gumayusi: "Gumayusi",
-  ruler: "Ruler",
-  caps: "Caps",
-  knight: "Knight",
-  smash: "Smash",
-  aiming: "Aiming",
-  showmaker: "ShowMaker",
-  bdd: "Bdd",
-  zeka: "Zeka",
+  ...SHARED_PLAYER_ALIASES,
   kanavi: "Kanavi",
 };
 
@@ -616,7 +612,10 @@ export function runTeamForm(
   message: string,
   bundle: SliceBundle,
 ): ToolResult | null {
-  if (!/\b(form|streak|recent|last \d|momentum|hot|cold)\b/i.test(message)) {
+  if (
+    !/\b(form|streak|recent|last \d|momentum|hot|cold|this week|lately|right now|currently)\b/i
+      .test(message)
+  ) {
     return null;
   }
 
@@ -1249,6 +1248,9 @@ export interface AnalystContext {
 export interface BuildAnalystOptions {
   includeSnapshot?: boolean;
   widenForSeries?: boolean;
+  /** Career / multi-year merge of OE slices. */
+  multiSplit?: boolean;
+  years?: string[];
 }
 
 function resolveAnalystLeague(message: string, league: string): string {
@@ -1261,6 +1263,63 @@ function resolveAnalystLeague(message: string, league: string): string {
   return "All Tier 1";
 }
 
+function runEntityClarifications(
+  message: string,
+  bundle: SliceBundle,
+  league: string,
+): ToolResult | null {
+  const { clarifications } = extractPlayersWithClarifications(
+    message,
+    bundle.players,
+    league,
+  );
+  if (!clarifications.length) return null;
+  return {
+    tool: "entity_clarify",
+    data: {
+      note:
+        "Ambiguous or missing player identity — ask which player (name · team · league · role) before asserting stats.",
+      clarifications: clarifications.map((c) => ({
+        query: c.name,
+        candidates: c.candidates.map((x) => ({
+          name: x.name,
+          team: x.team,
+          league: x.league,
+          position: x.position,
+          games: x.games,
+        })),
+        missingInSlice: c.candidates.length === 0,
+      })),
+      source: "oe_slices.players",
+    },
+  };
+}
+
+function runChampionCareerTool(
+  message: string,
+  bundle: SliceBundle,
+): ToolResult | null {
+  if (!isChampionCareerQuestion(message) && !isHistoricalQuestion(message)) return null;
+  const champs = bundle.champions.map((c) => c.name);
+  const champion = extractChampionName(message, champs);
+  if (!champion) return null;
+
+  const { players, clarifications } = extractPlayersWithClarifications(
+    message,
+    bundle.players,
+  );
+  if (clarifications.length) return null;
+  const player = players[0];
+  if (!player) return null;
+
+  const career = analyzeChampionCareer(bundle.players, player.name, champion);
+  if (!career) return null;
+  return {
+    tool: "champion_career",
+    data: { ...career, split: bundle.split, league: bundle.league },
+  };
+}
+
 export async function buildAnalystContext(
   service: SupabaseClient,
   message: string,
@@ -1269,41 +1328,62 @@ export async function buildAnalystContext(
   options: BuildAnalystOptions = {},
 ): Promise<AnalystContext> {
   const analystLeague = resolveAnalystLeague(message, league);
-  const bundle = await fetchSliceBundle(service, analystLeague, split, {
-    widenForSeries: options.widenForSeries,
-  });
+  const useMulti =
+    options.multiSplit ||
+    isHistoricalQuestion(message) ||
+    isChampionCareerQuestion(message);
+
+  const bundle = useMulti
+    ? await fetchMultiSplitBundle(
+      service,
+      analystLeague,
+      options.years?.length ? options.years : "ALL",
+    )
+    : await fetchSliceBundle(service, analystLeague, split, {
+      widenForSeries: options.widenForSeries,
+    });
   const snapshot = options.includeSnapshot ? buildStatSnapshot(bundle) : null;
   const tools: ToolResult[] = [];
 
   const champMatchup = runChampionMatchupLookup(message);
+  const clarify = runEntityClarifications(message, bundle, analystLeague);
 
-  const candidates = [
-    runTeamRoleShareCompare(message, bundle),
-    runPlayerChampionStat(message, bundle),
-    runMentionedPlayers(message, bundle),
-    runPlayerStat(message, bundle),
-    runTeamStat(message, bundle),
-    runTeamRankings(message, bundle),
-    runTeamRoleDepth(message, bundle),
-    runTeamRoster(message, bundle),
-    runSeriesRecap(message, bundle),
-    runChampionPoolCompare(message, bundle),
-    runMatchupLookup(message, bundle),
-    champMatchup
-      ? { tool: champMatchup.tool, data: champMatchup.data }
-      : null,
-    runMlPlayerPowerRankings(message),
-    runPlayerRankings(message, bundle),
-    runChampionMeta(message, bundle),
-    runTeamForm(message, bundle),
-    runLaneMatchup(message, bundle),
-    await runRecentResults(service, message, analystLeague),
-    await runScheduleLookup(service, message, analystLeague, bundle.split, bundle.teams),
-  ].filter((t): t is ToolResult => t !== null);
+  // When entity is ambiguous, prefer clarify over inventing a max-games pick.
+  const rawCandidates: Array<ToolResult | null> = clarify
+    ? [
+      clarify,
+      await runRecentResults(service, message, analystLeague),
+      await runScheduleLookup(service, message, analystLeague, bundle.split, bundle.teams),
+    ]
+    : [
+      runChampionCareerTool(message, bundle),
+      runTeamRoleShareCompare(message, bundle),
+      runPlayerChampionStat(message, bundle),
+      runMentionedPlayers(message, bundle),
+      runPlayerStat(message, bundle),
+      runTeamStat(message, bundle),
+      runTeamRankings(message, bundle),
+      runTeamRoleDepth(message, bundle),
+      runTeamRoster(message, bundle),
+      runSeriesRecap(message, bundle),
+      runChampionPoolCompare(message, bundle),
+      runMatchupLookup(message, bundle),
+      champMatchup
+        ? { tool: champMatchup.tool, data: champMatchup.data }
+        : null,
+      runMlPlayerPowerRankings(message),
+      runPlayerRankings(message, bundle),
+      runChampionMeta(message, bundle),
+      runTeamForm(message, bundle),
+      runLaneMatchup(message, bundle),
+      await runRecentResults(service, message, analystLeague),
+      await runScheduleLookup(service, message, analystLeague, bundle.split, bundle.teams),
+    ];
+  const candidates = rawCandidates.filter((t): t is ToolResult => t !== null);
 
   const seen = new Set<string>();
   for (const c of candidates) {
-    if (seen.has(c.tool)) continue;
+    if (!c || seen.has(c.tool)) continue;
     seen.add(c.tool);
     tools.push(c);
   }

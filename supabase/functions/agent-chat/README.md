@@ -49,13 +49,25 @@ Persona: **nucky** — blunt lolesports fan who knows lane states, macro, draft 
 | `TAVILY_API_KEY` | Supabase (required for web fallback) | agent-time web search (server-only, never `VITE_`) |
 | `CITO_API_KEY` | Supabase (required for Cito tier) | structured esports API fallback (server-only) |
 | `KALSHI_API_KEY` | Supabase (optional) | Kalshi trade API auth; public `/markets` + orderbook work without it |
+| `AGENT_USAGE_LIMITS` | Supabase | Default on. Set `false` to disable the 1M token/mo gate for bulk `npm run eval:nuckyai-chat` |
 
 ```bash
 npx supabase secrets set OPENROUTER_API_KEY=...
 npx supabase secrets set TAVILY_API_KEY=...
 npx supabase secrets set CITO_API_KEY=...
 npx supabase secrets set KALSHI_API_KEY=...   # optional — improves rate limits
+npx supabase secrets set AGENT_USAGE_LIMITS=false   # only while running bulk chat eval
 ```
+
+### Offline chat eval
+
+```bash
+npm run eval:nuckyai-chat                  # ~378 prompts
+npm run eval:nuckyai-chat -- --limit 40
+npm run eval:nuckyai-chat -- --category refuse
+```
+
+Creates/signs in `nuckyai-eval@nucky.local` via service role (no Gmail). Writes `.tmp/nuckyai_chat_eval.json`.
 
 Deploy after changes:
 

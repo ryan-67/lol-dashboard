@@ -310,8 +310,16 @@ export async function decideAndFetch(deps: DecideDeps): Promise<Evidence> {
       ? isWorldsHistoryQuestion(thread.inheritedTopic)
       : false);
 
-  let runTools = scope.needs_tools && !careerIntent && !identityIntent;
-  if (subjectiveIntent || playerChampionIntent || worldsHistoryIntent) runTools = true;
+  // Career *titles* prefer RAG/web; career *numbers* (WR/KDA/champ) use multi-split OE tools.
+  const careerNumbersIntent =
+    careerIntent &&
+    /\b(winrate|win rate|kda|stats?|games|record|dpm|gd15|csd15|performance|on\s+[A-Za-z])/i.test(
+      message,
+    );
+  let runTools = scope.needs_tools && !identityIntent && !(careerIntent && !careerNumbersIntent);
+  if (subjectiveIntent || playerChampionIntent || worldsHistoryIntent || careerNumbersIntent) {
+    runTools = true;
+  }
   if (thread.isClarification) runTools = true;
   if (identityIntent) runTools = false;
   const runRag = scope.needs_rag && !identityIntent;
@@ -370,7 +378,12 @@ export async function decideAndFetch(deps: DecideDeps): Promise<Evidence> {
       queryForTools,
       filters.league,
       filters.split,
-      { includeSnapshot: false, widenForSeries: scope.scope === "lolesports_series" },
+      {
+        includeSnapshot: false,
+        widenForSeries: scope.scope === "lolesports_series",
+        multiSplit: Boolean(filters.multiSplit || careerNumbersIntent),
+        years: filters.selectedYears?.filter((y) => y && y !== "ALL"),
+      },
     );
     matchStats = mergeToolResults(analystCtx);
     analystToolNames = analystCtx.tools.map((t) => t.tool);

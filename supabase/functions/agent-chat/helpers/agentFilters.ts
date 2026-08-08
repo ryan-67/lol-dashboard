@@ -111,7 +111,38 @@ export async function buildAgentOEFilters(
   return widenFiltersForQuestion(message, filters);
 }
 
-/** Merge dashboard filters with explicit league/year/split from the user message. */
+/** Map question-scoped OE filters into the pipeline ResolvedFilters contract. */
+export function toResolvedFilters(oe: OEFilterParams): ResolvedFilters {
+  const split =
+    oe.split && oe.split !== "ALL"
+      ? oe.split
+      : oe.selectedSplits?.find((s) => s && s !== "ALL");
+  const year =
+    oe.year && oe.year !== "ALL"
+      ? oe.year
+      : oe.selectedYears?.find((y) => y && y !== "ALL");
+
+  return {
+    league: oe.league ?? resolveLeagueFromFilters(oe) ?? "All Tier 1",
+    split,
+    year,
+    rosterSplitHint: split && /^\d{4}/.test(split) ? split : undefined,
+    selectedYears: oe.selectedYears,
+    selectedSplits: oe.selectedSplits,
+    multiSplit: Boolean(
+      oe.selectedSplits?.includes("ALL") ||
+        oe.selectedYears?.includes("ALL") ||
+        oe.year === "ALL" ||
+        oe.split === "ALL" ||
+        (oe.selectedSplits?.filter((s) => s && s !== "ALL").length ?? 0) > 1,
+    ),
+  };
+}
+
+/**
+ * @deprecated Dashboard filters pollute chat scope. Use buildAgentOEFilters + toResolvedFilters.
+ * Kept for offline eval parity scripts only.
+ */
 export function resolveAgentFilters(
   message: string,
   dashboard: DashboardFilters,
@@ -125,15 +156,5 @@ export function resolveAgentFilters(
     selectedSplits: dashboard.selectedSplits,
   };
   const scoped = narrowFiltersFromMessage(message, base);
-  const rosterSplitHint =
-    dashboard.split?.trim() && /^\d{4}/.test(dashboard.split.trim())
-      ? dashboard.split.trim()
-      : undefined;
-
-  return {
-    league: scoped.league ?? base.league ?? "All Tier 1",
-    split: scoped.split ?? scoped.selectedSplits?.[0] ?? base.split,
-    year: scoped.year ?? base.year,
-    rosterSplitHint,
-  };
+  return toResolvedFilters(scoped);
 }

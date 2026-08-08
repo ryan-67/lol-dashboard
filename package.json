@@ -22,6 +22,7 @@
     "sync:external-schedule": "tsx scripts/leaguepedia/sync-external-schedule.ts",
     "backfill:gol-gold": "python scripts/backfill_gol_gold_timelines.py",
     "eval:nuckyai": "tsx scripts/eval-nuckyai.ts",
+    "eval:nuckyai-chat": "tsx scripts/eval-nuckyai-chat.ts",
     "test:prediction": "npx --yes deno test --allow-read supabase/functions/agent-chat/helpers/predictionPacket.test.ts",
     "test:ml-phase1": "python scripts/ml/test_phase1_scorecard_archetypes.py",
     "dev": "vite",

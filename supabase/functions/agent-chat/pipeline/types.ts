@@ -22,12 +22,16 @@ export interface MentionedPlayer {
   name: string;
 }
 
-/** Filters coming from the dashboard UI (league/split/year scoping). */
+/** Question-scoped OE filters for the agent pipeline (never dashboard chrome). */
 export interface ResolvedFilters {
   league: string;
   split: string | undefined;
   year: string | undefined;
   rosterSplitHint: string | undefined;
+  selectedYears?: string[];
+  selectedSplits?: string[];
+  /** True when career/all-time scope needs multi-split OE merge. */
+  multiSplit?: boolean;
 }
 
 // ---- Layer 1: Guardrail Router ----

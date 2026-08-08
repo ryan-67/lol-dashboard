@@ -1,13 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { useLocation, useNavigate } from 'react-router-dom'
 import { useDashboard } from '../../context/DashboardContext'
 import {
   buildEntitySearchIndex,
-  entityPath,
   searchEntities,
   type EntitySearchEntry,
 } from '../../lib/entities/searchIndex'
-import { shellAwarePath } from '../../lib/shellPath'
 import ChampionIcon from '../entities/ChampionIcon'
 
 interface ChatInputProps {
@@ -31,8 +28,6 @@ export default function ChatInput({
 }: ChatInputProps) {
   const ref = useRef<HTMLTextAreaElement>(null)
   const { catalog } = useDashboard()
-  const navigate = useNavigate()
-  const location = useLocation()
   const [index, setIndex] = useState<EntitySearchEntry[]>([])
   const [highlight, setHighlight] = useState(0)
   const [showTypeahead, setShowTypeahead] = useState(false)
@@ -73,9 +68,12 @@ export default function ChatInput({
   }, [results.length, value])
 
   const pickEntity = (entry: EntitySearchEntry) => {
-    navigate(shellAwarePath(entityPath(entry), location.pathname))
-    onChange('')
+    // Insert the entity name into the draft (don't navigate away from chat).
+    const insert = entry.label
+    const next = value.trim().length ? `${value.replace(/\s+$/, '')} ${insert} ` : `${insert} `
+    onChange(next)
     setShowTypeahead(false)
+    requestAnimationFrame(() => ref.current?.focus())
   }
 
   const handleSendOrPick = () => {

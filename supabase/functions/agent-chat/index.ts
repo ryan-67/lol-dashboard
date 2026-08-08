@@ -4,13 +4,11 @@ import { resolveConversation, persistMessages } from "./helpers/conversation.ts"
 import { corsHeaders } from "./helpers/cors.ts";
 import { createServiceClient, createUserClient, getEnv } from "./helpers/clients.ts";
 import { streamFallback } from "./helpers/stream.ts";
-import type { DashboardFilters } from "./helpers/oeData.ts";
-import { resolveAgentFilters } from "./helpers/agentFilters.ts";
+import { buildAgentOEFilters, toResolvedFilters } from "./helpers/agentFilters.ts";
 // 3-layer pipeline: Guardrail Router → Tool Decider → Synthesis.
 import { runGuardrail } from "./pipeline/guardrail.ts";
 import { decideAndFetch } from "./pipeline/toolDecider.ts";
 import { synthesize } from "./pipeline/synthesis.ts";
-import type { ResolvedFilters } from "./pipeline/types.ts";
 import { extractDraftFromText, looksLikeDraftTextInput } from "./helpers/draftTextParse.ts";
 import {
   draftExtractionSummary,
@@ -18,16 +16,26 @@ import {
 } from "./helpers/draftTypes.ts";
 import { UsageTracker } from "./helpers/usageTracker.ts";
 
-interface ChatRequestBody extends DashboardFilters {
+interface ChatRequestBody {
   message?: string;
   conversation_id?: string;
   client_now?: string;
+  // Legacy dashboard filter fields are ignored — chat scope is question-only.
+  league?: string;
+  split?: string;
+  year?: string;
+  selectedLeagues?: string[];
+  selectedYears?: string[];
+  selectedSplits?: string[];
 }
 
 const encoder = new TextEncoder();
 
 // Beta limits — keep in sync with src/lib/nuckyAiBilling.ts ($3.99/mo tier).
-const USAGE_LIMITS_ENABLED = true;
+// Set Supabase secret AGENT_USAGE_LIMITS=false for bulk `npm run eval:nuckyai-chat`.
+const USAGE_LIMITS_ENABLED =
+  (Deno.env.get("AGENT_USAGE_LIMITS") ?? "true") !== "false" &&
+  Deno.env.get("AGENT_USAGE_LIMITS") !== "0";
 const MONTHLY_TOKEN_LIMIT = 1_000_000;
 
 function getClientIp(req: Request): string {
@@ -199,20 +207,9 @@ Deno.serve(async (req) => {
           ),
         );
 
-        const rosterSplitHint =
-          body.split?.trim() && /^\d{4}/.test(body.split.trim()) ? body.split.trim() : undefined;
-        const dashboardFilters: DashboardFilters = {
-          league: body.league,
-          split: body.split,
-          year: body.year,
-          selectedLeagues: body.selectedLeagues,
-          selectedYears: body.selectedYears,
-          selectedSplits: body.selectedSplits,
-        };
-        const filters: ResolvedFilters = resolveAgentFilters(message, dashboardFilters);
-        if (rosterSplitHint && !filters.rosterSplitHint) {
-          filters.rosterSplitHint = rosterSplitHint;
-        }
+        // Question-only OE scope — never inherit dashboard league/split chrome.
+        const oeFilters = await buildAgentOEFilters(serviceClient, message);
+        const filters = toResolvedFilters(oeFilters);
 
         // Text draft input: parse team:champ lists and inject structured extraction.
         let pipelineMessage = message;

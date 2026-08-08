@@ -7,6 +7,7 @@ import { resolveThreadIntent, shouldTreatAsLolesports } from "./threadIntent.ts"
 import { isWorldsHistoryQuestion } from "./worldsHistory.ts";
 import { isChampionMatchupAsk } from "./championMatchupTool.ts";
 import { isAgentGreetingOnly, isAgentIdentityAsk } from "./agentIdentity.ts";
+import { PLAYER_ALIASES } from "./playerExtract.ts";
 
 export type ConversationScope =
   | "off_topic"
@@ -339,7 +340,23 @@ export async function classifyScope(
     };
   }
 
-  if (!LOLESPORTS.test(message) && !shouldTreatAsLolesports(message, history)) {
+  const mentionsKnownPlayer = Object.keys(PLAYER_ALIASES).some((alias) =>
+    new RegExp(`\\b${alias.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`, "i").test(message)
+  ) ||
+    Object.values(PLAYER_ALIASES).some((name) =>
+      new RegExp(`\\b${name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`, "i").test(message)
+    );
+
+  // Short player asks ("Ice stats", "Inspired form") often lack league/team keywords —
+  // still treat as LoL when we know the handle or the ask is clearly a stats/compare query.
+  if (
+    !LOLESPORTS.test(message) &&
+    !STATS.test(message) &&
+    !COMPARE.test(message) &&
+    !SERIES.test(message) &&
+    !mentionsKnownPlayer &&
+    !shouldTreatAsLolesports(message, history)
+  ) {
     return {
       scope: "off_topic",
       needs_tools: false,

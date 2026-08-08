@@ -6,7 +6,6 @@ import { supabase } from '../../lib/supabaseClient'
 import { fetchSubscriptionState } from '../../lib/subscription'
 import { scrollEntrance } from '../../theme/animations'
 import { useAuth } from '../../context/AuthContext'
-import { useDashboard } from '../../context/DashboardContext'
 import ChatSidebar from './ChatSidebar'
 import ChatWindow from './ChatWindow'
 import AuthModal from '../AuthModal'
@@ -17,14 +16,6 @@ import type { ConversationRow, MessageRow, ProfileRow } from './types'
 
 export default function NuckyAIContainer() {
   const { user } = useAuth()
-  const {
-    league,
-    year,
-    split,
-    selectedLeagues,
-    selectedYears,
-    selectedSplits,
-  } = useDashboard()
   const [profile, setProfile] = useState<ProfileRow | null>(null)
   const [isSubscribed, setIsSubscribed] = useState(false)
   const [conversations, setConversations] = useState<ConversationRow[]>([])
@@ -164,18 +155,6 @@ export default function NuckyAIContainer() {
     void loadMessages(fromQuery)
   }, [searchParams]) // eslint-disable-line react-hooks/exhaustive-deps -- only react to URL changes
 
-  const agentFilter = useMemo(
-    () => ({
-      league,
-      year,
-      split,
-      selectedLeagues,
-      selectedYears,
-      selectedSplits,
-    }),
-    [league, year, split, selectedLeagues, selectedYears, selectedSplits],
-  )
-
   const streamAssistant = useCallback(
     (message: string, options?: { skipUserAppend?: boolean }) => {
       const now = new Date().toISOString()
@@ -216,7 +195,6 @@ export default function NuckyAIContainer() {
       void sendMessage({
         message,
         conversationId: activeConversationId ?? undefined,
-        filter: agentFilter,
         onMetadata: (conversationId) => {
           setActiveConversationId(conversationId)
           const next = new URLSearchParams(searchParams)
@@ -285,7 +263,7 @@ export default function NuckyAIContainer() {
         },
       })
     },
-    [activeConversationId, agentFilter, loadConversations, searchParams, sendMessage, setSearchParams],
+    [activeConversationId, loadConversations, searchParams, sendMessage, setSearchParams],
   )
 
   const send = useCallback(

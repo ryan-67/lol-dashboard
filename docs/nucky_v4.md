@@ -555,13 +555,13 @@ v3 leftovers (Community, chat analyst depth) resume after **V4-2**.
 Intended: normal LLM chatbot UX, LoL-esports specialization (refuse off-topic / coding / stocks), accurate stats + prediction-model context, fill historical gap scraped from dashboard, entity disambiguation (Caps / Ice / Inspired).
 
 **TODOs:**
-1. Current tools read same warehouse as Hub (stop OE-first “Summer not started”).  
-2. Wire `buildAgentOEFilters` in `agent-chat`; stop dashboard filter pollution.  
-3. Entity disambiguation layer (team/league-aware; clarify short common-word names).  
-4. Historical multi-year OE/stat tools for career/all-time *numbers* (not titles-only via web).  
+1. ~~Current tools read warehouse for schedule/results~~ — `recent_results` / `schedule_lookup` on `cito_schedules`; form still OE gameLog (Riot-merged shards).  
+2. ~~Wire `buildAgentOEFilters`~~ — question-only scope; dashboard filters no longer sent from chat UI.  
+3. ~~Entity disambiguation~~ — `entity_clarify` for Ice/Inspired-class collisions; H0h prompt rule.  
+4. ~~Historical multi-year OE numbers~~ — `fetchMultiSplitBundle` + `champion_career` tool; career titles still curated/RAG.  
 5. Keep prediction packets aligned with Hub ratings (auto-deploy on retrain when Actions recovers).  
-6. Offline eval harness: hundreds of prompts against `/chat` (not Gmail login from agents).  
-7. UX: typeahead inserts into draft; streaming/history already OK.
+6. ~~Offline eval harness~~ — `npm run eval:nuckyai-chat` (service-role eval user; set `AGENT_USAGE_LIMITS=false` for bulk).  
+7. ~~UX: typeahead inserts into draft~~; streaming/history already OK.
 
 ---
 
