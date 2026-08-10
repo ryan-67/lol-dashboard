@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-09T23:12:14.044433+00:00",
+  "generatedAt": "2026-08-10T02:33:30.005457+00:00",
   "methodology": "Same-role matrix: direct-lane champ-vs-champ win rate + avg GD@15 delta, min 6 meetings. Draft-order reconstruction uses OE's firstPick flag + the standard competitive ban/pick slot pattern to recover true reveal order (not column order) for the counter-pick validation. Cross-role lift validates hand-curated archetype tag interactions against realized win rates, not assumed.",
   "sameRoleMatchups": {
     "top": {
@@ -321,9 +321,9 @@
           "avgGd15Delta": 757.0
         },
         "Yorick": {
-          "games": 72,
-          "winrate": 43.1,
-          "avgGd15Delta": 717.0
+          "games": 73,
+          "winrate": 42.5,
+          "avgGd15Delta": 714.2
         },
         "Renekton": {
           "games": 18,
@@ -987,9 +987,9 @@
           "avgGd15Delta": -404.0
         },
         "Jayce": {
-          "games": 72,
-          "winrate": 56.9,
-          "avgGd15Delta": -717.0
+          "games": 73,
+          "winrate": 57.5,
+          "avgGd15Delta": -714.2
         },
         "Ambessa": {
           "games": 29,
@@ -3132,9 +3132,9 @@
           "avgGd15Delta": -61.5
         },
         "Ryze": {
-          "games": 40,
-          "winrate": 40.0,
-          "avgGd15Delta": -254.4
+          "games": 41,
+          "winrate": 41.5,
+          "avgGd15Delta": -240.3
         },
         "Ahri": {
           "games": 21,
@@ -3551,9 +3551,9 @@
           "avgGd15Delta": -162.2
         },
         "Viktor": {
-          "games": 40,
-          "winrate": 60.0,
-          "avgGd15Delta": 254.4
+          "games": 41,
+          "winrate": 58.5,
+          "avgGd15Delta": 240.3
         },
         "Annie": {
           "games": 70,
@@ -4330,9 +4330,9 @@
           "avgGd15Delta": -167.4
         },
         "Ziggs": {
-          "games": 8,
-          "winrate": 50.0,
-          "avgGd15Delta": 366.5
+          "games": 9,
+          "winrate": 55.6,
+          "avgGd15Delta": 624.4
         },
         "Varus": {
           "games": 37,
@@ -4814,9 +4814,9 @@
           "avgGd15Delta": 278.6
         },
         "Kalista": {
-          "games": 8,
-          "winrate": 50.0,
-          "avgGd15Delta": -366.5
+          "games": 9,
+          "winrate": 44.4,
+          "avgGd15Delta": -624.4
         },
         "Miss Fortune": {
           "games": 8,
@@ -6600,9 +6600,9 @@
     }
   },
   "counterPickSignal": {
-    "sampleGames": 7846,
+    "sampleGames": 7848,
     "gamesWithAnyCounterPick": 2414,
-    "gamesWithZeroCounterPicks": 5432,
+    "gamesWithZeroCounterPicks": 5434,
     "winrateWithAnyCounterPick": 54.4,
     "winrateWithZeroCounterPicks": 48.0,
     "note": "counterRate = share of a team's picks that matched the same-role matrix's definition of a favorable (>=55% WR, min sample) response to the enemy's most recently revealed champion at pick time (true reconstructed draft order, not column order). Zero-inflated distribution (landing >=1 matrix-defined counter is uncommon), so split is 'any counter-pick' vs 'none', gated at 40 games minimum before trusting the split. This is a retrospective correlation, NOT yet wired into the trained model as a feature \u2014 doing so safely requires a walk-forward (prior-games-only) version of the matchup matrix to avoid leakage, same discipline as region_elo.py's Elo lookups.",
@@ -6636,7 +6636,7 @@
       "defenderTag": "burst",
       "label": "Tanks blunt burst-heavy comps",
       "status": "validated",
-      "gamesWithCondition": 3895,
+      "gamesWithCondition": 3896,
       "winrateWithCondition": 49.7,
       "gamesWithout": 1678,
       "winrateWithout": 48.2,
@@ -6647,7 +6647,7 @@
       "defenderTag": "dive",
       "label": "Poke checks dive comps before they close",
       "status": "validated",
-      "gamesWithCondition": 6006,
+      "gamesWithCondition": 6008,
       "winrateWithCondition": 49.5,
       "gamesWithout": 394,
       "winrateWithout": 50.0,
@@ -6658,18 +6658,18 @@
       "defenderTag": "engage",
       "label": "Split push punishes comps lacking wave clear/pull-back (proxy: engage-heavy)",
       "status": "validated",
-      "gamesWithCondition": 1075,
+      "gamesWithCondition": 1076,
       "winrateWithCondition": 50.0,
       "gamesWithout": 41,
       "winrateWithout": 51.2,
-      "liftPp": -1.3
+      "liftPp": -1.2
     },
     {
       "attackerTag": "anti_dive",
       "defenderTag": "dive",
       "label": "Peel/anti-dive protects into dive comps",
       "status": "validated",
-      "gamesWithCondition": 4207,
+      "gamesWithCondition": 4209,
       "winrateWithCondition": 50.8,
       "gamesWithout": 290,
       "winrateWithout": 47.2,
