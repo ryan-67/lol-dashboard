@@ -111,13 +111,9 @@ export function mergeWeeklyRecapLines(
     const occurrence = seriesOccurrenceKey(line)
     const matchesTemplate =
       templateKeys.has(key) || templateOccurrences.has(occurrence)
-    // Template is the allowlist of concluded series. Cached-only 2-x rows are mid-series
-    // leftovers (e.g. MSI Bo5 at 2-0) and must not reappear on the hub.
-    if (!matchesTemplate) {
-      const m = line.score.score.match(/(\d+)\s*-\s*(\d+)/)
-      const max = m ? Math.max(Number(m[1]), Number(m[2])) : 0
-      if (max < 3) continue
-    }
+    // Template is the allowlist of concluded series. Cached-only rows (including
+    // hallucinated 3-0 Bo5 shapes) must not appear on the hub.
+    if (!matchesTemplate) continue
     const existing = byKey.get(key)
     if (existing && matchesTemplate) {
       // Keep live template score — cached AI text can hallucinate 3-0 onto a Bo3.

@@ -139,6 +139,25 @@ describe('recap merge prefers live score', () => {
     const merged = mergeWeeklyRecapLines([cached], [template], 8)
     assert.equal(merged[0]?.score.score, '2-1')
   })
+
+  it('drops cached-only phantom series that are not in the live template', () => {
+    const phantom: WeeklyRecapLine = {
+      id: 'p',
+      seriesId: 'ThunderTalk Gaming|Top Esports|2026-08-14',
+      date: '2026-08-14',
+      dateLabel: 'Aug 14',
+      segments: [{ kind: 'text', value: 'TT beat TES 3-0 (LPL)' }],
+      score: {
+        winner: 'ThunderTalk Gaming',
+        loser: 'Top Esports',
+        winnerAbbr: 'TT',
+        loserAbbr: 'TES',
+        score: '3-0',
+      },
+    }
+    const merged = mergeWeeklyRecapLines([phantom], [], 8)
+    assert.equal(merged.length, 0)
+  })
 })
 
 describe('score scale', () => {
