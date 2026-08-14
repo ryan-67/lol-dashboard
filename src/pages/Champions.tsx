@@ -5,6 +5,9 @@ import { formatNum, formatPct } from '../lib/format'
 import {
   computeOpScores,
   filterByRole,
+  getBanRate,
+  getPickRate,
+  getPresence,
   isDisplayableChampion,
   roleLabel,
   type RoleFilter,
@@ -190,9 +193,9 @@ export default function Champions() {
                           {(c.positions ?? []).join(', ') || '—'}
                         </td>
                         <td className="text-secondary">{c.games ?? c.picks}</td>
-                        <td className="text-secondary">{formatPct(c.pickRate, 1)}</td>
-                        <td className="text-secondary">{formatPct(c.banRate, 1)}</td>
-                        <td className="text-accent font-medium">{formatPct(c.presence, 1)}</td>
+                        <td className="text-secondary">{formatPct(getPickRate(c), 1)}</td>
+                        <td className="text-secondary">{formatPct(getBanRate(c), 1)}</td>
+                        <td className="text-accent font-medium">{formatPct(getPresence(c), 1)}</td>
                         <td className="text-secondary">{formatPct(c.winrate, 1)}</td>
                         <td className="text-secondary">{formatNum(c.avgKda, 2)}</td>
                         <td className="text-secondary">

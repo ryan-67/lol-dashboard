@@ -684,7 +684,7 @@ def compile_champions(champs_dict, team_games: int, weekly_team_games: dict, min
         deaths = max(c["deaths"], 1)
         pick_rate = min(100.0, round(picks / denom * 100, 1))
         ban_rate = min(100.0, round(c["bans"] / denom * 100, 1))
-        presence = min(200.0, round(pick_rate + ban_rate, 1))
+        presence = min(100.0, round(pick_rate + ban_rate, 1))
         out.append(
             {
                 "name": name,
@@ -720,13 +720,14 @@ def compile_champions(champs_dict, team_games: int, weekly_team_games: dict, min
                         if c["weekly"][wk]["picks"]
                         else 0,
                         "presence": min(
-                            200.0,
+                            100.0,
                             round(
                                 min(100.0, c["weekly"][wk]["picks"] / max(weekly_team_games.get(wk, 0) / 2, 1) * 100)
                                 + min(100.0, c["weekly"][wk]["bans"] / max(weekly_team_games.get(wk, 0) / 2, 1) * 100),
                                 1,
                             ),
                         ),
+                        "games": round(max(weekly_team_games.get(wk, 0) / 2, 1), 1),
                     }
                     for wk in sorted(c["weekly"].keys())
                 ],

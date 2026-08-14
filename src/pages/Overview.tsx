@@ -4,8 +4,6 @@ import { useDashboard } from '../context/DashboardContext'
 import { type Player, type PlayerGameLog } from '../hooks/useDashboardData'
 import {
   ROLES,
-  computeRecencyWeightedOpScores,
-  isDisplayableChampion,
   type RoleKey,
 } from '../lib/championAnalytics'
 import { calculateHottestTeams } from '../lib/hottestTeam'
@@ -47,6 +45,7 @@ import OverviewBoard from '../components/overview/OverviewBoard'
 import SectionSubnav, { type SectionSubnavItem } from '../components/ui/SectionSubnav'
 import PowerRankingsPanel from '../components/rankings/PowerRankingsPanel'
 import TeamPowerBoard from '../components/rankings/TeamPowerBoard'
+import ChampionPowerTable from '../components/rankings/ChampionPowerTable'
 import ScoreCaveat from '../components/ui/ScoreCaveat'
 import { powerRegionsFromSelectedLeagues } from '../lib/powerRegionFilter'
 import { buildWeeklyRecapLines } from '../lib/weeklyRecap'
@@ -58,7 +57,6 @@ import {
   overlayCitoGameLogsOnPlayers,
   type CitoPlayerStatsBundle,
 } from '../lib/citoPlayerStats'
-import { buildCurrentFormPlayerBundle, buildCurrentFormTeamRows } from '../lib/currentFormRankings'
 import { resolveGameOpponent } from '../lib/gameOpponent'
 import {
   getHubWindow,
@@ -474,6 +472,7 @@ export default function Overview() {
     split,
     lastUpdated,
     selectedLeagues,
+    data,
   } = useDashboard()
   const rootRef = useRef<HTMLDivElement>(null)
   const [overviewPane, setOverviewPane] = useState<OverviewPane>(() => readLocalOverviewPane())
@@ -584,24 +583,6 @@ export default function Overview() {
     [hottestTeam, weeklyHubTeams],
   )
 
-  const formPlayerBundle = useMemo(
-    () =>
-      weeklyPlayers.length
-        ? buildCurrentFormPlayerBundle(
-            weeklyPlayers,
-            hubWindow?.end?.toISOString?.() ?? new Date().toISOString(),
-            10,
-          )
-        : null,
-    [weeklyPlayers, hubWindow],
-  )
-
-  const formTeamRows = useMemo(() => {
-    if (!hottestTeams.length) return []
-    const leagueByTeam = new Map(weeklyHubTeams.map((t) => [t.name, t.league]))
-    return buildCurrentFormTeamRows(hottestTeams, leagueByTeam, 10)
-  }, [hottestTeams, weeklyHubTeams])
-
   const championOpResult = useMemo(() => {
     if (!hubWindow) return { top: null, runners: [] }
     const stats = buildWeeklyChampionStatsFromPlayers(
@@ -612,16 +593,6 @@ export default function Overview() {
     return computeChampionOfWeekScores(stats)
   }, [weeklyPlayers, weeklyHubChampions, hubWindow])
 
-  const topOpChampions = useMemo(() => {
-    const displayable = filteredChampions.filter(isDisplayableChampion)
-    return computeRecencyWeightedOpScores(displayable, {
-      asOf: hubWindow?.end ?? new Date(),
-      halfLifeDays: 14,
-      minPresence: 6,
-      minWeightedPicks: 3,
-    }).all.slice(0, 10)
-  }, [filteredChampions, hubWindow])
-
   const templateRecapLines = useMemo(() => {
     if (!hubWindow) return []
     return buildWeeklyRecapLines(
@@ -631,8 +602,9 @@ export default function Overview() {
       league,
       weeklyHubGameCatalog,
       citoResults,
+      citoPlayerStats,
     )
-  }, [hubPlayers, weeklyHubTeams, hubWindow, league, weeklyHubGameCatalog, citoResults])
+  }, [hubPlayers, weeklyHubTeams, hubWindow, league, weeklyHubGameCatalog, citoResults, citoPlayerStats])
 
   const [cachedRecapLines, setCachedRecapLines] = useState<typeof templateRecapLines>([])
 
@@ -1062,57 +1034,19 @@ export default function Overview() {
           <PowerRankingsPanel
             limit={10}
             title="nucky power rankings"
-            subtitle="Current-form player scores from the hub window (recent maps vs role peers). 100 would mean a near-perfect stretch — typical leaders sit in the 70s–80s."
             regions={powerRegions}
-            bundleOverride={formPlayerBundle}
           />
           <TeamPowerBoard
             regions={powerRegions}
             limit={10}
-            rowsOverride={formTeamRows.length ? formTeamRows : undefined}
           />
         </div>
 
-        <section className="card overview-hub-card">
-          <h2 className="card-title">Champion Power Rankings</h2>
-          <p className="card-subtitle">
-            Top 10 by recency-weighted OP score (14-day half-life on weekly presence/WR/ban) —
-            current patch priority, not full-split nostalgia. Distinct from Champion of the Week
-            above.
-          </p>
-          {topOpChampions.length === 0 ? (
-            <p className="text-secondary">Not enough champion data for the current filters.</p>
-          ) : (
-            <div className="table-wrap">
-              <table className="data-table">
-                <thead>
-                  <tr>
-                    <th>#</th>
-                    <th>Champion</th>
-                    <th>Presence</th>
-                    <th>Win %</th>
-                    <th title={OP_SCORE_HINT}>OP Score</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {topOpChampions.map((entry, idx) => (
-                    <tr key={entry.champion.name}>
-                      <td className="text-secondary">#{idx + 1}</td>
-                      <td className="font-medium">
-                        <ChampionEntityInline name={entry.champion.name} iconSize={20} />
-                      </td>
-                      <td className="text-secondary">{formatPct(entry.champion.presence, 1)}</td>
-                      <td className="text-secondary">{formatPct(entry.champion.winrate, 1)}</td>
-                      <td className="text-accent font-medium">
-                        {formatNum(opScoreTo100(entry.opScore), 1)}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </section>
+        <ChampionPowerTable
+          champions={filteredChampions}
+          teamChampions={data?.teamChampions ?? []}
+          limit={10}
+        />
       </section>
         </div>
       )}

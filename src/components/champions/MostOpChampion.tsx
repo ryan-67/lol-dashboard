@@ -4,6 +4,7 @@ import type { Champion } from '../../hooks/useDashboardData'
 import {
   computeOpScores,
   getBanRate,
+  getPresence,
   roleColor,
   roleLabel,
   type OpChampionEntry,
@@ -69,8 +70,8 @@ function SpotlightCard({
       <div className="op-stat-pills">
         <StatPill
           label="Presence"
-          value={`${champion.presence.toFixed(1)}%`}
-          ratio={barRatio(champion.presence, 100, 'pct')}
+          value={`${getPresence(champion).toFixed(1)}%`}
+          ratio={barRatio(getPresence(champion), 100, 'pct')}
         />
         <StatPill
           label="Win Rate"

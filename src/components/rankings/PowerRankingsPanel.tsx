@@ -13,6 +13,7 @@ import { fetchMlFreshness, type MlFreshness } from '../../lib/loadMlFreshness'
 import { fetchModelMetadata } from '../../lib/loadModelMetadata'
 import { matchPowerRegion, type PowerRegions } from '../../lib/powerRegionFilter'
 import { powerScoreTo100 } from '../../lib/scoreNormalize'
+import { MODEL_POWER_RANKINGS_SUBTITLE } from '../../lib/metricHints'
 import { animateMeterFill, staggerListReveal, tabTransitionIn } from '../../theme/animations'
 
 const ROLE_LABEL: Record<RatingRole, string> = {
@@ -43,27 +44,24 @@ interface PowerRankingsPanelProps {
   regions?: PowerRegions
   /** @deprecated Prefer `regions`. Single-region shorthand. */
   region?: PowerRegionFilter
-  /** Skip artifact fetch and render these rows (current-form hub board). */
-  bundleOverride?: PlayerRatingsBundle | null
 }
 
 export default function PowerRankingsPanel({
   limit = 10,
   title = 'nucky power rankings',
-  subtitle = 'Role-normalized player power from the nucky model (box-score prior + region shift).',
+  subtitle = MODEL_POWER_RANKINGS_SUBTITLE,
   role: roleProp,
   onRoleChange,
   hideRoleTabs = false,
   regions,
   region = 'all',
-  bundleOverride,
 }: PowerRankingsPanelProps) {
   const listRef = useRef<HTMLOListElement>(null)
-  const [bundle, setBundle] = useState<PlayerRatingsBundle | null>(bundleOverride ?? null)
+  const [bundle, setBundle] = useState<PlayerRatingsBundle | null>(null)
   const [freshness, setFreshness] = useState<MlFreshness | null>(null)
   const [modelExportedAt, setModelExportedAt] = useState<string | null>(null)
   const [internalRole, setInternalRole] = useState<RatingRole>('mid')
-  const [loading, setLoading] = useState(!bundleOverride)
+  const [loading, setLoading] = useState(true)
   const role = roleProp ?? internalRole
 
   const setRole = (next: RatingRole) => {
@@ -72,11 +70,6 @@ export default function PowerRankingsPanel({
   }
 
   useEffect(() => {
-    if (bundleOverride) {
-      setBundle(bundleOverride)
-      setLoading(false)
-      return
-    }
     let alive = true
     const load = (force = false) => {
       void fetchPlayerRatings({ force }).then((data) => {
@@ -102,7 +95,7 @@ export default function PowerRankingsPanel({
       alive = false
       document.removeEventListener('visibilitychange', onVis)
     }
-  }, [bundleOverride])
+  }, [])
 
   const effectiveRegions: PowerRegions = regions ?? (region === 'all' ? 'all' : [region])
 
@@ -112,7 +105,16 @@ export default function PowerRankingsPanel({
       effectiveRegions === 'all'
         ? all
         : all.filter((r) => matchPowerRegion(r.region, effectiveRegions))
-    return filtered.slice(0, limit)
+    return [...filtered]
+      .map((row) => ({
+        ...row,
+        displayScore100:
+          row.displayScore100 ??
+          powerScoreTo100(row.powerScore, { effGames: row.effGames }),
+      }))
+      .sort((a, b) => (b.displayScore100 ?? 0) - (a.displayScore100 ?? 0))
+      .slice(0, limit)
+      .map((row, idx) => ({ ...row, rank: idx + 1 }))
   }, [bundle, role, effectiveRegions, limit])
 
   const scored = useMemo(() => {

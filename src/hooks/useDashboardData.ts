@@ -162,6 +162,8 @@ export interface ChampionWeekStat {
   wins?: number
   winrate?: number
   presence: number
+  /** Unique matches in this week (team-rows / 2). Used to recompute pick/ban/presence. */
+  games?: number
 }
 
 export interface Champion {

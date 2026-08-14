@@ -1,4 +1,4 @@
-import type { Champion, Team } from '../hooks/useDashboardData'
+import type { Champion, Team, TeamChampion } from '../hooks/useDashboardData'
 import {
   type ChampionRoleContext,
   championPlayedRole,
@@ -72,7 +72,7 @@ export function getPresence(c: Champion, totalGames?: number): number {
   if (totalGames && totalGames > 0) {
     return championPresenceRates(c, totalGames).presence
   }
-  return Math.min(200, c.presence ?? 0)
+  return clampPresencePct(c)
 }
 
 export function topByPresence(champions: Champion[], limit = 20): Champion[] {
@@ -101,7 +101,7 @@ export function scatterBanRate(champion: Champion, totalGames: number): number {
   return Math.min(100, round((champion.bans / totalGames) * 100, 1))
 }
 
-/** Presence = pickRate + banRate, capped at 200%. */
+/** Presence = pick% + ban% (mutually exclusive draft outcomes), capped at 100%. */
 export function scatterPresence(champion: Champion, totalGames: number): number {
   return championPresenceRates(champion, totalGames).presence
 }
@@ -114,8 +114,18 @@ export function championPresenceRates(
   const games = Math.max(totalGames, 1)
   const pickRate = Math.min(100, round((champion.picks / games) * 100, 1))
   const banRate = Math.min(100, round((champion.bans / games) * 100, 1))
-  const presence = Math.min(200, round(pickRate + banRate, 1))
+  const presence = Math.min(100, round(pickRate + banRate, 1))
   return { pickRate, banRate, presence }
+}
+
+/** Pick + ban cannot exceed 100% of games — a champ is either picked, banned, or neither. */
+export function clampPresencePct(champion: Pick<Champion, 'presence' | 'pickRate' | 'banRate'>): number {
+  const pick = Math.min(100, champion.pickRate ?? 0)
+  const ban = Math.min(100, champion.banRate ?? 0)
+  if (champion.pickRate != null || champion.banRate != null) {
+    return Math.min(100, round(pick + ban, 1))
+  }
+  return Math.min(100, champion.presence ?? 0)
 }
 
 /** Stacked bar rates (same as championPresenceRates). */
@@ -459,10 +469,10 @@ export function computeOpScores(
   return scoreOpChampions(eligible, ctx)
 }
 
-/** Meta moves faster than player/team form — short half-life for hub power boards. */
-export const CHAMPION_FORM_HALF_LIFE_DAYS = 14
-const MIN_FORM_WEIGHTED_PICKS = 3
-const MIN_FORM_PRESENCE = 6
+/** Current-meta OP — recency-weighted over recent weeks, not the last-7-day hub window. */
+export const CHAMPION_FORM_HALF_LIFE_DAYS = 28
+const MIN_FORM_WEIGHTED_PICKS = 5
+const MIN_FORM_PRESENCE = 8
 
 /**
  * OP scores with exponential recency over weeklyStats so the hub board tracks
@@ -493,8 +503,7 @@ export function computeRecencyWeightedOpScores(
     let wPicks = 0
     let wWins = 0
     let wBans = 0
-    let wPresence = 0
-    let wPresenceMass = 0
+    let wGames = 0
 
     for (const week of weeks) {
       const weekStart = new Date(`${week.weekStart}T12:00:00Z`)
@@ -502,36 +511,33 @@ export function computeRecencyWeightedOpScores(
       const daysAgo = Math.max(0, (asOf.getTime() - weekStart.getTime()) / 86_400_000)
       const w = Math.exp(-decayLambda * daysAgo)
       const picks = week.picks ?? 0
-      if (picks <= 0 && !(week.bans > 0)) continue
+      const bans = week.bans ?? 0
+      if (picks <= 0 && bans <= 0) continue
       wPicks += picks * w
       const winrate = week.winrate ?? 0
       const wins =
         typeof week.wins === 'number' ? week.wins : (winrate / 100) * picks
       wWins += wins * w
-      wBans += (week.bans ?? 0) * w
-      wPresence += (week.presence ?? 0) * w
-      wPresenceMass += w
+      wBans += bans * w
+      wGames += weekGameCount(week) * w
     }
 
     if (wPicks < minPicks) continue
-    const presence = wPresenceMass > 0 ? wPresence / wPresenceMass : 0
+    const games = Math.max(wGames, wPicks + wBans, 1)
+    const pickRate = Math.min(100, (wPicks / games) * 100)
+    const banRate = Math.min(100, (wBans / games) * 100)
+    const presence = Math.min(100, pickRate + banRate)
     if (presence < minPresence) continue
-
-    // Split presence into pick/ban shares from the same weekly buckets.
-    const draftMass = wPicks + wBans
-    const pickShare = draftMass > 0 ? wPicks / draftMass : 0.5
-    const pickRate = presence * pickShare
-    const banRate = presence * (1 - pickShare)
 
     formChamps.push({
       ...c,
       picks: Math.round(wPicks),
       bans: Math.round(wBans),
       games: Math.round(wPicks),
-      presence: round(presence, 2),
-      pickRate: round(pickRate, 2),
-      banRate: round(banRate, 2),
-      winrate: wPicks > 0 ? round((wWins / wPicks) * 100, 2) : c.winrate,
+      presence: round(presence, 1),
+      pickRate: round(pickRate, 1),
+      banRate: round(banRate, 1),
+      winrate: wPicks > 0 ? round((wWins / wPicks) * 100, 1) : c.winrate,
       // KDA still from longer sample — weekly buckets don't carry it.
       avgKda: c.avgKda,
     })
@@ -546,6 +552,107 @@ export function computeRecencyWeightedOpScores(
   }
 
   return scoreOpChampions(formChamps, opts?.ctx)
+}
+
+function weekGameCount(week: { picks?: number; bans?: number; presence?: number; games?: number }): number {
+  if (typeof week.games === 'number' && week.games > 0) return week.games
+  const picks = week.picks ?? 0
+  const bans = week.bans ?? 0
+  const pb = picks + bans
+  const stored = week.presence ?? 0
+  if (stored > 0 && pb > 0) {
+    return Math.max(pb * 100 / Math.min(stored, 200), pb)
+  }
+  return Math.max(pb, 1)
+}
+
+export interface ChampionPowerRow {
+  rank: number
+  champion: Champion
+  role: RoleKey
+  opScore: number
+  winrate: number
+  presence: number
+  pickRate: number
+  banRate: number
+  avgPickOrder: number | null
+}
+
+export function avgPickOrderByChampion(teamChampions: TeamChampion[]): Map<string, number> {
+  const acc = new Map<string, { sum: number; n: number }>()
+  for (const row of teamChampions) {
+    if (row.avgPickOrder == null || !(row.picks > 0)) continue
+    const cur = acc.get(row.champion) ?? { sum: 0, n: 0 }
+    cur.sum += row.avgPickOrder * row.picks
+    cur.n += row.picks
+    acc.set(row.champion, cur)
+  }
+  const out = new Map<string, number>()
+  for (const [name, { sum, n }] of acc) {
+    if (n > 0) out.set(name, round(sum / n, 2))
+  }
+  return out
+}
+
+/**
+ * Current-meta champion power board (not the weekly hub window).
+ * Recency-weighted OP, padded from split OP so the table can fill a top 10.
+ */
+export function buildChampionPowerRows(
+  champions: Champion[],
+  opts?: {
+    teamChampions?: TeamChampion[]
+    limit?: number
+    asOf?: Date
+    role?: RoleFilter
+    ctx?: ChampionRoleContext
+  },
+): ChampionPowerRow[] {
+  const limit = opts?.limit ?? 10
+  const displayable = champions.filter(isDisplayableChampion)
+  const recency = computeRecencyWeightedOpScores(displayable, {
+    asOf: opts?.asOf,
+    halfLifeDays: CHAMPION_FORM_HALF_LIFE_DAYS,
+    minWeightedPicks: MIN_FORM_WEIGHTED_PICKS,
+    minPresence: MIN_FORM_PRESENCE,
+    ctx: opts?.ctx,
+  })
+  const role = opts?.role && opts.role !== 'all' ? opts.role : null
+  const seen = new Set<string>()
+  let scored = recency.all.filter((entry) => {
+    if (role && entry.role !== role) return false
+    seen.add(entry.champion.name)
+    return true
+  })
+  if (scored.length < limit) {
+    const split = computeOpScores(displayable, MIN_PICKS_OP, opts?.ctx)
+    for (const entry of split.all) {
+      if (scored.length >= limit) break
+      if (role && entry.role !== role) continue
+      if (seen.has(entry.champion.name)) continue
+      seen.add(entry.champion.name)
+      scored.push(entry)
+    }
+  }
+
+  const pickOrder = avgPickOrderByChampion(opts?.teamChampions ?? [])
+
+  return scored.slice(0, limit).map((entry, idx) => {
+    const pickRate = Math.min(100, entry.champion.pickRate ?? 0)
+    const banRate = Math.min(100, entry.champion.banRate ?? 0)
+    const presence = Math.min(100, clampPresencePct(entry.champion))
+    return {
+      rank: idx + 1,
+      champion: entry.champion,
+      role: entry.role,
+      opScore: entry.opScore,
+      winrate: entry.champion.winrate,
+      presence,
+      pickRate,
+      banRate,
+      avgPickOrder: pickOrder.get(entry.champion.name) ?? null,
+    }
+  })
 }
 
 function round(value: number, digits: number): number {

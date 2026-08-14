@@ -61,6 +61,28 @@ function recapQualityScore(line: WeeklyRecapLine): number {
   return score
 }
 
+const SWEEP_CONTRADICTS_NARRATIVE =
+  /dropped game 1|taking game 1|took game 1|despite .{0,80}game 1|sequence\s+\(?W?L\b|after dropping|rallied .{0,50}2-0/i
+
+/**
+ * Cached AI text often knows a series went 2-1 while the template score is still a
+ * placeholder 2-0. Lift the displayed score when the narrative contradicts a sweep.
+ */
+export function reconcileRecapScoreFromNarrative(line: WeeklyRecapLine): WeeklyRecapLine {
+  const current = line.score.score
+  if (current !== '2-0') return line
+  let text = ''
+  try {
+    text = recapLineToText(line)
+  } catch {
+    return line
+  }
+  if (/\b2-1\b/.test(text) || SWEEP_CONTRADICTS_NARRATIVE.test(text)) {
+    return { ...line, score: { ...line.score, score: '2-1' } }
+  }
+  return line
+}
+
 function mergeRecapPair(a: WeeklyRecapLine, b: WeeklyRecapLine): WeeklyRecapLine {
   // Prefer richer AI narratives with tournament stakes over short/stale templates.
   const primary = recapQualityScore(a) >= recapQualityScore(b) ? a : b
@@ -133,6 +155,7 @@ export function mergeWeeklyRecapLines(
   }
 
   return [...byOccurrence.values()]
+    .map(reconcileRecapScoreFromNarrative)
     .sort((a, b) => b.date.localeCompare(a.date) || a.id.localeCompare(b.id))
     .slice(0, limit)
 }

@@ -33,6 +33,7 @@ import {
   nextOpponentInContext,
   recapHasFullSeriesEvidence,
   resolveSeriesScoreWithCito,
+  liftStaleSweepIfOvermapped,
   teamHasUpcomingInTournament,
 } from './citoSeriesVerify'
 import { isBracketContextEvent, resolveTournamentFormat } from './tournamentFormat'
@@ -1407,8 +1408,8 @@ function summarizeSeries(
   const winsB = games.length - winsA
   const dominant = winsA >= winsB ? teamA : teamB
   const victim = dominant === teamA ? teamB : teamA
-  const domWins = Math.max(winsA, winsB)
-  const vicWins = Math.min(winsA, winsB)
+  let domWins = Math.max(winsA, winsB)
+  let vicWins = Math.min(winsA, winsB)
 
   const region = teamLeague(teams, dominant)
   const domSplitWr = splitWinrate(teams, dominant)
@@ -1419,6 +1420,9 @@ function summarizeSeries(
   const firstGameDate = ordered[0]!.date
   const momentum = analyzeSeriesMomentum(games, dominant)
   const { reverseSweep, droppedGame1, leadBlownBy } = momentum
+  if (droppedGame1 && vicWins === 0 && domWins >= 2) {
+    vicWins = 1
+  }
   const blowout = domWins >= 2 && vicWins === 0
   const upset = upsetFromWr(domSplitWr, vicSplitWr)
 
@@ -1588,6 +1592,26 @@ function seriesCoverageKey(teamA: string, teamB: string, date: string): string {
  * Hub recap lines: OE-enriched when box scores exist; Cito-complete shells when OE lags.
  * V3-1: Cito results can invent series rows the OE week is missing.
  */
+function liftResolvedWithBoxEvidence(
+  resolved: import('./citoSeriesVerify').ResolvedSeriesScore,
+  oeGameCount: number,
+  teamA: string,
+  teamB: string,
+  date: string,
+  citoPlayerStats?: CitoPlayerStatsBundle | null,
+): import('./citoSeriesVerify').ResolvedSeriesScore {
+  const matchRows = resolved.cito?.matchId
+    ? rowsForMatch(citoPlayerStats ?? null, resolved.cito.matchId)
+    : []
+  const dateRows = rowsForTeamsDate(citoPlayerStats ?? null, teamA, teamB, date)
+  const evidence = Math.max(
+    oeGameCount,
+    uniqueCitoGameCount(matchRows),
+    uniqueCitoGameCount(dateRows),
+  )
+  return liftStaleSweepIfOvermapped(resolved, evidence)
+}
+
 export function buildWeeklyRecapLines(
   players: Player[],
   teams: Team[],
@@ -1595,6 +1619,7 @@ export function buildWeeklyRecapLines(
   _league: string,
   gameCatalog?: Record<string, GameCatalogEntry>,
   citoResults?: CitoSeriesResult[],
+  citoPlayerStats?: CitoPlayerStatsBundle | null,
 ): WeeklyRecapLine[] {
   if (!window) return []
   const games = collectWeeklyGames(players, window, gameCatalog)
@@ -1624,7 +1649,7 @@ export function buildWeeklyRecapLines(
       yearHint,
       firstGame.split,
     )
-    const resolved = resolveSeriesScoreWithCito(
+    const resolvedRaw = resolveSeriesScoreWithCito(
       bucket.teamA,
       bucket.teamB,
       winsA,
@@ -1632,6 +1657,14 @@ export function buildWeeklyRecapLines(
       latestDate,
       cito,
       seriesResolveOpts(firstGame.league, firstGame.split, firstGame.playoffs, tournamentHint),
+    )
+    const resolved = liftResolvedWithBoxEvidence(
+      resolvedRaw,
+      bucket.games.length,
+      bucket.teamA,
+      bucket.teamB,
+      latestDate,
+      citoPlayerStats,
     )
     // Allow OE mid-Bo5 stubs (e.g. 2-2) when Cito already has the final score.
     // Weekly hub + recaps only show concluded series.
@@ -1706,14 +1739,21 @@ export function buildWeeklyRecapLines(
     if (!isCitoRowCompletedForRecap(row)) continue
     if (typeof row.scoreA !== 'number' || typeof row.scoreB !== 'number') continue
     if (!isValidSeriesScore(row.scoreA, row.scoreB)) continue
-    const resolvedShell = resolveSeriesScoreWithCito(
+    const resolvedShell = liftResolvedWithBoxEvidence(
+      resolveSeriesScoreWithCito(
+        row.teamA,
+        row.teamB,
+        row.scoreA,
+        row.scoreB,
+        (row.scheduledAt ?? '').slice(0, 10),
+        cito,
+        seriesResolveOpts(row.league, null, false, row.tournamentName ?? row.blockName),
+      ),
+      0,
       row.teamA,
       row.teamB,
-      row.scoreA,
-      row.scoreB,
       (row.scheduledAt ?? '').slice(0, 10),
-      cito,
-      seriesResolveOpts(row.league, null, false, row.tournamentName ?? row.blockName),
+      citoPlayerStats,
     )
     if (!isSeriesReadyForRecap(resolvedShell)) continue
     const date = (row.scheduledAt ?? '').slice(0, 10)
@@ -1733,7 +1773,11 @@ export function buildWeeklyRecapLines(
       return Math.abs(daysBetweenDates(date, d)) <= 1
     })
     if (nearCovered) continue
-    const shell = buildCitoShellRecapLine(row)
+    const shell = buildCitoShellRecapLine({
+      ...row,
+      scoreA: resolvedShell.winsA,
+      scoreB: resolvedShell.winsB,
+    })
     if (!shell) continue
     covered.add(key)
     lines.push(shell)
@@ -2262,14 +2306,21 @@ export function collectSeriesBriefs(
     const leaguePre = (g0pre.league ?? 'LCK').toUpperCase()
     const yearPre = g0pre.oeYear ?? latestDate.slice(0, 4)
     const tournamentLabelPre = intlTournamentLabel(leaguePre, yearPre, g0pre.split)
-    const resolved = resolveSeriesScoreWithCito(
+    const resolved = liftResolvedWithBoxEvidence(
+      resolveSeriesScoreWithCito(
+        bucket.teamA,
+        bucket.teamB,
+        winsA,
+        winsB,
+        latestDate,
+        cito,
+        seriesResolveOpts(g0pre.league, g0pre.split, g0pre.playoffs, tournamentLabelPre),
+      ),
+      bucket.games.length,
       bucket.teamA,
       bucket.teamB,
-      winsA,
-      winsB,
       latestDate,
-      cito,
-      seriesResolveOpts(g0pre.league, g0pre.split, g0pre.playoffs, tournamentLabelPre),
+      citoPlayerStats,
     )
     if (!isSeriesReadyForRecap(resolved)) {
       console.warn(

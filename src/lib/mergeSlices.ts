@@ -620,7 +620,7 @@ function mergeChampions(slices: DashboardSlice[]): Champion[] {
       const positions = [...c.positions].sort()
       const pickRate = Math.min(100, round((c.picks / games) * 100, 1))
       const banRate = Math.min(100, round((c.bans / games) * 100, 1))
-      const presence = Math.min(200, round(pickRate + banRate, 1))
+      const presence = Math.min(100, round(pickRate + banRate, 1))
       const weeklyStats = [...c.weekly.entries()]
         .sort(([a], [b]) => a.localeCompare(b))
         .map(([weekStart, stats]) => {
@@ -633,7 +633,8 @@ function mergeChampions(slices: DashboardSlice[]): Champion[] {
             bans: stats.bans,
             wins: stats.wins,
             winrate: stats.picks ? round((stats.wins / stats.picks) * 100, 1) : 0,
-            presence: Math.min(200, round(weekPick + weekBan, 1)),
+            presence: Math.min(100, round(weekPick + weekBan, 1)),
+            games: round(weekGames, 1),
           }
         })
       return {

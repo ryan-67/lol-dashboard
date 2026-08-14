@@ -479,6 +479,25 @@ export function recapHasFullSeriesEvidence(opts: {
   return true
 }
 
+/**
+ * OE/Cito score still says 2-0 but three maps already exist → treat as 2-1.
+ * Winner is unchanged; the missing map is the game they dropped.
+ */
+export function liftStaleSweepIfOvermapped(
+  resolved: ResolvedSeriesScore,
+  evidence: number,
+): ResolvedSeriesScore {
+  if (!resolved.complete || resolved.skipCompleted || resolved.provisional) return resolved
+  if (resolved.bestOf === 5) return resolved
+  const max = Math.max(resolved.winsA, resolved.winsB)
+  const min = Math.min(resolved.winsA, resolved.winsB)
+  if (max !== 2 || min !== 0 || evidence < 3) return resolved
+  if (resolved.winsA > resolved.winsB) {
+    return { ...resolved, winsA: 2, winsB: 1, score: '2-1' }
+  }
+  return { ...resolved, winsA: 1, winsB: 2, score: '2-1' }
+}
+
 /** Live score label for series pages (never implies a false final when in progress). */
 export function formatSeriesScoreLabel(opts: {
   teamA: string
