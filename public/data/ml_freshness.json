@@ -1,8 +1,8 @@
 {
-  "generatedAt": "2026-08-13T21:33:47.308323+00:00",
+  "generatedAt": "2026-08-14T02:42:13.584495+00:00",
   "retrainOutcome": "success",
   "oeDataThrough": "2026-08-13",
-  "modelExportedAt": "2026-08-13T21:33:45.230579+00:00",
+  "modelExportedAt": "2026-08-14T02:42:11.537285+00:00",
   "modelHoldoutEnd": "2026-08-13",
   "oeAheadOfModelDays": 0,
   "note": "Team Elo + player ratings only update when ML retrain commits successfully. OE shards can advance while model artifacts stay frozen if retrain soft-fails. Static site reads public/data/*; agent-chat needs supabase functions deploy."
