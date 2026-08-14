@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-14T13:53:50.188534+00:00",
+  "generatedAt": "2026-08-14T15:41:48.330470+00:00",
   "championsCurated": 172,
   "primaryRoleValidation": {
     "checked": 122,
@@ -35,7 +35,7 @@
         ],
         "empiricalPrimaryRole": "adc",
         "roleShift": false,
-        "totalGames": 820
+        "totalGames": 821
       },
       {
         "champion": "Pantheon",
@@ -56,7 +56,7 @@
         ],
         "empiricalPrimaryRole": "adc",
         "roleShift": false,
-        "totalGames": 263
+        "totalGames": 264
       },
       {
         "champion": "Shen",
@@ -65,7 +65,7 @@
         ],
         "empiricalPrimaryRole": "support",
         "roleShift": false,
-        "totalGames": 194
+        "totalGames": 196
       },
       {
         "champion": "Tristana",
@@ -188,8 +188,8 @@
           "champion": "Ambessa",
           "curatedLaneBully": true,
           "empiricalLaneBully": false,
-          "vsRoleMedianGd15": -45.2,
-          "games": 866
+          "vsRoleMedianGd15": -47.3,
+          "games": 867
         },
         {
           "champion": "Aphelios",
@@ -223,8 +223,8 @@
           "champion": "Corki",
           "curatedLaneBully": true,
           "empiricalLaneBully": false,
-          "vsRoleMedianGd15": -136.6,
-          "games": 820
+          "vsRoleMedianGd15": -135.1,
+          "games": 821
         },
         {
           "champion": "Elise",
@@ -279,8 +279,8 @@
           "champion": "Lee Sin",
           "curatedLaneBully": false,
           "empiricalLaneBully": true,
-          "vsRoleMedianGd15": 182.2,
-          "games": 314
+          "vsRoleMedianGd15": 179.3,
+          "games": 315
         },
         {
           "champion": "Lillia",
@@ -399,7 +399,7 @@
           "curatedLate": false,
           "empiricalLateGameScaler": true,
           "scalingCurve": "mid",
-          "games": 662
+          "games": 663
         },
         {
           "champion": "Jinx",
@@ -427,7 +427,7 @@
           "curatedLate": false,
           "empiricalLateGameScaler": true,
           "scalingCurve": "early",
-          "games": 314
+          "games": 315
         },
         {
           "champion": "Leona",
@@ -483,7 +483,7 @@
           "curatedEarly": true,
           "empiricalFrontLoaded": false,
           "scalingCurve": "early",
-          "games": 822
+          "games": 823
         },
         {
           "champion": "Annie",
@@ -504,7 +504,7 @@
           "curatedEarly": false,
           "empiricalFrontLoaded": true,
           "scalingCurve": "mid",
-          "games": 446
+          "games": 447
         },
         {
           "champion": "Bard",
@@ -567,7 +567,7 @@
           "curatedEarly": true,
           "empiricalFrontLoaded": false,
           "scalingCurve": "early",
-          "games": 625
+          "games": 626
         },
         {
           "champion": "K'Sante",
@@ -609,7 +609,7 @@
           "curatedEarly": true,
           "empiricalFrontLoaded": false,
           "scalingCurve": "early",
-          "games": 314
+          "games": 315
         }
       ]
     }
@@ -625,7 +625,7 @@
         "defenderTag": "cc_heavy",
         "label": "Mobility escapes hard-CC/engage",
         "status": "validated",
-        "gamesWithCondition": 5857,
+        "gamesWithCondition": 5861,
         "winrateWithCondition": 50.0,
         "gamesWithout": 160,
         "winrateWithout": 52.5,
@@ -636,7 +636,7 @@
         "defenderTag": "engage",
         "label": "Mobility escapes engage comps",
         "status": "validated",
-        "gamesWithCondition": 5689,
+        "gamesWithCondition": 5693,
         "winrateWithCondition": 50.3,
         "gamesWithout": 328,
         "winrateWithout": 46.6,
@@ -647,7 +647,7 @@
         "defenderTag": "burst",
         "label": "Tanks blunt burst-heavy comps",
         "status": "validated",
-        "gamesWithCondition": 3930,
+        "gamesWithCondition": 3933,
         "winrateWithCondition": 49.7,
         "gamesWithout": 1685,
         "winrateWithout": 48.1,
@@ -658,7 +658,7 @@
         "defenderTag": "dive",
         "label": "Poke checks dive comps before they close",
         "status": "validated",
-        "gamesWithCondition": 6065,
+        "gamesWithCondition": 6069,
         "winrateWithCondition": 49.5,
         "gamesWithout": 394,
         "winrateWithout": 50.0,
@@ -680,7 +680,7 @@
         "defenderTag": "dive",
         "label": "Peel/anti-dive protects into dive comps",
         "status": "validated",
-        "gamesWithCondition": 4250,
+        "gamesWithCondition": 4253,
         "winrateWithCondition": 50.8,
         "gamesWithout": 293,
         "winrateWithout": 47.4,
