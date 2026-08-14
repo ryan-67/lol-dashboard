@@ -118,7 +118,14 @@ export function mergeWeeklyRecapLines(
       const max = m ? Math.max(Number(m[1]), Number(m[2])) : 0
       if (max < 3) continue
     }
-    byKey.set(key, mergeRecapPair(byKey.get(key) ?? line, line))
+    const existing = byKey.get(key)
+    if (existing && matchesTemplate) {
+      // Keep live template score — cached AI text can hallucinate 3-0 onto a Bo3.
+      const merged = mergeRecapPair(existing, line)
+      byKey.set(key, { ...merged, score: existing.score })
+    } else {
+      byKey.set(key, mergeRecapPair(existing ?? line, line))
+    }
   }
 
   // Collapse same-day duplicates when seriesIds differ (e.g. TL vs Team Liquid naming).

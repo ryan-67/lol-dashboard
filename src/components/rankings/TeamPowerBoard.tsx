@@ -18,14 +18,24 @@ interface TeamPowerBoardProps {
    * must not hide LCK teams from the Elo board).
    */
   regions?: PowerRegions
+  /** Current-form rows (Hub). When set, skip Elo artifact fetch. */
+  rowsOverride?: Array<{ name: string; region: string; rating: number; score100: number }>
 }
 
 /** Global team power board from Component 1 Elo (region_strength.json), display-normalized /100. */
-export default function TeamPowerBoard({ limit = 8, regions = 'all' }: TeamPowerBoardProps) {
+export default function TeamPowerBoard({
+  limit = 10,
+  regions = 'all',
+  rowsOverride,
+}: TeamPowerBoardProps) {
   const [bundle, setBundle] = useState<RegionStrengthBundle | null>(null)
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState(!rowsOverride)
 
   useEffect(() => {
+    if (rowsOverride) {
+      setLoading(false)
+      return
+    }
     let alive = true
     void fetchRegionStrength().then((data) => {
       if (!alive) return
@@ -35,9 +45,15 @@ export default function TeamPowerBoard({ limit = 8, regions = 'all' }: TeamPower
     return () => {
       alive = false
     }
-  }, [])
+  }, [rowsOverride])
 
   const ranked = useMemo(() => {
+    if (rowsOverride?.length) {
+      return rowsOverride.slice(0, limit).map((row, idx) => ({
+        ...row,
+        rank: idx + 1,
+      }))
+    }
     if (!bundle) return []
 
     return Object.entries(bundle.teams)
@@ -52,7 +68,7 @@ export default function TeamPowerBoard({ limit = 8, regions = 'all' }: TeamPower
       .sort((a, b) => b.rating - a.rating)
       .slice(0, limit)
       .map((row, idx) => ({ ...row, rank: idx + 1 }))
-  }, [bundle, regions, limit])
+  }, [bundle, regions, limit, rowsOverride])
 
   if (loading) {
     return (
@@ -81,8 +97,9 @@ export default function TeamPowerBoard({ limit = 8, regions = 'all' }: TeamPower
         <div>
           <h2 className="card-title">nucky team power</h2>
           <p className="card-subtitle mb-0">
-            Component 1 Elo (0.8×team + 0.2×region) — scores shown out of 100 for dashboard
-            consistency. Board follows the LEAGUE filter; All Tier 1 shows every region.
+            {rowsOverride
+              ? 'Current-form team scores from the hub window (recent maps, not all-time Elo). 100 would mean a near-perfect stretch.'
+              : 'Component 1 Elo (0.8×team + 0.2×region) — scores shown out of 100. 100 would require Elo ~2000; typical leaders land in the high 70s–80s.'}
           </p>
         </div>
       </div>
@@ -96,7 +113,10 @@ export default function TeamPowerBoard({ limit = 8, regions = 'all' }: TeamPower
                 <EntityLink type="team" name={row.name} showIcon={false} />
               </span>
               <span className="power-rankings-meta">
-                {row.region} · Elo {formatNum(row.rating, 1)}
+                {row.region}
+                {rowsOverride
+                  ? ` · ${formatNum(row.rating, 0)}% WR`
+                  : ` · Elo ${formatNum(row.rating, 1)}`}
               </span>
             </span>
             <span className="power-rankings-score" title="power score /100">

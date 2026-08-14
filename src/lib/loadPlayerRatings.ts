@@ -10,6 +10,8 @@ export interface PlayerPowerRow {
   boxScoreZ: number
   regionShift: number
   powerScore: number
+  /** When set, skip powerScoreTo100 and show this 0–100 value (current-form boards). */
+  displayScore100?: number
 }
 
 export interface PlayerRatingsBundle {

@@ -45,6 +45,7 @@ import {
 import { readFileSync } from 'fs'
 import { resolve } from 'path'
 import type { CitoPlayerStatsBundle } from '../../src/lib/citoPlayerStats.ts'
+import { overlayCitoGameLogsOnPlayers } from '../../src/lib/citoPlayerStats.ts'
 
 function loadCitoPlayerStatsFromDisk(): CitoPlayerStatsBundle {
   try {
@@ -102,6 +103,7 @@ async function main(): Promise<void> {
   for (const row of citoOnly) byId.set(row.matchId, row)
   const citoResults = [...byId.values()]
   const citoPlayerStats = loadCitoPlayerStatsFromDisk()
+  players = overlayCitoGameLogsOnPlayers(players, citoPlayerStats)
   console.log(
     `  ${citoOnly.length} Cito + ${external.length} external → ${citoResults.length} row(s) for cross-check`,
   )
@@ -137,6 +139,7 @@ async function main(): Promise<void> {
     if (!briefs.length && client && process.env.RECAP_FROM_SUPABASE !== '1') {
       console.log('No series from local shards — loading fresh oe_slices from Supabase...')
       ;({ players, teams } = await loadTier1DataFromSupabase(client, year))
+      players = overlayCitoGameLogsOnPlayers(players, citoPlayerStats)
       const retryWindow = getHubWindow(players, 'monthly', { citoLatestDate: citoLatest })
       if (retryWindow) {
         recapWindow = windowToWeeklyRecapWindow(retryWindow)

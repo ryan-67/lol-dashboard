@@ -376,4 +376,5 @@ export const CHAMPION_DDRAGON: Record<string, string> = {
   'RekSai': 'RekSai',
   'VelKoz': 'Velkoz',
   'BelVeth': 'Belveth',
+  Locke: 'Locke',
 }

@@ -9,6 +9,14 @@ import urllib.request
 from pathlib import Path
 
 OUT_PATH = Path(__file__).resolve().parent.parent / "src" / "data" / "ddragon-champions.json"
+AGENT_CHAT_PATH = (
+    Path(__file__).resolve().parent.parent
+    / "supabase"
+    / "functions"
+    / "agent-chat"
+    / "data"
+    / "ddragon-champions.json"
+)
 VERSIONS_URL = "https://ddragon.leagueoflegends.com/api/versions.json"
 
 
@@ -41,9 +49,14 @@ def main() -> int:
         "byNormalizedName": dict(sorted(by_normalized.items())),
     }
 
+    text = json.dumps(manifest, indent=2) + "\n"
     OUT_PATH.parent.mkdir(parents=True, exist_ok=True)
-    OUT_PATH.write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
-    print(f"Wrote {len(by_name)} champions @ {version} -> {OUT_PATH}")
+    OUT_PATH.write_text(text, encoding="utf-8")
+    if AGENT_CHAT_PATH.parent.exists():
+        AGENT_CHAT_PATH.write_text(text, encoding="utf-8")
+        print(f"Wrote {len(by_name)} champions @ {version} -> {OUT_PATH} + agent-chat copy")
+    else:
+        print(f"Wrote {len(by_name)} champions @ {version} -> {OUT_PATH}")
     return 0
 
 

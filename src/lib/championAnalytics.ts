@@ -461,8 +461,8 @@ export function computeOpScores(
 
 /** Meta moves faster than player/team form — short half-life for hub power boards. */
 export const CHAMPION_FORM_HALF_LIFE_DAYS = 14
-const MIN_FORM_WEIGHTED_PICKS = 4
-const MIN_FORM_PRESENCE = 12
+const MIN_FORM_WEIGHTED_PICKS = 3
+const MIN_FORM_PRESENCE = 6
 
 /**
  * OP scores with exponential recency over weeklyStats so the hub board tracks

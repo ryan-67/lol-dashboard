@@ -150,11 +150,7 @@ export function latestCitoCompletedDate(
   let best: Date | null = null
   for (const row of results) {
     const status = (row.status ?? '').trim().toLowerCase().replace(/\s+/g, '_')
-    const completed =
-      ['completed', 'finished', 'done', 'complete'].includes(status) ||
-      (typeof row.scoreA === 'number' &&
-        typeof row.scoreB === 'number' &&
-        Math.max(row.scoreA, row.scoreB) >= 2)
+    const completed = ['completed', 'finished', 'done', 'complete'].includes(status)
     if (!completed) continue
     const d = parseDate(row.scheduledAt ?? '')
     if (!d) continue

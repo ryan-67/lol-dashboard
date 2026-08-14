@@ -27,9 +27,11 @@ import { resolveTournamentDisplay, buildTournamentIdentity } from './tournamentC
 import { resolveGameOpponent } from './gameOpponent'
 import {
   type CitoSeriesResult,
+  isCitoRowCompletedForRecap,
   isInternationalContext,
   isSeriesReadyForRecap,
   nextOpponentInContext,
+  recapHasFullSeriesEvidence,
   resolveSeriesScoreWithCito,
   teamHasUpcomingInTournament,
 } from './citoSeriesVerify'
@@ -38,6 +40,7 @@ import {
   hasSufficientCitoBoxScores,
   rowsForMatch,
   rowsForTeamsDate,
+  uniqueCitoGameCount,
   type CitoPlayerStatCacheRow,
   type CitoPlayerStatsBundle,
 } from './citoPlayerStats'
@@ -1697,18 +1700,22 @@ export function buildWeeklyRecapLines(
     })
   }
 
-  // Cito-only series OE never ingested (blank week / missing LCK·LPL slices).
+  // Cito-only series OE never ingested — still require completed status + recap gate.
   for (const row of cito) {
     if (!citoSeriesInWindow(row, window)) continue
-    const status = (row.status ?? '').trim().toLowerCase().replace(/\s+/g, '_')
-    const completed =
-      ['completed', 'finished', 'done', 'complete'].includes(status) ||
-      (typeof row.scoreA === 'number' &&
-        typeof row.scoreB === 'number' &&
-        isValidSeriesScore(row.scoreA, row.scoreB))
-    if (!completed) continue
+    if (!isCitoRowCompletedForRecap(row)) continue
     if (typeof row.scoreA !== 'number' || typeof row.scoreB !== 'number') continue
     if (!isValidSeriesScore(row.scoreA, row.scoreB)) continue
+    const resolvedShell = resolveSeriesScoreWithCito(
+      row.teamA,
+      row.teamB,
+      row.scoreA,
+      row.scoreB,
+      (row.scheduledAt ?? '').slice(0, 10),
+      cito,
+      seriesResolveOpts(row.league, null, false, row.tournamentName ?? row.blockName),
+    )
+    if (!isSeriesReadyForRecap(resolvedShell)) continue
     const date = (row.scheduledAt ?? '').slice(0, 10)
     const key = seriesCoverageKey(row.teamA, row.teamB, date)
     if (covered.has(key)) continue
@@ -1915,6 +1922,7 @@ export function buildCitoOnlySeriesBrief(
   citoPeers: CitoSeriesResult[] = [],
   citoPlayerStats?: CitoPlayerStatsBundle | null,
 ): SeriesBrief | null {
+  if (!isCitoRowCompletedForRecap(row)) return null
   if (typeof row.scoreA !== 'number' || typeof row.scoreB !== 'number') return null
   if (!isValidSeriesScore(row.scoreA, row.scoreB)) return null
   const date = (row.scheduledAt ?? '').slice(0, 10)
@@ -1929,7 +1937,19 @@ export function buildCitoOnlySeriesBrief(
     [row, ...citoPeers],
     seriesResolveOpts(row.league, null, false, row.tournamentName ?? row.blockName),
   )
+  if (!isCitoRowCompletedForRecap(row)) return null
   if (!isSeriesReadyForRecap(resolved)) return null
+  const boxRows = rowsForMatch(citoPlayerStats ?? null, row.matchId)
+  const boxGames = uniqueCitoGameCount(boxRows)
+  if (
+    !recapHasFullSeriesEvidence({
+      resolved,
+      oeGameCount: 0,
+      citoBoxGameCount: boxGames,
+    })
+  ) {
+    return null
+  }
 
   const winner = resolved.winner
   const loser = resolved.loser
@@ -2265,13 +2285,26 @@ export function collectSeriesBriefs(
       )
       continue
     }
-    // V3-1: keep series when Cito has the final score even if OE box scores lag.
     const neededGames = resolved.winsA + resolved.winsB
-    if (bucket.games.length < neededGames) {
+    const boxRows = rowsForTeamsDate(
+      citoPlayerStats,
+      bucket.teamA,
+      bucket.teamB,
+      latestDate,
+    )
+    const boxGames = uniqueCitoGameCount(boxRows)
+    if (
+      !recapHasFullSeriesEvidence({
+        resolved,
+        oeGameCount: bucket.games.length,
+        citoBoxGameCount: boxGames,
+      })
+    ) {
       console.warn(
-        `OE-lag series ${bucket.teamA} vs ${bucket.teamB}: schedule ${resolved.score} but only ` +
-          `${bucket.games.length}/${neededGames} OE games — using Cito score`,
+        `Skipping ${bucket.teamA} vs ${bucket.teamB}: schedule ${resolved.score} needs ` +
+          `${neededGames} maps, have OE ${bucket.games.length} / Cito ${boxGames}`,
       )
+      continue
     }
 
     const dominant = resolved.winner

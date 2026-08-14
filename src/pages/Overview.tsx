@@ -48,12 +48,17 @@ import SectionSubnav, { type SectionSubnavItem } from '../components/ui/SectionS
 import PowerRankingsPanel from '../components/rankings/PowerRankingsPanel'
 import TeamPowerBoard from '../components/rankings/TeamPowerBoard'
 import ScoreCaveat from '../components/ui/ScoreCaveat'
-import { MODEL_POWER_RANKINGS_SUBTITLE } from '../lib/metricHints'
 import { powerRegionsFromSelectedLeagues } from '../lib/powerRegionFilter'
 import { buildWeeklyRecapLines } from '../lib/weeklyRecap'
 import { mergeWeeklyRecapLines } from '../lib/recapMerge'
 import { fetchCachedWeeklyRecapLines } from '../lib/loadWeeklyRecap'
 import { fetchCitoSeriesResults, type CitoSeriesResult } from '../lib/citoSeriesVerify'
+import {
+  fetchCitoPlayerStatsBundle,
+  overlayCitoGameLogsOnPlayers,
+  type CitoPlayerStatsBundle,
+} from '../lib/citoPlayerStats'
+import { buildCurrentFormPlayerBundle, buildCurrentFormTeamRows } from '../lib/currentFormRankings'
 import { resolveGameOpponent } from '../lib/gameOpponent'
 import {
   getHubWindow,
@@ -503,12 +508,16 @@ export default function Overview() {
   const copy = HUB_COPY[displayPeriod]
 
   const [citoResults, setCitoResults] = useState<CitoSeriesResult[]>([])
+  const [citoPlayerStats, setCitoPlayerStats] = useState<CitoPlayerStatsBundle | null>(null)
   const [regionStrength, setRegionStrength] = useState<RegionStrengthBundle | null>(null)
 
   useEffect(() => {
     let cancelled = false
     void fetchCitoSeriesResults({ sinceDays: 45 }).then((rows) => {
       if (!cancelled) setCitoResults(rows)
+    })
+    void fetchCitoPlayerStatsBundle().then((bundle) => {
+      if (!cancelled) setCitoPlayerStats(bundle)
     })
     void fetchRegionStrength().then((bundle) => {
       if (!cancelled) setRegionStrength(bundle)
@@ -518,15 +527,20 @@ export default function Overview() {
     }
   }, [])
 
+  const hubPlayers = useMemo(
+    () => overlayCitoGameLogsOnPlayers(weeklyHubPlayers, citoPlayerStats),
+    [weeklyHubPlayers, citoPlayerStats],
+  )
+
   const citoLatestDate = useMemo(() => latestCitoCompletedDate(citoResults), [citoResults])
 
   const hubWindow = useMemo(
-    () => getHubWindow(weeklyHubPlayers, displayPeriod, { citoLatestDate }),
-    [weeklyHubPlayers, displayPeriod, citoLatestDate],
+    () => getHubWindow(hubPlayers, displayPeriod, { citoLatestDate }),
+    [hubPlayers, displayPeriod, citoLatestDate],
   )
   const weeklyPlayers = useMemo(
-    () => (hubWindow ? getWeeklyPlayers(weeklyHubPlayers, hubWindow) : []),
-    [weeklyHubPlayers, hubWindow],
+    () => (hubWindow ? getWeeklyPlayers(hubPlayers, hubWindow) : []),
+    [hubPlayers, hubWindow],
   )
 
   const playerOfWeek = useMemo(
@@ -558,17 +572,35 @@ export default function Overview() {
         weeklyGames: p.weeklyGames,
       })),
       {
-        allPlayers: weeklyHubPlayers,
+        allPlayers: hubPlayers,
         splitWinrates: teamPool.map((t) => ({ name: t.name, winrate: t.winrate })),
         teamElo: eloMap.size ? eloMap : null,
       },
     )
-  }, [weeklyPlayers, weeklyHubTeams, weeklyHubPlayers, regionStrength])
+  }, [weeklyPlayers, weeklyHubTeams, hubPlayers, regionStrength])
   const hottestTeam = hottestTeams[0] ?? null
   const hottestTeamEntity = useMemo(
     () => (hottestTeam ? findTeamByName(weeklyHubTeams, hottestTeam.team) : null),
     [hottestTeam, weeklyHubTeams],
   )
+
+  const formPlayerBundle = useMemo(
+    () =>
+      weeklyPlayers.length
+        ? buildCurrentFormPlayerBundle(
+            weeklyPlayers,
+            hubWindow?.end?.toISOString?.() ?? new Date().toISOString(),
+            10,
+          )
+        : null,
+    [weeklyPlayers, hubWindow],
+  )
+
+  const formTeamRows = useMemo(() => {
+    if (!hottestTeams.length) return []
+    const leagueByTeam = new Map(weeklyHubTeams.map((t) => [t.name, t.league]))
+    return buildCurrentFormTeamRows(hottestTeams, leagueByTeam, 10)
+  }, [hottestTeams, weeklyHubTeams])
 
   const championOpResult = useMemo(() => {
     if (!hubWindow) return { top: null, runners: [] }
@@ -585,21 +617,22 @@ export default function Overview() {
     return computeRecencyWeightedOpScores(displayable, {
       asOf: hubWindow?.end ?? new Date(),
       halfLifeDays: 14,
-      minPresence: 12,
+      minPresence: 6,
+      minWeightedPicks: 3,
     }).all.slice(0, 10)
   }, [filteredChampions, hubWindow])
 
   const templateRecapLines = useMemo(() => {
     if (!hubWindow) return []
     return buildWeeklyRecapLines(
-      weeklyHubPlayers,
+      hubPlayers,
       weeklyHubTeams,
       hubWindow,
       league,
       weeklyHubGameCatalog,
       citoResults,
     )
-  }, [weeklyHubPlayers, weeklyHubTeams, hubWindow, league, weeklyHubGameCatalog, citoResults])
+  }, [hubPlayers, weeklyHubTeams, hubWindow, league, weeklyHubGameCatalog, citoResults])
 
   const [cachedRecapLines, setCachedRecapLines] = useState<typeof templateRecapLines>([])
 
@@ -783,7 +816,7 @@ export default function Overview() {
         <WeeklyRecap
           lines={weeklyRecapLines}
           windowLabel={hubWindow.label}
-          players={weeklyHubPlayers}
+          players={hubPlayers}
           champions={weeklyHubChampions}
           title={copy.recapTitle}
           initialVisible={copy.recapLimit}
@@ -853,7 +886,7 @@ export default function Overview() {
                     .slice(0, 3)
                     .map((g, idx) => {
                       const opp = opponentLaneInfo(
-                        weeklyHubPlayers,
+                        hubPlayers,
                         playerOfWeek.base.team,
                         playerOfWeek.role,
                         g,
@@ -883,7 +916,7 @@ export default function Overview() {
                           </span>
                         <span className="text-secondary entity-inline-row">
                           vs <EntityLink type="team" name={opp.team} /> /{' '}
-                          <EntityLink type="player" name={opp.player} allPlayers={weeklyHubPlayers} showIcon={false} /> /{' '}
+                          <EntityLink type="player" name={opp.player} allPlayers={hubPlayers} showIcon={false} /> /{' '}
                           <ChampionEntityInline name={opp.champion} iconSize={16} />
                         </span>
                       </li>
@@ -899,7 +932,7 @@ export default function Overview() {
       <section className="card overview-hub-card">
         <h2 className="card-title">{copy.teamTitle}</h2>
         {!teamOfWeek.length ? (
-          <p className="text-secondary">{copy.noPlayerData}</p>
+          <p className="text-secondary">{copy.noTeamData}</p>
         ) : (
         <div className="overview-totw-grid">
           {teamOfWeek.map((p) => (
@@ -1024,15 +1057,20 @@ export default function Overview() {
       </section>
 
       <section id="overview-rankings" className="overview-section">
-        <ScoreCaveat label="standouts vs model rankings" />
+        <ScoreCaveat label="current form rankings" />
         <div className="overview-rankings-grid">
           <PowerRankingsPanel
-            limit={8}
+            limit={10}
             title="nucky power rankings"
-            subtitle={MODEL_POWER_RANKINGS_SUBTITLE}
+            subtitle="Current-form player scores from the hub window (recent maps vs role peers). 100 would mean a near-perfect stretch — typical leaders sit in the 70s–80s."
             regions={powerRegions}
+            bundleOverride={formPlayerBundle}
           />
-          <TeamPowerBoard regions={powerRegions} limit={8} />
+          <TeamPowerBoard
+            regions={powerRegions}
+            limit={10}
+            rowsOverride={formTeamRows.length ? formTeamRows : undefined}
+          />
         </div>
 
         <section className="card overview-hub-card">

@@ -171,7 +171,7 @@ export default function Players() {
 
       <section id="players-rankings" className="players-section">
         <PowerRankingsPanel
-          limit={8}
+          limit={10}
           role={powerRankingsRole}
           hideRoleTabs
           regions={powerRegions}

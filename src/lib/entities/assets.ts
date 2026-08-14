@@ -74,6 +74,12 @@ export function championIconUrl(ddragonKey: string): string {
   return `https://ddragon.leagueoflegends.com/cdn/${ddragonManifest.version}/img/champion/${ddragonKey}.png`
 }
 
+/** Community Dragon square — newer champs (Locke) before Data Dragon catches up. */
+export function communityDragonChampionIconUrl(nameOrKey: string): string {
+  const key = ddragonChampionKey(nameOrKey) || nameOrKey.replace(/[^a-zA-Z0-9]/g, '')
+  return `https://cdn.communitydragon.org/latest/champion/${encodeURIComponent(key)}/square`
+}
+
 /** Data Dragon item icon URL for an item id (e.g. 3006 → Berserker's Greaves). */
 export function itemIconUrl(itemId: number): string {
   return `https://ddragon.leagueoflegends.com/cdn/${ddragonManifest.version}/img/item/${itemId}.png`

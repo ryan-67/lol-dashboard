@@ -2,7 +2,7 @@
  * Load cached Cito player box scores for Hub recaps / Form lag-fill.
  * Written by scripts/cito/sync-player-stats.ts → public/data/cito_player_stats_cache.json
  */
-import type { PlayerGameLog } from '../hooks/useDashboardData'
+import type { Player, PlayerGameLog } from '../hooks/useDashboardData'
 import { resolveTeamCanonicalName } from './entities/slugs'
 import { normalizePosition, type RoleKey } from './playerRadar'
 
@@ -188,6 +188,79 @@ export function hasSufficientCitoBoxScores(rows: CitoPlayerStatCacheRow[]): bool
   if (rows.length < 10) return false // at least one full game of 10 players
   const withGd = rows.filter((r) => Number.isFinite(r.gd15)).length
   return withGd >= Math.min(8, rows.length * 0.7)
+}
+
+export function uniqueCitoGameCount(rows: CitoPlayerStatCacheRow[]): number {
+  return new Set(rows.map((r) => r.citoGameId).filter(Boolean)).size
+}
+
+/** Merge Cito box-score games into OE player logs so Hub standouts survive OE lag. */
+export function overlayCitoGameLogsOnPlayers(
+  players: Player[],
+  bundle: CitoPlayerStatsBundle | null,
+): Player[] {
+  if (!bundle?.rows?.length) return players
+
+  const teamsByGame = new Map<string, Set<string>>()
+  for (const row of bundle.rows) {
+    const team = resolveTeamCanonicalName(row.teamName)
+    const set = teamsByGame.get(row.citoGameId) ?? new Set()
+    set.add(team)
+    teamsByGame.set(row.citoGameId, set)
+  }
+
+  const cloned = new Map<string, Player>()
+  for (const player of players) {
+    cloned.set(player.name.toLowerCase(), {
+      ...player,
+      gameLog: [...(player.gameLog ?? [])],
+    })
+  }
+
+  const seen = new Map<string, Set<string>>()
+  for (const [key, player] of cloned) {
+    seen.set(
+      key,
+      new Set(
+        (player.gameLog ?? [])
+          .map((g) => g.gameId)
+          .filter((id): id is string => Boolean(id)),
+      ),
+    )
+  }
+
+  for (const row of bundle.rows) {
+    const key = row.playerName.toLowerCase()
+    const team = resolveTeamCanonicalName(row.teamName)
+    let player = cloned.get(key)
+    if (!player) {
+      player = {
+        name: row.playerName,
+        team,
+        league: row.league,
+        position: row.role ?? 'mid',
+        games: 0,
+        kda: row.kda,
+        kp: 0,
+        dmgShare: row.damageShare,
+        gameLog: [],
+      }
+      cloned.set(key, player)
+    }
+    const ids = seen.get(key) ?? new Set()
+    if (row.citoGameId && ids.has(row.citoGameId)) continue
+    const log = citoRowToGameLog(row)
+    const teams = teamsByGame.get(row.citoGameId)
+    if (teams) {
+      const opponent = [...teams].find((t) => t !== team)
+      if (opponent) log.opponent = opponent
+    }
+    if (row.citoGameId) ids.add(row.citoGameId)
+    seen.set(key, ids)
+    player.gameLog = [...(player.gameLog ?? []), log]
+  }
+
+  return [...cloned.values()]
 }
 
 export { normalizePosition }

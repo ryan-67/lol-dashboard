@@ -1,4 +1,4 @@
-import { ddragonChampionKey, championIconUrl } from '../../lib/entities/assets'
+import { ddragonChampionKey, championIconUrl, communityDragonChampionIconUrl } from '../../lib/entities/assets'
 
 interface ChampionIconProps {
   name: string
@@ -10,6 +10,7 @@ export default function ChampionIcon({ name, size = 20, className = '' }: Champi
   if (!name) return null
   const key = ddragonChampionKey(name)
   const src = championIconUrl(key)
+  const fallback = communityDragonChampionIconUrl(name)
 
   return (
     <img
@@ -20,7 +21,13 @@ export default function ChampionIcon({ name, size = 20, className = '' }: Champi
       className={`champion-icon ${className}`.trim()}
       loading="lazy"
       onError={(e) => {
-        e.currentTarget.style.visibility = 'hidden'
+        const img = e.currentTarget
+        if (img.dataset.fallback === '1') {
+          img.style.visibility = 'hidden'
+          return
+        }
+        img.dataset.fallback = '1'
+        img.src = fallback
       }}
     />
   )

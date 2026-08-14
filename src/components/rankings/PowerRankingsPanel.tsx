@@ -43,10 +43,12 @@ interface PowerRankingsPanelProps {
   regions?: PowerRegions
   /** @deprecated Prefer `regions`. Single-region shorthand. */
   region?: PowerRegionFilter
+  /** Skip artifact fetch and render these rows (current-form hub board). */
+  bundleOverride?: PlayerRatingsBundle | null
 }
 
 export default function PowerRankingsPanel({
-  limit = 8,
+  limit = 10,
   title = 'nucky power rankings',
   subtitle = 'Role-normalized player power from the nucky model (box-score prior + region shift).',
   role: roleProp,
@@ -54,13 +56,14 @@ export default function PowerRankingsPanel({
   hideRoleTabs = false,
   regions,
   region = 'all',
+  bundleOverride,
 }: PowerRankingsPanelProps) {
   const listRef = useRef<HTMLOListElement>(null)
-  const [bundle, setBundle] = useState<PlayerRatingsBundle | null>(null)
+  const [bundle, setBundle] = useState<PlayerRatingsBundle | null>(bundleOverride ?? null)
   const [freshness, setFreshness] = useState<MlFreshness | null>(null)
   const [modelExportedAt, setModelExportedAt] = useState<string | null>(null)
   const [internalRole, setInternalRole] = useState<RatingRole>('mid')
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState(!bundleOverride)
   const role = roleProp ?? internalRole
 
   const setRole = (next: RatingRole) => {
@@ -69,6 +72,11 @@ export default function PowerRankingsPanel({
   }
 
   useEffect(() => {
+    if (bundleOverride) {
+      setBundle(bundleOverride)
+      setLoading(false)
+      return
+    }
     let alive = true
     const load = (force = false) => {
       void fetchPlayerRatings({ force }).then((data) => {
@@ -94,7 +102,7 @@ export default function PowerRankingsPanel({
       alive = false
       document.removeEventListener('visibilitychange', onVis)
     }
-  }, [])
+  }, [bundleOverride])
 
   const effectiveRegions: PowerRegions = regions ?? (region === 'all' ? 'all' : [region])
 
@@ -108,7 +116,11 @@ export default function PowerRankingsPanel({
   }, [bundle, role, effectiveRegions, limit])
 
   const scored = useMemo(() => {
-    const values = rows.map((r) => powerScoreTo100(r.powerScore))
+    const values = rows.map((r) =>
+      r.displayScore100 != null
+        ? r.displayScore100
+        : powerScoreTo100(r.powerScore, { effGames: r.effGames }),
+    )
     const top = Math.max(...values, 1)
     const floor = Math.min(...values, 0)
     const span = Math.max(top - floor, 1)

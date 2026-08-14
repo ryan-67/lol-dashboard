@@ -430,20 +430,53 @@ export function resolveSeriesScoreWithCito(
 }
 
 /**
- * Recap blurbs must wait for series conclusion — never generate mid-series.
- * 2-x is accepted when resolve already marked the series complete (domestic Bo3
- * often has null bestOf when schedule/catalog omit it). Never accept Bo5 2-x.
+ * Recap blurbs wait until the schedule confirms a concluded series.
+ *
+ * Workflow: ingest games → confirm Bo3/Bo5 from tier-1 schedule/split →
+ * require a clinching completed score. Never treat a scheduled row with a
+ * placeholder 2-0 as done. Never accept Bo5 2-x. Regular-season 3-x is invalid.
  */
 export function isSeriesReadyForRecap(resolved: ResolvedSeriesScore): boolean {
   if (resolved.skipCompleted || resolved.provisional || !resolved.complete) return false
   const max = Math.max(resolved.winsA, resolved.winsB)
   const min = Math.min(resolved.winsA, resolved.winsB)
-  if (max === 3 && min <= 2) return true
+  if (max === 3 && min <= 2) {
+    if (resolved.bestOf === 3) return false
+    return resolved.bestOf === 5 || resolved.source === 'cito'
+  }
   if (max === 2 && min <= 1) {
     if (resolved.bestOf === 5) return false
-    return resolved.bestOf === 3 || resolved.bestOf == null
+    if (resolved.bestOf === 3) return true
+    // Null best-of: only when the schedule row itself confirmed completion.
+    return resolved.source === 'cito' && Boolean(resolved.cito)
   }
   return false
+}
+
+/** Schedule row is actually finished — status completed + a clinching score. */
+export function isCitoRowCompletedForRecap(row: CitoSeriesResult): boolean {
+  const status = normalizeStatus(row.status)
+  if (!COMPLETED_STATUS.has(status)) return false
+  if (typeof row.scoreA !== 'number' || typeof row.scoreB !== 'number') return false
+  return isValidSeriesScore(row.scoreA, row.scoreB)
+}
+
+/**
+ * Box scores must cover every map in the resolved scoreline.
+ * Extra games vs a 2-0 (e.g. 3 maps ingested, score still 2-0) means the score
+ * is stale — wait until schedule/OE catch up to 2-1 / 2-0 with matching maps.
+ */
+export function recapHasFullSeriesEvidence(opts: {
+  resolved: ResolvedSeriesScore
+  oeGameCount: number
+  citoBoxGameCount?: number
+}): boolean {
+  const needed = opts.resolved.winsA + opts.resolved.winsB
+  if (needed < 2) return false
+  const evidence = Math.max(opts.oeGameCount, opts.citoBoxGameCount ?? 0)
+  if (evidence < needed) return false
+  if (needed === 2 && evidence >= 3) return false
+  return true
 }
 
 /** Live score label for series pages (never implies a false final when in progress). */
