@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-20T17:20:41.976472+00:00",
+  "generatedAt": "2026-08-20T21:09:44.055005+00:00",
   "methodology": "Same-role matrix: direct-lane champ-vs-champ win rate + avg GD@15 delta, min 6 meetings. Draft-order reconstruction uses OE's firstPick flag + the standard competitive ban/pick slot pattern to recover true reveal order (not column order) for the counter-pick validation. Cross-role lift validates hand-curated archetype tag interactions against realized win rates, not assumed.",
   "sameRoleMatchups": {
     "top": {
@@ -6712,9 +6712,9 @@
     }
   },
   "counterPickSignal": {
-    "sampleGames": 8068,
-    "gamesWithAnyCounterPick": 2486,
-    "gamesWithZeroCounterPicks": 5582,
+    "sampleGames": 8078,
+    "gamesWithAnyCounterPick": 2490,
+    "gamesWithZeroCounterPicks": 5588,
     "winrateWithAnyCounterPick": 54.2,
     "winrateWithZeroCounterPicks": 48.1,
     "note": "counterRate = share of a team's picks that matched the same-role matrix's definition of a favorable (>=55% WR, min sample) response to the enemy's most recently revealed champion at pick time (true reconstructed draft order, not column order). Zero-inflated distribution (landing >=1 matrix-defined counter is uncommon), so split is 'any counter-pick' vs 'none', gated at 40 games minimum before trusting the split. This is a retrospective correlation, NOT yet wired into the trained model as a feature \u2014 doing so safely requires a walk-forward (prior-games-only) version of the matchup matrix to avoid leakage, same discipline as region_elo.py's Elo lookups.",
