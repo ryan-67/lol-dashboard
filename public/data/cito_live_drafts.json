@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-22T18:32:22.968Z",
+  "generatedAt": "2026-08-22T20:23:22.153Z",
   "drafts": [
     {
       "matchId": "lol-match-115548681803406251",
@@ -12,46 +12,46 @@
       "redTeam": "sk-gaming",
       "bluePicks": [
         {
-          "championName": "Vi",
-          "role": "Jungle"
+          "role": "Jungle",
+          "championName": "Vi"
         },
         {
-          "championName": "Ryze",
-          "role": "Mid"
+          "role": "Mid",
+          "championName": "Ryze"
         },
         {
-          "championName": "Renata Glasc",
-          "role": "Support"
+          "role": "Support",
+          "championName": "Renata Glasc"
         },
         {
-          "championName": "Kalista",
-          "role": "ADC"
+          "role": "ADC",
+          "championName": "Kalista"
         },
         {
-          "championName": "Jayce",
-          "role": "Top"
+          "role": "Top",
+          "championName": "Jayce"
         }
       ],
       "redPicks": [
         {
-          "championName": "Bard",
-          "role": "Support"
+          "role": "Support",
+          "championName": "Bard"
         },
         {
-          "championName": "Viktor",
-          "role": "Mid"
+          "role": "Mid",
+          "championName": "Viktor"
         },
         {
-          "championName": "Rumble",
-          "role": "Top"
+          "role": "Top",
+          "championName": "Rumble"
         },
         {
-          "championName": "Jarvan IV",
-          "role": "Jungle"
+          "role": "Jungle",
+          "championName": "Jarvan IV"
         },
         {
-          "championName": "Jhin",
-          "role": "ADC"
+          "role": "ADC",
+          "championName": "Jhin"
         }
       ],
       "blueBans": [],
@@ -59,7 +59,7 @@
       "draftComplete": true,
       "status": "inprogress",
       "scheduledAt": "2026-08-22T17:15:00+00:00",
-      "fetchedAt": "2026-08-22T18:32:21.984Z"
+      "fetchedAt": "2026-08-22T18:32:21.984+00:00"
     },
     {
       "matchId": "lol-match-115548681803406219",
