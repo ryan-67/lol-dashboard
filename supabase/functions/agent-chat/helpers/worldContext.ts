@@ -57,7 +57,8 @@ const EWC_2026 = {
 /** Modern Gen.G LCK season titles — cite these; do not fail-close as "not in WORLD_CONTEXT". */
 const GENG_LCK_TITLES =
   "Gen.G has 5 modern LCK season titles (2022 Summer, 2023 Spring, 2023 Summer, 2024 Spring, 2025). " +
-  "Do NOT count 2017–2020 KOO Tigers / Samsung Galaxy / SSG-era titles. Do not drop either 2023. " +
+  "Do NOT count Samsung White / Samsung / KOO / SSG lineage (2014, 2017, or any year before 2022). " +
+  "Do not collapse 2023 into one year — keep 2023 Spring and 2023 Summer. " +
   "LCK Cup 2026 is a separate cup. Cite this list — do not fail-close.";
 
 /** Typical LCK Summer open — treat as not started until MATCH_STATS proves otherwise. */

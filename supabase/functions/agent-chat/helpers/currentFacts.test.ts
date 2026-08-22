@@ -33,9 +33,20 @@ import {
 } from "./warehouseFacts.ts";
 import { extractTeams, runWarehouseSeriesRecap, runWeeklyWarehouseRecap } from "./analystTools.ts";
 import {
+  formatGengLckTitlesAnswer,
+  formatWarehouseSeriesAnswer,
+  formatWeeklyWarehouseAnswer,
+  toolsFromMatchStats,
+  tryDeterministicAnswer,
+} from "./deterministicAnswers.ts";
+import { scrubLockedLeftovers } from "./responseSanitize.ts";
+import {
+  gengCollapsesBoth2023s,
   gengLckTitleFact,
+  isGengLineageLeak,
   isTeamLckTitleQuestion,
   lookupTeamLckTitles,
+  modernGengLckTitles,
   staleGengYearListCannotVeto,
 } from "./teamTitles.ts";
 import { hasSufficientKnowledge } from "./knowledgeCoverage.ts";
@@ -676,8 +687,98 @@ Deno.test("this week + HLE vs FearX Aug 19 still emits warehouse week, not the i
     source: "web_verified",
     title: "LCK week",
   };
-  const dropped = dropLeftoverRecapChunks([leftover], {
+  const leftoverDrx: RagFactChunk = {
+    content: "DRX 2-1 BRO on August 20, 2026",
+    source: "web_verified",
+    title: "gol.gg week",
+  };
+  const dropped = dropLeftoverRecapChunks([leftover, leftoverDrx], {
     tools: [{ tool: "weekly_warehouse_recap", completed }],
   });
-  assertEquals(dropped.length, 0, "leftover HLE–FearX Aug 19 RAG is dropped");
+  assertEquals(dropped.length, 0, "leftover HLE–FearX Aug 19 and DRX–BRO Aug 20 RAG is dropped");
+});
+
+Deno.test("pass-2 leftover: GEN 2014 Samsung White / 2017 / collapsed 2023 cannot beat the modern 5", () => {
+  const leak =
+    "Gen.G has 6 LCK titles: 2014 Samsung White, 2017 Samsung, 2022, 2023, 2024–2025";
+  assert(isGengLineageLeak(leak), "2014 Samsung White + 2017 is a lineage leak");
+  assert(gengCollapsesBoth2023s(leak), "2023 collapsed to one year");
+  assert(!isGengLineageLeak(gengLckTitleFact()), "curated 5 is not a leak");
+  const collapsedWiki = modernGengLckTitles([{ year: 2023, split: "" }, { year: 2022, split: "Summer" }]);
+  assert(
+    collapsedWiki.some((t) => t.year === 2023 && t.split === "Spring") &&
+      collapsedWiki.some((t) => t.year === 2023 && t.split === "Summer"),
+    "year-only 2023 is replaced by both 2023 splits",
+  );
+  const wiki2014 = extractCareerFactsFromWiki([
+    {
+      title: "Gen.G",
+      url: "https://lol.fandom.com/wiki/Gen.G",
+      content: leak,
+      score: 1,
+    },
+  ], "how many LCK titles does GEN have");
+  const blob = wiki2014.map((f) => f.fact).join(" ");
+  assert(!/\b2014\b/.test(blob) && !/samsung white/i.test(blob), "wiki extract drops 2014 Samsung White");
+  assert(/2023 Spring/.test(blob) && /2023 Summer/.test(blob), "both 2023s listed");
+  assertEquals(formatGengLckTitlesAnswer().includes("2023 Spring"), true, "deterministic lists 2023 Spring");
+  const det = tryDeterministicAnswer("GEN title years", [{
+    tool: "team_lck_titles",
+    data: lookupTeamLckTitles("GEN title years")!.data,
+  }]);
+  assert(det && /5 modern/.test(det) && /2023 Spring/.test(det) && /2023 Summer/.test(det), "deterministic 5");
+  assert(!/2014|2017|Samsung/i.test(det!), "deterministic has no lineage years");
+  const scrubbed = scrubLockedLeftovers(leak, "how many LCK titles does GEN have");
+  assert(/5 modern/.test(scrubbed) && !/2014/.test(scrubbed), "sanitize rewrites Leaguepedia lineage");
+});
+
+Deno.test("pass-2 leftover: gol.gg week inventions and T1–KT form are not emitted", () => {
+  const { completed, upcoming } = rowsInWeek(QA_WAREHOUSE, WEEK_NOW, "LCK");
+  const weekText = formatWeeklyWarehouseAnswer(
+    formatWeeklyWarehouseBlock(completed, upcoming, "LCK"),
+  );
+  assert(
+    !weekText.split("\n").some((l) => /fearx/i.test(l) && /hanwha|\bhle\b/i.test(l)),
+    "week text has no HLE–FearX pair",
+  );
+  assert(
+    !weekText.split("\n").some((l) =>
+      /2026-08-20/.test(l) && /\bdrx\b/i.test(l) && /brion|\bbro\b/i.test(l)
+    ),
+    "week text has no DRX–BRO Aug 20",
+  );
+  const invented = scrubLockedLeftovers(
+    "FearX 2-0 HLE on Aug 19\nDRX 2-1 BRO on Aug 20\nGen.G 2-1 KT on Aug 19",
+    "What happened in LCK this week?",
+  );
+  assert(!/fearx/i.test(invented) || !/hle/i.test(invented), "sanitize drops FearX–HLE Aug 19");
+  assert(!/drx 2-1/i.test(invented), "sanitize drops DRX–BRO Aug 20");
+
+  const recap = runWarehouseSeriesRecap("T1 vs KT Aug 21", seasonWarehouse(), [], WEEK_NOW);
+  const det = tryDeterministicAnswer(
+    "Recap T1 vs KT Aug 21",
+    toolsFromMatchStats({ tools: [{ tool: recap!.tool, ...recap!.data }] }),
+  );
+  assert(det && /2-1/.test(det), "deterministic keeps series 2-1");
+  assert(/17-8/.test(det!) && /15-11/.test(det!), "deterministic uses warehouse season W/L");
+  assert(!/3-3|1-6|8-7|6-13|54\.5|44%/.test(det!), "no leftover gol.gg form");
+  const leftoverWl = formatWarehouseSeriesAnswer({
+    teamA: "T1",
+    teamB: "KT Rolster",
+    seriesScore: "2-1",
+    date: "2026-08-21",
+    winner: "T1",
+    seasonRecords: [
+      { team: "T1", series: "3-3", games: "8-7" },
+      { team: "KT Rolster", series: "1-6", games: "6-13" },
+    ],
+  });
+  assert(/2-1/.test(leftoverWl), "score stays");
+  assert(!/3-3|1-6/.test(leftoverWl), "leftover 3-3 / 1-6 not printed");
+  const scrubbedWl = scrubLockedLeftovers(
+    "T1 beat KT 2-1. W/L 3-3 / 1-6, games 8-7 / 6-13, 54.5% over 44.",
+    "T1 vs KT Aug 21",
+  );
+  assert(/2-1/.test(scrubbedWl), "sanitize keeps score");
+  assert(!/3-3|1-6|8-7|6-13|54\.5|44%/.test(scrubbedWl), "sanitize drops leftover form");
 });

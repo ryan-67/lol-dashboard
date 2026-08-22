@@ -645,7 +645,13 @@ export async function decideAndFetch(deps: DecideDeps): Promise<Evidence> {
     worldContextCoversAsk: worldCovers,
   });
 
-  if (citoApiKey && factualScope && !preCitoCoverage) {
+  if (
+    citoApiKey &&
+    factualScope &&
+    !preCitoCoverage &&
+    !curatedTeamLckTitle &&
+    !warehouseGroundedAsk
+  ) {
     const cito = await fetchCitoContext(
       citoApiKey,
       queryForTools,

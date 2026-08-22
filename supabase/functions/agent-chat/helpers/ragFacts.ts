@@ -4,6 +4,8 @@
  * chunk on the next ask — vector similarity alone cannot keep the old hash.
  */
 
+import { isGengLineageLeak, isPredecessorGengYear } from "./teamTitles.ts";
+
 export interface RagFactChunk {
   content: string;
   source?: string;
@@ -108,7 +110,9 @@ function isGengLckChunk(chunk: RagFactChunk): boolean {
 }
 
 function gengPredecessorHit(text: string): boolean {
-  return /\b2017\b/.test(text) || /\b2018\b/.test(text) || /\b2020\b/.test(text);
+  if (isGengLineageLeak(text)) return true;
+  const years = extractTitleYears(text);
+  return years.some((y) => isPredecessorGengYear(y));
 }
 
 function gengHasBoth2023s(text: string): boolean {
@@ -293,6 +297,13 @@ export function dropLeftoverRecapChunks(
       /hanwha|\bhle\b/i.test(text) &&
       /fearx|\bbfx\b/i.test(text) &&
       /aug(?:ust)?\s*19|2026-08-19/i.test(text)
+    ) {
+      return false;
+    }
+    if (
+      /\bdrx\b/i.test(text) &&
+      /brion|\bbro\b/i.test(text) &&
+      /aug(?:ust)?\s*20|2026-08-20/i.test(text)
     ) {
       return false;
     }

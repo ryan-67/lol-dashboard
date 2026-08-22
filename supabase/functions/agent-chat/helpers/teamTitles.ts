@@ -16,8 +16,10 @@ export interface TeamLckTitleRow {
   note: string;
 }
 
-/** Years that belong to KOO Tigers / Samsung Galaxy / SSG — not modern Gen.G. */
-export const GENG_PREDECESSOR_YEARS = [2017, 2018, 2019, 2020] as const;
+/** Pre-2022 lineage (Samsung White/Blue/Ozone, KOO, SSG) — not modern Gen.G. */
+export const GENG_PREDECESSOR_YEARS = [
+  2013, 2014, 2015, 2016, 2017, 2018, 2019, 2020, 2021,
+] as const;
 
 /**
  * Modern Gen.G LCK *season* titles (Leaguepedia Gen.G, not KOO/SSG lineage).
@@ -36,8 +38,8 @@ export const TEAM_LCK_TITLES: Record<string, TeamLckTitleRow> = {
     ],
     note:
       "5 modern Gen.G LCK season titles only (2022 Summer, 2023 Spring, 2023 Summer, 2024 Spring, 2025). " +
-      "Do NOT count 2017–2020 KOO Tigers / Samsung Galaxy / SSG-era titles as Gen.G. " +
-      "Do not drop either 2023 title. LCK Cup 2026 is a separate cup — not one of these 5.",
+      "Do NOT count Samsung White / Samsung Blue / Samsung Galaxy / KOO / SSG lineage (2014, 2017, or any year before 2022). " +
+      "Do not collapse 2023 into one year — keep 2023 Spring and 2023 Summer. LCK Cup 2026 is a separate cup.",
   },
 };
 
@@ -57,7 +59,22 @@ export function isGengEntity(name: string): boolean {
 }
 
 export function isPredecessorGengYear(year: number): boolean {
-  return year >= 2017 && year <= 2020;
+  return year < 2022;
+}
+
+/** Leaguepedia lineage leak: Samsung White 2014, Samsung 2017, KOO/SSG, collapsed 2023. */
+export function isGengLineageLeak(text: string): boolean {
+  if (/\bsamsung\s+(white|blue|galaxy|ozone)\b/i.test(text)) return true;
+  if (/\b(koo tigers|\bssg\b|samsung galaxy)\b/i.test(text)) return true;
+  if (/\b2014\b/.test(text) || /\b2017\b/.test(text)) return true;
+  const years = (text.match(/\b20\d{2}\b/g) ?? []).map(Number);
+  if (years.some((y) => y < 2022 && y >= 2013)) return true;
+  return false;
+}
+
+export function gengCollapsesBoth2023s(text: string): boolean {
+  if (!/\b2023\b/.test(text)) return true;
+  return !(/spring/i.test(text) && /summer/i.test(text));
 }
 
 /** Modern Gen.G season title — 2022+ and not LCK Cup 2026. */
@@ -158,7 +175,8 @@ export function modernGengLckTitles(wikiTitles: TeamLckTitle[] = []): TeamLckTit
   );
   const hasBoth2023 = merged.some((t) => t.year === 2023 && t.split === "Spring") &&
     merged.some((t) => t.year === 2023 && t.split === "Summer");
-  if (!hasBoth2023 || merged.some((t) => isPredecessorGengYear(t.year))) {
+  const collapsed2023 = merged.some((t) => t.year === 2023 && t.split === "") && !hasBoth2023;
+  if (!hasBoth2023 || collapsed2023 || merged.some((t) => isPredecessorGengYear(t.year))) {
     return curated.slice();
   }
   const withoutPred = merged.filter((t) => !isPredecessorGengYear(t.year) && t.year >= 2022);
