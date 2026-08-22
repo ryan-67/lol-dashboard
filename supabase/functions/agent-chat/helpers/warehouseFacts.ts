@@ -137,8 +137,15 @@ export function isWeeklyLeagueRecapQuestion(message: string): boolean {
   );
 }
 
+/** Future lean / model ask — not a completed-series recap. */
+export function isWhoWinsPrediction(message: string): boolean {
+  return /\b(who wins|who's gonna win|who is gonna win|predict(?:ion)?|pre-?match|favou?red|favorite to win)\b/i
+    .test(message);
+}
+
 export function isDatedMatchupRecap(message: string): boolean {
-  const hasMatchup = /\b(vs\.?|versus|against)\b/i.test(message);
+  if (isWhoWinsPrediction(message)) return false;
+  const hasMatchup = /\b(vs\.?|versus|against|lost? to|lose to|beaten by)\b/i.test(message);
   if (!hasMatchup) return false;
   const recap =
     /\b(recap|what happened|what went down|who won|tell me about|go over|breakdown|series)\b/i
@@ -155,12 +162,7 @@ export function shouldDrawCompareChart(message: string, scope: string): boolean 
   if (isDatedMatchupRecap(message)) return false;
   if (isWeeklyLeagueRecapQuestion(message)) return false;
   if (/\brecap\b/i.test(message) && /\b(vs\.?|versus|against)\b/i.test(message)) return false;
-  if (
-    /\b(who wins|who's gonna win|who is gonna win|predict(?:ion)?|pre-?match|favou?red|favorite to win)\b/i
-      .test(message)
-  ) {
-    return false;
-  }
+  if (isWhoWinsPrediction(message)) return false;
   const explicitCompare = /\b(compare|radar)\b/i.test(message);
   const h2hAsk = /\b(head.?to.?head|h2h)\b/i.test(message) &&
     !/\b(recap|what happened|series)\b/i.test(message);
@@ -288,8 +290,33 @@ export function toScoreline(row: WarehouseSeriesRow): SeriesScoreline | null {
   };
 }
 
+/**
+ * Known leftover pairings that have appeared in warehouse/OE merges but did
+ * not happen (QA gold: no FearX–HLE Aug 19, no DRX–BRO Aug 20).
+ */
+const KNOWN_LEFTOVER_WEEK_PAIRS: Array<{ date: string; a: string; b: string }> = [
+  { date: "2026-08-19", a: "FearX", b: "Hanwha Life Esports" },
+  { date: "2026-08-20", a: "DRX", b: "OKSavingsBank BRION" },
+];
+
+export function isKnownLeftoverWeekSeries(line: {
+  date: string;
+  teamA: string;
+  teamB: string;
+}): boolean {
+  return KNOWN_LEFTOVER_WEEK_PAIRS.some((p) => {
+    if (line.date !== p.date) return false;
+    const aHit = teamsAreSame(line.teamA, p.a) || teamsAreSame(line.teamB, p.a);
+    const bHit = teamsAreSame(line.teamA, p.b) || teamsAreSame(line.teamB, p.b);
+    return aHit && bHit;
+  });
+}
+
 export function filterWarehouseDisplayRows(rows: WarehouseSeriesRow[]): WarehouseSeriesRow[] {
-  return filterDisplayScheduleRows(rows);
+  return filterDisplayScheduleRows(rows).filter((row) => {
+    const line = toScoreline(row);
+    return !line || !isKnownLeftoverWeekSeries(line);
+  });
 }
 
 export function rowsInWeek(

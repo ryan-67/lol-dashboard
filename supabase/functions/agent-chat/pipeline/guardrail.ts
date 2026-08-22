@@ -25,7 +25,7 @@ const HARD_OFFTOPIC =
 
 /** Strong LoL signal — if present we never hard-refuse, even alongside denylist noise. */
 const LOL_SIGNAL =
-  /\b(lol|league of legends|lolesports|esports|lck|lpl|lec|lcs|lcp|cblol|msi|worlds|first stand|draft|champion|jungle|mid|adc|support|top lane|bot lane|baron|dragon|teamfight|macro|faker|chovy|t1|gen\.?g|geng|hle|kt|drx|dk|dplus|blg|tes|g2|fnatic|c9|cloud9|patch|meta|roster|split|playoffs|winrate|kda|nucky|nucy|nucki|nuky)\b/i;
+  /\b(lol|league of legends|lolesports|esports|lck|lpl|lec|lcs|lcp|cblol|msi|worlds|first stand|draft|champion|jungles?|jungler|mid|adc|support|top lane|bot lane|baron|dragon|teamfight|macro|faker|chovy|t1|gen\.?g|geng|hle|hanwha|kt|drx|dk|dplus|blg|tes|g2|fnatic|c9|cloud9|fearx|brion|patch|meta|roster|split|playoffs|winrate|kda|nucky|nucy|nucki|nuky)\b/i;
 
 export async function runGuardrail(
   apiKey: string,

@@ -34,11 +34,11 @@ const OFF_TOPIC =
   /\b(recipe|cook me|tax return|weather forecast|homework|write (?:me )?an essay|medical advice|legal advice|python code|javascript code|typescript|debug my|fix my code|stock market|crypto\b(?!\s*kalshi)|solve this math|calculate (?:the )?\d|algebra|calculus)\b/i;
 
 const LOLESPORTS =
-  /\b(lol|league of legends|lolesports|esports|lck|lpl|lec|lcs|lcp|cblol|msi|worlds|first stand|draft|champion|faker|chovy|t1|geng|gen\.?g|g2|dk|dplus|blg|tes|kt|hle|drx|cloud9|c9|liquid|playoffs|split|winrate|kda|matchup|series|roster|line-?up|patch|kalshi|liquipedia|nucky|standings|team|player|adc|fraudulent|fraud|azir|corki|baron|dragon|soul|jungle|mid|top|support|bot lane|teamfight|macro|scaling|itemization|title|championship)\b/i;
+  /\b(lol|league of legends|lolesports|esports|lck|lpl|lec|lcs|lcp|cblol|msi|worlds|first stand|draft|champion|faker|chovy|t1|geng|gen\.?g|g2|dk|dplus|blg|tes|kt|hle|hanwha|drx|cloud9|c9|liquid|fearx|brion|playoffs|split|winrate|kda|matchup|series|roster|line-?up|patch|kalshi|liquipedia|nucky|standings|team|player|adc|fraudulent|fraud|azir|corki|baron|dragon|soul|jungles?|jungler|mid|top|support|bot lane|teamfight|macro|scaling|itemization|title|championship)\b/i;
 
-/** Plain roster / lineup queries ("who is on DK?", "T1 lineup"). */
+/** Plain roster / lineup queries ("who is on DK?", "who jungles for Hanwha"). */
 const ROSTER_QUERY =
-  /\b(roster|line-?up|who(?:'s| is| are)?\s*(?:on|playing for|starting for)|who plays for|who(?:'s| is) starting)\b/i;
+  /\b(roster|line-?up|who(?:'s| is| are)?\s*(?:on|playing for|starting for)|who plays for|who(?:'s| is) starting|who (?:plays?|jungles?|mids?|adcs?|supports?|tops?) for)\b/i;
 
 const STATS =
   /\b(winrate|win rate|kda|csd@?15|gd@?15|xpd@?15|dpm|stats?|rank|record|kills?|deaths?|assists?|damage|gd15|most picked|best|worst|who has|how is|objective|form|streak|dmg%|gold%|dmg share|gold share)\b/i;
@@ -378,6 +378,7 @@ export async function classifyScope(
     !STATS.test(message) &&
     !COMPARE.test(message) &&
     !SERIES.test(message) &&
+    !ROSTER_QUERY.test(message) &&
     !mentionsKnownPlayer &&
     !shouldTreatAsLolesports(message, history)
   ) {

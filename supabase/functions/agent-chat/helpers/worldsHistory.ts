@@ -28,7 +28,7 @@ export const WORLDS_CHAMPIONS: WorldsChampionEntry[] = [
     region: "LCK",
     opponent: "KT Rolster",
     score: "3-2",
-    note: "Doran top. Gumayusi Finals MVP.",
+    note: "Doran started top.",
   },
 ];
 

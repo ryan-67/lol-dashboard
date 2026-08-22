@@ -19,7 +19,9 @@ import {
   hasWeeklyWindowAsk,
   inferLeagueFromMessage,
   isDatedMatchupRecap,
+  isKnownLeftoverWeekSeries,
   isWeeklyLeagueRecapQuestion,
+  isWhoWinsPrediction,
   keyLaneMatchups,
   lastMeetingFromWarehouse,
   overlayWarehouseSeasonRecords,
@@ -814,4 +816,46 @@ Deno.test("HANJIN BRION aliases to BRO so FearX Aug 21 resolves", () => {
   );
   assert(picked != null && picked.score === "2-1", "picks BFX 2-1 HANJIN");
   assert(/FearX/i.test(picked!.winner), "FearX won");
+});
+
+Deno.test("who-wins future series is not a missing warehouse recap", () => {
+  const pred = "Who wins T1 vs HLE on Sunday Aug 23?";
+  assert(isWhoWinsPrediction(pred), "who-wins is a prediction");
+  assert(!isDatedMatchupRecap(pred), "who-wins is not a recap");
+  const locked = tryDeterministicAnswer(pred, [{
+    tool: "warehouse_series_recap",
+    data: { missingAskedSeries: true, teamA: "T1", teamB: "Hanwha Life Esports", seriesScore: "0-0" },
+  }]);
+  assert(locked == null, "do not lock 'no warehouse series' on a prediction");
+  assert(
+    isDatedMatchupRecap("why did T1 lose to HLE on August 8, 2026?"),
+    "lose-to + date is a recap",
+  );
+});
+
+Deno.test("warehouse week drops leftover FearX–HLE Aug 19 and DRX–BRO Aug 20", () => {
+  assert(
+    isKnownLeftoverWeekSeries({ date: "2026-08-19", teamA: "FearX", teamB: "Hanwha Life Esports" }),
+    "HLE–FearX Aug 19 is leftover",
+  );
+  const { completed } = rowsInWeek(
+    [
+      ...QA_WAREHOUSE,
+      row("2026-08-19", "FearX", "Hanwha Life Esports", 2, 0),
+      row("2026-08-20", "DRX", "HANJIN BRION", 2, 1),
+    ],
+    WEEK_NOW,
+    "LCK",
+  );
+  assert(
+    !completed.some((s) => isKnownLeftoverWeekSeries(s)),
+    "week completed has no leftover pairs",
+  );
+  const weekText = formatWeeklyWarehouseAnswer(
+    formatWeeklyWarehouseBlock(completed, [], "LCK"),
+  );
+  assert(
+    !weekText.split("\n").some((l) => /fearx/i.test(l) && /hanwha|\bhle\b/i.test(l)),
+    "week text has no HLE–FearX",
+  );
 });

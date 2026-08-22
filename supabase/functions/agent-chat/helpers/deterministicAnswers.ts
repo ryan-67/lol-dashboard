@@ -13,6 +13,7 @@ import {
   hasWeeklyWindowAsk,
   isDatedMatchupRecap,
   isWeeklyLeagueRecapQuestion,
+  isWhoWinsPrediction,
 } from "./warehouseFacts.ts";
 
 interface ToolResultLike {
@@ -134,7 +135,11 @@ export function tryDeterministicAnswer(
 
   const series = tools.find((t) => t.tool === "warehouse_series_recap");
   const weekly = tools.find((t) => t.tool === "weekly_warehouse_recap");
-  if (series && (isDatedMatchupRecap(message) || /\b(vs\.?|versus)\b/i.test(message))) {
+  if (
+    series &&
+    !isWhoWinsPrediction(message) &&
+    (isDatedMatchupRecap(message) || /\b(vs\.?|versus)\b/i.test(message))
+  ) {
     const data = toolData(series);
     const miss = data.missingAskedSeries === true || data.seriesScore === "0-0";
     if (miss && weekly && (hasWeeklyWindowAsk(message) || isWeeklyLeagueRecapQuestion(message))) {
