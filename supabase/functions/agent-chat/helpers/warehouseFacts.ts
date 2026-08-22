@@ -139,7 +139,10 @@ export function isDatedMatchupRecap(message: string): boolean {
   const recap =
     /\b(recap|what happened|what went down|who won|tell me about|go over|breakdown|series)\b/i
       .test(message);
-  return recap;
+  // "T1 vs KT Aug 21" / "BFX vs BRO August 21, 2026" is a series recap even
+  // without the word "recap" — never a compare/radar card.
+  const dated = parseAskedDate(message) != null;
+  return recap || dated;
 }
 
 /** Compare / radar only — never for series recaps, weekly recaps, or who-wins preds. */
@@ -147,6 +150,7 @@ export function shouldDrawCompareChart(message: string, scope: string): boolean 
   if (scope === "lolesports_series") return false;
   if (isDatedMatchupRecap(message)) return false;
   if (isWeeklyLeagueRecapQuestion(message)) return false;
+  if (/\brecap\b/i.test(message) && /\b(vs\.?|versus|against)\b/i.test(message)) return false;
   if (
     /\b(who wins|who's gonna win|who is gonna win|predict(?:ion)?|pre-?match|favou?red|favorite to win)\b/i
       .test(message)
@@ -471,6 +475,7 @@ export function formatWeeklyWarehouseBlock(
   completed: SeriesScoreline[],
   upcoming: SeriesScoreline[],
   league: string,
+  standings?: TeamSeasonRecord[],
 ): Record<string, unknown> {
   return {
     tool: "weekly_warehouse_recap",
@@ -489,9 +494,16 @@ export function formatWeeklyWarehouseBlock(
       teamB: s.teamB,
       status: s.status,
     })),
+    standings: (standings ?? []).slice(0, 10).map((r, i) => ({
+      rank: i + 1,
+      team: r.team,
+      series: `${r.seriesWins}-${r.seriesLosses}`,
+      games: `${r.gameWins}-${r.gameLosses}`,
+    })),
     note:
       "Tier-1 domestic/international only. Opponent names are real team names — never print ???. " +
-      "Do not treat Challengers/academy as LCK. Cite these scores; do not invent series not listed.",
+      "Do not treat Challengers/academy as LCK. Cite these scores; do not invent series not listed. " +
+      "standings[].series is THIS-season series W/L from the warehouse — not leftover OE 10-5 / 8-9.",
   };
 }
 

@@ -10,7 +10,7 @@ export async function fetchWarehouseRows(
 ): Promise<WarehouseSeriesRow[]> {
   const since = opts.sinceIso ??
     new Date(Date.now() - 220 * 24 * 60 * 60 * 1000).toISOString();
-  const limit = opts.limit ?? 240;
+  const limit = opts.limit ?? 480;
   let query = service
     .from("cito_schedules")
     .select(SELECT)

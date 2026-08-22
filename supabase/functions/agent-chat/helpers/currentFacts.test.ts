@@ -1,6 +1,10 @@
 import { isCompareQuestion, isSeriesRecapQuestion } from "./intents.ts";
-import { verifyFact, type CandidateFact } from "./factVerifier.ts";
-import { dedupeByTeamIdentity } from "./teamIdentity.ts";
+import {
+  extractCareerFactsFromWiki,
+  verifyFact,
+  type CandidateFact,
+} from "./factVerifier.ts";
+import { canonicalTeamName, dedupeByTeamIdentity } from "./teamIdentity.ts";
 import { filterDisplayScheduleRows, hasUsableOpponentName } from "./tier1Filter.ts";
 import {
   isPlayerWorldsTitleQuestion,
@@ -8,6 +12,7 @@ import {
   lookupWorldsHistory,
 } from "./worldsHistory.ts";
 import {
+  formatWeeklyWarehouseBlock,
   hasSeriesEvidence,
   isDatedMatchupRecap,
   isWeeklyLeagueRecapQuestion,
@@ -21,6 +26,17 @@ import {
   shouldDrawCompareChart,
   type WarehouseSeriesRow,
 } from "./warehouseFacts.ts";
+import { extractTeams } from "./analystTools.ts";
+import { hasSufficientKnowledge } from "./knowledgeCoverage.ts";
+import {
+  careerFactKey,
+  dropChunksContradictingTools,
+  selectWinningRagChunks,
+  staleTitleChunkCannotVeto,
+  type RagFactChunk,
+} from "./ragFacts.ts";
+import { factHash } from "./ragWriteback.ts";
+import { buildTemporalContext, worldContextCoversAsk } from "./worldContext.ts";
 
 function assert(condition: unknown, message: string): asserts condition {
   if (!condition) throw new Error(message);
@@ -282,4 +298,148 @@ Deno.test("season records prefer warehouse game W/L over leftover OE 10-5 / 8-9"
   assert(t1 && gen, "both teams recorded");
   assert(t1!.gameWins !== 8 || t1!.gameLosses !== 7, "must not stay on stub OE 8-7");
   assert(gen!.gameWins >= 6, "GEN has 2026 warehouse games");
+});
+
+Deno.test("stale 4-title RAG chunk cannot veto a newer verified Faker 6-title fact", () => {
+  const stale: RagFactChunk = {
+    content: "Faker has won 4 World Championships (2013, 2015, 2016, 2023).",
+    source: "web_verified",
+    title: "Faker",
+    entity_id: "faker",
+    metadata: { kind: "career", written_at: "2024-01-01T00:00:00.000Z" },
+  };
+  const fresh: RagFactChunk = {
+    content: "Faker has won 6 League of Legends World Championships (2013, 2015, 2016, 2023, 2024, 2025).",
+    source: "web_verified",
+    title: "Faker",
+    entity_id: "faker",
+    metadata: { kind: "career", written_at: "2026-08-21T00:00:00.000Z" },
+  };
+  const won = selectWinningRagChunks([stale, fresh]);
+  assertEquals(won.length, 1, "one career fact per entity+factKind");
+  assert(won[0]!.content.includes("2024") && won[0]!.content.includes("2025"), "winner has 2024+2025");
+  assert(won[0]!.content.includes("6"), "winner is 6 titles");
+  assert(staleTitleChunkCannotVeto(fresh.content, stale.content), "stale 4 cannot veto");
+  assertEquals(careerFactKey("Faker", "career"), careerFactKey("faker", "career"), "entity key ignores case");
+
+  const afterTools = dropChunksContradictingTools([stale, fresh], {
+    tools: [{ tool: "player_worlds_titles", worldsTitles: 6, years: [2013, 2015, 2016, 2023, 2024, 2025] }],
+  });
+  assert(afterTools.every((c) => !/won 4/.test(c.content)), "tool 6-title drops stale 4");
+});
+
+Deno.test("career fact_hash is stable across splits so upsert replaces the stale row", async () => {
+  const a = await factHash("faker", "career", "2025 Summer");
+  const b = await factHash("faker", "career", "2026 Summer");
+  assertEquals(a, b, "career hash ignores split");
+  const other = await factHash("chovy", "career", "2026 Summer");
+  assert(a !== other, "different entity is a different key");
+});
+
+Deno.test("GEN LCK titles and MSI 2026 HLE champ verify from one wiki page", () => {
+  const genAsk = "How many LCK titles has GEN won?";
+  const genFacts = extractCareerFactsFromWiki([
+    {
+      title: "Gen.G",
+      url: "https://lol.fandom.com/wiki/Gen.G",
+      content:
+        "Gen.G has won 8 LCK titles (2016, 2017, 2022, 2023, 2024, 2025). The organization is the most decorated LCK champion.",
+      score: 1,
+    },
+  ], genAsk);
+  assert(genFacts.length >= 1, "wiki yields a GEN title fact");
+  const genVerified = verifyFact(genFacts[0]!, [
+    {
+      title: "Gen.G",
+      url: "https://lol.fandom.com/wiki/Gen.G",
+      content:
+        "Gen.G has won 8 LCK titles (2016, 2017, 2022, 2023, 2024, 2025). The organization is the most decorated LCK champion.",
+      score: 1,
+    },
+  ]);
+  assert(genVerified.verified, "one Leaguepedia page verifies GEN titles");
+  assert(!/not in WORLD_CONTEXT/i.test(genVerified.fact), "fact is the wiki sentence");
+
+  const msiAsk = "Who won MSI 2026?";
+  const msiFacts = extractCareerFactsFromWiki([
+    {
+      title: "2026 Mid-Season Invitational",
+      url: "https://lol.fandom.com/wiki/2026_Mid-Season_Invitational",
+      content:
+        "Hanwha Life Esports defeated Bilibili Gaming 3-2 on July 12, 2026 to win MSI 2026. Zeus was Finals MVP.",
+      score: 1,
+    },
+  ], msiAsk);
+  assert(msiFacts.some((f) => /hanwha life/i.test(f.fact) && /2026/.test(f.fact)), "HLE MSI 2026 fact");
+  const msiVerified = verifyFact(msiFacts[0]!, [
+    {
+      title: "2026 Mid-Season Invitational",
+      url: "https://lol.fandom.com/wiki/2026_Mid-Season_Invitational",
+      content:
+        "Hanwha Life Esports defeated Bilibili Gaming 3-2 on July 12, 2026 to win MSI 2026. Zeus was Finals MVP.",
+      score: 1,
+    },
+  ]);
+  assert(msiVerified.verified, "wiki MSI champ is verified");
+
+  const temporal = buildTemporalContext(WEEK_NOW);
+  assert(worldContextCoversAsk(msiAsk, temporal.block), "WORLD_CONTEXT already names HLE");
+  assert(/hanwha life esports/i.test(temporal.block), "msi_2026_champion present");
+});
+
+Deno.test("stale web_verified chunk is not sufficient career knowledge", () => {
+  const covered = hasSufficientKnowledge({
+    chatOnly: false,
+    scope: "lolesports_general",
+    careerIntent: true,
+    hasWebVerifiedChunk: true,
+    matchStats: {},
+    externalContext: "[web_verified — Faker] Faker has won 4 World Championships.",
+    citoContext: "",
+    citoHit: false,
+    webSearchIntent: "career",
+    citoIntent: "general",
+    subjectiveIntent: false,
+    hasFreshCareerFact: false,
+  });
+  assertEquals(covered, false, "must look up Leaguepedia; stale 4-title chunk is not enough");
+});
+
+Deno.test("T1 vs KT Aug 21 and recap-vs prompts never draw a compare card", () => {
+  const dated = "T1 vs KT Aug 21";
+  assert(isDatedMatchupRecap(dated), "dated vs is a series recap");
+  assert(isSeriesRecapQuestion(dated), "dated vs routes as series");
+  assert(!isCompareQuestion(dated), "dated vs is not compare");
+  assertEquals(shouldDrawCompareChart(dated, "lolesports_compare"), false, "no radar");
+
+  const recapVs = "Recap BFX vs BRO from August 21, 2026";
+  assert(isDatedMatchupRecap(recapVs), "recap vs is dated");
+  assert(!isCompareQuestion(recapVs), "recap vs is not compare");
+  assertEquals(shouldDrawCompareChart(recapVs, "lolesports_series"), false, "series scope no chart");
+  assertEquals(shouldDrawCompareChart(recapVs, "lolesports_compare"), false, "recap wording blocks chart");
+});
+
+Deno.test("team slug extract resolves BFX vs BRO without an OE row", () => {
+  const teams = extractTeams("Recap BFX vs BRO from August 21, 2026", []);
+  const names = teams.map((t) => canonicalTeamName(t.name));
+  assert(names.includes("FearX"), "BFX → FearX");
+  assert(names.includes("OKSavingsBank BRION"), "BRO → BRION");
+  const hit = pickWarehouseSeries(QA_WAREHOUSE, "BFX", "BRO", "Recap BFX vs BRO from August 21, 2026", WEEK_NOW);
+  assert(hit, "warehouse finds FearX vs BRION");
+  assertEquals(hit!.date, "2026-08-21", "Aug 21");
+  assertEquals(hit!.score, "2-1", "BFX 2-1 BRO");
+});
+
+Deno.test("weekly warehouse block keeps real opponents and standings", () => {
+  const { completed, upcoming } = rowsInWeek(QA_WAREHOUSE, WEEK_NOW, "LCK");
+  const standings = seasonRecordsFromWarehouse(QA_WAREHOUSE, 2026, "LCK");
+  const block = formatWeeklyWarehouseBlock(completed, upcoming, "LCK", standings);
+  const teams = [
+    ...completed.map((s) => `${s.teamA} ${s.teamB}`),
+    ...upcoming.map((s) => `${s.teamA} ${s.teamB}`),
+  ].join(" ");
+  assert(!teams.includes("???"), "no unknown opponents");
+  assert(!/challenger/i.test(teams), "no academy");
+  assert(Array.isArray(block.standings) && (block.standings as unknown[]).length > 0, "standings attached");
+  assert(teams.includes("Gen.G") && teams.includes("KT Rolster"), "GEN vs KT present");
 });

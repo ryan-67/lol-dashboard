@@ -81,6 +81,8 @@ export interface Evidence {
   matchStats: Record<string, unknown>;
   externalContext: string;
   hasWebVerifiedChunk: boolean;
+  /** WORLD_CONTEXT already answers this career ask (MSI 2026 champ, etc.). */
+  worldContextCoversAsk: boolean;
 
   // compare chart (streamed before synthesis text)
   chartPrefix: string;

@@ -47,12 +47,22 @@ const TEAM_ALIASES: Record<string, string> = {
   geng: "Gen.G",
   "gen g": "Gen.G",
   hle: "Hanwha Life Esports",
+  "hanwha": "Hanwha Life Esports",
   drx: "DRX",
   kt: "KT Rolster",
   dk: "Dplus Kia",
+  dplus: "Dplus Kia",
   g2: "G2 Esports",
   c9: "Cloud9",
   tl: "Team Liquid",
+  bfx: "FearX",
+  fearx: "FearX",
+  bro: "OKSavingsBank BRION",
+  brion: "OKSavingsBank BRION",
+  ns: "Nongshim RedForce",
+  nongshim: "Nongshim RedForce",
+  dns: "DN Freecs",
+  "dn freecs": "DN Freecs",
 };
 
 const PLAYER_ALIASES: Record<string, string> = {
@@ -81,19 +91,53 @@ function resolveTeam(name: string, teams: MergedTeam[]): MergedTeam | null {
   );
 }
 
-function extractTeams(message: string, teams: MergedTeam[]): MergedTeam[] {
+function stubTeam(name: string, league = "LCK"): MergedTeam {
+  return {
+    name,
+    league,
+    games: 0,
+    wins: 0,
+    losses: 0,
+    winrate: 0,
+    avgKda: 0,
+    avgGd15: 0,
+    goldPerMin: 0,
+    wardsPerMin: 0,
+    objPerGame: 0,
+    firstBloodRate: 0,
+  };
+}
+
+function aliasMentioned(message: string, alias: string): boolean {
+  if (alias.length <= 3) {
+    return new RegExp(`\\b${alias.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`, "i").test(message);
+  }
+  return message.toLowerCase().includes(alias);
+}
+
+/** Resolve teams from the prompt, including BFX/BRO/DNS stubs when OE has no row. */
+export function extractTeams(message: string, teams: MergedTeam[]): MergedTeam[] {
   const lower = message.toLowerCase();
   const found = new Map<string, MergedTeam>();
+  const add = (team: MergedTeam) => {
+    const name = canonicalTeamName(team.name);
+    found.set(`${name}|${team.league || "LCK"}`, { ...team, name });
+  };
   for (const [alias, canonical] of Object.entries(TEAM_ALIASES)) {
-    if (lower.includes(alias)) {
-      const t = resolveTeam(canonical, teams);
-      if (t) found.set(`${canonicalTeamName(t.name)}|${t.league}`, { ...t, name: canonicalTeamName(t.name) });
+    if (!aliasMentioned(message, alias)) continue;
+    const t = resolveTeam(canonical, teams) ?? stubTeam(canonicalTeamName(canonical));
+    add(t);
+  }
+  for (const token of message.match(/\b[A-Za-z][A-Za-z0-9.]{1,24}\b/g) ?? []) {
+    const canon = canonicalTeamName(token);
+    if (canon !== token && (canon.length > 2 || TEAM_ALIASES[token.toLowerCase()])) {
+      const t = resolveTeam(canon, teams) ?? stubTeam(canon);
+      add(t);
     }
   }
   for (const team of teams) {
     if (lower.includes(team.name.toLowerCase())) {
-      const name = canonicalTeamName(team.name);
-      found.set(`${name}|${team.league}`, { ...team, name });
+      add(team);
     }
   }
   return dedupeByTeamIdentity([...found.values()], (t) => t.name, (kept, extra) =>
@@ -1297,9 +1341,11 @@ export function runWeeklyWarehouseRecap(
   const now = clientNow ?? new Date().toISOString();
   const { completed, upcoming } = rowsInWeek(rows, now, leagueFilter);
   if (!completed.length && !upcoming.length) return null;
+  const year = Number(now.slice(0, 4));
+  const standings = seasonRecordsFromWarehouse(rows, year, leagueFilter);
   return {
     tool: "weekly_warehouse_recap",
-    data: formatWeeklyWarehouseBlock(completed, upcoming, leagueFilter ?? league),
+    data: formatWeeklyWarehouseBlock(completed, upcoming, leagueFilter ?? league, standings),
   };
 }
 
@@ -1519,8 +1565,25 @@ export async function buildAnalystContext(
     options.clientNow,
   );
 
+  const weeklyHit = Boolean(
+    weekly &&
+      Array.isArray((weekly.data as { completed?: unknown[] })?.completed) &&
+      ((weekly.data as { completed?: unknown[] }).completed?.length ?? 0) > 0,
+  );
+  const warehouseSeriesHit = Boolean(
+    warehouseSeries &&
+      String((warehouseSeries.data as { seriesScore?: string })?.seriesScore ?? "0-0")
+        .match(/^[1-9]/),
+  );
+
+  // Weekly / dated warehouse recaps must not merge leftover OE form, academy
+  // results, or a different series' player gameLog (T1 Painter/Oner on DK).
+  const warehouseOnlyRecap = weeklyHit || warehouseSeriesHit;
+
   // When entity is ambiguous, prefer clarify over inventing a max-games pick.
-  const rawCandidates: Array<ToolResult | null> = clarify
+  const rawCandidates: Array<ToolResult | null> = warehouseOnlyRecap
+    ? [clarify, weekly, warehouseSeries, seasonFacts]
+    : clarify
     ? [
       clarify,
       weekly,

@@ -40,13 +40,28 @@ import {
   isWorldsHistoryQuestion,
   lookupWorldsHistory,
 } from "../helpers/worldsHistory.ts";
-import { shouldDrawCompareChart, type WarehouseSeriesRow } from "../helpers/warehouseFacts.ts";
+import {
+  hasSeriesEvidence,
+  isDatedMatchupRecap,
+  isWeeklyLeagueRecapQuestion,
+  shouldDrawCompareChart,
+  type WarehouseSeriesRow,
+} from "../helpers/warehouseFacts.ts";
 import { fetchWarehouseRows } from "../helpers/warehouseFetch.ts";
 import {
   buildCurrentWorldContext,
   formatMentionedRosterBlock,
   lookupPlayersInMessage,
 } from "../helpers/currentContext.ts";
+import { worldContextCoversAsk } from "../helpers/worldContext.ts";
+import { fetchVerifiedFactsByEntity } from "../helpers/ragWriteback.ts";
+import {
+  dropChunksContradictingTools,
+  hasFreshCareerFact,
+  selectWinningRagChunks,
+  type RagFactChunk,
+} from "../helpers/ragFacts.ts";
+import { isSeriesRecapQuestion } from "../helpers/intents.ts";
 import type { Evidence, GuardrailResult, HistoryMessage, ResolvedFilters } from "./types.ts";
 import type { UsageTracker } from "../helpers/usageTracker.ts";
 import { detectAnalysisIntent } from "../helpers/prompts.ts";
@@ -413,7 +428,11 @@ export async function decideAndFetch(deps: DecideDeps): Promise<Evidence> {
       thread.followUpType === "roster_follow_up" ||
       isRosterDepthQuestion(message) ||
       isCareerQuestion(message) ||
-      scope.scope === "lolesports_series";
+      scope.scope === "lolesports_series" ||
+      isDatedMatchupRecap(message) ||
+      isSeriesRecapQuestion(message) ||
+      isWeeklyLeagueRecapQuestion(message) ||
+      hasSeriesEvidence(matchStats);
     const wantsCompare =
       !blockChart && shouldDrawCompareChart(message, scope.scope);
 
@@ -491,13 +510,22 @@ export async function decideAndFetch(deps: DecideDeps): Promise<Evidence> {
       usageTracker,
     });
     if (vec.ok) {
-      const chunks =
-        (vec.data as Array<{ content: string; source: string; title?: string }> | undefined) ?? [];
-      hasWebVerifiedChunk = chunks.some((c) => c.source === "web_verified");
-      externalContext = chunks
+      const rawChunks = ((vec.data as RagFactChunk[] | undefined) ?? []).map((c) => ({
+        ...c,
+        metadata: (c.metadata ?? {}) as Record<string, unknown>,
+      }));
+      const keyedEntities = buildCareerEntities(message, thread.inheritedTopic, mentionedPlayers)
+        .map((e) => e.toLowerCase());
+      const keyed = await fetchVerifiedFactsByEntity(serviceClient, keyedEntities);
+      const ranked = dropChunksContradictingTools(
+        selectWinningRagChunks([...keyed, ...rawChunks]),
+        matchStats,
+      );
+      hasWebVerifiedChunk = ranked.some((c) => c.source === "web_verified");
+      externalContext = ranked
         .map((c) => `[${c.source}${c.title ? ` — ${c.title}` : ""}] ${c.content}`)
         .join("\n\n");
-      if (chunks.length) sources.rag = true;
+      if (ranked.length) sources.rag = true;
     }
   }
 
@@ -550,6 +578,17 @@ export async function decideAndFetch(deps: DecideDeps): Promise<Evidence> {
     matchStats,
   );
   const citoIntent = detectCitoIntent(message);
+  const careerEntities = buildCareerEntities(message, thread.inheritedTopic, mentionedPlayers);
+  const ragChunksForCoverage: RagFactChunk[] = externalContext
+    ? externalContext.split("\n\n").map((block) => ({
+      content: block,
+      source: /\[web_verified/i.test(block) ? "web_verified" : "rag",
+    }))
+    : [];
+  const freshCareer = careerEntities.some((e) =>
+    hasFreshCareerFact(ragChunksForCoverage, e, "career")
+  );
+  const worldCovers = worldContextCoversAsk(message, worldBlock);
 
   // ---- Source 3: CitoAPI — structured fallback before Tavily ----
   let citoContext = "";
@@ -566,6 +605,8 @@ export async function decideAndFetch(deps: DecideDeps): Promise<Evidence> {
     webSearchIntent,
     citoIntent,
     subjectiveIntent,
+    hasFreshCareerFact: freshCareer,
+    worldContextCoversAsk: worldCovers,
   });
 
   if (citoApiKey && factualScope && !preCitoCoverage) {
@@ -597,6 +638,8 @@ export async function decideAndFetch(deps: DecideDeps): Promise<Evidence> {
     webSearchIntent,
     citoIntent,
     subjectiveIntent,
+    hasFreshCareerFact: freshCareer,
+    worldContextCoversAsk: worldCovers,
   });
 
   const needWeb =
@@ -699,6 +742,7 @@ export async function decideAndFetch(deps: DecideDeps): Promise<Evidence> {
     matchStats,
     externalContext,
     hasWebVerifiedChunk,
+    worldContextCoversAsk: worldCovers,
     chartPrefix,
     isCompare,
     webSnippets,

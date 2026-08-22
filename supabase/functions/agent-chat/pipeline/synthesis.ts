@@ -16,7 +16,12 @@ import { isOddsQuestion } from "../helpers/kalshi.ts";
 import { isMlAnalysisQuestion } from "../helpers/predictionPacket.ts";
 import { streamFallback, streamFinalAnswer } from "../helpers/stream.ts";
 import { pickFinalModel } from "../helpers/classify.ts";
-import { extractCandidateFacts, verifyFact, type VerifiedFact } from "../helpers/factVerifier.ts";
+import {
+  extractCandidateFacts,
+  extractCareerFactsFromWiki,
+  verifyFact,
+  type VerifiedFact,
+} from "../helpers/factVerifier.ts";
 import { writeBackVerifiedFacts, writeBackCitoFacts } from "../helpers/ragWriteback.ts";
 import { isSentimentDomain, rankSnippets } from "../helpers/tavilySearch.ts";
 import { shouldRefuseForeignEntity, foreignEntityRefusal } from "../helpers/entityGuard.ts";
@@ -45,12 +50,18 @@ async function crossVerify(
   if (!factSnippets.length) return { block: "", verified: [] };
 
   const rankedSnippets = rankSnippets(factSnippets, "wiki");
-  const candidates = await extractCandidateFacts(
+  const extracted = await extractCandidateFacts(
     apiKey,
     rankedSnippets,
     evidence.webFactQuery,
     usageTracker,
   );
+  const wikiFallback = extractCareerFactsFromWiki(rankedSnippets, evidence.webFactQuery || "");
+  const seen = new Set(extracted.map((c) => c.fact.toLowerCase()));
+  const candidates = [
+    ...extracted,
+    ...wikiFallback.filter((c) => !seen.has(c.fact.toLowerCase())),
+  ];
   const verified = candidates
     .map((c) => verifyFact(c, rankedSnippets))
     .filter((v) => v.verified);
@@ -112,6 +123,8 @@ export async function synthesize(deps: SynthesisDeps): Promise<SynthesisResult> 
     citoContext: evidence.citoContext,
     lowConfidenceWeb,
     careerIntent: evidence.careerIntent,
+    worldContextCoversAsk: evidence.worldContextCoversAsk,
+    lookupReturned: evidence.webSnippets.length > 0,
     identityIntent:
       evidence.identityIntent ||
       isAgentIdentityAsk(message) ||

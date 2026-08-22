@@ -16,8 +16,14 @@ const TEAM_ALIASES: Record<string, string> = {
   drx: "DRX",
   kt: "KT Rolster",
   "kt rolster": "KT Rolster",
-  dplus: "Dplus KIA",
-  dk: "Dplus KIA",
+  dplus: "Dplus Kia",
+  dk: "Dplus Kia",
+  bfx: "FearX",
+  fearx: "FearX",
+  bro: "OKSavingsBank BRION",
+  brion: "OKSavingsBank BRION",
+  ns: "Nongshim RedForce",
+  dns: "DN Freecs",
 };
 
 const RADAR_METRICS = [
