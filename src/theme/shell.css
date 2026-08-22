@@ -1190,6 +1190,10 @@
   color: var(--text-tertiary);
 }
 
+.chat-input-shell textarea[readonly] {
+  cursor: default;
+}
+
 .chat-input-toolbar {
   display: flex;
   align-items: center;

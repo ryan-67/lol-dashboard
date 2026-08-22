@@ -8,7 +8,7 @@ import {
   useState,
   type ReactNode,
 } from 'react'
-import { useSearchParams } from 'react-router-dom'
+import { useLocation, useSearchParams } from 'react-router-dom'
 import { startStripeCheckout, syncStripeSubscription } from '../lib/billing'
 import { supabase } from '../lib/supabaseClient'
 import { fetchSubscriptionState } from '../lib/subscription'
@@ -24,9 +24,13 @@ import {
   createChatRequestId,
   hydrateLoadedMessages,
   isAuxiliaryBlankHref,
+  isDuplicateChatSubmit,
   shouldFlipSubscriptionReadyOff,
   shouldReloadConversationMessages,
+  userPromptBeforeAssistant,
+  type ChatSendResult,
 } from '../components/nuckyai/chatSessionGuards'
+import { useChatDocumentStay } from '../components/nuckyai/useChatDocumentStay'
 import type { ConversationRow, MessageRow, ProfileRow } from '../components/nuckyai/types'
 
 interface ChatSessionContextValue {
@@ -51,8 +55,9 @@ interface ChatSessionContextValue {
   beginNewChat: () => void
   deleteConversation: (id: string) => Promise<void>
   renameConversation: (id: string, title: string) => Promise<void>
-  send: (message: string) => boolean
+  send: (message: string) => ChatSendResult
   regenerate: () => void
+  retryTurn: (assistantIndex: number) => void
   stop: () => void
   subscribe: () => Promise<void>
   clearToast: () => void
@@ -87,11 +92,19 @@ export function ChatSessionProvider({ children }: { children: ReactNode }) {
   const [sending, setSending] = useState(false)
   const [quotaBlocked, setQuotaBlocked] = useState(false)
   const [inputFocusTrigger, setInputFocusTrigger] = useState(0)
+  const lastSubmitRef = useRef<{ text: string; at: number } | null>(null)
   const { streaming, sendMessage, stop: stopStream } = useAgentChat()
+  const location = useLocation()
 
   searchParamsRef.current = searchParams
   activeConversationIdRef.current = activeConversationId
   messagesRef.current = messages
+
+  useChatDocumentStay({
+    active: location.pathname === '/chat' || sending || streaming,
+    sendInFlight: sending || streaming,
+    conversationId: activeConversationId,
+  })
 
   const applyConversationId = useCallback(
     (conversationId: string | null) => {
@@ -289,8 +302,16 @@ export function ChatSessionProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const streamAssistant = useCallback(
-    (message: string, options?: { skipUserAppend?: boolean }): boolean => {
+    (message: string, options?: { skipUserAppend?: boolean }): ChatSendResult => {
       if (isAuxiliaryBlankHref(window.location.href)) return false
+      const displayMessage = message.trim()
+      if (sendLockRef.current) return 'duplicate'
+      if (
+        !options?.skipUserAppend &&
+        isDuplicateChatSubmit(lastSubmitRef.current, displayMessage, Date.now())
+      ) {
+        return 'duplicate'
+      }
       if (
         !canAcceptChatSubmit({
           text: message,
@@ -303,8 +324,8 @@ export function ChatSessionProvider({ children }: { children: ReactNode }) {
       }
 
       const now = new Date().toISOString()
-      const displayMessage = message.trim()
       const requestId = createChatRequestId()
+      lastSubmitRef.current = { text: displayMessage, at: Date.now() }
       sendLockRef.current = true
       pendingSendRef.current = true
       activeRequestIdRef.current = requestId
@@ -362,6 +383,16 @@ export function ChatSessionProvider({ children }: { children: ReactNode }) {
     if (!lastUser?.content) return
     streamAssistant(lastUser.content, { skipUserAppend: true })
   }, [messages, quotaBlocked, streamAssistant])
+
+  const retryTurn = useCallback(
+    (assistantIndex: number) => {
+      if (quotaBlocked) return
+      const prompt = userPromptBeforeAssistant(messages, assistantIndex)
+      if (!prompt) return
+      streamAssistant(prompt, { skipUserAppend: true })
+    },
+    [messages, quotaBlocked, streamAssistant],
+  )
 
   const beginNewChat = useCallback(() => {
     if (pendingSendRef.current) stopStream()
@@ -469,6 +500,7 @@ export function ChatSessionProvider({ children }: { children: ReactNode }) {
       renameConversation,
       send,
       regenerate,
+      retryTurn,
       stop,
       subscribe,
       clearToast: () => setToast(null),
@@ -495,6 +527,7 @@ export function ChatSessionProvider({ children }: { children: ReactNode }) {
       renameConversation,
       send,
       regenerate,
+      retryTurn,
       stop,
       subscribe,
     ],

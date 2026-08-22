@@ -6,7 +6,7 @@ import type { MessageRow } from './types'
 interface MessageListProps {
   messages: MessageRow[]
   onRegenerate: () => void
-  onRetry: () => void
+  onRetry: (assistantIndex: number) => void
   isTyping: boolean
   streaming?: boolean
 }
@@ -56,7 +56,7 @@ export default function MessageList({
             message={message}
             isAssistant={message.role === 'assistant'}
             onRegenerate={onRegenerate}
-            onRetry={onRetry}
+            onRetry={() => onRetry(idx)}
             deferCharts={streaming && idx === lastAssistantIdx}
           />
         ))}

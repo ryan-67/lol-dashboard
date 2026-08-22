@@ -6,12 +6,12 @@ import {
   type EntitySearchEntry,
 } from '../../lib/entities/searchIndex'
 import ChampionIcon from '../entities/ChampionIcon'
-import { isComposerSendEnter } from './chatSessionGuards'
+import { isComposerSendEnter, isFunctionKey } from './chatSessionGuards'
 
 interface ChatInputProps {
   value: string
   onChange: (value: string) => void
-  onSend: () => void
+  onSend: () => boolean | void
   disabled?: boolean
   onStop?: () => void
   focusTrigger?: number
@@ -29,6 +29,7 @@ export default function ChatInput({
 }: ChatInputProps) {
   const ref = useRef<HTMLTextAreaElement>(null)
   const sentAtRef = useRef(0)
+  const sendingClickRef = useRef(false)
   const { catalog } = useDashboard()
   const [index, setIndex] = useState<EntitySearchEntry[]>([])
   const [highlight, setHighlight] = useState(0)
@@ -79,18 +80,38 @@ export default function ChatInput({
   }
 
   const handleSendOrPick = () => {
-    if (disabled) return
+    if (disabled || sendingClickRef.current) return
     if (showTypeahead && results[highlight]) {
       pickEntity(results[highlight])
       return
     }
     if (!value.trim()) return
+    sendingClickRef.current = true
     sentAtRef.current = Date.now()
-    onSend()
+    const accepted = onSend()
+    if (accepted === false) {
+      sendingClickRef.current = false
+      return
+    }
     requestAnimationFrame(() => ref.current?.focus())
+    window.setTimeout(() => {
+      sendingClickRef.current = false
+    }, 500)
   }
 
   const handleComposerKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
+    if (isFunctionKey(e.key)) {
+      e.preventDefault()
+      e.stopPropagation()
+      return
+    }
+
+    if ((e.key === 'Backspace' || e.key === 'Delete') && disabled) {
+      e.preventDefault()
+      e.stopPropagation()
+      return
+    }
+
     if (showTypeahead && results.length) {
       if (e.key === 'ArrowDown') {
         e.preventDefault()
@@ -117,6 +138,10 @@ export default function ChatInput({
         keyCode: e.keyCode,
       })
     ) {
+      if (e.key === 'Enter' || e.key === 'NumpadEnter') {
+        e.preventDefault()
+        e.stopPropagation()
+      }
       return
     }
     e.preventDefault()

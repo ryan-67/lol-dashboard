@@ -15,11 +15,16 @@ import {
   interpretAgentSseData,
   isAuxiliaryBlankHref,
   isComposerSendEnter,
+  isDuplicateChatSubmit,
+  isFunctionKey,
+  shouldBlockHistoryNavigationKey,
   shouldFlipSubscriptionReadyOff,
   shouldHandleConversationClick,
   shouldOpenConversationInNewBrowsingContext,
   shouldReloadConversationMessages,
+  shouldRestoreChatDocument,
   shouldShowConversationListSkeleton,
+  userPromptBeforeAssistant,
 } from './chatSessionGuards.ts'
 import type { MessageRow } from './types.ts'
 
@@ -97,13 +102,88 @@ describe('nuckyAI session guards', () => {
     assert.equal(isComposerSendEnter({ key: 'a', shiftKey: false }), false)
   })
 
+  it('never treats function keys, Backspace, or Delete as send', () => {
+    for (const key of ['F1', 'F2', 'F3', 'F4', 'F5', 'F6', 'F7', 'F8', 'F9', 'F10', 'F11', 'F12']) {
+      assert.equal(isFunctionKey(key), true)
+      assert.equal(isComposerSendEnter({ key, shiftKey: false }), false)
+    }
+    assert.equal(isFunctionKey('Enter'), false)
+    assert.equal(isComposerSendEnter({ key: 'Backspace', shiftKey: false }), false)
+    assert.equal(isComposerSendEnter({ key: 'Delete', shiftKey: false }), false)
+    assert.equal(isComposerSendEnter({ key: 'Tab', shiftKey: false }), false)
+  })
+
+  it('blocks Backspace history navigation when the composer is locked or unfocused', () => {
+    assert.equal(
+      shouldBlockHistoryNavigationKey(
+        { key: 'Backspace', target: { tagName: 'TEXTAREA', readOnly: true } },
+        { composerLocked: true },
+      ),
+      true,
+    )
+    assert.equal(
+      shouldBlockHistoryNavigationKey({
+        key: 'Backspace',
+        target: { tagName: 'TEXTAREA', readOnly: false, disabled: false },
+      }),
+      false,
+    )
+    assert.equal(
+      shouldBlockHistoryNavigationKey({ key: 'Backspace', target: { tagName: 'BODY' } }),
+      true,
+    )
+    assert.equal(
+      shouldBlockHistoryNavigationKey({
+        key: 'Delete',
+        target: { tagName: 'TEXTAREA', readOnly: false },
+      }),
+      false,
+    )
+    assert.equal(
+      shouldBlockHistoryNavigationKey(
+        { key: 'Delete', target: { tagName: 'TEXTAREA', readOnly: true } },
+        { composerLocked: true },
+      ),
+      true,
+    )
+  })
+
+  it('dedupes one Enter into one submit without blocking an explicit later retry', () => {
+    assert.equal(isDuplicateChatSubmit({ text: 'F3', at: 1000 }, 'F3', 1200), true)
+    assert.equal(isDuplicateChatSubmit({ text: 'F3', at: 1000 }, 'F3', 1000 + 800), false)
+    assert.equal(isDuplicateChatSubmit({ text: 'F3', at: 1000 }, 'F2', 1100), false)
+    assert.equal(isDuplicateChatSubmit(null, 'F3', 1100), false)
+  })
+
+  it('retries the user prompt paired to that failed turn, not a later F2 draft', () => {
+    const messages: MessageRow[] = [
+      { role: 'user', content: 'F2', created_at: 't1', requestId: 'req-f2' },
+      {
+        role: 'assistant',
+        content: 'ok',
+        created_at: 't2',
+        requestId: 'req-f2',
+        kind: 'text',
+      },
+      { role: 'user', content: 'F3', created_at: 't3', requestId: 'req-f3' },
+      {
+        role: 'assistant',
+        content: "couldn't get a response — try again.",
+        created_at: 't4',
+        requestId: 'req-f3',
+        kind: 'error',
+        retryable: true,
+      },
+    ]
+    assert.equal(userPromptBeforeAssistant(messages, 3), 'F3')
+    assert.equal(userPromptBeforeAssistant(messages, 1), 'F2')
+    assert.equal(userPromptBeforeAssistant(messages, 2), null)
+  })
+
   it('Enter does not open a new browsing context', () => {
     assert.equal(composerUsesDocumentForm(), false)
     assert.equal(composerSubmitTarget({}), 'stay')
-    assert.equal(
-      composerEnterOpensNewBrowsingContext({ key: 'Enter', shiftKey: false }),
-      false,
-    )
+    assert.equal(composerEnterOpensNewBrowsingContext({ key: 'Enter', shiftKey: false }), false)
     assert.equal(
       composerEnterOpensNewBrowsingContext({ key: 'Enter', shiftKey: false, metaKey: true }),
       false,
@@ -144,6 +224,30 @@ describe('nuckyAI session guards', () => {
     )
     assert.equal(isAuxiliaryBlankHref('about:blank'), true)
     assert.equal(isAuxiliaryBlankHref('/chat?conversation_id=8b38946c'), false)
+    assert.equal(
+      shouldRestoreChatDocument({
+        pathname: '',
+        href: 'about:blank',
+        sendInFlight: true,
+      }),
+      true,
+    )
+    assert.equal(
+      shouldRestoreChatDocument({
+        pathname: '/chat',
+        href: 'https://nucky.gg/chat?conversation_id=1',
+        sendInFlight: true,
+      }),
+      false,
+    )
+    assert.equal(
+      shouldRestoreChatDocument({
+        pathname: '/dashboard',
+        href: 'https://nucky.gg/dashboard',
+        sendInFlight: false,
+      }),
+      false,
+    )
   })
 
   it('pairs streamed chunks to the request that produced them', () => {

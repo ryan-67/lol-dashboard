@@ -22,6 +22,7 @@ import { pathForView } from '../../lib/viewPreference'
 import {
   conversationHref,
   shouldHandleConversationClick,
+  shouldOpenConversationInNewBrowsingContext,
   shouldShowConversationListSkeleton,
 } from '../nuckyai/chatSessionGuards'
 import type { ConversationRow } from '../nuckyai/types'
@@ -193,9 +194,18 @@ function ConversationItem({
       <Link
         to={conversationHref(conversation.id)}
         className="app-sidebar-convo"
+        target="_self"
         onClick={(e) => {
+          if (shouldOpenConversationInNewBrowsingContext(e)) return
           if (!shouldHandleConversationClick(e)) return
           e.preventDefault()
+          onSelect()
+        }}
+        onKeyDown={(e) => {
+          if (e.key !== 'Enter' && e.key !== ' ') return
+          if (shouldOpenConversationInNewBrowsingContext(e)) return
+          e.preventDefault()
+          e.stopPropagation()
           onSelect()
         }}
       >

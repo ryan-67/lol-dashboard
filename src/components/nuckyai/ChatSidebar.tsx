@@ -95,7 +95,10 @@ export default function ChatSidebar({
     onCloseMobile()
   }
 
-  const handleConversationKeyDown = (e: ReactKeyboardEvent<HTMLAnchorElement>, conversationId: string) => {
+  const handleConversationKeyDown = (
+    e: ReactKeyboardEvent<HTMLAnchorElement>,
+    conversationId: string,
+  ) => {
     if (e.key !== 'Enter' && e.key !== ' ') return
     if (shouldOpenConversationInNewBrowsingContext(e)) return
     e.preventDefault()
