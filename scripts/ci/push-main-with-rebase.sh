@@ -1,14 +1,28 @@
 #!/usr/bin/env bash
 # Rebase a just-made CI commit onto origin/main and push.
 # Long refresh / ML jobs race humans and Cloud Agents pushing to the same branch.
+#
+# Mid-job callers (OE CDN publish) leave Riot/ingest files dirty on purpose.
+# Stash tracked leftover, rebase/push, then pop so later steps still have those files.
 set -euo pipefail
 
 RETRIES="${1:-8}"
+STASHED=0
 
-if [[ -n "$(git status --porcelain)" ]]; then
-  echo "Stashing leftover worktree dirt so rebase can run."
-  git stash push --include-untracked \
-    -m "ci: leftover after commit $(date -u +%Y-%m-%dT%H:%M:%SZ)" || true
+restore_stash() {
+  if [[ "$STASHED" -eq 1 ]]; then
+    echo "Restoring leftover worktree after rebase/push."
+    git stash pop || echo "::warning::stash pop failed; later job steps may see a cleaner tree."
+    STASHED=0
+  fi
+}
+trap restore_stash EXIT
+
+if ! git diff --quiet || ! git diff --cached --quiet; then
+  echo "Stashing leftover tracked changes so rebase can run:"
+  git status --porcelain
+  git stash push -m "ci: leftover after commit $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+  STASHED=1
 fi
 
 # During rebase, "theirs" is the commit being replayed (this job's artifacts).

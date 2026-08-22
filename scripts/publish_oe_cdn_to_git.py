@@ -172,13 +172,10 @@ def main() -> None:
 
     years_label = ", ".join(sorted(year_files))
     run(["git", "commit", "-m", f"chore(data): update OE CDN shards ({years_label})"])
-    push = run(["git", "push"], check=False)
-    if push.returncode != 0:
-        # Retry once after a fetch — avoid pull --rebase, which refuses to run with a
-        # dirty tree (common when ingest regenerated tracked historical shards).
-        run(["git", "fetch", "origin", "main"])
-        run(["git", "rebase", "origin/main"])
-        run(["git", "push"])
+    # Ingest/Riot leave other tracked files dirty. A raw rebase dies with
+    # "unstaged changes" when Cloud Agents moved main during this job.
+    helper = ROOT / "scripts" / "ci" / "push-main-with-rebase.sh"
+    run(["bash", str(helper)])
 
 
 if __name__ == "__main__":
