@@ -68,10 +68,10 @@ export function hasSufficientKnowledge(input: CoverageInput): boolean {
   if (/"tool":"team_lck_titles"/.test(statsBlob) && /"lckTitles":\s*5/.test(statsBlob)) {
     return true;
   }
-  if (/"tool":"weekly_warehouse_recap"/.test(statsBlob) && /"completed":\s*\[\{/.test(statsBlob)) {
+  if (/"tool":"weekly_warehouse_recap"/.test(statsBlob)) {
     return true;
   }
-  if (/"tool":"warehouse_series_recap"/.test(statsBlob) && /"seriesScore":"[1-9]/.test(statsBlob)) {
+  if (/"tool":"warehouse_series_recap"/.test(statsBlob)) {
     return true;
   }
   if (/"tool":"warehouse_season_facts"/.test(statsBlob) && /"seriesWinsA":[1-9]/.test(statsBlob)) {

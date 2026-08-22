@@ -15,6 +15,8 @@ import {
   dropSeriesNotInWarehouse,
   formatWeeklyWarehouseBlock,
   hasSeriesEvidence,
+  hasWeeklyWindowAsk,
+  inferLeagueFromMessage,
   isDatedMatchupRecap,
   isWeeklyLeagueRecapQuestion,
   keyLaneMatchups,
@@ -29,7 +31,7 @@ import {
   weekContainsPair,
   type WarehouseSeriesRow,
 } from "./warehouseFacts.ts";
-import { extractTeams, runWarehouseSeriesRecap } from "./analystTools.ts";
+import { extractTeams, runWarehouseSeriesRecap, runWeeklyWarehouseRecap } from "./analystTools.ts";
 import {
   gengLckTitleFact,
   isTeamLckTitleQuestion,
@@ -40,6 +42,7 @@ import { hasSufficientKnowledge } from "./knowledgeCoverage.ts";
 import {
   careerFactKey,
   dropChunksContradictingTools,
+  dropLeftoverRecapChunks,
   selectWinningRagChunks,
   staleTitleChunkCannotVeto,
   type RagFactChunk,
@@ -67,6 +70,7 @@ const QA = {
 };
 
 const WEEK_NOW = "2026-08-22T12:00:00.000Z";
+const temporalForTitles = buildTemporalContext(WEEK_NOW);
 
 function row(
   date: string,
@@ -415,6 +419,15 @@ Deno.test("GEN LCK titles are 5 modern season titles, not KOO/SSG 2017–2020", 
     tools: [{ tool: "team_lck_titles", lckTitles: 5, years: [2022, 2023, 2023, 2024, 2025] }],
   });
   assert(afterTools.every((c) => !/\b2017\b/.test(c.content)), "tool 5-title drops KOO/SSG list");
+
+  const yearAsk = "GEN title years";
+  assert(isTeamLckTitleQuestion(yearAsk), "GEN title years hits curated table");
+  const yearTable = lookupTeamLckTitles(yearAsk);
+  assert(yearTable && (yearTable.data.lckTitles as number) === 5, "title years still 5 modern");
+  const yearFacts = extractCareerFactsFromWiki([wikiSnippet], yearAsk);
+  assert(yearFacts.some((f) => /5 modern/.test(f.fact) || /2023/.test(f.fact)), "wiki extract without the word LCK");
+  assert(worldContextCoversAsk(yearAsk, temporalForTitles.block), "WORLD_CONTEXT covers GEN titles");
+  assert(worldContextCoversAsk(genAsk, temporalForTitles.block), "WORLD_CONTEXT covers how-many LCK");
 });
 
 function gengPredecessorIn(text: string): boolean {
@@ -596,4 +609,75 @@ Deno.test("dated T1–KT recap uses warehouse series W/L, not leftover OE 3-3 / 
   assert(t1 && t1.series === "17-8", `T1 series W/L is 17-8, got ${t1?.series}`);
   assert(kt && kt.series === "15-11", `KT series W/L is 15-11, got ${kt?.series}`);
   assert(/17-8/.test(String(recap!.data.note)) || /warehouse/.test(String(recap!.data.note)), "note cites warehouse W/L");
+
+  const thin = overlayWarehouseSeasonRecords(
+    { teamA: "T1", teamB: "KT Rolster", seriesScore: "2-1", date: "2026-08-21" },
+    seasonRecordsFromWarehouse(QA_WAREHOUSE, 2026, "LCK"),
+  );
+  const thinRecords = (thin.seasonRecords as Array<{ team: string; series: string }>) ?? [];
+  assert(
+    thinRecords.every((r) => r.series !== "3-3" && r.series !== "1-6"),
+    "week-only warehouse 3-3 must not attach as season W/L",
+  );
+});
+
+Deno.test("asked-date miss does not invent HLE–FearX Aug 19 from another meeting", () => {
+  const withOtherDay: WarehouseSeriesRow[] = [
+    ...QA_WAREHOUSE,
+    row("2026-08-12", "Hanwha Life Esports", "FearX", 2, 0),
+  ];
+  const asked = "HLE vs FearX around Aug 19";
+  assert(isDatedMatchupRecap(asked), "dated pair is a series recap");
+  assertEquals(inferLeagueFromMessage(asked), "LCK", "HLE/FearX infer LCK");
+  const hit = pickWarehouseSeries(
+    withOtherDay,
+    "Hanwha Life Esports",
+    "FearX",
+    asked,
+    WEEK_NOW,
+  );
+  assertEquals(hit, null, "Aug 19 is not in warehouse — do not fall through to Aug 12");
+  const recap = runWarehouseSeriesRecap(asked, withOtherDay, [], WEEK_NOW);
+  assert(recap, "miss still emits warehouse_series_recap");
+  assertEquals(recap!.data.seriesScore as string, "0-0", "no invented score");
+  assert(recap!.data.missingAskedSeries === true, "missingAskedSeries flag");
+  assert(
+    hasSufficientKnowledge({
+      chatOnly: false,
+      scope: "lolesports_series",
+      careerIntent: false,
+      hasWebVerifiedChunk: false,
+      matchStats: { tools: [{ tool: "warehouse_series_recap", ...recap!.data }] },
+      externalContext: "[web_verified] HLE 0-2 FearX on August 19",
+      citoContext: "",
+      citoHit: false,
+      webSearchIntent: "general",
+      citoIntent: "general",
+      subjectiveIntent: false,
+    }),
+    "warehouse miss is sufficient — do not Tavily-invent the series",
+  );
+});
+
+Deno.test("this week + HLE vs FearX Aug 19 still emits warehouse week, not the invented pair", () => {
+  const combined = "this week's LCK / HLE vs FearX around Aug 19";
+  assert(hasWeeklyWindowAsk(combined), "combined ask keeps the week window");
+  const weekly = runWeeklyWarehouseRecap(combined, QA_WAREHOUSE, "LCK", WEEK_NOW);
+  assert(weekly, "weekly warehouse still runs");
+  const completed = (weekly!.data.completed as Array<{ teamA: string; teamB: string; date: string }>) ?? [];
+  assert(
+    !completed.some((s) =>
+      /hanwha/i.test(`${s.teamA} ${s.teamB}`) && /fearx/i.test(`${s.teamA} ${s.teamB}`)
+    ),
+    "week block has no HLE–FearX",
+  );
+  const leftover: RagFactChunk = {
+    content: "HLE 0-2 FearX on August 19, 2026",
+    source: "web_verified",
+    title: "LCK week",
+  };
+  const dropped = dropLeftoverRecapChunks([leftover], {
+    tools: [{ tool: "weekly_warehouse_recap", completed }],
+  });
+  assertEquals(dropped.length, 0, "leftover HLE–FearX Aug 19 RAG is dropped");
 });

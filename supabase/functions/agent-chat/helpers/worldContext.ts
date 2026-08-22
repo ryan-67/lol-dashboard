@@ -54,6 +54,12 @@ const EWC_2026 = {
   mainEnd: "2026-07-19",
 };
 
+/** Modern Gen.G LCK season titles — cite these; do not fail-close as "not in WORLD_CONTEXT". */
+const GENG_LCK_TITLES =
+  "Gen.G has 5 modern LCK season titles (2022 Summer, 2023 Spring, 2023 Summer, 2024 Spring, 2025). " +
+  "Do NOT count 2017–2020 KOO Tigers / Samsung Galaxy / SSG-era titles. Do not drop either 2023. " +
+  "LCK Cup 2026 is a separate cup. Cite this list — do not fail-close.";
+
 /** Typical LCK Summer open — treat as not started until MATCH_STATS proves otherwise. */
 const LCK_SUMMER_2026_HINT_START = "2026-07-20";
 
@@ -108,6 +114,7 @@ msi_2026_play_in_teams: ${playInList}
 ewc_2026: ${EWC_2026.name} in ${EWC_2026.location}, main stage ${EWC_2026.mainStart} to ${EWC_2026.mainEnd} (after MSI, before regional Summer).
 lck_msi_2026: ${MSI_2026.lckQualifiers}
 msi_2026_champion: Hanwha Life Esports (HLE) won MSI 2026.
+geng_lck_titles: ${GENG_LCK_TITLES}
 lck_road_to_msi_2026: ${MSI_2026.lckRoadToMsi2026}
 series_terminology: never call T1 vs Gen.G Road to MSI "reverse sweep" — it was a 3-2 T1 win, not a comeback from 0-2 down.
 roster_2026_note: Viper is on Bilibili Gaming (LPL) in 2026, NOT Hanwha Life Esports. HLE adc is Gumayusi.
@@ -129,6 +136,19 @@ export function worldContextCoversAsk(message: string, worldBlock: string): bool
     /\b(won|winner|champion|champ|title)\b/.test(q) &&
     /msi_2026_champion/.test(block) &&
     /hanwha life esports/.test(block)
+  ) {
+    return true;
+  }
+  const gengTitleAsk =
+    /\bgen(?:\.?g)?\b/.test(q) &&
+    /\b(titles?|championships?|title years?|how many)\b/.test(q) &&
+    !(/\b(worlds?|msi)\b/.test(q) && !/\blck\b/.test(q));
+  if (
+    gengTitleAsk &&
+    /geng_lck_titles/.test(block) &&
+    /2022/.test(block) &&
+    /2023/.test(block) &&
+    /2025/.test(block)
   ) {
     return true;
   }

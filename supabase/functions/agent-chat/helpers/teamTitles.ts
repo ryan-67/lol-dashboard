@@ -75,9 +75,18 @@ export function extractTeamLckKey(message: string): string | null {
 }
 
 export function isTeamLckTitleQuestion(message: string): boolean {
-  if (!/\blck\b/i.test(message)) return false;
-  if (!/\b(titles?|championships?|won|how many)\b/i.test(message)) return false;
-  return extractTeamLckKey(message) != null;
+  if (extractTeamLckKey(message) == null) return false;
+  // Worlds / MSI title asks are a different table — do not steal them.
+  if (
+    /\b(worlds?|world championship|msi|mid-?season)\b/i.test(message) &&
+    !/\blck\b/i.test(message)
+  ) {
+    return false;
+  }
+  // "GEN title years" / "how many titles does GEN have" must hit the curated
+  // 5 — requiring the word LCK was the live fail-closed path after #6.
+  if (/\b(titles?|championships?|title years?|how many)\b/i.test(message)) return true;
+  return /\blck\b/i.test(message) && /\b(won|wins)\b/i.test(message);
 }
 
 /**

@@ -46,6 +46,7 @@ import {
 } from "../helpers/teamTitles.ts";
 import {
   hasSeriesEvidence,
+  hasWeeklyWindowAsk,
   isDatedMatchupRecap,
   isWeeklyLeagueRecapQuestion,
   shouldDrawCompareChart,
@@ -61,6 +62,7 @@ import { worldContextCoversAsk } from "../helpers/worldContext.ts";
 import { fetchVerifiedFactsByEntity } from "../helpers/ragWriteback.ts";
 import {
   dropChunksContradictingTools,
+  dropLeftoverRecapChunks,
   hasFreshCareerFact,
   selectWinningRagChunks,
   type RagFactChunk,
@@ -507,15 +509,24 @@ export async function decideAndFetch(deps: DecideDeps): Promise<Evidence> {
   }
 
   // ---- Source 2: RAG knowledge base (career/roster always vector-search) ----
-  const forceVector = (careerIntent || rosterDepthIntent) && !curatedPlayerWorldsTitle;
+  const warehouseGroundedAsk =
+    isWeeklyLeagueRecapQuestion(message) ||
+    isDatedMatchupRecap(message) ||
+    hasWeeklyWindowAsk(message);
+  const forceVector =
+    (careerIntent || rosterDepthIntent) &&
+    !curatedPlayerWorldsTitle &&
+    !curatedTeamLckTitle;
   const factualScope = scope.scope !== "lolesports_chat";
   if (
-    (runRag &&
+    !curatedTeamLckTitle &&
+    !warehouseGroundedAsk &&
+    ((runRag &&
       (plan.needs_vector ||
         forceVector ||
         /\b(favorite|favou?rite|odds|kalshi|prediction)\b/i.test(message))) ||
     forceVector ||
-    (factualScope && !hasWebVerifiedChunk && !externalContext.trim())
+    (factualScope && !hasWebVerifiedChunk && !externalContext.trim()))
   ) {
     const isOdds = /\b(odds|kalshi|favorite|favou?rite|prediction)\b/i.test(message);
     const vectorRoute = isOdds
@@ -539,8 +550,11 @@ export async function decideAndFetch(deps: DecideDeps): Promise<Evidence> {
       const keyedEntities = buildCareerEntities(message, thread.inheritedTopic, mentionedPlayers)
         .map((e) => e.toLowerCase());
       const keyed = await fetchVerifiedFactsByEntity(serviceClient, keyedEntities);
-      const ranked = dropChunksContradictingTools(
-        selectWinningRagChunks([...keyed, ...rawChunks]),
+      const ranked = dropLeftoverRecapChunks(
+        dropChunksContradictingTools(
+          selectWinningRagChunks([...keyed, ...rawChunks]),
+          matchStats,
+        ),
         matchStats,
       );
       hasWebVerifiedChunk = ranked.some((c) => c.source === "web_verified");

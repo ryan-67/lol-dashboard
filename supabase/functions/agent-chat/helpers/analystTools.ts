@@ -26,10 +26,13 @@ import {
   dedupeByTeamIdentity,
   teamsAreSame,
 } from "./teamIdentity.ts";
-import { fetchWarehouseRows } from "./warehouseFetch.ts";
+import { fetchWarehouseRows, seasonWarehouseOpts } from "./warehouseFetch.ts";
 import {
   dropSeriesNotInWarehouse,
   formatWeeklyWarehouseBlock,
+  hasWeeklyWindowAsk,
+  inferLeagueFromMessage,
+  isDatedMatchupRecap,
   isWeeklyLeagueRecapQuestion,
   lastMeetingFromWarehouse,
   overlayWarehouseSeasonRecords,
@@ -1337,7 +1340,13 @@ export function runWeeklyWarehouseRecap(
   league: string,
   clientNow?: string,
 ): ToolResult | null {
-  if (!isWeeklyLeagueRecapQuestion(message) && !wantsWarehouseResults(message)) return null;
+  if (
+    !isWeeklyLeagueRecapQuestion(message) &&
+    !wantsWarehouseResults(message) &&
+    !hasWeeklyWindowAsk(message)
+  ) {
+    return null;
+  }
   const leagueFilter = message.match(/\b(LCK|LPL|LEC|LCS)\b/i)?.[1]?.toUpperCase() ??
     (league !== "All Tier 1" ? league : undefined);
   const now = clientNow ?? new Date().toISOString();
@@ -1376,8 +1385,13 @@ export function runWarehouseSeriesRecap(
         teamB: b.name,
         seriesScore: "0-0",
         gameCount: 0,
+        gamesFound: 0,
+        missingAskedSeries: true,
         source: "cito_schedules (riot gw warehouse)",
-        note: "no warehouse series for this pair/date — do not invent a score",
+        note:
+          "no warehouse series for this pair/date — do not invent a score or date. " +
+          "HLE vs FearX on Aug 19 is not a warehouse row unless listed. " +
+          "Do not cite leftover OE / RAG for a series the warehouse does not list.",
       },
     };
   }
@@ -1556,9 +1570,12 @@ export async function buildAnalystContext(
     });
   const snapshot = options.includeSnapshot ? buildStatSnapshot(bundle) : null;
   const tools: ToolResult[] = [];
-  const warehouseRows = await fetchWarehouseRows(service, {
-    league: analystLeague === "All Tier 1" ? undefined : analystLeague,
-  });
+  const year = Number((options.clientNow ?? new Date().toISOString()).slice(0, 4));
+  const recapLeague = inferLeagueFromMessage(message, analystLeague);
+  const warehouseRows = await fetchWarehouseRows(
+    service,
+    seasonWarehouseOpts(recapLeague, year),
+  );
 
   const champMatchup = runChampionMatchupLookup(message);
   const clarify = runEntityClarifications(message, bundle, analystLeague);
@@ -1578,22 +1595,39 @@ export async function buildAnalystContext(
 
   const weeklyHit = Boolean(
     weekly &&
-      Array.isArray((weekly.data as { completed?: unknown[] })?.completed) &&
-      ((weekly.data as { completed?: unknown[] }).completed?.length ?? 0) > 0,
+      (
+        (Array.isArray((weekly.data as { completed?: unknown[] })?.completed) &&
+          ((weekly.data as { completed?: unknown[] }).completed?.length ?? 0) > 0) ||
+        (Array.isArray((weekly.data as { upcoming?: unknown[] })?.upcoming) &&
+          ((weekly.data as { upcoming?: unknown[] }).upcoming?.length ?? 0) > 0)
+      ),
   );
   const warehouseSeriesHit = Boolean(
     warehouseSeries &&
       String((warehouseSeries.data as { seriesScore?: string })?.seriesScore ?? "0-0")
         .match(/^[1-9]/),
   );
+  const warehouseSeriesMiss = Boolean(
+    warehouseSeries &&
+      ((warehouseSeries.data as { missingAskedSeries?: boolean })?.missingAskedSeries ||
+        String((warehouseSeries.data as { seriesScore?: string })?.seriesScore ?? "") === "0-0"),
+  );
 
   // Weekly / dated warehouse recaps must not merge leftover OE form, academy
-  // results, or a different series' player gameLog (T1 Painter/Oner on DK).
-  const warehouseOnlyRecap = weeklyHit || warehouseSeriesHit;
+  // results, compare/H2H snippets, or a different series' player gameLog.
+  // A 0-0 miss is still warehouse-grounded — do not fall through to OE leftovers
+  // that invent HLE–FearX Aug 19 or attach form 3-3 / 1-6.
+  const warehouseOnlyRecap =
+    weeklyHit ||
+    warehouseSeriesHit ||
+    warehouseSeriesMiss ||
+    isDatedMatchupRecap(message) ||
+    isWeeklyLeagueRecapQuestion(message) ||
+    hasWeeklyWindowAsk(message);
 
   // When entity is ambiguous, prefer clarify over inventing a max-games pick.
   const rawCandidates: Array<ToolResult | null> = warehouseOnlyRecap
-    ? [clarify, weekly, warehouseSeries, seasonFacts]
+    ? [clarify, weekly, warehouseSeries]
     : clarify
     ? [
       clarify,
