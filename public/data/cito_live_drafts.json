@@ -1,66 +1,6 @@
 {
-  "generatedAt": "2026-08-22T09:33:59.867Z",
+  "generatedAt": "2026-08-22T10:24:59.257Z",
   "drafts": [
-    {
-      "matchId": "lol-match-116566854547769716",
-      "gameId": "lol-game-116566854547769717",
-      "gameNumber": 1,
-      "league": "LPL",
-      "teamA": "LGD GAMING",
-      "teamB": "Xi'an Team WE",
-      "blueTeam": "lgd",
-      "redTeam": "we",
-      "bluePicks": [
-        {
-          "championName": "K'Sante",
-          "role": "Top"
-        },
-        {
-          "championName": "Jhin",
-          "role": "ADC"
-        },
-        {
-          "championName": "Rell",
-          "role": "Support"
-        },
-        {
-          "championName": "Ryze",
-          "role": "Mid"
-        },
-        {
-          "championName": "Lee Sin",
-          "role": "Jungle"
-        }
-      ],
-      "redPicks": [
-        {
-          "championName": "Vi",
-          "role": "Jungle"
-        },
-        {
-          "championName": "Yunara",
-          "role": "ADC"
-        },
-        {
-          "championName": "Rumble",
-          "role": "Top"
-        },
-        {
-          "championName": "Ahri",
-          "role": "Mid"
-        },
-        {
-          "championName": "Lulu",
-          "role": "Support"
-        }
-      ],
-      "blueBans": [],
-      "redBans": [],
-      "draftComplete": true,
-      "status": "inprogress",
-      "scheduledAt": "2026-08-22T07:00:00+00:00",
-      "fetchedAt": "2026-08-22T09:33:56.713Z"
-    },
     {
       "matchId": "lol-match-115548147900619049",
       "gameId": "lol-game-115548147900684586",
@@ -119,7 +59,127 @@
       "draftComplete": true,
       "status": "inprogress",
       "scheduledAt": "2026-08-22T08:00:00+00:00",
-      "fetchedAt": "2026-08-22T09:33:57.904Z"
+      "fetchedAt": "2026-08-22T10:24:56.916Z"
+    },
+    {
+      "matchId": "lol-match-116566854547835332",
+      "gameId": "lol-game-116566854547835333",
+      "gameNumber": 1,
+      "league": "LPL",
+      "teamA": "Shenzhen NINJAS IN PYJAMAS",
+      "teamB": "Invictus Gaming",
+      "blueTeam": "nip",
+      "redTeam": "ig",
+      "bluePicks": [
+        {
+          "championName": "Yone",
+          "role": "Mid"
+        },
+        {
+          "championName": "Anivia",
+          "role": "Top"
+        },
+        {
+          "championName": "Yunara",
+          "role": "ADC"
+        },
+        {
+          "championName": "Maokai",
+          "role": "Jungle"
+        },
+        {
+          "championName": "Lulu",
+          "role": "Support"
+        }
+      ],
+      "redPicks": [
+        {
+          "championName": "Jhin",
+          "role": "ADC"
+        },
+        {
+          "championName": "Olaf",
+          "role": "Top"
+        },
+        {
+          "championName": "Naafiri",
+          "role": "Jungle"
+        },
+        {
+          "championName": "Ryze",
+          "role": "Mid"
+        },
+        {
+          "championName": "Karma",
+          "role": "Support"
+        }
+      ],
+      "blueBans": [],
+      "redBans": [],
+      "draftComplete": true,
+      "status": "inprogress",
+      "scheduledAt": "2026-08-22T10:30:00+00:00",
+      "fetchedAt": "2026-08-22T10:24:57.868Z"
+    },
+    {
+      "matchId": "lol-match-116566854547769716",
+      "gameId": "lol-game-116566854547769717",
+      "gameNumber": 1,
+      "league": "LPL",
+      "teamA": "LGD GAMING",
+      "teamB": "Xi'an Team WE",
+      "blueTeam": "lgd",
+      "redTeam": "we",
+      "bluePicks": [
+        {
+          "role": "Top",
+          "championName": "K'Sante"
+        },
+        {
+          "role": "ADC",
+          "championName": "Jhin"
+        },
+        {
+          "role": "Support",
+          "championName": "Rell"
+        },
+        {
+          "role": "Mid",
+          "championName": "Ryze"
+        },
+        {
+          "role": "Jungle",
+          "championName": "Lee Sin"
+        }
+      ],
+      "redPicks": [
+        {
+          "role": "Jungle",
+          "championName": "Vi"
+        },
+        {
+          "role": "ADC",
+          "championName": "Yunara"
+        },
+        {
+          "role": "Top",
+          "championName": "Rumble"
+        },
+        {
+          "role": "Mid",
+          "championName": "Ahri"
+        },
+        {
+          "role": "Support",
+          "championName": "Lulu"
+        }
+      ],
+      "blueBans": [],
+      "redBans": [],
+      "draftComplete": true,
+      "status": "inprogress",
+      "scheduledAt": "2026-08-22T07:00:00+00:00",
+      "fetchedAt": "2026-08-22T09:33:56.713+00:00"
     }
   ]
 }
