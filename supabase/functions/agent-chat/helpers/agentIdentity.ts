@@ -5,19 +5,29 @@
  * Entity extractors must strip/mask agent self-mentions before matching short player names.
  */
 
-/** Whole-word agent self-name (nucky / nuckyai / nucky.gg). */
-export const AGENT_SELF_NAME_RE =
-  /\b(?:hey\s+|hi\s+|yo\s+|hello\s+|sup\s+|ok\s+)?nucky(?:ai|\.gg)?\b/gi;
+/** Whole-word agent self-name (nucky / nuckyai / nucky.gg) plus common typos. */
+const NUCKY_CANON = "nucky(?:ai|\\.gg)?";
+const NUCKY_TYPO = "nucy|nucki|nuky|nuckky|nuckyy";
+const NUCKY_ANY = `(?:${NUCKY_CANON}|${NUCKY_TYPO})`;
+
+export const AGENT_SELF_NAME_RE = new RegExp(
+  `\\b(?:hey\\s+|hi\\s+|yo\\s+|hello\\s+|sup\\s+|ok\\s+)?${NUCKY_ANY}\\b`,
+  "gi",
+);
 
 const AGENT_IDENTITY_ASK =
   /\b(who are you|what are you|what(?:'s| is) your name|tell me about yourself|about yourself|what can you do|what do you do|how can you help|your (?:capabilities|features)|introduce yourself)\b/i;
 
-const GREETING_ONLY =
-  /^(?:hey|hi|yo|hello|sup|good\s+(?:morning|afternoon|evening))(?:\s+nucky(?:ai|\.gg)?)?[.!?\s]*$/i;
+const GREETING_ONLY = new RegExp(
+  `^(?:hey|hi|yo|hello|sup|good\\s+(?:morning|afternoon|evening))(?:\\s+${NUCKY_ANY})?[.!\\?\\s]*$`,
+  "i",
+);
 
 /** "hey nucky, how are you" — greet + smalltalk, no analysis ask. */
-const AGENT_SMALLTALK =
-  /\b(?:hey|hi|yo|hello|sup)\s+nucky(?:ai|\.gg)?\b[,!]?\s*(?:how are you|how'?s it going|what'?s up|whats up|hru)\b/i;
+const AGENT_SMALLTALK = new RegExp(
+  `\\b(?:hey|hi|yo|hello|sup)\\s+${NUCKY_ANY}\\b[,!]?\\s*(?:how are you|how'?s it going|what'?s up|whats up|hru)\\b`,
+  "i",
+);
 
 /**
  * Mask agent self-mentions so substring player matches (e.g. "nuc" ⊂ "nucky") cannot fire.
@@ -42,13 +52,29 @@ export function isAgentGreetingOnly(message: string): boolean {
   return GREETING_ONLY.test(trimmed) || AGENT_SMALLTALK.test(trimmed);
 }
 
+const NUCKY_TYPO_TOKEN = /\b(nucy|nucki|nuky|nuckky|nuckyy)\b/i;
+
+/** Greeting that misspells the agent name ("hi nucy") — not a player ask. */
+export function isNuckyTypoGreeting(message: string): boolean {
+  const trimmed = message.trim();
+  if (!isAgentGreetingOnly(trimmed)) return false;
+  return NUCKY_TYPO_TOKEN.test(trimmed) && !/\bnucky(?:ai|\.gg)?\b/i.test(trimmed);
+}
+
+export function formatNuckyTypoGreeting(message: string): string {
+  const typo = message.match(NUCKY_TYPO_TOKEN)?.[1]?.toLowerCase() ?? "nucy";
+  return `who's ${typo}? i'm nucky — hit me with a LoL esports question.`;
+}
+
 /** Word-boundary token mention on a message with agent self-name already stripped. */
 export function messageMentionsPlayerToken(message: string, token: string): boolean {
   const haystack = stripAgentSelfMentions(message);
   const t = token.trim().toLowerCase();
   if (!t) return false;
   // Never treat the agent name itself as a player token.
-  if (t === "nucky" || t === "nuckyai" || t === "nucky.gg") return false;
+  if (t === "nucky" || t === "nuckyai" || t === "nucky.gg" || t === "nucy" || t === "nucki") {
+    return false;
+  }
   const escaped = t.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
   const re = new RegExp(`(?:^|[^a-z0-9_])${escaped}(?:[^a-z0-9_]|$)`, "i");
   return re.test(haystack);

@@ -6,6 +6,9 @@ export interface WorldsChampionEntry {
   team: string;
   finalsMvp: string;
   region: string;
+  opponent?: string;
+  score?: string;
+  note?: string;
 }
 
 /** Curated facts — do not infer MVPs from training memory. */
@@ -17,7 +20,16 @@ export const WORLDS_CHAMPIONS: WorldsChampionEntry[] = [
   { year: 2022, season: 12, team: "DRX", finalsMvp: "Kingen", region: "LCK" },
   { year: 2023, season: 13, team: "T1", finalsMvp: "Zeus", region: "LCK" },
   { year: 2024, season: 14, team: "T1", finalsMvp: "Faker", region: "LCK" },
-  { year: 2025, season: 15, team: "T1", finalsMvp: "Gumayusi", region: "LCK" },
+  {
+    year: 2025,
+    season: 15,
+    team: "T1",
+    finalsMvp: "Gumayusi",
+    region: "LCK",
+    opponent: "KT Rolster",
+    score: "3-2",
+    note: "Doran top. Gumayusi Finals MVP.",
+  },
 ];
 
 /**
@@ -61,6 +73,31 @@ export function isWorldsHistoryQuestion(message: string): boolean {
   return WORLDS_LIST_INTENT.test(message) ||
     /\bwho won\b/i.test(message) ||
     /\bwhich team won\b/i.test(message);
+}
+
+/** "who won worlds 2025 and who was FMVP?" */
+export function extractAskedWorldsYear(message: string): number | null {
+  if (!WORLDS_HISTORY.test(message) && !/\bworld championships?\b/i.test(message)) {
+    return null;
+  }
+  if (!/\b(who won|winner|champion|fmvp|finals mvp|mvp)\b/i.test(message)) return null;
+  const year = message.match(/\b(20\d{2})\b/);
+  if (!year) return null;
+  const n = Number(year[1]);
+  return WORLDS_CHAMPIONS.some((e) => e.year === n) ? n : null;
+}
+
+export function formatWorldsYearAnswer(year: number): string | null {
+  const row = WORLDS_CHAMPIONS.find((e) => e.year === year);
+  if (!row) return null;
+  const vs = row.opponent && row.score
+    ? ` ${row.score} over ${row.opponent}`
+    : "";
+  const extra = row.note ? ` ${row.note}` : "";
+  return `${row.team} won Worlds ${year}${vs}. ${row.finalsMvp} was Finals MVP.${extra}`.replace(
+    /\.\s+\./g,
+    ".",
+  );
 }
 
 /** "how many worlds has faker won?" */
@@ -139,6 +176,9 @@ export function lookupWorldsHistory(message: string): {
         team: e.team,
         region: e.region,
         finalsMvp: e.finalsMvp,
+        opponent: e.opponent ?? null,
+        score: e.score ?? null,
+        note: e.note ?? null,
       })),
     },
   };

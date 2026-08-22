@@ -3,7 +3,11 @@ import type { MergedPlayer } from "./oeData.ts";
 
 export const PLAYER_ALIASES: Record<string, string> = {
   faker: "Faker",
+  faaker: "Faker",
+  fker: "Faker",
   chovy: "Chovy",
+  choby: "Chovy",
+  chovi: "Chovy",
   canyon: "Canyon",
   showmaker: "ShowMaker",
   bin: "Bin",

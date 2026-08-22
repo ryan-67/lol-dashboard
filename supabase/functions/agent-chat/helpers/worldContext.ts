@@ -72,7 +72,7 @@ function msiStatus(now: Date): string {
     return `MSI 2026 has NOT started yet. It begins ${formatDate(MSI_2026.start)} (${days} day(s) from user's current date). Do NOT claim MSI is over or that summer splits are underway unless MATCH_STATS has games.`;
   }
   if (now > end) {
-    return "MSI 2026 concluded. Champion: Hanwha Life Esports. Cite that winner; do not invent a different champion.";
+    return "MSI 2026 concluded. Champion: Hanwha Life Esports beat Bilibili Gaming 3-2. Zeus was Finals MVP. Cite that; do not invent a different champion.";
   }
   return "MSI 2026 is currently in progress. Use EXTERNAL_CONTEXT for live results; do not invent scores.";
 }
@@ -114,7 +114,7 @@ msi_2026_bracket_stage_teams: ${bracketList}
 msi_2026_play_in_teams: ${playInList}
 ewc_2026: ${EWC_2026.name} in ${EWC_2026.location}, main stage ${EWC_2026.mainStart} to ${EWC_2026.mainEnd} (after MSI, before regional Summer).
 lck_msi_2026: ${MSI_2026.lckQualifiers}
-msi_2026_champion: Hanwha Life Esports (HLE) won MSI 2026.
+msi_2026_champion: Hanwha Life Esports (HLE) won MSI 2026, defeating Bilibili Gaming 3-2. Zeus was Finals MVP.
 geng_lck_titles: ${GENG_LCK_TITLES}
 lck_road_to_msi_2026: ${MSI_2026.lckRoadToMsi2026}
 series_terminology: never call T1 vs Gen.G Road to MSI "reverse sweep" — it was a 3-2 T1 win, not a comeback from 0-2 down.

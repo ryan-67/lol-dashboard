@@ -64,6 +64,8 @@ const TEAM_ALIASES: Record<string, string> = {
   fearx: "FearX",
   bro: "OKSavingsBank BRION",
   brion: "OKSavingsBank BRION",
+  hanjin: "OKSavingsBank BRION",
+  "hanjin brion": "OKSavingsBank BRION",
   ns: "Nongshim RedForce",
   nongshim: "Nongshim RedForce",
   dns: "DN Freecs",

@@ -32,13 +32,18 @@ const EXTRA_ALIASES: Record<string, string> = {
   brion: "OKSavingsBank BRION",
   "ok brion": "OKSavingsBank BRION",
   "oksavingsbank brion": "OKSavingsBank BRION",
+  "hanjin brion": "OKSavingsBank BRION",
+  hanjin: "OKSavingsBank BRION",
   bfx: "FearX",
   fearx: "FearX",
   "bnk fearx": "FearX",
+  "bnk-fearx": "FearX",
   dns: "DN Freecs",
   "dn soop": "DN Freecs",
   "dn freecs": "DN Freecs",
   "dnsoop": "DN Freecs",
+  "dn soopers": "DN Freecs",
+  dnsoopers: "DN Freecs",
 };
 
 export function teamIdentityKey(name: string): string {

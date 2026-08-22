@@ -1,8 +1,14 @@
+import { formatNuckyTypoGreeting, isNuckyTypoGreeting } from "./agentIdentity.ts";
 import {
   formatLckTitleLong,
   isTeamLckTitleQuestion,
   TEAM_LCK_TITLES,
 } from "./teamTitles.ts";
+import {
+  extractAskedWorldsYear,
+  formatWorldsYearAnswer,
+  isPlayerWorldsTitleQuestion,
+} from "./worldsHistory.ts";
 import {
   hasWeeklyWindowAsk,
   isDatedMatchupRecap,
@@ -36,6 +42,18 @@ export function formatGengLckTitlesAnswer(): string {
   const row = TEAM_LCK_TITLES.geng!;
   const listed = row.titles.map(formatLckTitleLong).join(", ");
   return `Gen.G has ${row.count} modern LCK season titles: ${listed}.`;
+}
+
+export function isMsi2026WinnerQuestion(message: string): boolean {
+  return (
+    /\bmsi\b/i.test(message) &&
+    /\b2026\b/.test(message) &&
+    /\b(won|winner|champion|champ|title|fmvp|mvp)\b/i.test(message)
+  );
+}
+
+export function formatMsi2026Answer(): string {
+  return "Hanwha Life Esports won MSI 2026, beating Bilibili Gaming 3-2. Zeus was Finals MVP.";
 }
 
 export function formatWeeklyWarehouseAnswer(data: Record<string, unknown>): string {
@@ -94,6 +112,20 @@ export function tryDeterministicAnswer(
   tools: ToolResultLike[],
 ): string | null {
   const lower = message.toLowerCase();
+
+  if (isNuckyTypoGreeting(message)) {
+    return formatNuckyTypoGreeting(message);
+  }
+
+  if (isMsi2026WinnerQuestion(message)) {
+    return formatMsi2026Answer();
+  }
+
+  const worldsYear = extractAskedWorldsYear(message);
+  if (worldsYear != null && !isPlayerWorldsTitleQuestion(message)) {
+    const lockedWorlds = formatWorldsYearAnswer(worldsYear);
+    if (lockedWorlds) return lockedWorlds;
+  }
 
   const titles = tools.find((t) => t.tool === "team_lck_titles");
   if (titles && isTeamLckTitleQuestion(message)) {

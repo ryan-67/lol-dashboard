@@ -158,7 +158,8 @@ export function scrubLockedLeftovers(text: string, message: string): string {
       .replace(/\b8-7\b/g, "")
       .replace(/\b6-13\b/g, "")
       .replace(/\b54\.5\s*%/g, "")
-      .replace(/\b44\s*%/g, "");
+      .replace(/\b44\s*%/g, "")
+      .replace(/\b44\s+games\b/gi, "");
   }
 
   return out.replace(/\n{3,}/g, "\n\n").trim();
@@ -187,6 +188,11 @@ export function sanitizeAssistantText(
   }
 
   if (opts.message) out = scrubLockedLeftovers(out, opts.message);
+
+  out = out
+    .replace(/https?:\/\/\S+/gi, "")
+    .replace(/\b(?:matchId|gameId|gameNumber)\s*[:=]\s*\S+/gi, "")
+    .replace(/(\b(?:MSI|EWC|Worlds|First Stand|international events)[,\s/]*){5,}/gi, "internationals ");
 
   return out.replace(/\n{3,}/g, "\n\n").trim();
 }

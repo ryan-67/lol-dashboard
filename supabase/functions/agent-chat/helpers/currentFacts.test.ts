@@ -4,7 +4,8 @@ import {
   verifyFact,
   type CandidateFact,
 } from "./factVerifier.ts";
-import { canonicalTeamName, dedupeByTeamIdentity } from "./teamIdentity.ts";
+import { isNuckyTypoGreeting, formatNuckyTypoGreeting } from "./agentIdentity.ts";
+import { canonicalTeamName, dedupeByTeamIdentity, teamsAreSame } from "./teamIdentity.ts";
 import { filterDisplayScheduleRows, hasUsableOpponentName } from "./tier1Filter.ts";
 import {
   isPlayerWorldsTitleQuestion,
@@ -34,6 +35,7 @@ import {
 import { extractTeams, runWarehouseSeriesRecap, runWeeklyWarehouseRecap } from "./analystTools.ts";
 import {
   formatGengLckTitlesAnswer,
+  formatMsi2026Answer,
   formatWarehouseSeriesAnswer,
   formatWeeklyWarehouseAnswer,
   toolsFromMatchStats,
@@ -781,4 +783,35 @@ Deno.test("pass-2 leftover: gol.gg week inventions and T1–KT form are not emit
   );
   assert(/2-1/.test(scrubbedWl), "sanitize keeps score");
   assert(!/3-3|1-6|8-7|6-13|54\.5|44%/.test(scrubbedWl), "sanitize drops leftover form");
+});
+
+Deno.test("hi nucy is a typo greeting, not homework", () => {
+  assert(isNuckyTypoGreeting("hi nucy"), "hi nucy is a typo greet");
+  assert(!isNuckyTypoGreeting("hey nucky"), "canon greet is not a typo");
+  const locked = tryDeterministicAnswer("hi nucy", []);
+  assert(locked === formatNuckyTypoGreeting("hi nucy"), "locks who's nucy");
+  assert(/i'm nucky/i.test(locked!), "identifies as nucky");
+});
+
+Deno.test("MSI 2026 and Worlds 2025 lock curated finals facts", () => {
+  const msi = tryDeterministicAnswer("Who won MSI 2026?", []);
+  assert(msi === formatMsi2026Answer(), "MSI lock");
+  assert(/3-2/.test(msi!) && /bilibili/i.test(msi!) && /zeus/i.test(msi!), "HLE 3-2 BLG Zeus");
+  const worlds = tryDeterministicAnswer("Who won Worlds 2025, and who was FMVP?", []);
+  assert(worlds && /T1/.test(worlds) && /3-2/.test(worlds) && /KT/i.test(worlds), "T1 3-2 KT");
+  assert(/Gumayusi/i.test(worlds!) && /Doran/i.test(worlds!), "Guma FMVP + Doran top");
+});
+
+Deno.test("HANJIN BRION aliases to BRO so FearX Aug 21 resolves", () => {
+  assert(teamsAreSame("BRO", "HANJIN BRION"), "BRO == HANJIN BRION");
+  assert(teamsAreSame("FearX", "BFX"), "BFX == FearX");
+  const picked = pickWarehouseSeries(
+    [row("2026-08-21", "FearX", "HANJIN BRION", 2, 1)],
+    "FearX",
+    "OKSavingsBank BRION",
+    "Recap FearX vs BRO on August 21.",
+    WEEK_NOW,
+  );
+  assert(picked != null && picked.score === "2-1", "picks BFX 2-1 HANJIN");
+  assert(/FearX/i.test(picked!.winner), "FearX won");
 });
