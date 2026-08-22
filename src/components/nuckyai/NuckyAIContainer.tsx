@@ -12,10 +12,16 @@ import AuthModal from '../AuthModal'
 import NuckyAiPaywall from './NuckyAiPaywall'
 import { useAgentChat } from './useAgentChat'
 import { pickThinkingMessage } from '../../lib/nuckyThinking'
+import {
+  canAcceptChatSubmit,
+  shouldFlipSubscriptionReadyOff,
+  shouldReloadConversationMessages,
+} from './chatSessionGuards'
 import type { ConversationRow, MessageRow, ProfileRow } from './types'
 
 export default function NuckyAIContainer() {
-  const { user } = useAuth()
+  const { user, loading: authLoading } = useAuth()
+  const userId = user?.id ?? null
   const [profile, setProfile] = useState<ProfileRow | null>(null)
   const [isSubscribed, setIsSubscribed] = useState(false)
   const [conversations, setConversations] = useState<ConversationRow[]>([])
@@ -31,15 +37,35 @@ export default function NuckyAIContainer() {
   )
   /** True while an in-flight send owns the message list — skip DB reloads that would wipe streaming state. */
   const pendingSendRef = useRef(false)
+  const sendLockRef = useRef(false)
+  const conversationsHydratedRef = useRef(false)
+  const resolvedUserIdRef = useRef<string | null>(null)
+  const searchParamsRef = useRef(searchParams)
+  const activeConversationIdRef = useRef(activeConversationId)
+  const messagesRef = useRef(messages)
   const [inputFocusTrigger, setInputFocusTrigger] = useState(0)
   const { streaming, sendMessage, stop } = useAgentChat()
+
+  searchParamsRef.current = searchParams
+  activeConversationIdRef.current = activeConversationId
+  messagesRef.current = messages
 
   useGSAP(() => {
     scrollEntrance(document.querySelector('.nuckyai-shell'))
   }, [])
 
+  const applyConversationId = useCallback(
+    (conversationId: string | null) => {
+      const next = new URLSearchParams(searchParamsRef.current)
+      if (conversationId) next.set('conversation_id', conversationId)
+      else next.delete('conversation_id')
+      setSearchParams(next, { replace: true })
+    },
+    [setSearchParams],
+  )
+
   const loadProfile = useCallback(async () => {
-    if (!user) {
+    if (!userId) {
       setProfile(null)
       setIsSubscribed(false)
       return
@@ -48,36 +74,41 @@ export default function NuckyAIContainer() {
       supabase
         .from('profiles')
         .select('id, username, avatar_url, is_subscribed, plan')
-        .eq('id', user.id)
+        .eq('id', userId)
         .maybeSingle(),
-      fetchSubscriptionState(user.id),
+      fetchSubscriptionState(userId),
     ])
     setProfile((profileData as ProfileRow | null) ?? null)
     setIsSubscribed(subscriptionState.isSubscribed)
-  }, [user])
+  }, [userId])
 
   const loadConversations = useCallback(async () => {
-    if (!user) return
-    setConversationsLoading(true)
-    const { data } = await supabase
-      .from('conversations')
-      .select('id, title, updated_at, created_at')
-      .eq('user_id', user.id)
-      .order('updated_at', { ascending: false })
-    setConversations((data as ConversationRow[] | null) ?? [])
-    setConversationsLoading(false)
-  }, [user])
+    if (!userId) return
+    if (!conversationsHydratedRef.current) setConversationsLoading(true)
+    try {
+      const { data } = await supabase
+        .from('conversations')
+        .select('id, title, updated_at, created_at')
+        .eq('user_id', userId)
+        .order('updated_at', { ascending: false })
+      setConversations((data as ConversationRow[] | null) ?? [])
+      conversationsHydratedRef.current = true
+    } finally {
+      setConversationsLoading(false)
+    }
+  }, [userId])
 
   const loadMessages = useCallback(
     async (conversationId: string) => {
-      if (!user) return
+      if (!userId || pendingSendRef.current) return
       const { data, error } = await supabase
         .from('messages')
         .select('id, role, content, created_at')
-        .eq('user_id', user.id)
+        .eq('user_id', userId)
         .eq('conversation_id', conversationId)
         .order('created_at', { ascending: true })
 
+      if (pendingSendRef.current) return
       if (error) {
         console.error('[nuckyAI] failed to load messages', error.message)
         setToast('could not load chat history — try again.')
@@ -86,29 +117,50 @@ export default function NuckyAIContainer() {
 
       setMessages((data as MessageRow[] | null) ?? [])
     },
-    [user],
+    [userId],
   )
 
   const selectConversation = useCallback(
     (conversationId: string) => {
+      if (pendingSendRef.current && conversationId === activeConversationIdRef.current) return
       pendingSendRef.current = false
       setActiveConversationId(conversationId)
-      const next = new URLSearchParams(searchParams)
-      next.set('conversation_id', conversationId)
-      setSearchParams(next, { replace: true })
+      applyConversationId(conversationId)
+      if (conversationId === activeConversationIdRef.current && messagesRef.current.length > 0) {
+        return
+      }
       void loadMessages(conversationId)
     },
-    [loadMessages, searchParams, setSearchParams],
+    [applyConversationId, loadMessages],
   )
 
   useEffect(() => {
-    void (async () => {
-      if (!user) {
+    let cancelled = false
+
+    if (authLoading) return
+
+    if (!userId) {
+      const timer = window.setTimeout(() => {
+        if (cancelled) return
+        resolvedUserIdRef.current = null
+        conversationsHydratedRef.current = false
         setProfile(null)
         setIsSubscribed(false)
-        return
+      }, 400)
+      return () => {
+        cancelled = true
+        window.clearTimeout(timer)
       }
-      const state = await fetchSubscriptionState(user.id)
+    }
+
+    if (shouldFlipSubscriptionReadyOff(resolvedUserIdRef.current, userId)) {
+      conversationsHydratedRef.current = false
+    }
+    resolvedUserIdRef.current = userId
+
+    void (async () => {
+      const state = await fetchSubscriptionState(userId)
+      if (cancelled) return
       if (!state.isSubscribed) {
         try {
           await syncStripeSubscription()
@@ -116,10 +168,16 @@ export default function NuckyAIContainer() {
           console.warn('[nuckyAI] stripe sync failed', err)
         }
       }
+      if (cancelled) return
       await loadProfile()
+      if (cancelled) return
       await loadConversations()
     })()
-  }, [user, loadProfile, loadConversations])
+
+    return () => {
+      cancelled = true
+    }
+  }, [authLoading, userId, loadProfile, loadConversations])
 
   useEffect(() => {
     const checkout = searchParams.get('checkout')
@@ -149,16 +207,40 @@ export default function NuckyAIContainer() {
   // Restore conversation from URL on mount / external navigation
   useEffect(() => {
     const fromQuery = searchParams.get('conversation_id')
-    if (!fromQuery || pendingSendRef.current) return
-    if (fromQuery === activeConversationId && messages.length > 0) return
+    if (
+      !shouldReloadConversationMessages({
+        queryId: fromQuery,
+        activeId: activeConversationIdRef.current,
+        messageCount: messagesRef.current.length,
+        sendInFlight: pendingSendRef.current,
+      })
+    ) {
+      return
+    }
     setActiveConversationId(fromQuery)
-    void loadMessages(fromQuery)
-  }, [searchParams]) // eslint-disable-line react-hooks/exhaustive-deps -- only react to URL changes
+    void loadMessages(fromQuery as string)
+  }, [loadMessages, searchParams])
+
+  const releaseSend = useCallback(() => {
+    sendLockRef.current = false
+    pendingSendRef.current = false
+  }, [])
 
   const streamAssistant = useCallback(
-    (message: string, options?: { skipUserAppend?: boolean }) => {
+    (message: string, options?: { skipUserAppend?: boolean }): boolean => {
+      if (
+        !canAcceptChatSubmit({
+          text: message,
+          sendLocked: sendLockRef.current,
+          streaming: sendLockRef.current,
+        })
+      ) {
+        return false
+      }
+
       const now = new Date().toISOString()
       const displayMessage = message.trim()
+      sendLockRef.current = true
       pendingSendRef.current = true
 
       setMessages((prev) => {
@@ -194,12 +276,10 @@ export default function NuckyAIContainer() {
 
       void sendMessage({
         message,
-        conversationId: activeConversationId ?? undefined,
+        conversationId: activeConversationIdRef.current ?? undefined,
         onMetadata: (conversationId) => {
           setActiveConversationId(conversationId)
-          const next = new URLSearchParams(searchParams)
-          next.set('conversation_id', conversationId)
-          setSearchParams(next, { replace: true })
+          applyConversationId(conversationId)
         },
         onChunk: (chunk) => {
           receivedChunk = true
@@ -220,7 +300,7 @@ export default function NuckyAIContainer() {
           })
         },
         onDone: () => {
-          pendingSendRef.current = false
+          releaseSend()
           if (!receivedChunk) {
             setMessages((prev) => {
               const copy = [...prev]
@@ -241,7 +321,7 @@ export default function NuckyAIContainer() {
           void loadConversations()
         },
         onError: (err) => {
-          pendingSendRef.current = false
+          releaseSend()
           setMessages((prev) => {
             const copy = [...prev]
             for (let i = copy.length - 1; i >= 0; i -= 1) {
@@ -261,47 +341,44 @@ export default function NuckyAIContainer() {
             ]
           })
         },
+      }).then((started) => {
+        if (started === false) releaseSend()
       })
+      return true
     },
-    [activeConversationId, loadConversations, searchParams, sendMessage, setSearchParams],
+    [applyConversationId, loadConversations, releaseSend, sendMessage],
   )
 
-  const send = useCallback(
-    (message: string) => {
-      streamAssistant(message)
-    },
-    [streamAssistant],
-  )
+  const send = useCallback((message: string) => streamAssistant(message), [streamAssistant])
 
   const regenerate = useCallback(() => {
     const lastUser = [...messages].reverse().find((m) => m.role === 'user')
-    if (!lastUser?.content || streaming) return
+    if (!lastUser?.content) return
     streamAssistant(lastUser.content, { skipUserAppend: true })
-  }, [messages, streamAssistant, streaming])
+  }, [messages, streamAssistant])
 
   const beginNewChat = useCallback(() => {
     pendingSendRef.current = false
+    sendLockRef.current = false
     setActiveConversationId(null)
     setMessages([])
     setInputFocusTrigger((n) => n + 1)
-    const next = new URLSearchParams(searchParams)
-    next.delete('conversation_id')
-    setSearchParams(next, { replace: true })
-  }, [searchParams, setSearchParams])
+    applyConversationId(null)
+  }, [applyConversationId])
 
   const deleteConversation = useCallback(
     async (conversationId: string) => {
-      if (!user) return
+      if (!userId) return
       await supabase
         .from('messages')
         .delete()
         .eq('conversation_id', conversationId)
-        .eq('user_id', user.id)
+        .eq('user_id', userId)
       const { error } = await supabase
         .from('conversations')
         .delete()
         .eq('id', conversationId)
-        .eq('user_id', user.id)
+        .eq('user_id', userId)
       if (error) {
         setToast('could not delete chat. try again.')
         return
@@ -311,12 +388,12 @@ export default function NuckyAIContainer() {
       }
       setConversations((prev) => prev.filter((c) => c.id !== conversationId))
     },
-    [activeConversationId, beginNewChat, user],
+    [activeConversationId, beginNewChat, userId],
   )
 
   const renameConversation = useCallback(
     async (conversationId: string, title: string) => {
-      if (!user) return
+      if (!userId) return
       const trimmed = title.trim()
       if (!trimmed) return
 
@@ -324,7 +401,7 @@ export default function NuckyAIContainer() {
         .from('conversations')
         .update({ title: trimmed, updated_at: new Date().toISOString() })
         .eq('id', conversationId)
-        .eq('user_id', user.id)
+        .eq('user_id', userId)
 
       if (error) {
         setToast('could not rename chat. try again.')
@@ -337,7 +414,7 @@ export default function NuckyAIContainer() {
         ),
       )
     },
-    [user],
+    [userId],
   )
 
   const heading = useMemo(() => {

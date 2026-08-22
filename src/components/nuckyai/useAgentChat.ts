@@ -71,10 +71,12 @@ export function useAgentChat() {
   const [streaming, setStreaming] = useState(false)
   const [streamError, setStreamError] = useState<string | null>(null)
   const abortRef = useRef<AbortController | null>(null)
+  const inFlightRef = useRef(false)
 
   const stop = useCallback(() => {
     abortRef.current?.abort()
     abortRef.current = null
+    inFlightRef.current = false
     setStreaming(false)
   }, [])
 
@@ -87,9 +89,10 @@ export function useAgentChat() {
       onChunk,
       onDone,
       onError,
-    }: SendMessageArgs) => {
-      if (streaming) return
+    }: SendMessageArgs): Promise<boolean> => {
+      if (inFlightRef.current) return false
 
+      inFlightRef.current = true
       setStreamError(null)
       setStreaming(true)
 
@@ -175,13 +178,14 @@ export function useAgentChat() {
               setStreamError(msg)
               onError?.(msg)
               finish()
-              return
+              return true
             }
           }
         }
         finish()
+        return true
       } catch (err) {
-        if (controller.signal.aborted) return
+        if (controller.signal.aborted) return true
         const msg =
           err instanceof Error && err.message && !err.message.startsWith('agent request failed')
             ? err.message
@@ -190,12 +194,14 @@ export function useAgentChat() {
               : 'nucky is taking a nap. try again.'
         setStreamError(msg)
         onError?.(msg)
+        return true
       } finally {
+        inFlightRef.current = false
         setStreaming(false)
         abortRef.current = null
       }
     },
-    [streaming],
+    [],
   )
 
   const appendErrorBubble = useCallback((messages: MessageRow[], message: string): MessageRow[] => {
