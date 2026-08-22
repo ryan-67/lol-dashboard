@@ -41,6 +41,10 @@ import {
   lookupWorldsHistory,
 } from "../helpers/worldsHistory.ts";
 import {
+  isTeamLckTitleQuestion,
+  lookupTeamLckTitles,
+} from "../helpers/teamTitles.ts";
+import {
   hasSeriesEvidence,
   isDatedMatchupRecap,
   isWeeklyLeagueRecapQuestion,
@@ -305,13 +309,15 @@ export async function decideAndFetch(deps: DecideDeps): Promise<Evidence> {
   // --- Intent flags (career/roster are never answered from current-split OE stats) ---
   const inheritedCareer = thread.inheritedTopic ? isCareerQuestion(thread.inheritedTopic) : false;
   const curatedPlayerWorldsTitle = isPlayerWorldsTitleQuestion(message);
-  // Curated player Worlds title table answers "how many worlds has X?" — do not
-  // treat as open-ended career RAG (stale web often says Faker has 4).
+  const curatedTeamLckTitle = isTeamLckTitleQuestion(message);
+  // Curated player Worlds / modern Gen.G LCK tables answer title counts — do not
+  // treat as open-ended career RAG (stale web often says Faker has 4 / GEN has 6).
   const identityIntent = isAgentIdentityAsk(message) || isAgentGreetingOnly(message);
 
   const careerIntent =
     (isCareerQuestion(message) || (thread.isFollowUp && inheritedCareer)) &&
-    !curatedPlayerWorldsTitle;
+    !curatedPlayerWorldsTitle &&
+    !curatedTeamLckTitle;
   const rosterDepthIntent =
     isRosterDepthQuestion(message) || thread.followUpType === "roster_follow_up";
   const subjectiveIntent = isSubjectiveDebate(message) ||
@@ -335,7 +341,13 @@ export async function decideAndFetch(deps: DecideDeps): Promise<Evidence> {
       message,
     );
   let runTools = scope.needs_tools && !identityIntent && !(careerIntent && !careerNumbersIntent);
-  if (subjectiveIntent || playerChampionIntent || worldsHistoryIntent || careerNumbersIntent) {
+  if (
+    subjectiveIntent ||
+    playerChampionIntent ||
+    worldsHistoryIntent ||
+    curatedTeamLckTitle ||
+    careerNumbersIntent
+  ) {
     runTools = true;
   }
   if (thread.isClarification) runTools = true;
@@ -390,8 +402,18 @@ export async function decideAndFetch(deps: DecideDeps): Promise<Evidence> {
     sources.oracleElixir = true;
   }
 
+  // Modern Gen.G LCK season titles (not KOO/SSG 2017–2020). Cup 2026 is separate.
+  if (curatedTeamLckTitle && !worldsHistoryIntent) {
+    const titles = lookupTeamLckTitles(message);
+    if (titles) {
+      matchStats = { tools: [{ tool: titles.tool, ...titles.data }] };
+      analystToolNames = [titles.tool];
+      sources.oracleElixir = true;
+    }
+  }
+
   // ---- Source 1: Oracle's Elixir deterministic tools ----
-  if (runTools && !worldsHistoryIntent && !draftAnalysisIntent) {
+  if (runTools && !worldsHistoryIntent && !curatedTeamLckTitle && !draftAnalysisIntent) {
     const analystCtx = await buildAnalystContext(
       serviceClient,
       queryForTools,

@@ -53,6 +53,7 @@ const SQL_COVERING_TOOLS = new Set([
   "warehouse_season_facts",
   "recent_results",
   "player_worlds_titles",
+  "team_lck_titles",
   "champion_meta",
   "champion_pool_compare",
   "player_champion",

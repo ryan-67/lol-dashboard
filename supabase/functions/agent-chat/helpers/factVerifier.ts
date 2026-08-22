@@ -7,6 +7,12 @@ import {
   type TavilyResult,
 } from "./tavilySearch.ts";
 import { extractTitleCount, extractTitleYears } from "./ragFacts.ts";
+import {
+  gengLckTitleFact,
+  isGengEntity,
+  modernGengLckTitles,
+  parseLckSeasonTitlesFromWiki,
+} from "./teamTitles.ts";
 
 export interface CandidateFact {
   fact: string;
@@ -197,16 +203,40 @@ export function extractCareerFactsFromWiki(
     }
 
     if (/\blck\b/.test(q) && /\b(titles?|championships?|won)\b/.test(q)) {
-      const lckYears = years;
-      const lckCount = count ?? (lckYears.length || null);
-      if (lckCount != null && (lckYears.length || /\blck\b/i.test(blob))) {
-        const yearBit = lckYears.length ? ` (${lckYears.join(", ")})` : "";
+      const pageIsGeng = isGengEntity(entityId) || isGengEntity(page) ||
+        /gen\.?g/i.test(`${page} ${s.title} ${q}`);
+      if (pageIsGeng) {
+        // Leaguepedia modern Gen.G only. Predecessor 2017–2020 / Cup 2026
+        // year-lists cannot replace the curated 5 (keep both 2023s).
+        const parsed = parseLckSeasonTitlesFromWiki(blob, "geng");
+        const titles = modernGengLckTitles(parsed);
         push({
-          fact: `${page} has won ${lckCount} LCK titles${yearBit}`,
+          fact: gengLckTitleFact(),
           entityType: "team",
-          entityId: entityId || "geng",
+          entityId: "geng",
           factKind: "career",
         });
+        if (titles.length) {
+          push({
+            fact:
+              `Gen.G modern LCK season titles: ${titles.map((t) => t.split ? `${t.year} ${t.split}` : `${t.year}`).join(", ")}`,
+            entityType: "team",
+            entityId: "geng",
+            factKind: "career",
+          });
+        }
+      } else {
+        const lckYears = years.filter((y) => y !== 2026);
+        const lckCount = count ?? (lckYears.length || null);
+        if (lckCount != null && (lckYears.length || /\blck\b/i.test(blob))) {
+          const yearBit = lckYears.length ? ` (${lckYears.join(", ")})` : "";
+          push({
+            fact: `${page} has won ${lckCount} LCK titles${yearBit}`,
+            entityType: "team",
+            entityId: entityId || "unknown",
+            factKind: "career",
+          });
+        }
       }
     }
 

@@ -61,17 +61,17 @@ grounding (when MATCH_STATS / WORLD_CONTEXT is present):
 0) DEFAULT TIME SCOPE: most recent adequate form in WORLD_CONTEXT / MATCH_STATS (EWC → MSI → Spring when Summer is empty) unless user names another.
 1) TRAINING DATA IS BANNED for rosters, per-game stats, AND career titles/championships. check player_team_index / current_rosters / MENTIONED_PLAYERS_ROSTER before naming ANY player's team. if a player is listed with game counts, that overrides your memory.
 2) MATCH_STATS = verified pro numbers. cite only what appears there. empty → say you don't have verified stats; don't guess.
-3) CAREER / TITLES (lck titles, worlds wins, championships): NEVER from memory. only from WEB_VERIFIED, EXTERNAL_CONTEXT, or MATCH_STATS player_worlds_titles / worlds_history. if those blocks list 2024/2025 years, cite them — do NOT say 2024-2026 are unverified. 2026 Worlds has not been played.
+3) CAREER / TITLES (lck titles, worlds wins, championships): NEVER from memory. only from WEB_VERIFIED, EXTERNAL_CONTEXT, or MATCH_STATS player_worlds_titles / worlds_history / team_lck_titles. if those blocks list 2024/2025 years, cite them — do NOT say 2024-2026 are unverified. 2026 Worlds has not been played. Gen.G LCK = 5 modern season titles (2022 Summer, 2023 Spring, 2023 Summer, 2024 Spring, 2025) when team_lck_titles says so — do NOT count 2017–2020 KOO/SSG-era titles and do not drop both 2023s. LCK Cup 2026 is separate.
    3a) a career/titles question is NOT a stats question — do NOT cite current-split KDA / GD@15 / DPM / dmg% even if MATCH_STATS is present. answer the TITLES, nothing else.
    3b) NEVER invent or speculate about tournament participation, seeding, or qualification (MSI / Worlds / playoffs) — e.g. "playing MSI soon", "1st seed". only say it if it's literally in WEB_VERIFIED or EXTERNAL_CONTEXT. when in doubt, leave it out.
    3c) if you have nothing verified, just say you can't confirm the count right now — do NOT pad the answer with current-split stats, standings, or guesses.
-   3d) Fail-closed ONLY when lookup actually returned nothing. If WEB_VERIFIED, Leaguepedia/Liquipedia EXTERNAL_CONTEXT, player_worlds_titles, or WORLD_CONTEXT (msi_2026_champion) has the title/champion, cite it. Never say "not in WORLD_CONTEXT" / "winner not in data" when those blocks already name the fact.
+   3d) Fail-closed ONLY when lookup actually returned nothing. If WEB_VERIFIED, Leaguepedia/Liquipedia EXTERNAL_CONTEXT, player_worlds_titles, team_lck_titles, or WORLD_CONTEXT (msi_2026_champion) has the title/champion, cite it. Never say "not in WORLD_CONTEXT" / "winner not in data" when those blocks already name the fact. Stale GEN year-lists (2017/2018/2020) cannot veto the modern 5.
 4) ROSTER SUBS: if a role's starter game count is below the team's games at that role, there's a sub — name them from current_rosters / team_role_depth / WEB_VERIFIED, labeled "sub" with game count. don't claim "no sub" unless the data shows one starter covering all games.
 5) EXTERNAL_CONTEXT reddit/community chunks = OPINION/sentiment, not fact. say "the community thinks…", don't state as truth.
 6) opinion/roast ("fraudulent adc"): use player_rankings with ranking=fraud_overrated_contextual when present. Fraud = expectation gap on a decent team, not "worst KDA in the league". Cite each player's roleRelevantStats / scoringLens only — never roast a support on damage metrics. Tank/utility styles can look worse without being frauds. multi-team dmg%/gold% compare → team_role_share_compare ONLY.
 7) follow-ups: if refining ("I meant standings") re-answer with the new criteria; if pivoting ("how about faker?") answer the SAME topic for the new entity. never treat as off-topic. if the pivoted entity has no data in the blocks, say so — don't invent it.
 8) PREDICTIONS / FAVORITES / ODDS ("who's favored to win MSI?"): only use rosters, results, dates, venues, seeds, or odds that appear in EXTERNAL_CONTEXT / WEB_VERIFIED / WORLD_CONTEXT. you can give a conceptual lean ("the LPL #1 usually has the strongest macro") WITHOUT naming fake rosters or fake numbers. never fabricate a lineup, a start date, a host city, or an odds figure.
-9) SERIES / MATCH RECAPS: prefer warehouse_series_recap / weekly_warehouse_recap scores when present. Describe ONLY series listed there (or series_recap gameSequence). A warehouse series score is enough — do NOT fail-close just because OE gameLog is empty or stops in May. Never emit a compare/radar card for a recap. If those tools are empty AND gamesFound is 0, say you don't have that series' data. Do not invent ??? opponents or treat Challengers/academy as LCK.
+9) SERIES / MATCH RECAPS: prefer warehouse_series_recap / weekly_warehouse_recap scores when present. Describe ONLY series listed there (or series_recap gameSequence). A warehouse series score is enough — do NOT fail-close just because OE gameLog is empty or stops in May. Never emit a compare/radar card for a recap. If those tools are empty AND gamesFound is 0, say you don't have that series' data. Do not invent ??? opponents or treat Challengers/academy as LCK. If warehouse_series_recap.seasonRecords is present, cite those 2026 warehouse series W/L — never leftover OE form 3-3 / 1-6.
 10) PLAYER + CHAMPION PERFORMANCE ("good/bad on Azir", "dogshit on Corki"): NEVER claim they're strong/weak on a champ without player_champion data in MATCH_STATS or career WR in WEB_VERIFIED. if gamesOnChampion is 0 in the split, say you don't have split games on that champ — don't argue from memory. if user corrects you, acknowledge and re-check stats; never double down (H3).
 11) WORLDS WINNERS / FINALS MVP LISTS: ONLY cite worlds_history in MATCH_STATS for winner + Finals MVP per year. Finals MVP is the official award — never substitute the star player from memory (2019: Tian not Doinb; 2022: Kingen not Zeka). Do not claim "liquipedia verified" unless WEB_VERIFIED says so.
 
@@ -290,7 +290,7 @@ Your streamed reply is shown directly to the user. NEVER echo, quote, or restate
     /\[cito —/i.test(externalContext ?? "");
   const statsStrForCareer = hasStats ? JSON.stringify(matchStats) : "";
   const hasWorldsTitleTool =
-    /player_worlds_titles|worlds_history/.test(statsStrForCareer);
+    /player_worlds_titles|worlds_history|team_lck_titles/.test(statsStrForCareer);
   if (
     ctx?.careerIntent &&
     !hasVerifiedCareerSource &&
@@ -312,7 +312,7 @@ Your streamed reply is shown directly to the user. NEVER echo, quote, or restate
 
   if (/"tool":"weekly_warehouse_recap"/.test(statsStrForCareer)) {
     parts.push(
-      `[WEEKLY_WAREHOUSE]\nAnswer "this week" from weekly_warehouse_recap completed + upcoming only. Use real opponent names. Never print ???. Never treat Challengers/academy as LCK.`,
+      `[WEEKLY_WAREHOUSE]\nAnswer "this week" from weekly_warehouse_recap completed + upcoming only. Use real opponent names. Never print ???. Never treat Challengers/academy as LCK. FAIL-CLOSED: do not invent a series that is not listed (HLE vs FearX on Aug 19 did not happen unless it is in completed).`,
     );
   }
 
