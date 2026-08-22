@@ -12,8 +12,10 @@ import {
 import {
   hasWeeklyWindowAsk,
   isDatedMatchupRecap,
+  isTeamLastSeriesQuestion,
   isWeeklyLeagueRecapQuestion,
   isWhoWinsPrediction,
+  wantsWarehouseResults,
 } from "./warehouseFacts.ts";
 
 interface ToolResultLike {
@@ -60,9 +62,11 @@ export function formatMsi2026Answer(): string {
 export function formatWeeklyWarehouseAnswer(data: Record<string, unknown>): string {
   const completed = Array.isArray(data.completed) ? data.completed : [];
   const upcoming = Array.isArray(data.upcoming) ? data.upcoming : [];
+  const league = String(data.league ?? "").trim();
+  const label = league || "tier-1";
   const lines: string[] = [];
   if (completed.length) {
-    lines.push("This week (warehouse):");
+    lines.push(`This week (warehouse, ${label}):`);
     for (const raw of completed) {
       const s = raw as Record<string, unknown>;
       const winner = s.winner ? ` — ${s.winner} won` : "";
@@ -76,7 +80,9 @@ export function formatWeeklyWarehouseAnswer(data: Record<string, unknown>): stri
       lines.push(`- ${s.date}: ${s.teamA} vs ${s.teamB}`);
     }
   }
-  if (!lines.length) return "No warehouse series for this week.";
+  if (!lines.length) {
+    return `No warehouse ${label} series in this window.`;
+  }
   return lines.join("\n");
 }
 
@@ -101,7 +107,96 @@ export function formatWarehouseSeriesAnswer(data: Record<string, unknown>): stri
     out += " Season series W/L: " +
       usable.map((r) => `${r.team} ${r.series}`).join(", ") + ".";
   }
+  const rosterA = (data.rosterA && typeof data.rosterA === "object")
+    ? data.rosterA as Record<string, unknown>
+    : null;
+  const rosterB = (data.rosterB && typeof data.rosterB === "object")
+    ? data.rosterB as Record<string, unknown>
+    : null;
+  const adcA = rosterA?.adc ? String(rosterA.adc) : "";
+  const adcB = rosterB?.adc ? String(rosterB.adc) : "";
+  if (adcA || adcB) {
+    out += ` ADC: ${teamA} ${adcA || "n/a"}, ${teamB} ${adcB || "n/a"}.`;
+  }
   return out.replace(/\.\./g, ".").trim();
+}
+
+export function isSimplePlayerStatAsk(message: string): boolean {
+  return (
+    /\b(gd@?15|gold diff(?:erential)?(?:\s+at\s+15)?|dpm|kda|csd@?15)\b/i.test(message) &&
+    !/\b(compare|vs\.?|versus|chart|graph|best|worst)\b/i.test(message)
+  );
+}
+
+export function formatPlayerStatAnswer(
+  data: Record<string, unknown>,
+  message: string,
+): string {
+  if (data.found === false) {
+    return `no verified stats for ${String(data.player ?? "that player")} in this filter.`;
+  }
+  const nested = (data.player && typeof data.player === "object")
+    ? data.player as Record<string, unknown>
+    : data;
+  const name = String(nested.name ?? data.player ?? "that player");
+  const games = Number(nested.games ?? 0);
+  const league = String(nested.league ?? data.league ?? "").trim();
+  const scope = league ? ` in ${league}` : "";
+  const gd15 = Number(nested.gd15);
+  const wantsGd = /\b(gd@?15|gold diff)/i.test(message);
+  if (wantsGd && Number.isFinite(gd15) && (Math.abs(gd15) > 0.05 || games < 8)) {
+    const signed = gd15 > 0 ? `+${gd15}` : String(gd15);
+    return `${name}'s GD@15 is ${signed} over ${games} games${scope}.`;
+  }
+  if (wantsGd && games >= 8 && (!Number.isFinite(gd15) || Math.abs(gd15) <= 0.05)) {
+    return `${name} has ${games} games${scope} but GD@15 is not populated in this slice.`;
+  }
+  const dpm = Number(nested.dpm);
+  if (/\bdpm\b/i.test(message) && Number.isFinite(dpm) && dpm > 0) {
+    return `${name}'s DPM is ${dpm} over ${games} games${scope}.`;
+  }
+  const kda = Number(nested.kda);
+  if (/\bkda\b/i.test(message) && Number.isFinite(kda)) {
+    return `${name}'s KDA is ${kda} over ${games} games${scope}.`;
+  }
+  return `${name} — ${games} games${scope}.`;
+}
+
+export function formatEntityClarifyAnswer(data: Record<string, unknown>): string {
+  const rows = Array.isArray(data.clarifications) ? data.clarifications : [];
+  const first = (rows[0] ?? {}) as {
+    query?: string;
+    candidates?: Array<{ name?: string; team?: string; league?: string; position?: string }>;
+  };
+  const query = String(first.query ?? "player");
+  const cands = Array.isArray(first.candidates) ? first.candidates : [];
+  if (!cands.length) {
+    return `Which ${query} — team and league? I won't pick a player from an empty roster slice.`;
+  }
+  const list = cands.slice(0, 6).map((c) =>
+    `${c.name ?? query} · ${c.team ?? "?"} · ${c.league ?? "?"} · ${c.position ?? "?"}`
+  ).join("; ");
+  return `Which ${query}? ${list}`;
+}
+
+export function isPlayerIdentityAsk(message: string): boolean {
+  return /\bwho is\b/i.test(message) && !/\b(best|worst|winning|going to)\b/i.test(message);
+}
+
+export function formatPlayerIdentityAnswer(data: Record<string, unknown>): string {
+  const list = Array.isArray(data.players) ? data.players : [];
+  const nested = (data.player && typeof data.player === "object")
+    ? data.player as Record<string, unknown>
+    : (list[0] as Record<string, unknown> | undefined);
+  if (!nested) return "";
+  const name = String(nested.name ?? "that player");
+  const team = String(nested.team ?? "an unknown team");
+  const position = String(nested.position ?? "player");
+  const league = String(nested.league ?? "");
+  const games = Number(nested.games ?? 0);
+  const lg = league ? ` in ${league}` : "";
+  const g = games > 0 ? ` (${games} games in this filter)` : "";
+  return `${name} is ${team}'s ${position}${lg}${g}.`;
 }
 
 function toolData(t: ToolResultLike): Record<string, unknown> {
@@ -138,7 +233,11 @@ export function tryDeterministicAnswer(
   if (
     series &&
     !isWhoWinsPrediction(message) &&
-    (isDatedMatchupRecap(message) || /\b(vs\.?|versus)\b/i.test(message))
+    (
+      isDatedMatchupRecap(message) ||
+      isTeamLastSeriesQuestion(message) ||
+      /\b(vs\.?|versus)\b/i.test(message)
+    )
   ) {
     const data = toolData(series);
     const miss = data.missingAskedSeries === true || data.seriesScore === "0-0";
@@ -149,9 +248,39 @@ export function tryDeterministicAnswer(
   }
   if (
     weekly &&
-    (isWeeklyLeagueRecapQuestion(message) || hasWeeklyWindowAsk(message) || wantsWeekRecap(lower))
+    (
+      isWeeklyLeagueRecapQuestion(message) ||
+      hasWeeklyWindowAsk(message) ||
+      wantsWeekRecap(lower) ||
+      wantsWarehouseResults(message)
+    )
   ) {
     return formatWeeklyWarehouseAnswer(toolData(weekly));
+  }
+
+  const clarify = tools.find((t) => t.tool === "entity_clarify");
+  if (clarify) return formatEntityClarifyAnswer(toolData(clarify));
+
+  if (isPlayerIdentityAsk(message)) {
+    const mentioned = tools.find((t) => t.tool === "mentioned_players");
+    const stat = tools.find((t) => t.tool === "player_stat");
+    const ident = mentioned ?? stat;
+    if (ident) {
+      const text = formatPlayerIdentityAnswer(toolData(ident));
+      if (text) return text;
+    }
+  }
+
+  if (isSimplePlayerStatAsk(message)) {
+    const stat = tools.find((t) => t.tool === "player_stat");
+    const mentioned = tools.find((t) => t.tool === "mentioned_players");
+    if (stat) return formatPlayerStatAnswer(toolData(stat), message);
+    if (mentioned) {
+      const data = toolData(mentioned);
+      const players = Array.isArray(data.players) ? data.players : [];
+      const first = players[0] as Record<string, unknown> | undefined;
+      if (first) return formatPlayerStatAnswer({ player: first }, message);
+    }
   }
 
   if (isSimpleTeamStatAsk(lower)) {

@@ -469,6 +469,62 @@ export function seasonH2hFromWarehouse(
   };
 }
 
+/** "what was DK's last series score?" — one team, latest completed warehouse row. */
+export function isTeamLastSeriesQuestion(message: string): boolean {
+  if (isWeeklyLeagueRecapQuestion(message) || isWhoWinsPrediction(message)) return false;
+  if (/\b(few days|this week|last week|past week|this weekend)\b/i.test(message)) return false;
+  if (/\b(vs\.?|versus|against)\b/i.test(message) && /\b(recap|what happened|who won)\b/i.test(message)) {
+    return false;
+  }
+  const wantsLast = /\b(last|latest|most recent)\b/i.test(message);
+  const wantsSeries = /\b(series|match|scoreline|score|result)\b/i.test(message);
+  return wantsLast && wantsSeries;
+}
+
+export function lastCompletedSeriesForTeam(
+  rows: WarehouseSeriesRow[],
+  team: string,
+  league?: string,
+): SeriesScoreline | null {
+  const all: SeriesScoreline[] = [];
+  for (const row of filterWarehouseDisplayRows(rows)) {
+    if (league && String(row.league ?? "").toUpperCase() !== league.toUpperCase()) continue;
+    const line = toScoreline(row);
+    if (!line || line.status !== "completed") continue;
+    if (line.scoreA + line.scoreB <= 0) continue;
+    if (teamsAreSame(line.teamA, team) || teamsAreSame(line.teamB, team)) all.push(line);
+  }
+  all.sort((a, b) => b.date.localeCompare(a.date));
+  return all[0] ?? null;
+}
+
+/** Last N calendar days — "LPL last few days" is not the LCK Wednesday week. */
+export function rowsInLookbackDays(
+  rows: WarehouseSeriesRow[],
+  nowIso: string,
+  league: string | undefined,
+  days: number,
+): { completed: SeriesScoreline[]; upcoming: SeriesScoreline[] } {
+  const now = new Date(nowIso);
+  const start = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+  start.setUTCDate(start.getUTCDate() - Math.max(1, days));
+  const startDate = start.toISOString().slice(0, 10);
+  const endDate = now.toISOString().slice(0, 10);
+  const display = filterWarehouseDisplayRows(rows);
+  const completed: SeriesScoreline[] = [];
+  const upcoming: SeriesScoreline[] = [];
+  for (const row of display) {
+    if (league && String(row.league ?? "").toUpperCase() !== league.toUpperCase()) continue;
+    const line = toScoreline(row);
+    if (!line || line.date < startDate || line.date > endDate) continue;
+    if (line.status === "completed" && line.scoreA + line.scoreB > 0) completed.push(line);
+    else if (line.status !== "completed") upcoming.push(line);
+  }
+  completed.sort((a, b) => a.date.localeCompare(b.date) || a.teamA.localeCompare(b.teamA));
+  upcoming.sort((a, b) => a.date.localeCompare(b.date) || a.teamA.localeCompare(b.teamA));
+  return { completed, upcoming };
+}
+
 export function lastMeetingFromWarehouse(
   rows: WarehouseSeriesRow[],
   teamA: string,

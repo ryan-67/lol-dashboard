@@ -195,6 +195,20 @@ export interface ExtractPlayersResult {
   clarifications: Array<{ name: string; candidates: PlayerCandidate[] }>;
 }
 
+/** Short handles that vanish on the current Summer slice still need a widen + clarify. */
+export function messageNeedsEntityWiden(message: string): boolean {
+  const searchable = stripAgentSelfMentions(message);
+  if (/\bwho is\b/i.test(searchable) && FORCE_CLARIFY_NAMES.size) {
+    for (const name of FORCE_CLARIFY_NAMES) {
+      if (wordMatch(searchable, name)) return true;
+    }
+  }
+  for (const name of FORCE_CLARIFY_NAMES) {
+    if (wordMatch(searchable, name)) return true;
+  }
+  return false;
+}
+
 export function extractPlayersWithClarifications(
   message: string,
   players: MergedPlayer[],

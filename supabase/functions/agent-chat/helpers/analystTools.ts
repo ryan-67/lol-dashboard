@@ -13,6 +13,7 @@ import { getPlayerRatings } from "./mlArtifacts.ts";
 import { runChampionMatchupLookup } from "./championMatchupTool.ts";
 import {
   extractPlayersWithClarifications,
+  messageNeedsEntityWiden,
   PLAYER_ALIASES as SHARED_PLAYER_ALIASES,
 } from "./playerExtract.ts";
 import {
@@ -33,10 +34,13 @@ import {
   hasWeeklyWindowAsk,
   inferLeagueFromMessage,
   isDatedMatchupRecap,
+  isTeamLastSeriesQuestion,
   isWeeklyLeagueRecapQuestion,
+  lastCompletedSeriesForTeam,
   lastMeetingFromWarehouse,
   overlayWarehouseSeasonRecords,
   pickWarehouseSeries,
+  rowsInLookbackDays,
   rowsInWeek,
   seasonH2hFromWarehouse,
   seasonRecordsFromWarehouse,
@@ -1026,7 +1030,7 @@ function extractPlayerName(message: string): string | null {
 
 export function runPlayerStat(message: string, bundle: SliceBundle): ToolResult | null {
   if (
-    !/\b(kda|stats?|gd@?15|csd@?15|dpm|games|winrate|dmg%|dmg share|gold%|gold share|dmg\/gold)\b/i.test(
+    !/\b(kda|stats?|gd@?15|csd@?15|dpm|games|winrate|dmg%|dmg share|gold%|gold share|dmg\/gold|gold diff(?:erential)?(?:\s+at\s+15)?)\b/i.test(
       message,
     )
   ) {
@@ -1352,10 +1356,21 @@ export function runWeeklyWarehouseRecap(
   const leagueFilter = message.match(/\b(LCK|LPL|LEC|LCS)\b/i)?.[1]?.toUpperCase() ??
     (league !== "All Tier 1" ? league : undefined);
   const now = clientNow ?? new Date().toISOString();
-  const { completed, upcoming } = rowsInWeek(rows, now, leagueFilter);
+  const lookback = wantsWarehouseResults(message) && !hasWeeklyWindowAsk(message);
+  const { completed, upcoming } = lookback
+    ? rowsInLookbackDays(rows, now, leagueFilter, 7)
+    : rowsInWeek(rows, now, leagueFilter);
   const weekCompleted = dropSeriesNotInWarehouse(completed, rows);
   const weekUpcoming = dropSeriesNotInWarehouse(upcoming, rows);
-  if (!weekCompleted.length && !weekUpcoming.length) return null;
+  if (!weekCompleted.length && !weekUpcoming.length) {
+    if (leagueFilter && (isWeeklyLeagueRecapQuestion(message) || wantsWarehouseResults(message))) {
+      return {
+        tool: "weekly_warehouse_recap",
+        data: formatWeeklyWarehouseBlock([], [], leagueFilter, []),
+      };
+    }
+    return null;
+  }
   const year = Number(now.slice(0, 4));
   const standings = seasonRecordsFromWarehouse(rows, year, leagueFilter);
   return {
@@ -1373,7 +1388,9 @@ export function runWarehouseSeriesRecap(
   const extracted = extractTeams(message, teams);
   if (extracted.length < 2) return null;
   if (
-    !/\b(series|recap|what happened|who won|bo[135]|vs\.?|versus)\b/i.test(message)
+    !/\b(series|recap|what happened|who won|bo[135]|vs\.?|versus|lost? to|lose to|beaten by)\b/i
+      .test(message) &&
+    !isDatedMatchupRecap(message)
   ) {
     return null;
   }
@@ -1423,6 +1440,92 @@ export function runWarehouseSeriesRecap(
   return {
     tool: "warehouse_series_recap",
     data,
+  };
+}
+
+export function runWarehouseTeamLastSeries(
+  message: string,
+  rows: WarehouseSeriesRow[],
+  teams: MergedTeam[],
+  clientNow?: string,
+): ToolResult | null {
+  if (!isTeamLastSeriesQuestion(message)) return null;
+  const extracted = extractTeams(message, teams);
+  if (extracted.length !== 1) return null;
+  const team = extracted[0]!;
+  const leagueFilter = inferLeagueFromMessage(message) ??
+    (team.league && team.league !== "All Tier 1" ? team.league : undefined);
+  const hit = lastCompletedSeriesForTeam(rows, team.name, leagueFilter);
+  if (!hit) {
+    return {
+      tool: "warehouse_series_recap",
+      data: {
+        teamA: team.name,
+        teamB: "last opponent",
+        seriesScore: "0-0",
+        missingAskedSeries: true,
+        source: "cito_schedules (riot gw warehouse)",
+        note: "no completed warehouse series for this team in the current season fetch.",
+      },
+    };
+  }
+  const year = Number((hit.date || clientNow || new Date().toISOString()).slice(0, 4));
+  const records = seasonRecordsFromWarehouse(rows, year, hit.league || leagueFilter);
+  const scoreFromTeam = teamsAreSame(hit.teamA, team.name)
+    ? `${hit.scoreA}-${hit.scoreB}`
+    : `${hit.scoreB}-${hit.scoreA}`;
+  return {
+    tool: "warehouse_series_recap",
+    data: overlayWarehouseSeasonRecords(
+      {
+        teamA: teamsAreSame(hit.teamA, team.name) ? hit.teamA : hit.teamB,
+        teamB: teamsAreSame(hit.teamA, team.name) ? hit.teamB : hit.teamA,
+        seriesScore: scoreFromTeam,
+        winner: hit.winner,
+        date: hit.date,
+        league: hit.league,
+        gameCount: hit.scoreA + hit.scoreB,
+        gamesFound: hit.scoreA + hit.scoreB,
+        source: "cito_schedules (riot gw warehouse)",
+        note: "Latest completed warehouse series for this team — not leftover OE gameLog.",
+      },
+      records,
+    ),
+  };
+}
+
+function starterNamesForTeam(
+  bundle: SliceBundle,
+  team: string,
+): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const role of ["top", "jungle", "mid", "adc", "support"]) {
+    const pick = bundle.players
+      .filter((p) =>
+        teamsAreSame(p.team, team) &&
+        normalizeRole(p.position) === role
+      )
+      .sort((a, b) => b.games - a.games)[0];
+    if (pick) out[role] = pick.name;
+  }
+  return out;
+}
+
+function overlaySeriesRosters(
+  recap: ToolResult,
+  bundle: SliceBundle,
+): ToolResult {
+  const data = recap.data;
+  const teamA = String(data.teamA ?? "");
+  const teamB = String(data.teamB ?? "");
+  if (!teamA || !teamB || data.missingAskedSeries) return recap;
+  return {
+    ...recap,
+    data: {
+      ...data,
+      rosterA: starterNamesForTeam(bundle, teamA),
+      rosterB: starterNamesForTeam(bundle, teamB),
+    },
   };
 }
 
@@ -1561,7 +1664,7 @@ export async function buildAnalystContext(
     isHistoricalQuestion(message) ||
     isChampionCareerQuestion(message);
 
-  const bundle = useMulti
+  let bundle = useMulti
     ? await fetchMultiSplitBundle(
       service,
       analystLeague,
@@ -1580,14 +1683,35 @@ export async function buildAnalystContext(
   );
 
   const champMatchup = runChampionMatchupLookup(message);
-  const clarify = runEntityClarifications(message, bundle, analystLeague);
+  let clarify = runEntityClarifications(message, bundle, analystLeague);
+  const clarifyEmpty = Boolean(
+    clarify &&
+      Array.isArray((clarify.data as { clarifications?: Array<{ missingInSlice?: boolean }> })
+        .clarifications) &&
+      ((clarify.data as { clarifications?: Array<{ missingInSlice?: boolean }> }).clarifications ??
+        [])
+        .some((c) => c.missingInSlice),
+  );
+  if (!useMulti && (clarifyEmpty || messageNeedsEntityWiden(message) && !clarify)) {
+    bundle = await fetchMultiSplitBundle(
+      service,
+      analystLeague,
+      options.years?.length ? options.years : "ALL",
+    );
+    clarify = runEntityClarifications(message, bundle, analystLeague);
+  }
   const weekly = runWeeklyWarehouseRecap(message, warehouseRows, analystLeague, options.clientNow);
-  const warehouseSeries = runWarehouseSeriesRecap(
+  let warehouseSeries = runWarehouseSeriesRecap(
     message,
     warehouseRows,
     bundle.teams,
     options.clientNow,
   );
+  const teamLastSeries = warehouseSeries
+    ? null
+    : runWarehouseTeamLastSeries(message, warehouseRows, bundle.teams, options.clientNow);
+  if (!warehouseSeries && teamLastSeries) warehouseSeries = teamLastSeries;
+  if (warehouseSeries) warehouseSeries = overlaySeriesRosters(warehouseSeries, bundle);
   const seasonFacts = runSeasonWarehouseFacts(
     message,
     warehouseRows,
@@ -1625,7 +1749,9 @@ export async function buildAnalystContext(
     warehouseSeriesMiss ||
     isDatedMatchupRecap(message) ||
     isWeeklyLeagueRecapQuestion(message) ||
-    hasWeeklyWindowAsk(message);
+    hasWeeklyWindowAsk(message) ||
+    isTeamLastSeriesQuestion(message) ||
+    wantsWarehouseResults(message);
 
   // When entity is ambiguous, prefer clarify over inventing a max-games pick.
   const rawCandidates: Array<ToolResult | null> = warehouseOnlyRecap

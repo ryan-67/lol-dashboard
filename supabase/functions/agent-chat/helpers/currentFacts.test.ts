@@ -23,6 +23,8 @@ import {
   isWeeklyLeagueRecapQuestion,
   isWhoWinsPrediction,
   keyLaneMatchups,
+  isTeamLastSeriesQuestion,
+  lastCompletedSeriesForTeam,
   lastMeetingFromWarehouse,
   overlayWarehouseSeasonRecords,
   parseAskedDate,
@@ -38,8 +40,12 @@ import { extractTeams, runWarehouseSeriesRecap, runWeeklyWarehouseRecap } from "
 import {
   formatGengLckTitlesAnswer,
   formatMsi2026Answer,
+  formatEntityClarifyAnswer,
+  formatPlayerIdentityAnswer,
+  formatPlayerStatAnswer,
   formatWarehouseSeriesAnswer,
   formatWeeklyWarehouseAnswer,
+  isSimplePlayerStatAsk,
   toolsFromMatchStats,
   tryDeterministicAnswer,
 } from "./deterministicAnswers.ts";
@@ -858,4 +864,95 @@ Deno.test("warehouse week drops leftover FearX–HLE Aug 19 and DRX–BRO Aug 20
     !weekText.split("\n").some((l) => /fearx/i.test(l) && /hanwha|\bhle\b/i.test(l)),
     "week text has no HLE–FearX",
   );
+});
+
+Deno.test("DK last series is warehouse HLE 2-0 Aug 20, not leftover OE vs KT", () => {
+  const ask = "what was Dplus Kia last series score?";
+  assert(isTeamLastSeriesQuestion(ask), "last series ask");
+  assert(!isTeamLastSeriesQuestion("any notable LPL results the last few days?"), "not a week ask");
+  const last = lastCompletedSeriesForTeam(QA_WAREHOUSE, "Dplus Kia", "LCK");
+  assert(last, "DK has a completed warehouse series");
+  assertEquals(last!.date, "2026-08-20", "Aug 20 vs HLE, not an older KT series");
+  assertEquals(last!.score, "2-0", "HLE 2-0");
+  assert(/Hanwha/i.test(last!.winner), "HLE won");
+  const locked = tryDeterministicAnswer(ask, [{
+    tool: "warehouse_series_recap",
+    data: {
+      teamA: "Dplus Kia",
+      teamB: "Hanwha Life Esports",
+      seriesScore: "0-2",
+      winner: "Hanwha Life Esports",
+      date: "2026-08-20",
+    },
+  }]);
+  assert(locked && /0-2/.test(locked) && /2026-08-20/.test(locked), "locks warehouse last series");
+  assert(!/KT/i.test(locked!), "does not invent KT");
+});
+
+Deno.test("lose-to dated ask locks warehouse series, not a Painter invention", () => {
+  const ask = "why did T1 lose to HLE on August 8?";
+  assert(isDatedMatchupRecap(ask), "dated lose-to is a recap");
+  const recap = runWarehouseSeriesRecap(ask, QA_WAREHOUSE, [], WEEK_NOW);
+  assert(recap?.tool === "warehouse_series_recap", "lose-to fires warehouse recap");
+  assertEquals(String(recap!.data.date), "2026-08-08", "picks Aug 8");
+  assert(/1-2|2-1/.test(String(recap!.data.seriesScore)), "has the 2-1 score");
+  const locked = tryDeterministicAnswer(ask, [{
+    tool: "warehouse_series_recap",
+    data: {
+      teamA: "T1",
+      teamB: "Hanwha Life Esports",
+      seriesScore: "1-2",
+      winner: "Hanwha Life Esports",
+      date: "2026-08-08",
+    },
+  }]);
+  assert(locked && /1-2/.test(locked) && /Hanwha/i.test(locked), "locks HLE 2-1");
+  assert(!/Painter/i.test(locked!), "no invented sub");
+});
+
+Deno.test("Knight gold-diff ask locks numeric GD@15 from player_stat", () => {
+  const ask = "what's Knight's gold diff at 15 this LPL split?";
+  assert(isSimplePlayerStatAsk(ask), "gold diff at 15 is a simple stat ask");
+  const locked = tryDeterministicAnswer(ask, [{
+    tool: "player_stat",
+    data: {
+      player: { name: "Knight", team: "Bilibili Gaming", league: "LPL", games: 63, gd15: 527.4 },
+    },
+  }]);
+  assert(locked && /527\.4/.test(locked) && /63/.test(locked), "locks Knight +527.4 / 63");
+  assert(!/doesn't break down/i.test(locked!), "does not fail-close a present number");
+  assertEquals(
+    formatPlayerStatAnswer({
+      player: { name: "Knight", league: "LPL", games: 63, gd15: 527.4 },
+    }, ask).includes("527.4"),
+    true,
+    "formatter prints GD@15",
+  );
+});
+
+Deno.test("Ice identity clarify does not invent a no-such-player close", () => {
+  const empty = formatEntityClarifyAnswer({
+    clarifications: [{ query: "Ice", candidates: [], missingInSlice: true }],
+  });
+  assert(/which ice/i.test(empty), "asks which Ice");
+  assert(!/no verified players named/i.test(empty), "not a hard no");
+  const ident = formatPlayerIdentityAnswer({
+    players: [{ name: "Ice", team: "Team Heretics", league: "LEC", position: "adc", games: 20 }],
+  });
+  assert(/Team Heretics/i.test(ident) && /LEC/i.test(ident), "identity names Heretics Ice");
+  const locked = tryDeterministicAnswer("who is Ice?", [{
+    tool: "entity_clarify",
+    data: { clarifications: [{ query: "Ice", candidates: [] }] },
+  }]);
+  assert(locked && /which ice/i.test(locked), "locks clarify");
+});
+
+Deno.test("empty LPL week locks an honest miss, not an MSI pivot", () => {
+  const ask = "any notable LPL results the last few days?";
+  const locked = tryDeterministicAnswer(ask, [{
+    tool: "weekly_warehouse_recap",
+    data: { league: "LPL", completed: [], upcoming: [] },
+  }]);
+  assert(locked && /No warehouse LPL/i.test(locked), "honest empty LPL window");
+  assert(!/MSI/i.test(locked!), "does not pivot to MSI");
 });
