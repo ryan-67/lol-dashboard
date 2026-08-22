@@ -59,6 +59,17 @@ export function hasSufficientKnowledge(input: CoverageInput): boolean {
   const hasUsefulStats = Object.keys(input.matchStats).length > 0;
   const hasExternal = input.externalContext.trim().length > 0;
   const intent = input.webSearchIntent;
+  const statsBlob = JSON.stringify(input.matchStats);
+  if (/player_worlds_titles/.test(statsBlob)) return true;
+  if (/"tool":"weekly_warehouse_recap"/.test(statsBlob) && /"completed":\s*\[\{/.test(statsBlob)) {
+    return true;
+  }
+  if (/"tool":"warehouse_series_recap"/.test(statsBlob) && /"seriesScore":"[1-9]/.test(statsBlob)) {
+    return true;
+  }
+  if (/"tool":"warehouse_season_facts"/.test(statsBlob) && /"seriesWinsA":[1-9]/.test(statsBlob)) {
+    return true;
+  }
 
   if (input.careerIntent && input.hasWebVerifiedChunk) return true;
   if (input.careerIntent && externalCoversIntent("career", input.externalContext)) return true;

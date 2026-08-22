@@ -1,5 +1,6 @@
 import type { IntentPlan } from "./classify.ts";
 import { isSeriesPlayerQuestion } from "./seriesAnalysis.ts";
+import { isDatedMatchupRecap, isWeeklyLeagueRecapQuestion } from "./warehouseFacts.ts";
 
 export function isRosterQuestion(message: string): boolean {
   return (
@@ -38,12 +39,15 @@ export function isChampionPoolCompareQuestion(message: string): boolean {
 }
 
 export function isCompareQuestion(message: string): boolean {
-  return /\b(compare|radar|vs\.?|versus)\b/i.test(message) &&
-    !isRosterQuestion(message);
+  if (isSeriesRecapQuestion(message) || isWeeklyLeagueRecapQuestion(message)) return false;
+  return /\b(compare|radar)\b/i.test(message) ||
+    (/\b(vs\.?|versus)\b/i.test(message) && /\b(compare|this (?:lck|lpl|lec|lcs|season|split)|h2h|head.?to.?head)\b/i.test(message));
 }
 
 /** Last/latest matchup recap — "what happened in the last t1 vs geng series?" */
 export function isSeriesRecapQuestion(message: string): boolean {
+  if (isWeeklyLeagueRecapQuestion(message)) return false;
+  if (isDatedMatchupRecap(message)) return true;
   const lower = message.toLowerCase();
   if (!/\b(vs\.?|versus|against)\b/i.test(lower)) return false;
 

@@ -40,6 +40,8 @@ import {
   isWorldsHistoryQuestion,
   lookupWorldsHistory,
 } from "../helpers/worldsHistory.ts";
+import { shouldDrawCompareChart, type WarehouseSeriesRow } from "../helpers/warehouseFacts.ts";
+import { fetchWarehouseRows } from "../helpers/warehouseFetch.ts";
 import {
   buildCurrentWorldContext,
   formatMentionedRosterBlock,
@@ -305,6 +307,7 @@ export async function decideAndFetch(deps: DecideDeps): Promise<Evidence> {
       ? isPlayerChampionPerformanceAsk(thread.inheritedTopic)
       : false);
   const worldsHistoryIntent =
+    curatedPlayerWorldsTitle ||
     isWorldsHistoryQuestion(message) ||
     (thread.isFollowUp && thread.inheritedTopic
       ? isWorldsHistoryQuestion(thread.inheritedTopic)
@@ -331,6 +334,7 @@ export async function decideAndFetch(deps: DecideDeps): Promise<Evidence> {
   let isCompare = false;
   let analystToolNames: string[] = [];
   let hasWebVerifiedChunk = false;
+  let warehouseRows: WarehouseSeriesRow[] = [];
 
   let draftExtracted = parseDraftExtractionBlock(message);
   // V3-4: if user asks about a live series without pasting a draft, load locked Cito draft.
@@ -383,14 +387,18 @@ export async function decideAndFetch(deps: DecideDeps): Promise<Evidence> {
         widenForSeries: scope.scope === "lolesports_series",
         multiSplit: Boolean(filters.multiSplit || careerNumbersIntent),
         years: filters.selectedYears?.filter((y) => y && y !== "ALL"),
+        clientNow: deps.clientNow,
       },
     );
     matchStats = mergeToolResults(analystCtx);
     analystToolNames = analystCtx.tools.map((t) => t.tool);
+    warehouseRows = analystCtx.warehouseRows ?? [];
     if (analystToolNames.length) sources.oracleElixir = true;
     if (
       analystToolNames.includes("schedule_lookup") ||
-      analystToolNames.includes("recent_results")
+      analystToolNames.includes("recent_results") ||
+      analystToolNames.includes("weekly_warehouse_recap") ||
+      analystToolNames.includes("warehouse_series_recap")
     ) {
       sources.schedule = true;
     }
@@ -399,16 +407,15 @@ export async function decideAndFetch(deps: DecideDeps): Promise<Evidence> {
     }
 
     // Compare charts — current user turn only (never inherited topic entities).
-    const hasCompareIntent =
-      /\b(compare|vs\.?|versus|radar|head.?to.?head|h2h)\b/i.test(message) ||
-      (/\banaly[sz]e\b/i.test(message) && /\bvs\.?\b/i.test(message));
+    // Series recaps / weekly recaps / who-wins preds must not emit a radar.
     const blockChart =
       identityIntent ||
       thread.followUpType === "roster_follow_up" ||
       isRosterDepthQuestion(message) ||
-      isCareerQuestion(message);
+      isCareerQuestion(message) ||
+      scope.scope === "lolesports_series";
     const wantsCompare =
-      !blockChart && (scope.scope === "lolesports_compare" || hasCompareIntent);
+      !blockChart && shouldDrawCompareChart(message, scope.scope);
 
     if (wantsCompare) {
       const compareQuery = message;
@@ -513,6 +520,11 @@ export async function decideAndFetch(deps: DecideDeps): Promise<Evidence> {
   let predictionPacket: import("../helpers/predictionPacket.ts").PredictionPacket | null = null;
   let predictionMode: import("../helpers/predictionPacket.ts").PredictionMode | null = null;
   if (isMlAnalysisQuestion(message) || draftAnalysisIntent) {
+    if (!warehouseRows.length) {
+      warehouseRows = await fetchWarehouseRows(serviceClient, {
+        league: filters.league === "All Tier 1" ? undefined : filters.league,
+      });
+    }
     const pred = await buildPredictionPacket({
       message,
       split: resolvedSplit,
@@ -520,6 +532,8 @@ export async function decideAndFetch(deps: DecideDeps): Promise<Evidence> {
       draft: draftExtracted,
       kalshiMarkets,
       citoApiKey,
+      warehouseRows,
+      clientNow: deps.clientNow,
     });
     predictionPacketBlock = pred.block;
     predictionPacket = pred.packet;

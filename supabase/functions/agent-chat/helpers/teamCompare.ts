@@ -1,5 +1,8 @@
 import type { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { getH2hLookup } from "./mlArtifacts.ts";
+import { canonicalTeamName, dedupeByTeamIdentity, teamsAreSame } from "./teamIdentity.ts";
+import { fetchWarehouseRows } from "./warehouseFetch.ts";
+import { seasonH2hFromWarehouse, seasonRecordsFromWarehouse } from "./warehouseFacts.ts";
 
 const TIER1 = ["LCK", "LPL", "LEC", "LCS"] as const;
 
@@ -280,18 +283,24 @@ export function extractCompareTeams(message: string, teams: MergedTeam[]): Merge
   for (const [alias, canonical] of Object.entries(TEAM_ALIASES)) {
     if (lower.includes(alias)) {
       const team = resolveTeamName(canonical, teams);
-      if (team) found.set(`${team.name}|${team.league}`, team);
+      if (team) {
+        const name = canonicalTeamName(team.name);
+        found.set(`${name}|${team.league}`, { ...team, name });
+      }
     }
   }
 
   for (const team of teams) {
     const nameLower = team.name.toLowerCase();
     if (lower.includes(nameLower)) {
-      found.set(`${team.name}|${team.league}`, team);
+      const name = canonicalTeamName(team.name);
+      found.set(`${name}|${team.league}`, { ...team, name });
     }
   }
 
-  return [...found.values()].slice(0, 4);
+  return dedupeByTeamIdentity([...found.values()], (t) => t.name, (kept, extra) =>
+    extra.games > kept.games ? extra : kept
+  ).slice(0, 4);
 }
 
 function metricRaw(team: MergedTeam, key: string): number {
@@ -465,14 +474,32 @@ export async function runTeamCompare(
   const compareTeams = extractCompareTeams(message, teams);
   if (compareTeams.length < 2) return null;
 
+  const yearMatch = message.match(/\b(20\d{2})\b/);
+  const year = yearMatch ? Number(yearMatch[1]) : new Date().getUTCFullYear();
+  const leagueFilter = message.match(/\b(LCK|LPL|LEC|LCS)\b/i)?.[1]?.toUpperCase() ??
+    (resolvedLeague !== "All Tier 1" ? resolvedLeague : "LCK");
+  const warehouseRows = await fetchWarehouseRows(service, { league: leagueFilter });
+  const [a, b] = compareTeams;
+  const seasonRecords = seasonRecordsFromWarehouse(warehouseRows, year, leagueFilter);
+  const recA = seasonRecords.find((r) => teamsAreSame(r.team, a.name));
+  const recB = seasonRecords.find((r) => teamsAreSame(r.team, b.name));
+  if (recA) {
+    a.games = recA.gameWins + recA.gameLosses;
+    a.wins = recA.gameWins;
+    a.losses = recA.gameLosses;
+    a.winrate = a.games > 0 ? Math.round((a.wins / a.games) * 1000) / 10 : a.winrate;
+  }
+  if (recB) {
+    b.games = recB.gameWins + recB.gameLosses;
+    b.wins = recB.gameWins;
+    b.losses = recB.gameLosses;
+    b.winrate = b.games > 0 ? Math.round((b.wins / b.games) * 1000) / 10 : b.winrate;
+  }
+
   const radar = buildRadarChartPayload(compareTeams, teams, resolvedSplit, resolvedLeague);
   const bars = buildTeamCompareBars(compareTeams, resolvedSplit, resolvedLeague);
 
-  const [a, b] = compareTeams;
-  const h2hTable = getH2hLookup();
-  const keyAb = `${a.name}|${b.name}`;
-  const keyBa = `${b.name}|${a.name}`;
-  const h2hRow = h2hTable[keyAb] ?? h2hTable[keyBa];
+  const seasonH2h = seasonH2hFromWarehouse(warehouseRows, a.name, b.name, year, leagueFilter);
   let headToHead: {
     games: number;
     winsA: number;
@@ -480,23 +507,42 @@ export async function runTeamCompare(
     source: string;
     note?: string;
   } | null = null;
-  if (h2hRow && h2hRow.games > 0) {
-    // Decayed model H2H — winrate is from A's perspective when key is A|B.
-    const fromA = Boolean(h2hTable[keyAb]);
-    const wrA = fromA ? h2hRow.winrate : 1 - h2hRow.winrate;
-    const winsA = Math.round(wrA * h2hRow.games);
-    const winsB = Math.max(0, h2hRow.games - winsA);
+  if (seasonH2h.meetings.length) {
     headToHead = {
-      games: h2hRow.games,
-      winsA,
-      winsB,
-      source: "ml_h2h_lookup_decayed",
-      note:
-        "Decayed multi-year model H2H (not a single-split series tally). Cite games + approximate W-L; do not invent different totals.",
+      games: seasonH2h.meetings.length,
+      winsA: seasonH2h.seriesWinsA,
+      winsB: seasonH2h.seriesWinsB,
+      source: "cito_schedules (riot gw warehouse)",
+      note: seasonH2h.note,
     };
+  } else {
+    const h2hTable = getH2hLookup();
+    const keyAb = `${a.name}|${b.name}`;
+    const keyBa = `${b.name}|${a.name}`;
+    const h2hRow = h2hTable[keyAb] ?? h2hTable[keyBa];
+    if (h2hRow && h2hRow.games > 0) {
+      const fromA = Boolean(h2hTable[keyAb]);
+      const wrA = fromA ? h2hRow.winrate : 1 - h2hRow.winrate;
+      const winsA = Math.round(wrA * h2hRow.games);
+      const winsB = Math.max(0, h2hRow.games - winsA);
+      headToHead = {
+        games: h2hRow.games,
+        winsA,
+        winsB,
+        source: "ml_h2h_lookup_decayed",
+        note:
+          "Decayed multi-year model H2H — NOT this-split series W/L. Do not present as 2026 LCK H2H.",
+      };
+    }
   }
 
-  const data = buildTeamCompareSummary(compareTeams, resolvedSplit, resolvedLeague, headToHead);
+  const data = {
+    ...buildTeamCompareSummary(compareTeams, resolvedSplit, resolvedLeague, headToHead),
+    seasonSeriesRecords: [recA, recB].filter(Boolean),
+    seasonNote: recA || recB
+      ? `${year} ${leagueFilter} warehouse game W/L + series W/L override stale OE slice totals. Cite these, not leftover 10-5 / 8-9 style OE rows.`
+      : undefined,
+  };
   const chartMarkdown = [bars ? chartMarkdownBlock(bars) : "", chartMarkdownBlock(radar)]
     .filter(Boolean)
     .join("\n\n");

@@ -14,7 +14,7 @@ export interface ToolRoutePlan {
 const PATCH_HINTS = /\b(patch|meta shift|balance|nerf|buff|item change)\b/i;
 const REDDIT_HINTS = /\b(reddit|community|thread|post.?match|discussion|meme)\b/i;
 const KALSHI_HINTS = /\b(kalshi|odds|betting|line|market|implied)\b/i;
-const SCHEDULE_HINTS = /\b(schedule|bracket|playoffs|upcoming|next match|when do|fixture)\b/i;
+const SCHEDULE_HINTS = /\b(schedule|this week|bracket|playoffs|upcoming|next match|when do|fixture)\b/i;
 const PLAYER_HINTS = /\b(player|faker|chovy|canyon|oner|roster|transfer)\b/i;
 const TEAM_HINTS = /\b(team|t1|geng|gen\.?g|g2|cloud9|liquid)\b/i;
 const MATCH_HINTS = /\b(match|game \d|series|bo[135]|draft|vod)\b/i;
@@ -48,6 +48,11 @@ const SQL_COVERING_TOOLS = new Set([
   "team_rankings",
   "team_roster",
   "series_recap",
+  "warehouse_series_recap",
+  "weekly_warehouse_recap",
+  "warehouse_season_facts",
+  "recent_results",
+  "player_worlds_titles",
   "champion_meta",
   "champion_pool_compare",
   "player_champion",

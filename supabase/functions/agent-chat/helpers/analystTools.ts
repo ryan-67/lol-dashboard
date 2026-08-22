@@ -21,6 +21,25 @@ import {
   isChampionCareerQuestion,
   isHistoricalQuestion,
 } from "./historicalAnalysis.ts";
+import {
+  canonicalTeamName,
+  dedupeByTeamIdentity,
+  teamsAreSame,
+} from "./teamIdentity.ts";
+import { fetchWarehouseRows } from "./warehouseFetch.ts";
+import {
+  formatWeeklyWarehouseBlock,
+  isWeeklyLeagueRecapQuestion,
+  lastMeetingFromWarehouse,
+  pickWarehouseSeries,
+  rowsInWeek,
+  seasonH2hFromWarehouse,
+  seasonRecordsFromWarehouse,
+  wantsWarehouseResults,
+  wantsWarehouseSchedule,
+  type WarehouseSeriesRow,
+} from "./warehouseFacts.ts";
+import { filterDisplayScheduleRows } from "./tier1Filter.ts";
 
 const TEAM_ALIASES: Record<string, string> = {
   t1: "T1",
@@ -68,15 +87,18 @@ function extractTeams(message: string, teams: MergedTeam[]): MergedTeam[] {
   for (const [alias, canonical] of Object.entries(TEAM_ALIASES)) {
     if (lower.includes(alias)) {
       const t = resolveTeam(canonical, teams);
-      if (t) found.set(`${t.name}|${t.league}`, t);
+      if (t) found.set(`${canonicalTeamName(t.name)}|${t.league}`, { ...t, name: canonicalTeamName(t.name) });
     }
   }
   for (const team of teams) {
     if (lower.includes(team.name.toLowerCase())) {
-      found.set(`${team.name}|${team.league}`, team);
+      const name = canonicalTeamName(team.name);
+      found.set(`${name}|${team.league}`, { ...team, name });
     }
   }
-  return [...found.values()];
+  return dedupeByTeamIdentity([...found.values()], (t) => t.name, (kept, extra) =>
+    extra.games > kept.games ? extra : kept
+  );
 }
 
 function resolvePlayer(name: string, players: MergedPlayer[]): MergedPlayer | null {
@@ -612,6 +634,9 @@ export function runTeamForm(
   message: string,
   bundle: SliceBundle,
 ): ToolResult | null {
+  if (isWeeklyLeagueRecapQuestion(message) && extractTeams(message, bundle.teams).length < 1) {
+    return null;
+  }
   if (
     !/\b(form|streak|recent|last \d|momentum|hot|cold|this week|lately|right now|currently)\b/i
       .test(message)
@@ -704,7 +729,7 @@ export async function runScheduleLookup(
   split: string,
   teamsForFilter: MergedTeam[] = [],
 ): Promise<ToolResult | null> {
-  if (!/\b(schedule|upcoming|next match|plays|match today|bracket|playoffs|when)\b/i.test(message)) {
+  if (!wantsWarehouseSchedule(message)) {
     return null;
   }
 
@@ -761,23 +786,31 @@ export async function runScheduleLookup(
     source = "esports_schedules";
   }
 
+  rows = filterDisplayScheduleRows(rows as WarehouseSeriesRow[]) as Array<Record<string, unknown>>;
+
   const mentionedTeams = extractTeams(message, teamsForFilter);
   if (mentionedTeams.length) {
-    const names = new Set(mentionedTeams.map((t) => t.name.toLowerCase()));
     rows = rows.filter(
       (r) =>
-        names.has(String(r.team_a ?? "").toLowerCase()) ||
-        names.has(String(r.team_b ?? "").toLowerCase()),
+        mentionedTeams.some((t) => teamsAreSame(String(r.team_a ?? ""), t.name)) ||
+        mentionedTeams.some((t) => teamsAreSame(String(r.team_b ?? ""), t.name)),
     );
   }
+
+  const matches = rows.map((r) => ({
+    ...r,
+    team_a: canonicalTeamName(String(r.team_a ?? r.teamA ?? "")) || r.team_a,
+    team_b: canonicalTeamName(String(r.team_b ?? r.teamB ?? "")) || r.team_b,
+  }));
 
   return {
     tool: "schedule_lookup",
     data: {
       split,
       league: leagueFilter ?? league,
-      matches: rows,
+      matches,
       source,
+      note: "Tier-1 only. Real opponent names — never print ???. Challengers/academy filtered out.",
     },
   };
 }
@@ -791,11 +824,7 @@ export async function runRecentResults(
   message: string,
   league: string,
 ): Promise<ToolResult | null> {
-  const asksResults = /\b(who won|winners?|results?|scores?|standings)\b/i.test(message);
-  const asksRecent =
-    /\b(weekend|this week|past week|last week|recent|recently|lately|yesterday|today|last few days)\b/i
-      .test(message);
-  if (!asksResults || !asksRecent) return null;
+  if (!wantsWarehouseResults(message)) return null;
 
   const leagueFilter = message.match(/\b(LCK|LPL|LEC|LCS)\b/i)?.[1]?.toUpperCase();
   const sinceDays = /\b(month|monthly|past 30)\b/i.test(message) ? 30 : 14;
@@ -824,15 +853,15 @@ export async function runRecentResults(
     };
   }
 
-  const rows = (data ?? []).map((r) => ({
+  const rows = filterDisplayScheduleRows((data ?? []) as WarehouseSeriesRow[]).map((r) => ({
     league: r.league,
     tournament: r.tournament_name ?? r.block_name ?? null,
-    teamA: r.team_a,
-    teamB: r.team_b,
+    teamA: canonicalTeamName(String(r.team_a ?? "")),
+    teamB: canonicalTeamName(String(r.team_b ?? "")),
     score: typeof r.team_a_score === "number" && typeof r.team_b_score === "number"
       ? `${r.team_a_score}-${r.team_b_score}`
       : null,
-    winner: r.winner_team ?? null,
+    winner: r.winner_team ? canonicalTeamName(String(r.winner_team)) : null,
     date: typeof r.scheduled_at === "string" ? r.scheduled_at.slice(0, 10) : null,
     bestOf: r.best_of ?? null,
   }));
@@ -844,6 +873,7 @@ export async function runRecentResults(
       sinceDays,
       series: rows,
       source: "cito_schedules (riot gw warehouse)",
+      note: "Tier-1 only. Real opponent names — never print ??? or Challengers-as-LCK.",
     },
   };
 }
@@ -1243,6 +1273,7 @@ export function runChampionPoolCompare(message: string, bundle: SliceBundle): To
 export interface AnalystContext {
   snapshot: Record<string, unknown> | null;
   tools: ToolResult[];
+  warehouseRows: WarehouseSeriesRow[];
 }
 
 export interface BuildAnalystOptions {
@@ -1251,6 +1282,130 @@ export interface BuildAnalystOptions {
   /** Career / multi-year merge of OE slices. */
   multiSplit?: boolean;
   years?: string[];
+  clientNow?: string;
+}
+
+export function runWeeklyWarehouseRecap(
+  message: string,
+  rows: WarehouseSeriesRow[],
+  league: string,
+  clientNow?: string,
+): ToolResult | null {
+  if (!isWeeklyLeagueRecapQuestion(message) && !wantsWarehouseResults(message)) return null;
+  const leagueFilter = message.match(/\b(LCK|LPL|LEC|LCS)\b/i)?.[1]?.toUpperCase() ??
+    (league !== "All Tier 1" ? league : undefined);
+  const now = clientNow ?? new Date().toISOString();
+  const { completed, upcoming } = rowsInWeek(rows, now, leagueFilter);
+  if (!completed.length && !upcoming.length) return null;
+  return {
+    tool: "weekly_warehouse_recap",
+    data: formatWeeklyWarehouseBlock(completed, upcoming, leagueFilter ?? league),
+  };
+}
+
+export function runWarehouseSeriesRecap(
+  message: string,
+  rows: WarehouseSeriesRow[],
+  teams: MergedTeam[],
+  clientNow?: string,
+): ToolResult | null {
+  const extracted = extractTeams(message, teams);
+  if (extracted.length < 2) return null;
+  if (
+    !/\b(series|recap|what happened|who won|bo[135]|vs\.?|versus)\b/i.test(message)
+  ) {
+    return null;
+  }
+  const [a, b] = extracted;
+  const hit = pickWarehouseSeries(rows, a.name, b.name, message, clientNow);
+  if (!hit) {
+    return {
+      tool: "warehouse_series_recap",
+      data: {
+        teamA: a.name,
+        teamB: b.name,
+        seriesScore: "0-0",
+        gameCount: 0,
+        source: "cito_schedules (riot gw warehouse)",
+        note: "no warehouse series for this pair/date — do not invent a score",
+      },
+    };
+  }
+  const scoreFromA = teamsAreSame(hit.teamA, a.name)
+    ? `${hit.scoreA}-${hit.scoreB}`
+    : `${hit.scoreB}-${hit.scoreA}`;
+  return {
+    tool: "warehouse_series_recap",
+    data: {
+      teamA: a.name,
+      teamB: b.name,
+      seriesScore: scoreFromA,
+      winner: hit.winner,
+      date: hit.date,
+      league: hit.league,
+      gameCount: hit.scoreA + hit.scoreB,
+      gamesFound: hit.scoreA + hit.scoreB,
+      source: "cito_schedules (riot gw warehouse)",
+      note:
+        "Series score from the live Riot warehouse. Recap this series — do not draw a compare/radar card. " +
+        "Cite this score even if OE gameLog is empty or older.",
+    },
+  };
+}
+
+export function runSeasonWarehouseFacts(
+  message: string,
+  rows: WarehouseSeriesRow[],
+  teams: MergedTeam[],
+  clientNow?: string,
+): ToolResult | null {
+  const extracted = extractTeams(message, teams);
+  if (extracted.length < 2) return null;
+  const wantsSeason =
+    /\b(compare|this (?:lck|lpl|lec|lcs|season|split)|h2h|head.?to.?head|record|who wins|standings)\b/i
+      .test(message);
+  if (!wantsSeason && !/\b(vs\.?|versus)\b/i.test(message)) return null;
+  const yearMatch = message.match(/\b(20\d{2})\b/);
+  const year = yearMatch
+    ? Number(yearMatch[1])
+    : Number((clientNow ?? new Date().toISOString()).slice(0, 4));
+  const leagueFilter = message.match(/\b(LCK|LPL|LEC|LCS)\b/i)?.[1]?.toUpperCase() ?? "LCK";
+  const [a, b] = extracted;
+  const records = seasonRecordsFromWarehouse(rows, year, leagueFilter);
+  const recA = records.find((r) => teamsAreSame(r.team, a.name));
+  const recB = records.find((r) => teamsAreSame(r.team, b.name));
+  const h2h = seasonH2hFromWarehouse(rows, a.name, b.name, year, leagueFilter);
+  const last = lastMeetingFromWarehouse(rows, a.name, b.name, leagueFilter);
+  if (!recA && !recB && !h2h.meetings.length) return null;
+  return {
+    tool: "warehouse_season_facts",
+    data: {
+      year,
+      league: leagueFilter,
+      teamA: a.name,
+      teamB: b.name,
+      records: [recA, recB].filter(Boolean),
+      headToHead: {
+        games: h2h.meetings.length,
+        seriesWinsA: h2h.seriesWinsA,
+        seriesWinsB: h2h.seriesWinsB,
+        meetings: h2h.meetings.map((m) => ({
+          date: m.date,
+          score: `${m.teamA} ${m.score} ${m.teamB}`,
+          winner: m.winner,
+        })),
+        source: "cito_schedules (riot gw warehouse)",
+        note: h2h.note,
+      },
+      lastMeeting: last
+        ? { date: last.date, score: last.score, winner: last.winner, teamA: last.teamA, teamB: last.teamB }
+        : null,
+      critical:
+        "records[].gameWins/gameLosses and seriesWins/seriesLosses are THIS season from the warehouse. " +
+        "headToHead is this-year series W/L — NEVER cite decayed multi-year H2H (e.g. 20-11 or 9-8) as this split.",
+      source: "cito_schedules (riot gw warehouse)",
+    },
+  };
 }
 
 function resolveAnalystLeague(message: string, league: string): string {
@@ -1344,18 +1499,40 @@ export async function buildAnalystContext(
     });
   const snapshot = options.includeSnapshot ? buildStatSnapshot(bundle) : null;
   const tools: ToolResult[] = [];
+  const warehouseRows = await fetchWarehouseRows(service, {
+    league: analystLeague === "All Tier 1" ? undefined : analystLeague,
+  });
 
   const champMatchup = runChampionMatchupLookup(message);
   const clarify = runEntityClarifications(message, bundle, analystLeague);
+  const weekly = runWeeklyWarehouseRecap(message, warehouseRows, analystLeague, options.clientNow);
+  const warehouseSeries = runWarehouseSeriesRecap(
+    message,
+    warehouseRows,
+    bundle.teams,
+    options.clientNow,
+  );
+  const seasonFacts = runSeasonWarehouseFacts(
+    message,
+    warehouseRows,
+    bundle.teams,
+    options.clientNow,
+  );
 
   // When entity is ambiguous, prefer clarify over inventing a max-games pick.
   const rawCandidates: Array<ToolResult | null> = clarify
     ? [
       clarify,
+      weekly,
+      warehouseSeries,
+      seasonFacts,
       await runRecentResults(service, message, analystLeague),
       await runScheduleLookup(service, message, analystLeague, bundle.split, bundle.teams),
     ]
     : [
+      weekly,
+      warehouseSeries,
+      seasonFacts,
       runChampionCareerTool(message, bundle),
       runTeamRoleShareCompare(message, bundle),
       runPlayerChampionStat(message, bundle),
@@ -1388,7 +1565,7 @@ export async function buildAnalystContext(
     tools.push(c);
   }
 
-  return { snapshot, tools };
+  return { snapshot, tools, warehouseRows };
 }
 
 export function mergeToolResults(ctx: AnalystContext): Record<string, unknown> {

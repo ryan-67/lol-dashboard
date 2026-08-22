@@ -29,6 +29,14 @@ import {
   type TeamProfile,
 } from "./mlArtifacts.ts";
 import { estimateConfidence, scorePrematch } from "./linearScorer.ts";
+import {
+  keyLaneMatchups,
+  lastMeetingFromWarehouse,
+  seasonRecordsFromWarehouse,
+  standingsNoteFromRecords,
+  type WarehouseSeriesRow,
+} from "./warehouseFacts.ts";
+import { teamsAreSame } from "./teamIdentity.ts";
 
 export type PredictionMode = "prematch" | "draft" | "full" | "team_profile";
 
@@ -122,6 +130,17 @@ export interface PredictionPacket {
   playerChampionNotes?: Array<{ player: string; champion: string; note: string }>;
   playerPower?: { teamA: PlayerPowerSummary[]; teamB?: PlayerPowerSummary[] };
   modelAsOf?: string;
+  currentRecords?: Array<{
+    team: string;
+    seriesWins: number;
+    seriesLosses: number;
+    gameWins: number;
+    gameLosses: number;
+  }>;
+  lastMeeting?: { date: string; score: string; winner: string; teamA: string; teamB: string };
+  standingsNote?: string;
+  keyMatchups?: string[];
+  recentResultNote?: string;
 }
 
 const PREDICTION_HINTS =
@@ -761,6 +780,8 @@ export interface BuildPredictionOptions {
   /** Retained for caller compatibility. GPR may be fetched elsewhere as external context,
    * but it never changes nucky's model probability. */
   citoApiKey?: string;
+  warehouseRows?: WarehouseSeriesRow[];
+  clientNow?: string;
 }
 
 export async function buildPredictionPacket(opts: BuildPredictionOptions): Promise<{
@@ -929,7 +950,66 @@ export async function buildPredictionPacket(opts: BuildPredictionOptions): Promi
     modelAsOf: snapshot[teamA]?.as_of,
   };
 
+  attachWarehouseMatchupFacts(packet, opts.warehouseRows, opts.clientNow, opts.league);
   return { packet, block: formatPredictionBlock(packet) };
+}
+
+export function attachWarehouseMatchupFacts(
+  packet: PredictionPacket,
+  rows?: WarehouseSeriesRow[],
+  clientNow?: string,
+  league?: string,
+): void {
+  if (!rows?.length || packet.teamB === "—") return;
+  const year = Number((clientNow ?? new Date().toISOString()).slice(0, 4));
+  const lg = league && league !== "All Tier 1" ? league : "LCK";
+  const records = seasonRecordsFromWarehouse(rows, year, lg);
+  const recA = records.find((r) => teamsAreSame(r.team, packet.teamA));
+  const recB = records.find((r) => teamsAreSame(r.team, packet.teamB));
+  packet.currentRecords = [recA, recB].filter((r): r is NonNullable<typeof r> => Boolean(r));
+  const last = lastMeetingFromWarehouse(rows, packet.teamA, packet.teamB, lg);
+  if (last) {
+    packet.lastMeeting = {
+      date: last.date,
+      score: last.score,
+      winner: last.winner,
+      teamA: last.teamA,
+      teamB: last.teamB,
+    };
+  }
+  const standings = standingsNoteFromRecords(records, packet.teamA, packet.teamB);
+  if (standings) packet.standingsNote = standings;
+  const rosterA = packet.teamProfiles?.teamA?.roster;
+  const rosterB = packet.teamProfiles?.teamB?.roster;
+  packet.keyMatchups = keyLaneMatchups(packet.teamA, packet.teamB, rosterA, rosterB);
+  const today = (clientNow ?? new Date().toISOString()).slice(0, 10);
+  const yesterday = (() => {
+    const d = new Date(today);
+    d.setUTCDate(d.getUTCDate() - 1);
+    return d.toISOString().slice(0, 10);
+  })();
+  const recent = rows
+    .map((r) => ({
+      date: String(r.scheduled_at ?? "").slice(0, 10),
+      a: String(r.team_a ?? ""),
+      b: String(r.team_b ?? ""),
+      winner: String(r.winner_team ?? ""),
+      scoreA: Number(r.team_a_score ?? 0),
+      scoreB: Number(r.team_b_score ?? 0),
+    }))
+    .filter((r) =>
+      (r.date === today || r.date === yesterday) &&
+      (teamsAreSame(r.a, packet.teamA) || teamsAreSame(r.b, packet.teamA) ||
+        teamsAreSame(r.a, packet.teamB) || teamsAreSame(r.b, packet.teamB))
+    );
+  if (recent.length) {
+    packet.recentResultNote = recent
+      .map((r) => {
+        const winner = r.winner || (r.scoreA > r.scoreB ? r.a : r.b);
+        return `${r.date}: ${r.a} ${r.scoreA}-${r.scoreB} ${r.b} (winner ${winner}). Do NOT invert this result.`;
+      })
+      .join(" ");
+  }
 }
 
 export function formatPredictionBlock(packet: PredictionPacket): string {
@@ -949,6 +1029,29 @@ export function formatPredictionBlock(packet: PredictionPacket): string {
     lines.push("analysis: team_profile (no head-to-head win probability)");
   }
   if (packet.modelAsOf) lines.push(`model_as_of: ${packet.modelAsOf}`);
+  if (packet.currentRecords?.length) {
+    lines.push(
+      "current_records (warehouse THIS season — do NOT cite stale snapshot game tables like 17 vs 19):",
+    );
+    for (const r of packet.currentRecords) {
+      lines.push(
+        `  - ${r.team}: series ${r.seriesWins}-${r.seriesLosses}, games ${r.gameWins}-${r.gameLosses}`,
+      );
+    }
+  }
+  if (packet.lastMeeting) {
+    const m = packet.lastMeeting;
+    lines.push(
+      `last_meeting: ${m.date} ${m.teamA} vs ${m.teamB} ${m.score} (winner ${m.winner})`,
+    );
+  }
+  if (packet.standingsNote) lines.push(`standings: ${packet.standingsNote}`);
+  if (packet.keyMatchups?.length) {
+    lines.push(`key_matchups: ${packet.keyMatchups.join("; ")} — lead with these, not only mid-lane stars`);
+  }
+  if (packet.recentResultNote) {
+    lines.push(`recent_result: ${packet.recentResultNote}`);
+  }
   if (packet.drivers.length) {
     lines.push("drivers:");
     for (const d of packet.drivers) lines.push(`  - ${d}`);

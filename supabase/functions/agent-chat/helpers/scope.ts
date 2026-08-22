@@ -8,6 +8,10 @@ import { isWorldsHistoryQuestion } from "./worldsHistory.ts";
 import { isChampionMatchupAsk } from "./championMatchupTool.ts";
 import { isAgentGreetingOnly, isAgentIdentityAsk } from "./agentIdentity.ts";
 import { PLAYER_ALIASES } from "./playerExtract.ts";
+import {
+  isDatedMatchupRecap,
+  isWeeklyLeagueRecapQuestion,
+} from "./warehouseFacts.ts";
 
 export type ConversationScope =
   | "off_topic"
@@ -50,7 +54,14 @@ const COMPARE =
   /\b(compare|vs\.?|versus|radar|head.?to.?head|h2h|matchup analysis|lane matchup)\b/i;
 
 const SERIES =
-  /\b(series|what happened|game by game|bo[135]|last (?:gen|t1|g2|match)|recent (?:series|match)|reverse sweep|sweep)\b/i;
+  /\b(series|game by game|bo[135]|last (?:gen|t1|g2|match)|recent (?:series|match)|reverse sweep|sweep)\b/i;
+
+function isSeriesScopeMessage(message: string): boolean {
+  if (isWeeklyLeagueRecapQuestion(message)) return false;
+  if (isDatedMatchupRecap(message)) return true;
+  if (SERIES.test(message) && /\b(vs\.?|versus|against)\b/i.test(message)) return true;
+  return false;
+}
 
 const GENERAL_ESPORTS =
   /\b(qualif|msi|worlds|bracket|roster|transfer|rumou?r|patch notes|reddit|kalshi|odds|betting|who won|tournament|play.?in|schedule|when does|plays next|favorite to win|prediction)\b/i;
@@ -122,9 +133,22 @@ function heuristicScope(message: string): ScopePlan {
     };
   }
 
+  // Weekly league recaps ("what happened in LCK this week?") need warehouse
+  // results + upcoming — not a two-team series recap and never a radar.
+  if (isWeeklyLeagueRecapQuestion(message)) {
+    return {
+      scope: "lolesports_general",
+      needs_tools: true,
+      needs_rag: true,
+      needs_charts: false,
+      needs_snapshot: false,
+      reason: "weekly league recap — warehouse schedule/results",
+    };
+  }
+
   // SERIES is checked BEFORE compare: "what happened in T1 vs Gen.G series?" contains
   // "vs" but is a recap, not a radar comparison. Compare only wins without series intent.
-  if (SERIES.test(message)) {
+  if (isSeriesScopeMessage(message)) {
     return {
       scope: "lolesports_series",
       needs_tools: true,
@@ -393,9 +417,20 @@ export async function classifyScope(
     };
   }
 
+  if (isWeeklyLeagueRecapQuestion(message)) {
+    return {
+      scope: "lolesports_general",
+      needs_tools: true,
+      needs_rag: true,
+      needs_charts: false,
+      needs_snapshot: false,
+      reason: "weekly league recap override — warehouse, no chart",
+    };
+  }
+
   // Series recaps are deterministic too — never let the LLM turn "what happened in
   // T1 vs Gen.G series?" into a compare radar just because it contains "vs".
-  if (SERIES.test(message) && !/\b(compare|radar|head.?to.?head|h2h)\b/i.test(message)) {
+  if (isSeriesScopeMessage(message) && !/\b(compare|radar|head.?to.?head|h2h)\b/i.test(message)) {
     return {
       scope: "lolesports_series",
       needs_tools: true,
