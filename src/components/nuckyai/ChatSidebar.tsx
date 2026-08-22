@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type KeyboardEvent, type MouseEvent } from 'react'
+import { useEffect, useRef, useState, type KeyboardEvent as ReactKeyboardEvent, type MouseEvent as ReactMouseEvent } from 'react'
 import {
   conversationHref,
   shouldHandleConversationClick,
@@ -87,7 +87,7 @@ export default function ChatSidebar({
     setRenameValue('')
   }
 
-  const handleConversationClick = (e: MouseEvent<HTMLAnchorElement>, conversationId: string) => {
+  const handleConversationClick = (e: ReactMouseEvent<HTMLAnchorElement>, conversationId: string) => {
     if (shouldOpenConversationInNewBrowsingContext(e)) return
     if (!shouldHandleConversationClick(e)) return
     e.preventDefault()
@@ -95,7 +95,7 @@ export default function ChatSidebar({
     onCloseMobile()
   }
 
-  const handleConversationKeyDown = (e: KeyboardEvent<HTMLAnchorElement>, conversationId: string) => {
+  const handleConversationKeyDown = (e: ReactKeyboardEvent<HTMLAnchorElement>, conversationId: string) => {
     if (e.key !== 'Enter' && e.key !== ' ') return
     if (shouldOpenConversationInNewBrowsingContext(e)) return
     e.preventDefault()
