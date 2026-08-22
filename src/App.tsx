@@ -311,14 +311,8 @@ function AppRoutes() {
           {DashboardRoutes()}
         </Route>
 
-        <Route
-          path="/chat"
-          element={
-            <SubscriberGate>
-              <ChatPane />
-            </SubscriberGate>
-          }
-        />
+        {/* ChatPane owns auth/paywall — do not bounce /chat to /dashboard. */}
+        <Route path="/chat" element={<ChatPane />} />
 
         <Route path="/dashboard" element={<DashboardFrame />}>
           {DashboardRoutes()}
