@@ -3,6 +3,7 @@ import { embedText } from "./openrouter.ts";
 import type { UsageTracker } from "./usageTracker.ts";
 import type { VerifiedFact } from "./factVerifier.ts";
 import type { CitoVerifiedFact } from "./citoSearch.ts";
+import { careerFactKey, normalizeEntityId, type RagFactChunk } from "./ragFacts.ts";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 const EMBEDDING_DIM = 1536;
@@ -27,15 +28,73 @@ function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-/** Stable dedupe hash for (entity + fact kind + split). */
-async function factHash(entityId: string, factKind: string, split: string): Promise<string> {
-  const input = `${entityId}|${factKind}|${split}`.toLowerCase();
+/**
+ * Stable dedupe hash. Career titles key on entity+factKind only so a newer
+ * "Faker worlds 6" upsert replaces the stale "4 titles" row instead of sitting
+ * beside it under a different split hash.
+ */
+export async function factHash(entityId: string, factKind: string, split: string): Promise<string> {
+  const kind = factKind.toLowerCase();
+  const input = kind === "career"
+    ? careerFactKey(entityId, kind)
+    : `${entityId}|${kind}|${split}`.toLowerCase();
   const bytes = new TextEncoder().encode(input);
   const digest = await crypto.subtle.digest("SHA-256", bytes);
   return Array.from(new Uint8Array(digest))
     .map((b) => b.toString(16).padStart(2, "0"))
     .join("")
     .slice(0, 32);
+}
+
+/** Drop leftover verified rows for the same entity+factKind (old split hashes). */
+export async function supersedeStaleFacts(
+  service: SupabaseClient,
+  entityId: string,
+  factKind: string,
+  keepHash: string,
+): Promise<void> {
+  const entity = normalizeEntityId(entityId);
+  if (!entity || !keepHash) return;
+  try {
+    const { data } = await service
+      .from("documents")
+      .select("id, fact_hash, entity_id, metadata, source")
+      .eq("entity_id", entityId)
+      .in("source", ["web_verified", "cito_verified"]);
+    const staleIds = ((data ?? []) as Array<{ id: string; fact_hash?: string; metadata?: { kind?: string } }>)
+      .filter((row) => {
+        if (row.fact_hash === keepHash) return false;
+        const kind = String(row.metadata?.kind ?? "").toLowerCase();
+        return !kind || kind === factKind.toLowerCase();
+      })
+      .map((row) => row.id)
+      .filter(Boolean);
+    if (staleIds.length) {
+      await service.from("documents").delete().in("id", staleIds);
+    }
+  } catch {
+    // Write-back must never break the chat stream.
+  }
+}
+
+/** Keyed fetch so the next ask reads the upserted fact, not a similar stale chunk. */
+export async function fetchVerifiedFactsByEntity(
+  service: SupabaseClient,
+  entityIds: string[],
+): Promise<RagFactChunk[]> {
+  const ids = [...new Set(entityIds.map((e) => e.trim().toLowerCase()).filter(Boolean))].slice(0, 8);
+  if (!ids.length) return [];
+  try {
+    const { data, error } = await service
+      .from("documents")
+      .select("content, source, title, source_url, entity_id, entity_type, fact_hash, metadata, expires_at")
+      .in("entity_id", ids)
+      .in("source", ["web_verified", "cito_verified"]);
+    if (error || !data) return [];
+    return data as RagFactChunk[];
+  } catch {
+    return [];
+  }
 }
 
 async function embedWithRetry(
@@ -108,7 +167,7 @@ export async function upsertVerifiedFact(
         source_urls: fact.sources,
         expires_at: expiresAt,
         entity_type: fact.entityType,
-        entity_id: fact.entityId || null,
+        entity_id: (fact.entityId || "").toLowerCase() || null,
         fact_hash: hash,
         metadata: {
           kind: fact.factKind,
@@ -126,6 +185,10 @@ export async function upsertVerifiedFact(
 
       if (error) {
         throw new Error(error.message);
+      }
+
+      if (fact.factKind === "career" && fact.entityId) {
+        await supersedeStaleFacts(service, fact.entityId.toLowerCase(), fact.factKind, hash);
       }
 
       return { ok: true, factHash: hash };

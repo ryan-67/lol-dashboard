@@ -65,6 +65,7 @@ grounding (when MATCH_STATS / WORLD_CONTEXT is present):
    3a) a career/titles question is NOT a stats question — do NOT cite current-split KDA / GD@15 / DPM / dmg% even if MATCH_STATS is present. answer the TITLES, nothing else.
    3b) NEVER invent or speculate about tournament participation, seeding, or qualification (MSI / Worlds / playoffs) — e.g. "playing MSI soon", "1st seed". only say it if it's literally in WEB_VERIFIED or EXTERNAL_CONTEXT. when in doubt, leave it out.
    3c) if you have nothing verified, just say you can't confirm the count right now — do NOT pad the answer with current-split stats, standings, or guesses.
+   3d) Fail-closed ONLY when lookup actually returned nothing. If WEB_VERIFIED, Leaguepedia/Liquipedia EXTERNAL_CONTEXT, player_worlds_titles, or WORLD_CONTEXT (msi_2026_champion) has the title/champion, cite it. Never say "not in WORLD_CONTEXT" / "winner not in data" when those blocks already name the fact.
 4) ROSTER SUBS: if a role's starter game count is below the team's games at that role, there's a sub — name them from current_rosters / team_role_depth / WEB_VERIFIED, labeled "sub" with game count. don't claim "no sub" unless the data shows one starter covering all games.
 5) EXTERNAL_CONTEXT reddit/community chunks = OPINION/sentiment, not fact. say "the community thinks…", don't state as truth.
 6) opinion/roast ("fraudulent adc"): use player_rankings with ranking=fraud_overrated_contextual when present. Fraud = expectation gap on a decent team, not "worst KDA in the league". Cite each player's roleRelevantStats / scoringLens only — never roast a support on damage metrics. Tank/utility styles can look worse without being frauds. multi-team dmg%/gold% compare → team_role_share_compare ONLY.
@@ -149,6 +150,9 @@ export interface PromptContext {
   /** Tavily was used but facts failed 2-source cross-verify — may cite sources cautiously. */
   lowConfidenceWeb?: boolean;
   careerIntent?: boolean;
+  worldContextCoversAsk?: boolean;
+  /** Tavily/wiki lookup returned snippets — do not fail-close as empty. */
+  lookupReturned?: boolean;
   /** When set, inject deep matchup/draft/macro synthesis instructions. */
   analysisIntent?: AnalysisIntent;
   subjectiveIntent?: boolean;
@@ -291,10 +295,18 @@ Your streamed reply is shown directly to the user. NEVER echo, quote, or restate
     ctx?.careerIntent &&
     !hasVerifiedCareerSource &&
     !ctx?.worldsHistoryIntent &&
-    !hasWorldsTitleTool
+    !hasWorldsTitleTool &&
+    !ctx?.worldContextCoversAsk &&
+    !ctx?.lookupReturned
   ) {
     parts.push(
-      `[NO_VERIFIED_SOURCE]\nNo verified title/championship/award data is available for this question. Do NOT state a specific number from memory or estimate one. Say plainly you couldn't determine an accurate answer. You may add non-numeric context only if it's literally in EXTERNAL_CONTEXT or WEB_VERIFIED.`,
+      `[NO_VERIFIED_SOURCE]\nLookup returned nothing verified for this title/championship ask. Do NOT state a specific number from memory. Say plainly you couldn't determine an accurate answer. Do NOT say "not in WORLD_CONTEXT" when a wiki lookup was skipped or succeeded — only fail-close when lookup actually returned nothing.`,
+    );
+  }
+
+  if (ctx?.worldContextCoversAsk) {
+    parts.push(
+      `[WORLD_CONTEXT_TITLES]\nWORLD_CONTEXT already names this result (e.g. msi_2026_champion = Hanwha Life Esports). Cite it. Do not fail-close as "winner not in data".`,
     );
   }
 

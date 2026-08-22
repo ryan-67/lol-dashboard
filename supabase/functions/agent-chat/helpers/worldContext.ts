@@ -118,3 +118,19 @@ data_limits: match stats in MATCH_STATS are from completed pro games in oe_slice
 
   return { clientNow: nowIso, clientDate, block };
 }
+
+/** WORLD_CONTEXT already answers this career ask — do not fail-close as "not in data". */
+export function worldContextCoversAsk(message: string, worldBlock: string): boolean {
+  const q = message.toLowerCase();
+  const block = worldBlock.toLowerCase();
+  if (
+    /\bmsi\b/.test(q) &&
+    /\b2026\b/.test(q) &&
+    /\b(won|winner|champion|champ|title)\b/.test(q) &&
+    /msi_2026_champion/.test(block) &&
+    /hanwha life esports/.test(block)
+  ) {
+    return true;
+  }
+  return false;
+}

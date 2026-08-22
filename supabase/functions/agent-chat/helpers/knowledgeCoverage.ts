@@ -49,6 +49,10 @@ export interface CoverageInput {
   webSearchIntent: TavilySearchIntent;
   citoIntent: CitoSearchIntent;
   subjectiveIntent: boolean;
+  /** Fresh entity+factKind verified fact that already answers this title ask. */
+  hasFreshCareerFact?: boolean;
+  /** WORLD_CONTEXT already names the asked champion (e.g. MSI 2026 = HLE). */
+  worldContextCoversAsk?: boolean;
 }
 
 /** True when tier-1 sources (OE/RAG/Cito) are enough — skip Tavily. */
@@ -70,9 +74,13 @@ export function hasSufficientKnowledge(input: CoverageInput): boolean {
   if (/"tool":"warehouse_season_facts"/.test(statsBlob) && /"seriesWinsA":[1-9]/.test(statsBlob)) {
     return true;
   }
+  if (input.worldContextCoversAsk) return true;
 
-  if (input.careerIntent && input.hasWebVerifiedChunk) return true;
-  if (input.careerIntent && externalCoversIntent("career", input.externalContext)) return true;
+  // Career titles: a stale web_verified "4 titles" chunk is NOT enough.
+  // Look up Leaguepedia unless a fresh entity+factKind fact already wins.
+  if (input.careerIntent) {
+    return Boolean(input.hasFreshCareerFact);
+  }
 
   if (intent === "stats" || intent === "matchup" || intent === "meta") {
     if (hasUsefulStats && !oeSampleIsThin(input.matchStats)) return true;

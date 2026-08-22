@@ -6,6 +6,7 @@ import {
   isAuthoritativeSingle,
   type TavilyResult,
 } from "./tavilySearch.ts";
+import { extractTitleCount, extractTitleYears } from "./ragFacts.ts";
 
 export interface CandidateFact {
   fact: string;
@@ -145,4 +146,85 @@ export function verifyFact(fact: CandidateFact, snippets: TavilyResult[]): Verif
     sources: [...new Set(sources)],
     confidence,
   };
+}
+
+function wikiTitle(url: string): string {
+  try {
+    const path = new URL(url).pathname;
+    const last = decodeURIComponent(path.split("/").filter(Boolean).pop() ?? "");
+    return last.replace(/_/g, " ").trim();
+  } catch {
+    return "";
+  }
+}
+
+/**
+ * Deterministic career-title candidates from Leaguepedia/Liquipedia snippets.
+ * Used when the JSON extractor is empty so titles do not fail-close as
+ * "not in WORLD_CONTEXT" while the wiki page is sitting in the evidence.
+ */
+export function extractCareerFactsFromWiki(
+  snippets: TavilyResult[],
+  question: string,
+): CandidateFact[] {
+  const wiki = snippets.filter((s) => isAuthoritativeSingle(s.url));
+  if (!wiki.length) return [];
+  const q = question.toLowerCase();
+  const out: CandidateFact[] = [];
+  const seen = new Set<string>();
+
+  const push = (fact: CandidateFact) => {
+    const key = `${fact.entityId}|${fact.fact}`;
+    if (seen.has(key)) return;
+    seen.add(key);
+    out.push(fact);
+  };
+
+  for (const s of wiki) {
+    const page = wikiTitle(s.url) || s.title;
+    const entityId = page.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+    const blob = `${s.title} ${s.content}`;
+    const years = extractTitleYears(blob);
+    const count = extractTitleCount(blob);
+
+    if (/\b(worlds?|world championship)\b/.test(q) && years.length && count != null) {
+      push({
+        fact: `${page} has won ${count} League of Legends World Championships (${years.join(", ")})`,
+        entityType: /gen\.?g|t1|hanwha|hle|g2|blg/i.test(page) ? "team" : "player",
+        entityId: entityId || "unknown",
+        factKind: "career",
+      });
+    }
+
+    if (/\blck\b/.test(q) && /\b(titles?|championships?|won)\b/.test(q)) {
+      const lckYears = years;
+      const lckCount = count ?? (lckYears.length || null);
+      if (lckCount != null && (lckYears.length || /\blck\b/i.test(blob))) {
+        const yearBit = lckYears.length ? ` (${lckYears.join(", ")})` : "";
+        push({
+          fact: `${page} has won ${lckCount} LCK titles${yearBit}`,
+          entityType: "team",
+          entityId: entityId || "geng",
+          factKind: "career",
+        });
+      }
+    }
+
+    if (/\bmsi\b/.test(q) || /\bmid-?season invitational\b/.test(q)) {
+      const msi26 = /\b(hanwha life(?: esports)?|hle)\b/i.test(blob) &&
+        /\bmsi\b/i.test(blob) &&
+        /\b2026\b/.test(blob) &&
+        /\b(won|win|champion|winner|title)\b/i.test(blob);
+      if (msi26) {
+        push({
+          fact: "Hanwha Life Esports won the 2026 Mid-Season Invitational (MSI)",
+          entityType: "team",
+          entityId: "hanwha life esports",
+          factKind: "career",
+        });
+      }
+    }
+  }
+
+  return out.slice(0, 4);
 }
