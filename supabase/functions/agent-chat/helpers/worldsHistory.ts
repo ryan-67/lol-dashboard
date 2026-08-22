@@ -46,7 +46,7 @@ export const PLAYER_WORLDS_TITLES: Record<
 };
 
 const WORLDS_HISTORY =
-  /\b(worlds|world championship|worlds championship)\b/i;
+  /\b(worlds|worlds? championships?|world championships?)\b/i;
 
 const WORLDS_LIST_INTENT =
   /\b(list|every team|all teams|each year|since season|from season|season \d|winners?|won worlds|world champions?|finals mvp|fmvp|mvp for each|champion.*mvp)\b/i;
@@ -56,8 +56,8 @@ const PLAYER_TITLE_INTENT =
 
 /** User wants a Worlds winner / Finals MVP historical list (not current-split stats). */
 export function isWorldsHistoryQuestion(message: string): boolean {
-  if (!WORLDS_HISTORY.test(message)) return false;
   if (isPlayerWorldsTitleQuestion(message)) return true;
+  if (!WORLDS_HISTORY.test(message)) return false;
   return WORLDS_LIST_INTENT.test(message) ||
     /\bwho won\b/i.test(message) ||
     /\bwhich team won\b/i.test(message);

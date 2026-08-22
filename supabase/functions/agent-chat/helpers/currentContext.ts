@@ -8,6 +8,8 @@ import {
   type RosterDepthEntry,
   type SliceBundle,
 } from "./oeData.ts";
+import { getTeamProfile } from "./mlArtifacts.ts";
+import { canonicalTeamName } from "./teamIdentity.ts";
 
 const ROLE_ORDER = ["top", "jungle", "mid", "adc", "support"] as const;
 
@@ -63,6 +65,46 @@ export interface PlayerTeamRecord {
   isStarter: boolean;
 }
 
+/** Prefer current ML team-profile starters when OE slices still have leftover rosters. */
+function overlayProfileRosters(roster: RosterDepthEntry[]): RosterDepthEntry[] {
+  const byTeam = new Map<string, RosterDepthEntry[]>();
+  for (const row of roster) {
+    const key = canonicalTeamName(row.team);
+    const arr = byTeam.get(key) ?? [];
+    arr.push({ ...row, team: key });
+    byTeam.set(key, arr);
+  }
+  const out: RosterDepthEntry[] = [];
+  for (const [team, rows] of byTeam) {
+    const profile = getTeamProfile(team);
+    if (!profile?.roster) {
+      out.push(...rows);
+      continue;
+    }
+    const used = new Set<string>();
+    for (const [role, player] of Object.entries(profile.roster)) {
+      if (!player) continue;
+      const existing = rows.find((r) => r.name.toLowerCase() === player.toLowerCase());
+      out.push({
+        name: player,
+        team,
+        league: existing?.league ?? rows[0]?.league ?? "",
+        position: role,
+        games: existing?.games ?? 1,
+        isStarter: true,
+        isSub: false,
+      });
+      used.add(player.toLowerCase());
+    }
+    for (const row of rows) {
+      if (!used.has(row.name.toLowerCase())) {
+        out.push({ ...row, team, isStarter: false, isSub: true });
+      }
+    }
+  }
+  return out;
+}
+
 function rosterLines(roster: RosterDepthEntry[], teamName: string, league: string): string | null {
   const onTeam = roster.filter((p) => p.team === teamName && p.league === league);
   if (!onTeam.length) return null;
@@ -108,7 +150,7 @@ export async function buildCurrentWorldContext(
   const temporal = buildTemporalContext(clientNow);
   const split = await resolveSplit(service, splitHint);
   const bundle = await fetchSliceBundle(service, "All Tier 1", split);
-  const rosterDepth = resolveRosterDepth(bundle);
+  const rosterDepth = overlayProfileRosters(resolveRosterDepth(bundle));
 
   // Build index from rosterDepth (includes subs at >= 1 game) so backups are resolvable.
   const playerTeamIndex: CurrentContextResult["playerTeamIndex"] = {};

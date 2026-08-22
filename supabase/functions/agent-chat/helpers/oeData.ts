@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { canonicalTeamName, teamIdentityKey } from "./teamIdentity.ts";
 
 export const TIER1 = ["LCK", "LPL", "LEC", "LCS"] as const;
 
@@ -313,10 +314,11 @@ function mergePlayers(rows: Array<{ data: Record<string, unknown> }>): MergedPla
       const p = raw as Record<string, unknown>;
       const games = Number(p.games ?? 0);
       if (games <= 0) continue;
-      const key = `${p.name}|${p.team}|${p.league}`;
+      const team = canonicalTeamName(String(p.team ?? ""));
+      const key = `${p.name}|${team}|${p.league}`;
       const existing = (acc.get(key) ?? {
         name: p.name,
-        team: p.team,
+        team,
         league: p.league,
         position: p.position ?? "",
         games: 0,
@@ -403,9 +405,10 @@ function mergeTeams(rows: Array<{ data: Record<string, unknown> }>): MergedTeam[
       const t = raw as Record<string, unknown>;
       const games = Number(t.games ?? 0);
       if (games <= 0) continue;
-      const key = `${t.name}|${t.league}`;
+      const name = canonicalTeamName(String(t.name ?? ""));
+      const key = `${teamIdentityKey(name)}|${t.league}`;
       const existing = (acc.get(key) ?? {
-        name: t.name,
+        name,
         league: t.league,
         games: 0,
         wins: 0,
@@ -509,8 +512,8 @@ function mergeMatchups(rows: Array<{ data: Record<string, unknown> }>): MergedMa
   const acc = new Map<string, MergedMatchup>();
   for (const row of rows) {
     for (const m of (row.data.matchups as Record<string, unknown>[] | undefined) ?? []) {
-      const teamA = String(m.teamA);
-      const teamB = String(m.teamB);
+      const teamA = canonicalTeamName(String(m.teamA));
+      const teamB = canonicalTeamName(String(m.teamB));
       const ordered = [teamA, teamB].sort();
       const key = ordered.join("|");
       const sameOrder = ordered[0] === teamA;
@@ -576,14 +579,15 @@ function mergeRosterDepth(rows: Array<{ data: Record<string, unknown> }>): Roste
       const games = Number(r.games ?? 0);
       if (games < 1) continue;
       const role = normalizeRosterRole(String(r.position ?? ""));
-      const key = `${r.name}|${r.team}|${r.league}|${role}`;
+      const team = canonicalTeamName(String(r.team ?? ""));
+      const key = `${r.name}|${team}|${r.league}|${role}`;
       const existing = acc.get(key);
       if (existing) {
         existing.games += games;
       } else {
         acc.set(key, {
           name: String(r.name),
-          team: String(r.team),
+          team,
           league: String(r.league),
           position: role,
           games,

@@ -3,6 +3,7 @@ import type { UsageTracker } from "./usageTracker.ts";
 import { MODEL_JSON } from "./models.ts";
 import {
   isAllowlisted,
+  isAuthoritativeSingle,
   type TavilyResult,
 } from "./tavilySearch.ts";
 
@@ -107,15 +108,18 @@ export function verifyFact(fact: CandidateFact, snippets: TavilyResult[]): Verif
   );
   const sources = supporting.map((s) => s.url);
 
-  const crossVerified = uniqueDomains.size >= 2;
+  const wikiSupporting = supporting.filter((s) => isAuthoritativeSingle(s.url));
+  const authoritativeSingle = wikiSupporting.length >= 1;
+  const crossVerified = uniqueDomains.size >= 2 || authoritativeSingle;
 
   // Conflict check: competing snippets with same metric noun but different numbers.
+  // Noisy stale pages ("Faker has 4") must not veto a Leaguepedia/Liquipedia match.
   const factNumbers = fact.fact.match(/\d+/g) ?? [];
   const metricNouns = (fact.fact.toLowerCase().match(
     /\b(titles?|championships?|trophy|trophies|worlds?|msi|mvp|splits?)\b/g,
   ) ?? []) as string[];
   let conflict = false;
-  if (factNumbers.length && metricNouns.length) {
+  if (factNumbers.length && metricNouns.length && !authoritativeSingle) {
     for (const s of snippets.filter((x) => isAllowlisted(x.url))) {
       if (snippetSupports(fact.fact, s)) continue;
       const content = s.content.toLowerCase();
@@ -129,8 +133,8 @@ export function verifyFact(fact: CandidateFact, snippets: TavilyResult[]): Verif
     }
   }
 
-  const verified = crossVerified && !conflict;
-  const confidence = crossVerified ? (conflict ? 0 : 0.92) : 0.25;
+  const verified = authoritativeSingle || (crossVerified && !conflict);
+  const confidence = verified ? (authoritativeSingle ? 0.9 : 0.92) : 0.25;
 
   return {
     verified,
