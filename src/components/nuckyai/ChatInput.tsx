@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState, type FormEvent, type KeyboardEvent } from 'react'
 import { useDashboard } from '../../context/DashboardContext'
 import {
   buildEntitySearchIndex,
@@ -6,7 +6,7 @@ import {
   type EntitySearchEntry,
 } from '../../lib/entities/searchIndex'
 import ChampionIcon from '../entities/ChampionIcon'
-import { isComposerSendEnter } from './chatSessionGuards'
+import { composerFormAttrs, isComposerSendEnter } from './chatSessionGuards'
 
 interface ChatInputProps {
   value: string
@@ -28,7 +28,6 @@ export default function ChatInput({
   floating = false,
 }: ChatInputProps) {
   const ref = useRef<HTMLTextAreaElement>(null)
-  const composingRef = useRef(false)
   const sentAtRef = useRef(0)
   const { catalog } = useDashboard()
   const [index, setIndex] = useState<EntitySearchEntry[]>([])
@@ -80,7 +79,7 @@ export default function ChatInput({
   }
 
   const handleSendOrPick = () => {
-    if (disabled || composingRef.current) return
+    if (disabled) return
     if (showTypeahead && results[highlight]) {
       pickEntity(results[highlight])
       return
@@ -88,6 +87,53 @@ export default function ChatInput({
     if (!value.trim()) return
     sentAtRef.current = Date.now()
     onSend()
+    requestAnimationFrame(() => ref.current?.focus())
+  }
+
+  const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault()
+    e.stopPropagation()
+    handleSendOrPick()
+  }
+
+  const handleComposerKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
+    if (showTypeahead && results.length) {
+      if (e.key === 'ArrowDown') {
+        e.preventDefault()
+        setHighlight((h) => Math.min(h + 1, results.length - 1))
+        return
+      }
+      if (e.key === 'ArrowUp') {
+        e.preventDefault()
+        setHighlight((h) => Math.max(h - 1, 0))
+        return
+      }
+      if (e.key === 'Escape') {
+        setShowTypeahead(false)
+        return
+      }
+    }
+    const composing = e.nativeEvent.isComposing || e.keyCode === 229
+    if (
+      !isComposerSendEnter({
+        key: e.key,
+        shiftKey: e.shiftKey,
+        repeat: e.repeat,
+        isComposing: composing,
+        keyCode: e.keyCode,
+      })
+    ) {
+      return
+    }
+    e.preventDefault()
+    e.stopPropagation()
+    handleSendOrPick()
+  }
+
+  const handleComposerKeyUp = (e: KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key !== 'Enter' && e.key !== 'NumpadEnter') return
+    e.preventDefault()
+    e.stopPropagation()
   }
 
   const handleChange = (next: string) => {
@@ -96,8 +142,15 @@ export default function ChatInput({
     onChange(next)
   }
 
+  const formAttrs = composerFormAttrs()
+
   return (
-    <div className={`chat-input-wrap${floating ? ' chat-input-floating' : ''}`}>
+    <form
+      className={`chat-input-wrap${floating ? ' chat-input-floating' : ''}`}
+      method={formAttrs.method}
+      target={formAttrs.target}
+      onSubmit={handleSubmit}
+    >
       {disabled && onStop ? (
         <div className="chat-input-stop-row">
           <button
@@ -137,65 +190,27 @@ export default function ChatInput({
           value={value}
           onChange={(e) => handleChange(e.target.value)}
           placeholder="ask nucky…"
-          disabled={disabled}
+          readOnly={disabled}
           rows={1}
           aria-label="Message nucky"
-          onCompositionStart={() => {
-            composingRef.current = true
-          }}
-          onCompositionEnd={() => {
-            window.setTimeout(() => {
-              composingRef.current = false
-            }, 0)
-          }}
-          onKeyDown={(e) => {
-            if (showTypeahead && results.length) {
-              if (e.key === 'ArrowDown') {
-                e.preventDefault()
-                setHighlight((h) => Math.min(h + 1, results.length - 1))
-                return
-              }
-              if (e.key === 'ArrowUp') {
-                e.preventDefault()
-                setHighlight((h) => Math.max(h - 1, 0))
-                return
-              }
-              if (e.key === 'Escape') {
-                setShowTypeahead(false)
-                return
-              }
-            }
-            const composing = composingRef.current || e.nativeEvent.isComposing
-            if (
-              !isComposerSendEnter({
-                key: e.key,
-                shiftKey: e.shiftKey,
-                repeat: e.repeat,
-                isComposing: composing,
-                keyCode: e.keyCode,
-              })
-            ) {
-              return
-            }
-            e.preventDefault()
-            handleSendOrPick()
-          }}
+          aria-disabled={disabled || undefined}
+          onKeyDown={handleComposerKeyDown}
+          onKeyUp={handleComposerKeyUp}
         />
         <div className="chat-input-toolbar">
           <span className="chat-input-hint" aria-hidden="true">
             enter to send
           </span>
           <button
-            type="button"
+            type="submit"
             className="chat-input-send"
             disabled={disabled || !value.trim()}
-            onClick={handleSendOrPick}
             aria-label="Send message"
           >
             ↑
           </button>
         </div>
       </div>
-    </div>
+    </form>
   )
 }

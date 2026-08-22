@@ -1,7 +1,8 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, type KeyboardEvent, type MouseEvent } from 'react'
 import {
   conversationHref,
   shouldHandleConversationClick,
+  shouldOpenConversationInNewBrowsingContext,
   shouldShowConversationListSkeleton,
 } from './chatSessionGuards'
 import type { ConversationRow } from './types'
@@ -86,6 +87,23 @@ export default function ChatSidebar({
     setRenameValue('')
   }
 
+  const handleConversationClick = (e: MouseEvent<HTMLAnchorElement>, conversationId: string) => {
+    if (shouldOpenConversationInNewBrowsingContext(e)) return
+    if (!shouldHandleConversationClick(e)) return
+    e.preventDefault()
+    onSelect(conversationId)
+    onCloseMobile()
+  }
+
+  const handleConversationKeyDown = (e: KeyboardEvent<HTMLAnchorElement>, conversationId: string) => {
+    if (e.key !== 'Enter' && e.key !== ' ') return
+    if (shouldOpenConversationInNewBrowsingContext(e)) return
+    e.preventDefault()
+    e.stopPropagation()
+    onSelect(conversationId)
+    onCloseMobile()
+  }
+
   const panel = (
     <aside className="w-[280px] border-r border-[var(--border-subtle)] bg-[var(--bg-surface)] flex flex-col h-full relative">
       <div className="p-3 border-b border-[var(--border-subtle)]">
@@ -128,12 +146,9 @@ export default function ChatSidebar({
               >
                 <a
                   href={conversationHref(conversation.id)}
-                  onClick={(e) => {
-                    if (!shouldHandleConversationClick(e)) return
-                    e.preventDefault()
-                    onSelect(conversation.id)
-                    onCloseMobile()
-                  }}
+                  target="_self"
+                  onClick={(e) => handleConversationClick(e, conversation.id)}
+                  onKeyDown={(e) => handleConversationKeyDown(e, conversation.id)}
                   className="flex-1 min-w-0 text-left px-3 py-2"
                 >
                   <div className="text-sm text-[var(--text-primary)] truncate">

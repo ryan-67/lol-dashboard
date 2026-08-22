@@ -7,12 +7,15 @@ import {
   applyStreamError,
   canAcceptChatSubmit,
   classifyChatError,
+  composerEnterOpensNewBrowsingContext,
+  composerFormAttrs,
   conversationHref,
   interpretAgentSseData,
   isAuxiliaryBlankHref,
   isComposerSendEnter,
   shouldFlipSubscriptionReadyOff,
   shouldHandleConversationClick,
+  shouldOpenConversationInNewBrowsingContext,
   shouldReloadConversationMessages,
   shouldShowConversationListSkeleton,
 } from './chatSessionGuards.ts'
@@ -84,11 +87,53 @@ describe('nuckyAI session guards', () => {
 
   it('ignores IME confirmation, key-repeat, and shift-enter', () => {
     assert.equal(isComposerSendEnter({ key: 'Enter', shiftKey: false }), true)
+    assert.equal(isComposerSendEnter({ key: 'NumpadEnter', shiftKey: false }), true)
     assert.equal(isComposerSendEnter({ key: 'Enter', shiftKey: true }), false)
     assert.equal(isComposerSendEnter({ key: 'Enter', shiftKey: false, repeat: true }), false)
     assert.equal(isComposerSendEnter({ key: 'Enter', shiftKey: false, isComposing: true }), false)
     assert.equal(isComposerSendEnter({ key: 'Enter', shiftKey: false, keyCode: 229 }), false)
     assert.equal(isComposerSendEnter({ key: 'a', shiftKey: false }), false)
+  })
+
+  it('Enter does not open a new browsing context', () => {
+    const form = composerFormAttrs()
+    assert.equal(form.method, 'dialog')
+    assert.equal(form.target, '_self')
+    assert.equal(form.action, undefined)
+    assert.equal(
+      composerEnterOpensNewBrowsingContext({
+        key: 'Enter',
+        shiftKey: false,
+        formMethod: form.method,
+        formTarget: form.target,
+        formAction: form.action,
+      }),
+      false,
+    )
+    assert.equal(
+      composerEnterOpensNewBrowsingContext({ key: 'Enter', shiftKey: false, metaKey: true }),
+      false,
+    )
+    assert.equal(
+      composerEnterOpensNewBrowsingContext({
+        key: 'Enter',
+        shiftKey: false,
+        formMethod: 'get',
+        formAction: '/chat',
+        formTarget: '_blank',
+      }),
+      true,
+    )
+    assert.equal(
+      composerEnterOpensNewBrowsingContext({ key: 'Enter', shiftKey: false, windowOpen: true }),
+      true,
+    )
+    assert.equal(shouldOpenConversationInNewBrowsingContext({ key: 'Enter', button: 0 }), false)
+    assert.equal(shouldOpenConversationInNewBrowsingContext({ button: 0 }), false)
+    assert.equal(shouldOpenConversationInNewBrowsingContext({ button: 0, metaKey: true }), true)
+    assert.equal(shouldOpenConversationInNewBrowsingContext({ button: 0, ctrlKey: true }), true)
+    assert.equal(shouldOpenConversationInNewBrowsingContext({ button: 1 }), true)
+    assert.equal(shouldHandleConversationClick({ key: 'Enter', button: 0 }), true)
   })
 
   it('pairs streamed chunks to the request that produced them', () => {
