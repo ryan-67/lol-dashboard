@@ -77,10 +77,12 @@ export default function ChatInput({
   }
 
   const handleSendOrPick = () => {
+    if (disabled) return
     if (showTypeahead && results[highlight]) {
       pickEntity(results[highlight])
       return
     }
+    if (!value.trim()) return
     onSend()
   }
 

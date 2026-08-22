@@ -1,8 +1,9 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useGSAP } from '@gsap/react'
 import gsap from 'gsap'
 import MessageList from './MessageList'
 import ChatInput from './ChatInput'
+import { canAcceptChatSubmit } from './chatSessionGuards'
 import type { MessageRow } from './types'
 
 const PROMPTS = [
@@ -22,7 +23,7 @@ function greetingForNow(name?: string): string {
 interface ChatWindowProps {
   messages: MessageRow[]
   streaming: boolean
-  onSend: (message: string) => void
+  onSend: (message: string) => boolean | void
   onRegenerate: () => void
   onRetry: () => void
   onStop: () => void
@@ -42,7 +43,14 @@ export default function ChatWindow({
 }: ChatWindowProps) {
   const emptyRef = useRef<HTMLDivElement>(null)
   const [draft, setDraft] = useState('')
+  const draftRef = useRef(draft)
+  const sendLockRef = useRef(false)
   const showConversation = messages.length > 0 || streaming
+  draftRef.current = draft
+
+  useEffect(() => {
+    if (!streaming) sendLockRef.current = false
+  }, [streaming])
 
   useGSAP(
     () => {
@@ -67,10 +75,30 @@ export default function ChatWindow({
     { dependencies: [showConversation], scope: emptyRef },
   )
 
-  const send = () => {
-    if (!draft.trim()) return
-    onSend(draft.trim())
+  const handleSubmitText = (text: string) => {
+    const trimmed = text.trim()
+    if (
+      !canAcceptChatSubmit({
+        text: trimmed,
+        sendLocked: sendLockRef.current,
+        streaming,
+      })
+    ) {
+      return
+    }
+    sendLockRef.current = true
+    draftRef.current = ''
     setDraft('')
+    const accepted = onSend(trimmed)
+    if (accepted === false) {
+      sendLockRef.current = false
+      draftRef.current = trimmed
+      setDraft(trimmed)
+    }
+  }
+
+  const handleSend = () => {
+    handleSubmitText(draftRef.current)
   }
 
   return (
@@ -95,7 +123,7 @@ export default function ChatWindow({
             <ChatInput
               value={draft}
               onChange={setDraft}
-              onSend={send}
+              onSend={handleSend}
               disabled={streaming}
               onStop={onStop}
               focusTrigger={inputFocusTrigger}
@@ -109,7 +137,7 @@ export default function ChatWindow({
                 type="button"
                 className="chat-empty-prompt"
                 role="listitem"
-                onClick={() => onSend(prompt)}
+                onClick={() => handleSubmitText(prompt)}
               >
                 <span className="chat-empty-prompt-slash" aria-hidden="true">
                   /
@@ -128,7 +156,7 @@ export default function ChatWindow({
         <ChatInput
           value={draft}
           onChange={setDraft}
-          onSend={send}
+          onSend={handleSend}
           disabled={streaming}
           onStop={onStop}
           focusTrigger={inputFocusTrigger}

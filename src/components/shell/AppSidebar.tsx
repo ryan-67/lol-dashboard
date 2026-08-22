@@ -19,6 +19,7 @@ import EntitySearch from './EntitySearch'
 import ProfileMenu from './ProfileMenu'
 import SignalLoader from '../ui/SignalLoader'
 import { pathForView } from '../../lib/viewPreference'
+import { shouldShowConversationListSkeleton } from '../nuckyai/chatSessionGuards'
 import type { ConversationRow } from '../nuckyai/types'
 
 type ShellMode = 'duo' | 'chat' | 'dashboard'
@@ -381,7 +382,7 @@ export default function AppSidebar() {
         >
           <p className="app-sidebar-section-label">conversations</p>
           {shareToast ? <p className="app-sidebar-convo-toast">{shareToast}</p> : null}
-          {chat.conversationsLoading ? (
+          {shouldShowConversationListSkeleton(chat.conversationsLoading, chat.conversations.length) ? (
             <SignalLoader compact label="loading chats…" />
           ) : chat.conversations.length === 0 ? (
             <div className="app-sidebar-convo-empty" role="status">
