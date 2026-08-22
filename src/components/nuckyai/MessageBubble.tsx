@@ -117,9 +117,11 @@ function renderText(content: string, opts: { isAssistant?: boolean } = {}) {
   // ("hey nucky analyze…" must stay intact in the bubble).
   let cleaned = content.replace(/\[MATCH_STATS\][\s\S]*?(?=\[[A-Z_]+\]|```|$)/gi, '')
   if (opts.isAssistant) {
-    cleaned = cleaned
-      .replace(/^\s*hey\s+nucky[.!]?\s*/i, '')
-      .replace(/^\s*hi\s+nucky[.!]?\s*/i, '')
+    const stripped = cleaned
+      .replace(/^\s*hey\s+nucky[.!]?\s+/i, '')
+      .replace(/^\s*hi\s+nucky[.!]?\s+/i, '')
+    // Never strip a greeting-only reply down to an empty NUCKY bubble.
+    if (stripped.trim()) cleaned = stripped
   }
   cleaned = cleaned.trim()
   const lines = cleaned.split('\n')

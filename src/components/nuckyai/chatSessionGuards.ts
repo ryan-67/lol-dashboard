@@ -42,6 +42,10 @@ export function shouldReloadConversationMessages(args: {
   return true
 }
 
+function isEnterKey(key: string | undefined): boolean {
+  return key === 'Enter' || key === 'NumpadEnter'
+}
+
 export function isComposerSendEnter(event: {
   key: string
   shiftKey: boolean
@@ -49,12 +53,83 @@ export function isComposerSendEnter(event: {
   isComposing?: boolean
   keyCode?: number
 }): boolean {
-  if (event.key !== 'Enter' || event.shiftKey) return false
+  if (!isEnterKey(event.key) || event.shiftKey) return false
   if (event.repeat) return false
   if (event.isComposing) return false
   // IME confirmation on many browsers (Windows/Chrome, Korean/JP/CN).
   if (event.keyCode === 229) return false
   return true
+}
+
+/**
+ * Composer Enter must stay in this document.
+ * A GET form, target=_blank, or window.open is the new-tab / fork class.
+ */
+export function composerEnterOpensNewBrowsingContext(event: {
+  key: string
+  shiftKey: boolean
+  repeat?: boolean
+  isComposing?: boolean
+  keyCode?: number
+  metaKey?: boolean
+  ctrlKey?: boolean
+  formMethod?: string | null
+  formTarget?: string | null
+  formAction?: string | null
+  linkTarget?: string | null
+  windowOpen?: boolean
+}): boolean {
+  if (!isComposerSendEnter(event)) return false
+  if (event.windowOpen) return true
+  const formTarget = (event.formTarget ?? '').trim().toLowerCase()
+  const linkTarget = (event.linkTarget ?? '').trim().toLowerCase()
+  if (formTarget === '_blank' || formTarget === '_new') return true
+  if (linkTarget === '_blank' || linkTarget === '_new') return true
+  if (composerSubmitTarget({
+    method: event.formMethod,
+    target: event.formTarget,
+    action: event.formAction,
+  }) !== 'stay') {
+    return true
+  }
+  return false
+}
+
+/**
+ * A composer <form> is unsafe: method=dialog blanks this tab (about:blank),
+ * GET /chat or target=_blank forks a second document.
+ */
+export function composerSubmitTarget(attrs: {
+  method?: string | null
+  target?: string | null
+  action?: string | null
+}): 'stay' | 'new-tab' | 'about:blank' {
+  const method = (attrs.method ?? '').trim().toLowerCase()
+  const target = (attrs.target ?? '').trim().toLowerCase()
+  if (target === '_blank' || target === '_new') return 'new-tab'
+  if (method === 'dialog') return 'about:blank'
+  if (attrs.action != null && isAuxiliaryBlankHref(attrs.action)) return 'about:blank'
+  if (method === 'get' && (attrs.action ?? '').trim()) return 'new-tab'
+  return 'stay'
+}
+
+export function composerUsesDocumentForm(): boolean {
+  return false
+}
+
+/** New tab only for cmd/ctrl/middle mouse. Keyboard Enter never opens a second /chat. */
+export function shouldOpenConversationInNewBrowsingContext(event: {
+  key?: string
+  button?: number
+  metaKey?: boolean
+  ctrlKey?: boolean
+  shiftKey?: boolean
+  altKey?: boolean
+}): boolean {
+  if (isEnterKey(event.key)) return false
+  if ((event.button ?? 0) === 1) return true
+  if ((event.button ?? 0) === 0 && (event.metaKey || event.ctrlKey)) return true
+  return false
 }
 
 export function createChatRequestId(): string {
@@ -74,14 +149,17 @@ export function isAuxiliaryBlankHref(href: string | null | undefined): boolean {
   return trimmed === '' || trimmed === 'about:blank' || trimmed.startsWith('about:blank')
 }
 
-/** Primary unmodified click stays in this ChatSession; modified clicks use the real /chat href. */
+/** Primary unmodified click or Enter stays in this ChatSession; cmd/ctrl/middle use the real /chat href. */
 export function shouldHandleConversationClick(event: {
+  key?: string
   button?: number
   metaKey?: boolean
   ctrlKey?: boolean
   shiftKey?: boolean
   altKey?: boolean
 }): boolean {
+  if (isEnterKey(event.key)) return !shouldOpenConversationInNewBrowsingContext(event)
+  if (shouldOpenConversationInNewBrowsingContext(event)) return false
   if ((event.button ?? 0) !== 0) return false
   if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return false
   return true
@@ -244,7 +322,7 @@ export function applyStreamChunk(
   requestId: string,
   chunk: string,
 ): MessageRow[] {
-  if (!chunk || !requestId) return messages
+  if (!chunk.trim() || !requestId) return messages
   const { next, found } = mapAssistantByRequest(messages, requestId, (message) => ({
     ...message,
     thinking: false,
@@ -282,24 +360,47 @@ export function applyStreamError(
   ]
 }
 
+const EMPTY_STREAM_MESSAGE = "couldn't get a response — try again."
+
+export function assistantHasVisibleText(message: Pick<MessageRow, 'content' | 'thinking' | 'kind'>): boolean {
+  if (message.thinking) return true
+  return Boolean(message.content?.trim())
+}
+
 export function applyStreamDone(
   messages: MessageRow[],
   requestId: string,
   receivedChunk: boolean,
 ): MessageRow[] {
-  if (receivedChunk) return messages
   const { next, found } = mapAssistantByRequest(messages, requestId, (message) => {
-    if (!message.thinking) return message
+    if (receivedChunk && assistantHasVisibleText(message) && !message.thinking) {
+      return message
+    }
     return {
       ...message,
       thinking: false,
       kind: 'error',
       errorKind: 'unknown' as ChatErrorKind,
       retryable: true,
-      content: "couldn't get a response — try again.",
+      content: EMPTY_STREAM_MESSAGE,
     }
   })
   return found ? next : messages
+}
+
+/** DB rows with an empty assistant body become a retryable error, not a blank NUCKY bubble. */
+export function hydrateLoadedMessages(rows: MessageRow[]): MessageRow[] {
+  return rows.map((message) => {
+    if (message.role !== 'assistant' || assistantHasVisibleText(message)) return message
+    return {
+      ...message,
+      thinking: false,
+      kind: 'error',
+      errorKind: 'unknown' as ChatErrorKind,
+      retryable: true,
+      content: EMPTY_STREAM_MESSAGE,
+    }
+  })
 }
 
 export function messageListKey(message: MessageRow, idx: number): string {

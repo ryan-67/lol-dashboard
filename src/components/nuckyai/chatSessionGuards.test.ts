@@ -7,12 +7,17 @@ import {
   applyStreamError,
   canAcceptChatSubmit,
   classifyChatError,
+  composerEnterOpensNewBrowsingContext,
+  composerSubmitTarget,
+  composerUsesDocumentForm,
   conversationHref,
+  hydrateLoadedMessages,
   interpretAgentSseData,
   isAuxiliaryBlankHref,
   isComposerSendEnter,
   shouldFlipSubscriptionReadyOff,
   shouldHandleConversationClick,
+  shouldOpenConversationInNewBrowsingContext,
   shouldReloadConversationMessages,
   shouldShowConversationListSkeleton,
 } from './chatSessionGuards.ts'
@@ -84,11 +89,61 @@ describe('nuckyAI session guards', () => {
 
   it('ignores IME confirmation, key-repeat, and shift-enter', () => {
     assert.equal(isComposerSendEnter({ key: 'Enter', shiftKey: false }), true)
+    assert.equal(isComposerSendEnter({ key: 'NumpadEnter', shiftKey: false }), true)
     assert.equal(isComposerSendEnter({ key: 'Enter', shiftKey: true }), false)
     assert.equal(isComposerSendEnter({ key: 'Enter', shiftKey: false, repeat: true }), false)
     assert.equal(isComposerSendEnter({ key: 'Enter', shiftKey: false, isComposing: true }), false)
     assert.equal(isComposerSendEnter({ key: 'Enter', shiftKey: false, keyCode: 229 }), false)
     assert.equal(isComposerSendEnter({ key: 'a', shiftKey: false }), false)
+  })
+
+  it('Enter does not open a new browsing context', () => {
+    assert.equal(composerUsesDocumentForm(), false)
+    assert.equal(composerSubmitTarget({}), 'stay')
+    assert.equal(
+      composerEnterOpensNewBrowsingContext({ key: 'Enter', shiftKey: false }),
+      false,
+    )
+    assert.equal(
+      composerEnterOpensNewBrowsingContext({ key: 'Enter', shiftKey: false, metaKey: true }),
+      false,
+    )
+    assert.equal(
+      composerEnterOpensNewBrowsingContext({
+        key: 'Enter',
+        shiftKey: false,
+        formMethod: 'get',
+        formAction: '/chat',
+        formTarget: '_blank',
+      }),
+      true,
+    )
+    assert.equal(
+      composerEnterOpensNewBrowsingContext({ key: 'Enter', shiftKey: false, windowOpen: true }),
+      true,
+    )
+    assert.equal(shouldOpenConversationInNewBrowsingContext({ key: 'Enter', button: 0 }), false)
+    assert.equal(shouldOpenConversationInNewBrowsingContext({ button: 0 }), false)
+    assert.equal(shouldOpenConversationInNewBrowsingContext({ button: 0, metaKey: true }), true)
+    assert.equal(shouldOpenConversationInNewBrowsingContext({ button: 0, ctrlKey: true }), true)
+    assert.equal(shouldOpenConversationInNewBrowsingContext({ button: 1 }), true)
+    assert.equal(shouldHandleConversationClick({ key: 'Enter', button: 0 }), true)
+  })
+
+  it('does not navigate this tab to about:blank', () => {
+    assert.equal(composerSubmitTarget({ method: 'dialog' }), 'about:blank')
+    assert.equal(composerSubmitTarget({ action: '' }), 'about:blank')
+    assert.equal(composerSubmitTarget({ action: 'about:blank' }), 'about:blank')
+    assert.equal(
+      composerEnterOpensNewBrowsingContext({
+        key: 'Enter',
+        shiftKey: false,
+        formMethod: 'dialog',
+      }),
+      true,
+    )
+    assert.equal(isAuxiliaryBlankHref('about:blank'), true)
+    assert.equal(isAuxiliaryBlankHref('/chat?conversation_id=8b38946c'), false)
   })
 
   it('pairs streamed chunks to the request that produced them', () => {
@@ -195,6 +250,29 @@ describe('nuckyAI session guards', () => {
     assert.equal(assistant?.thinking, false)
     assert.equal(assistant?.kind, 'error')
     assert.equal(assistant?.retryable, true)
+  })
+
+  it('does not render an empty NUCKY bubble when the stream has no text', () => {
+    let messages = appendPendingTurn([], {
+      requestId: 'req-blank',
+      text: 'hey',
+      thinking: 'looking…',
+      createdAt: 't1',
+    })
+    messages = applyStreamChunk(messages, 'req-blank', '   ')
+    messages = applyStreamDone(messages, 'req-blank', true)
+    const assistant = messages.find((m) => m.requestId === 'req-blank' && m.role === 'assistant')
+    assert.equal(assistant?.thinking, false)
+    assert.equal(assistant?.kind, 'error')
+    assert.equal(assistant?.retryable, true)
+    assert.match(assistant?.content ?? '', /try again/i)
+
+    const hydrated = hydrateLoadedMessages([
+      { role: 'user', content: 'hey', created_at: 't1' },
+      { role: 'assistant', content: '', created_at: 't2' },
+    ])
+    assert.equal(hydrated[1]?.kind, 'error')
+    assert.match(hydrated[1]?.content ?? '', /try again/i)
   })
 
   it('keeps conversation links on /chat instead of about:blank', () => {
