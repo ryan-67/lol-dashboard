@@ -119,11 +119,15 @@ export function weekWindow(nowIso: string): WeekWindow {
   };
 }
 
-export function isWeeklyLeagueRecapQuestion(message: string): boolean {
-  const weekly = /\b(this week|past week|last week|this weekend|the week|week \d+)\b/i.test(
+/** "this week" / "week 13" — even when the same ask also names a dated pair. */
+export function hasWeeklyWindowAsk(message: string): boolean {
+  return /\b(this week|past week|last week|this weekend|the week|week \d+)\b/i.test(
     message,
   );
-  if (!weekly) return false;
+}
+
+export function isWeeklyLeagueRecapQuestion(message: string): boolean {
+  if (!hasWeeklyWindowAsk(message)) return false;
   const datedMatchup = isDatedMatchupRecap(message);
   if (datedMatchup) return false;
   return (
@@ -182,18 +186,12 @@ export function wantsWarehouseSchedule(message: string): boolean {
     .test(message);
 }
 
-export function parseAskedDate(message: string, clientNow?: string): string | null {
+/** Named calendar date only — not "today" / "yesterday" (those can timezone-skew). */
+export function parseAskedCalendarDate(message: string, clientNow?: string): string | null {
   const iso = message.match(/\b(20\d{2})-(\d{2})-(\d{2})\b/);
   if (iso) return `${iso[1]}-${iso[2]}-${iso[3]}`;
 
   const now = clientNow ? new Date(clientNow) : new Date();
-  if (/\btoday\b/i.test(message)) return now.toISOString().slice(0, 10);
-  if (/\byesterday\b/i.test(message)) {
-    const y = new Date(now);
-    y.setUTCDate(y.getUTCDate() - 1);
-    return y.toISOString().slice(0, 10);
-  }
-
   const named = message.match(
     /\b(jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|jun(?:e)?|jul(?:y)?|aug(?:ust)?|sep(?:t(?:ember)?)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)\s+(\d{1,2})(?:st|nd|rd|th)?(?:,?\s*(20\d{2}))?\b/i,
   );
@@ -206,6 +204,20 @@ export function parseAskedDate(message: string, clientNow?: string): string | nu
 
   const us = message.match(/\b(\d{1,2})\/(\d{1,2})\/(20\d{2})\b/);
   if (us) return `${us[3]}-${pad2(Number(us[1]))}-${pad2(Number(us[2]))}`;
+  return null;
+}
+
+export function parseAskedDate(message: string, clientNow?: string): string | null {
+  const calendar = parseAskedCalendarDate(message, clientNow);
+  if (calendar) return calendar;
+
+  const now = clientNow ? new Date(clientNow) : new Date();
+  if (/\btoday\b/i.test(message)) return now.toISOString().slice(0, 10);
+  if (/\byesterday\b/i.test(message)) {
+    const y = new Date(now);
+    y.setUTCDate(y.getUTCDate() - 1);
+    return y.toISOString().slice(0, 10);
+  }
   return null;
 }
 
@@ -318,6 +330,7 @@ export function pickWarehouseSeries(
   clientNow?: string,
 ): SeriesScoreline | null {
   const asked = parseAskedDate(message, clientNow);
+  const askedCalendar = parseAskedCalendarDate(message, clientNow);
   const pair = filterWarehouseDisplayRows(rows)
     .map(toScoreline)
     .filter((l): l is SeriesScoreline => {
@@ -332,6 +345,10 @@ export function pickWarehouseSeries(
     const dated = pair.filter((l) => l.date === asked);
     const completed = dated.find((l) => l.status === "completed") ?? dated[0];
     if (completed) return completed;
+    // Named calendar date is load-bearing. Do not fall through to another day
+    // (that is how HLE–FearX "Aug 19" was invented from a different meeting).
+    // "today" / "yesterday" may timezone-skew — allow latest completed.
+    if (askedCalendar) return null;
   }
 
   const completed = pair
@@ -557,6 +574,14 @@ export function weekContainsPair(
   });
 }
 
+/** Week-only / truncated fetches look like leftover OE form (T1 3-3). */
+export const MIN_SEASON_SERIES_FOR_WL = 10;
+
+export function seasonRecordIsComplete(record: TeamSeasonRecord | undefined | null): boolean {
+  if (!record) return false;
+  return record.seriesWins + record.seriesLosses >= MIN_SEASON_SERIES_FOR_WL;
+}
+
 export function overlayWarehouseSeasonRecords(
   recap: Record<string, unknown>,
   records: TeamSeasonRecord[],
@@ -570,9 +595,12 @@ export function overlayWarehouseSeasonRecords(
   const leftoverKeys = new Set(
     leftoverOe.map((r) => `${canonicalTeamName(r.team)}|${r.seriesWins}-${r.seriesLosses}`),
   );
+  const leftoverForm = new Set(["3-3", "1-6"]);
   const seasonRecords = [a, b].filter((r): r is TeamSeasonRecord => Boolean(r)).map((r) => {
     const series = `${r.seriesWins}-${r.seriesLosses}`;
-    const leftoverHit = leftoverKeys.has(`${canonicalTeamName(r.team)}|${series}`);
+    const leftoverHit = leftoverKeys.has(`${canonicalTeamName(r.team)}|${series}`) ||
+      leftoverForm.has(series) ||
+      !seasonRecordIsComplete(r);
     return {
       team: r.team,
       series,
@@ -585,9 +613,21 @@ export function overlayWarehouseSeasonRecords(
     ...recap,
     seasonRecords,
     note:
-      `${String(recap.note ?? "")} Cite seasonRecords series W/L from the 2026 warehouse ` +
-      `(T1 ~17-8, KT ~15-11). Do NOT attach leftover OE form 3-3 / 1-6.`,
+      `${String(recap.note ?? "")} Cite seasonRecords series W/L from the warehouse season ` +
+      `rows when present. Do NOT attach leftover OE form 3-3 / 1-6 or a compare/H2H snippet as season W/L.`,
   };
+}
+
+/** LCK roster tokens — dated recaps without the word LCK still need the LCK season table. */
+const LCK_TEAM_HINT =
+  /\b(t1|gen\.?g|geng|hanwha|\bhle\b|kt|fearx|\bbfx\b|brion|\bbro\b|dplus|\bdk\b|drx|nongshim|\bns\b|freecs|\bdns\b)\b/i;
+
+export function inferLeagueFromMessage(message: string, fallback?: string): string | undefined {
+  const named = message.match(/\b(LCK|LPL|LEC|LCS)\b/i)?.[1]?.toUpperCase();
+  if (named) return named;
+  if (LCK_TEAM_HINT.test(message)) return "LCK";
+  if (fallback && fallback !== "All Tier 1") return fallback;
+  return undefined;
 }
 
 export function hasSeriesEvidence(matchStats: unknown): boolean {

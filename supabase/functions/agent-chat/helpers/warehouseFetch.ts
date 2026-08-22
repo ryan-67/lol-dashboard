@@ -4,6 +4,19 @@ import type { WarehouseSeriesRow } from "./warehouseFacts.ts";
 const SELECT =
   "league, tournament_name, block_name, team_a, team_b, scheduled_at, status, team_a_score, team_b_score, winner_team, best_of";
 
+/** Full domestic season — newest-480 all-league rows drop early LCK and yield leftover 3-3. */
+export function seasonWarehouseOpts(
+  league: string | undefined,
+  year: number,
+): { league?: string; sinceIso: string; untilIso: string; limit: number } {
+  return {
+    league: league && league !== "All Tier 1" ? league : undefined,
+    sinceIso: `${year}-01-01T00:00:00.000Z`,
+    untilIso: `${year}-12-31T23:59:59.999Z`,
+    limit: 800,
+  };
+}
+
 export async function fetchWarehouseRows(
   service: SupabaseClient,
   opts: { league?: string; sinceIso?: string; untilIso?: string; limit?: number } = {},

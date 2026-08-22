@@ -202,8 +202,12 @@ export function extractCareerFactsFromWiki(
       });
     }
 
-    if (/\blck\b/.test(q) && /\b(titles?|championships?|won)\b/.test(q)) {
-      const pageIsGeng = isGengEntity(entityId) || isGengEntity(page) ||
+    const gengTitleAsk =
+      (isGengEntity(entityId) || isGengEntity(page) || /gen\.?g|\bgeng\b|\bgen\b/i.test(`${page} ${s.title} ${q}`)) &&
+      /\b(titles?|championships?|won|how many|title years?)\b/.test(q) &&
+      !(/\b(worlds?|msi|mid-?season)\b/.test(q) && !/\blck\b/.test(q));
+    if (gengTitleAsk || (/\blck\b/.test(q) && /\b(titles?|championships?|won)\b/.test(q))) {
+      const pageIsGeng = gengTitleAsk || isGengEntity(entityId) || isGengEntity(page) ||
         /gen\.?g/i.test(`${page} ${s.title} ${q}`);
       if (pageIsGeng) {
         // Leaguepedia modern Gen.G only. Predecessor 2017–2020 / Cup 2026

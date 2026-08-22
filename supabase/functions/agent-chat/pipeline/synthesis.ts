@@ -26,6 +26,8 @@ import { writeBackVerifiedFacts, writeBackCitoFacts } from "../helpers/ragWriteb
 import { isSentimentDomain, rankSnippets } from "../helpers/tavilySearch.ts";
 import { shouldRefuseForeignEntity, foreignEntityRefusal } from "../helpers/entityGuard.ts";
 import { sanitizeAssistantText } from "../helpers/responseSanitize.ts";
+import { toolsFromMatchStats, tryDeterministicAnswer } from "../helpers/deterministicAnswers.ts";
+import { isGengLineageLeak } from "../helpers/teamTitles.ts";
 import type { Evidence, HistoryMessage, SynthesisResult } from "./types.ts";
 import type { UsageTracker } from "../helpers/usageTracker.ts";
 
@@ -64,7 +66,8 @@ async function crossVerify(
   ];
   const verified = candidates
     .map((c) => verifyFact(c, rankedSnippets))
-    .filter((v) => v.verified);
+    .filter((v) => v.verified)
+    .filter((v) => !isGengLineageLeak(v.fact));
   if (!verified.length) return { block: "", verified: [] };
 
   const lines = verified.map((v) => {
@@ -98,6 +101,13 @@ export async function synthesize(deps: SynthesisDeps): Promise<SynthesisResult> 
     const refusal = foreignEntityRefusal(foreignHit);
     await streamFallback(writer, refusal);
     return { assistantText: chartPrefix + refusal };
+  }
+
+  const locked = tryDeterministicAnswer(message, toolsFromMatchStats(evidence.matchStats));
+  if (locked) {
+    const text = sanitizeAssistantText(`${chartPrefix}${locked}`, { message });
+    await streamFallback(writer, text);
+    return { assistantText: text };
   }
 
   const { block: webVerifiedBlock, verified } = await crossVerify(openrouterApiKey, evidence, usageTracker);
@@ -171,8 +181,9 @@ export async function synthesize(deps: SynthesisDeps): Promise<SynthesisResult> 
   // Strip model-re-emitted chart fences from the streamed answer only; keep chartPrefix.
   const cleanedAnswer = sanitizeAssistantText(answer, {
     stripCharts: Boolean(chartPrefix.trim()),
+    message,
   });
-  let assistantText = sanitizeAssistantText(`${chartPrefix}${cleanedAnswer}`);
+  let assistantText = sanitizeAssistantText(`${chartPrefix}${cleanedAnswer}`, { message });
   if (!assistantText.trim()) {
     assistantText =
       "I couldn't determine an accurate answer for that — try narrowing the league, split, or rephrasing.";

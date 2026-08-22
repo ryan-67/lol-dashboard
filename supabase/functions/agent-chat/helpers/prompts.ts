@@ -310,16 +310,34 @@ Your streamed reply is shown directly to the user. NEVER echo, quote, or restate
     );
   }
 
-  if (/"tool":"weekly_warehouse_recap"/.test(statsStrForCareer)) {
+  if (/"tool":"team_lck_titles"/.test(statsStrForCareer)) {
     parts.push(
-      `[WEEKLY_WAREHOUSE]\nAnswer "this week" from weekly_warehouse_recap completed + upcoming only. Use real opponent names. Never print ???. Never treat Challengers/academy as LCK. FAIL-CLOSED: do not invent a series that is not listed (HLE vs FearX on Aug 19 did not happen unless it is in completed).`,
+      `[TEAM_LCK_TITLES]\nIf the ask is Gen.G / GEN LCK titles (including "title years"), cite the 5 modern season titles from team_lck_titles / WORLD_CONTEXT geng_lck_titles: 2022 Summer, 2023 Spring, 2023 Summer, 2024 Spring, 2025. Do not invent 2017–2020. Do not drop either 2023. Do NOT fail-close as "not in WORLD_CONTEXT".`,
     );
   }
 
-  if (ctx?.scope === "lolesports_series") {
-    if (!hasSeriesEvidence(matchStats)) {
+  if (/"tool":"weekly_warehouse_recap"/.test(statsStrForCareer)) {
+    parts.push(
+      `[WEEKLY_WAREHOUSE]\nAnswer "this week" from weekly_warehouse_recap completed + upcoming only. Use real opponent names. Never print ???. Never treat Challengers/academy as LCK. FAIL-CLOSED: do not invent a series that is not listed (HLE vs FearX on Aug 19 did not happen unless it is in completed). Do not cite EXTERNAL_CONTEXT leftover pairings.`,
+    );
+  }
+
+  if (/"tool":"warehouse_series_recap"/.test(statsStrForCareer)) {
+    if (/"missingAskedSeries":true/.test(statsStrForCareer) || /"seriesScore":"0-0"/.test(statsStrForCareer)) {
       parts.push(
-        `[NO_SERIES_DATA]\nNo warehouse or match series data is available. Do NOT invent champions, per-game results, KDAs, or a series score. Tell the user you don't have that series' game-by-game data. If EXTERNAL_CONTEXT has a result, you may cite that, otherwise stop.`,
+        `[WAREHOUSE_SERIES_MISS]\nThe warehouse has no row for this pair/date. Do NOT invent a dated series. HLE vs FearX on Aug 19 is not a warehouse series unless MATCH_STATS lists it. Do NOT cite EXTERNAL_CONTEXT / leftover OE for a series the warehouse does not list.`,
+      );
+    } else {
+      parts.push(
+        `[WAREHOUSE_SERIES_WL]\nCite warehouse_series_recap.seriesScore and seasonRecords only. seasonRecords is THIS-season series W/L from the warehouse. Do NOT cite leftover OE form 3-3 / 1-6, a compare/radar card, or head-to-head as season W/L.`,
+      );
+    }
+  }
+
+  if (ctx?.scope === "lolesports_series") {
+    if (!hasSeriesEvidence(matchStats) && !/"tool":"warehouse_series_recap"/.test(statsStrForCareer)) {
+      parts.push(
+        `[NO_SERIES_DATA]\nNo warehouse or match series data is available. Do NOT invent champions, per-game results, KDAs, or a series score. Tell the user you don't have that series' game-by-game data. Do NOT invent a dated series from EXTERNAL_CONTEXT leftover OE / compare snippets.`,
       );
     }
   }

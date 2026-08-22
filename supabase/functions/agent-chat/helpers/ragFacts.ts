@@ -4,6 +4,8 @@
  * chunk on the next ask — vector similarity alone cannot keep the old hash.
  */
 
+import { isGengLineageLeak, isPredecessorGengYear } from "./teamTitles.ts";
+
 export interface RagFactChunk {
   content: string;
   source?: string;
@@ -108,7 +110,9 @@ function isGengLckChunk(chunk: RagFactChunk): boolean {
 }
 
 function gengPredecessorHit(text: string): boolean {
-  return /\b2017\b/.test(text) || /\b2018\b/.test(text) || /\b2020\b/.test(text);
+  if (isGengLineageLeak(text)) return true;
+  const years = extractTitleYears(text);
+  return years.some((y) => isPredecessorGengYear(y));
 }
 
 function gengHasBoth2023s(text: string): boolean {
@@ -235,12 +239,10 @@ export function hasFreshCareerFact(
   if (!winner) return false;
   const years = extractTitleYears(winner.content);
   const count = extractTitleCount(winner.content) ?? 0;
-  // A GEN LCK list that still credits 2017–2020 is not fresh — look up again.
-  if (
-    /geng|gen\.?g/i.test(entityId) &&
-    gengPredecessorHit(winner.content)
-  ) {
-    return false;
+  // A GEN LCK list that still credits 2017–2020 or drops both 2023s is not fresh.
+  if (/geng|gen\.?g/i.test(entityId)) {
+    if (gengPredecessorHit(winner.content)) return false;
+    if (!gengHasBoth2023s(winner.content) && count !== 5) return false;
   }
   return years.includes(2024) || years.includes(2025) || count >= 5;
 }
@@ -270,8 +272,49 @@ export function dropChunksContradictingTools(
     if (
       geng5 &&
       /gen\.?g|\bgeng\b/i.test(`${c.content} ${c.title ?? ""}`) &&
-      gengPredecessorHit(c.content)
+      /\b(lck|titles?|championships?|2017|2018|2020)\b/i.test(c.content)
     ) {
+      // Curated 5 is already in MATCH_STATS — leftover 6-title / missing-2023
+      // chunks must not sit in EXTERNAL_CONTEXT and fail-close the model.
+      return false;
+    }
+    return true;
+  });
+}
+
+/** Drop leftover week/form/compare snippets when warehouse recap tools already answered. */
+export function dropLeftoverRecapChunks(
+  chunks: RagFactChunk[],
+  matchStats: Record<string, unknown>,
+): RagFactChunk[] {
+  const blob = JSON.stringify(matchStats ?? {});
+  const weekly = /weekly_warehouse_recap/.test(blob);
+  const series = /warehouse_series_recap/.test(blob);
+  if (!weekly && !series) return chunks;
+  return chunks.filter((c) => {
+    const text = `${c.content} ${c.title ?? ""}`;
+    if (
+      /hanwha|\bhle\b/i.test(text) &&
+      /fearx|\bbfx\b/i.test(text) &&
+      /aug(?:ust)?\s*19|2026-08-19/i.test(text)
+    ) {
+      return false;
+    }
+    if (
+      /\bdrx\b/i.test(text) &&
+      /brion|\bbro\b/i.test(text) &&
+      /aug(?:ust)?\s*20|2026-08-20/i.test(text)
+    ) {
+      return false;
+    }
+    if (
+      series &&
+      /\b(t1|kt)\b/i.test(text) &&
+      (/\b3-3\b/.test(text) || /\b1-6\b/.test(text))
+    ) {
+      return false;
+    }
+    if (series && /\b(head.?to.?head|\bh2h\b|radar|compare card)\b/i.test(text)) {
       return false;
     }
     return true;

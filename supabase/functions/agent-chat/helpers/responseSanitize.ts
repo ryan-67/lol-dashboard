@@ -1,3 +1,7 @@
+import { formatGengLckTitlesAnswer } from "./deterministicAnswers.ts";
+import { isGengLineageLeak, isTeamLckTitleQuestion } from "./teamTitles.ts";
+import { isDatedMatchupRecap } from "./warehouseFacts.ts";
+
 /** Strip source keys from tool payloads before sending to the LLM. */
 export function stripSourceFields(value: unknown): unknown {
   if (value === null || value === undefined) return value;
@@ -121,10 +125,49 @@ function stripSourceFootnotes(text: string): string {
   return out.replace(/[ \t]+\n/g, "\n");
 }
 
+/** Pass-2 leftovers the model still emits even when warehouse/curated tools won. */
+export function scrubLockedLeftovers(text: string, message: string): string {
+  let out = text;
+  const genTitleAsk = isTeamLckTitleQuestion(message) ||
+    (/\bgen(?:\.?g)?\b/i.test(message) && /\b(titles?|championships?|title years?)\b/i.test(message));
+  if (genTitleAsk && (isGengLineageLeak(out) || /won\s+6\b/i.test(out) || !/2023 Spring/i.test(out))) {
+    return formatGengLckTitlesAnswer();
+  }
+
+  out = out.replace(
+    /[^\n]*(?:fearx|bfx)[^\n]*(?:hanwha|\bhle\b)[^\n]*(?:aug(?:ust)?\s*19|2026-08-19)[^\n]*/gi,
+    "",
+  );
+  out = out.replace(
+    /[^\n]*(?:hanwha|\bhle\b)[^\n]*(?:fearx|bfx)[^\n]*(?:aug(?:ust)?\s*19|2026-08-19)[^\n]*/gi,
+    "",
+  );
+  out = out.replace(
+    /[^\n]*(?:\bdrx\b)[^\n]*(?:brion|\bbro\b)[^\n]*(?:aug(?:ust)?\s*20|2026-08-20)[^\n]*/gi,
+    "",
+  );
+  out = out.replace(
+    /[^\n]*(?:brion|\bbro\b)[^\n]*(?:\bdrx\b)[^\n]*(?:aug(?:ust)?\s*20|2026-08-20)[^\n]*/gi,
+    "",
+  );
+
+  if (isDatedMatchupRecap(message) && /\bt1\b/i.test(message) && /\bkt\b/i.test(message)) {
+    out = out
+      .replace(/\b3-3\b/g, "")
+      .replace(/\b1-6\b/g, "")
+      .replace(/\b8-7\b/g, "")
+      .replace(/\b6-13\b/g, "")
+      .replace(/\b54\.5\s*%/g, "")
+      .replace(/\b44\s*%/g, "");
+  }
+
+  return out.replace(/\n{3,}/g, "\n\n").trim();
+}
+
 /** Final persisted / returned text — sanitize once after stream completes, not per token. */
 export function sanitizeAssistantText(
   text: string,
-  opts: { stripCharts?: boolean; allowSources?: boolean } = {},
+  opts: { stripCharts?: boolean; allowSources?: boolean; message?: string } = {},
 ): string {
   let out = opts.allowSources ? text : stripSourceFootnotes(text);
   out = stripDataSourceMentions(out);
@@ -142,6 +185,8 @@ export function sanitizeAssistantText(
   if (opts.stripCharts) {
     out = out.replace(/```chart[\s\S]*?```/gi, "");
   }
+
+  if (opts.message) out = scrubLockedLeftovers(out, opts.message);
 
   return out.replace(/\n{3,}/g, "\n\n").trim();
 }
