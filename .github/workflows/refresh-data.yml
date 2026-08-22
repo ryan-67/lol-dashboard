@@ -67,6 +67,9 @@ permissions:
 # (e.g. GitHub hosted-runner outage) does not block the next schedule/dispatch
 # behind an indefinite concurrency queue. Overlapping crons are rare — sync is
 # usually <60m; ML retrain only when riot_new/OE moves.
+#
+# Cloud Agents / humans may push to main while this job trains. Artifact commits
+# rebase + retry via scripts/ci/push-main-with-rebase.sh — do not pause agents.
 concurrency:
   group: refresh-dashboard-data
   cancel-in-progress: true
@@ -123,6 +126,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Setup Python
         uses: actions/setup-python@v5
@@ -212,13 +217,15 @@ jobs:
             public/data/cito_live_drafts.json \
             public/data/cito_player_stats_cache.json \
             public/data/region_strength.json \
+            supabase/functions/agent-chat/ml/region_strength.json \
+            || true
+          git add -f \
             data/ml/artifacts/region_strength.json \
             data/ml/artifacts/cito_elo_bump_state.json \
-            supabase/functions/agent-chat/ml/region_strength.json \
             || true
           if ! git diff --staged --quiet; then
             git commit -m "chore(data): sync Riot warehouse current (schedule, box scores, recaps)"
-            git push || (git fetch origin main && git rebase origin/main && git push)
+            bash scripts/ci/push-main-with-rebase.sh
           else
             echo "Current caches unchanged — skip commit."
           fi
@@ -237,6 +244,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Free disk space
         uses: jlumbroso/free-disk-space@v1.3.1
@@ -367,13 +376,10 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git pull --rebase origin main || true
           git add supabase/functions/agent-chat/ml/ || true
           git add \
             data/riot \
             data/ml/riot_oe_supplement.csv \
-            data/ml/artifacts/region_strength.json \
-            data/ml/artifacts/cito_elo_bump_state.json \
             public/data/player_ratings.json \
             public/data/region_strength.json \
             public/data/accuracy_scorecard.json \
@@ -381,13 +387,16 @@ jobs:
             public/data/model_metadata.json \
             public/data/ml_freshness.json \
             public/data/cito_player_stats_cache.json || true
+          git add -f \
+            data/ml/artifacts/region_strength.json \
+            data/ml/artifacts/cito_elo_bump_state.json || true
           if ! git diff --staged --quiet; then
             if [ "${{ steps.ml_retrain.outcome }}" = "success" ]; then
               git commit -m "chore(ml): refresh model from Riot warehouse current rows"
             else
               git commit -m "chore(ml): record freshness after soft-fail retrain"
             fi
-            git push || (git fetch origin main && git rebase origin/main && git push)
+            bash scripts/ci/push-main-with-rebase.sh
           else
             echo "Model artifacts unchanged — skip commit."
           fi
@@ -421,6 +430,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Free disk space
         uses: jlumbroso/free-disk-space@v1.3.1
@@ -507,7 +518,7 @@ jobs:
           git add public/data/gol_game_cache.json
           if ! git diff --staged --quiet; then
             git commit -m "chore(data): backfill gol.gg gold timelines"
-            git push || (git fetch origin main && git rebase origin/main && git push)
+            bash scripts/ci/push-main-with-rebase.sh
           else
             echo "gol gold cache unchanged — skip commit."
           fi
@@ -582,26 +593,26 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git pull --rebase origin main || true
           git add supabase/functions/agent-chat/ml/ || true
           git add \
             data/riot \
             data/ml/riot_oe_supplement.csv \
-            data/ml/artifacts/region_strength.json \
-            data/ml/artifacts/cito_elo_bump_state.json \
             public/data/player_ratings.json \
             public/data/region_strength.json \
             public/data/accuracy_scorecard.json \
             public/data/prediction_holdout_log.json \
             public/data/model_metadata.json \
             public/data/ml_freshness.json || true
+          git add -f \
+            data/ml/artifacts/region_strength.json \
+            data/ml/artifacts/cito_elo_bump_state.json || true
           if ! git diff --staged --quiet; then
             if [ "${{ steps.ml_retrain.outcome }}" = "success" ]; then
               git commit -m "chore(ml): publish model artifacts to nucky.gg"
             else
               git commit -m "chore(ml): record freshness after soft-fail retrain"
             fi
-            git push || (git fetch origin main && git rebase origin/main && git push)
+            bash scripts/ci/push-main-with-rebase.sh
           else
             echo "Model publish artifacts unchanged — skip commit."
           fi
