@@ -1,5 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
-import { shouldShowConversationListSkeleton } from './chatSessionGuards'
+import {
+  conversationHref,
+  shouldHandleConversationClick,
+  shouldShowConversationListSkeleton,
+} from './chatSessionGuards'
 import type { ConversationRow } from './types'
 
 interface ChatSidebarProps {
@@ -122,9 +126,11 @@ export default function ChatSidebar({
                     : 'border-[var(--border-subtle)] hover:border-[var(--border-focus)]'
                 }`}
               >
-                <button
-                  type="button"
-                  onClick={() => {
+                <a
+                  href={conversationHref(conversation.id)}
+                  onClick={(e) => {
+                    if (!shouldHandleConversationClick(e)) return
+                    e.preventDefault()
                     onSelect(conversation.id)
                     onCloseMobile()
                   }}
@@ -136,7 +142,7 @@ export default function ChatSidebar({
                   <div className="text-[11px] text-[var(--text-tertiary)] mt-1">
                     {relativeDate(conversation.updated_at || conversation.created_at)}
                   </div>
-                </button>
+                </a>
                 <div className="relative shrink-0" ref={menuOpen ? menuRef : undefined}>
                   <button
                     type="button"
@@ -159,10 +165,10 @@ export default function ChatSidebar({
                         onClick={async (e) => {
                           e.stopPropagation()
                           setMenuOpenId(null)
-                          const url = new URL('/chat', window.location.origin)
-                          url.searchParams.set('conversation_id', conversation.id)
                           try {
-                            await navigator.clipboard.writeText(url.toString())
+                            await navigator.clipboard.writeText(
+                              new URL(conversationHref(conversation.id), window.location.origin).toString(),
+                            )
                           } catch {
                             /* ignore */
                           }

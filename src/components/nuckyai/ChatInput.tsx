@@ -6,6 +6,7 @@ import {
   type EntitySearchEntry,
 } from '../../lib/entities/searchIndex'
 import ChampionIcon from '../entities/ChampionIcon'
+import { isComposerSendEnter } from './chatSessionGuards'
 
 interface ChatInputProps {
   value: string
@@ -27,6 +28,8 @@ export default function ChatInput({
   floating = false,
 }: ChatInputProps) {
   const ref = useRef<HTMLTextAreaElement>(null)
+  const composingRef = useRef(false)
+  const sentAtRef = useRef(0)
   const { catalog } = useDashboard()
   const [index, setIndex] = useState<EntitySearchEntry[]>([])
   const [highlight, setHighlight] = useState(0)
@@ -77,13 +80,20 @@ export default function ChatInput({
   }
 
   const handleSendOrPick = () => {
-    if (disabled) return
+    if (disabled || composingRef.current) return
     if (showTypeahead && results[highlight]) {
       pickEntity(results[highlight])
       return
     }
     if (!value.trim()) return
+    sentAtRef.current = Date.now()
     onSend()
+  }
+
+  const handleChange = (next: string) => {
+    // IME/compositionend can write a leftover fragment after a successful send.
+    if (Date.now() - sentAtRef.current < 200) return
+    onChange(next)
   }
 
   return (
@@ -125,11 +135,19 @@ export default function ChatInput({
         <textarea
           ref={ref}
           value={value}
-          onChange={(e) => onChange(e.target.value)}
+          onChange={(e) => handleChange(e.target.value)}
           placeholder="ask nucky…"
           disabled={disabled}
           rows={1}
           aria-label="Message nucky"
+          onCompositionStart={() => {
+            composingRef.current = true
+          }}
+          onCompositionEnd={() => {
+            window.setTimeout(() => {
+              composingRef.current = false
+            }, 0)
+          }}
           onKeyDown={(e) => {
             if (showTypeahead && results.length) {
               if (e.key === 'ArrowDown') {
@@ -147,10 +165,20 @@ export default function ChatInput({
                 return
               }
             }
-            if (e.key === 'Enter' && !e.shiftKey) {
-              e.preventDefault()
-              handleSendOrPick()
+            const composing = composingRef.current || e.nativeEvent.isComposing
+            if (
+              !isComposerSendEnter({
+                key: e.key,
+                shiftKey: e.shiftKey,
+                repeat: e.repeat,
+                isComposing: composing,
+                keyCode: e.keyCode,
+              })
+            ) {
+              return
             }
+            e.preventDefault()
+            handleSendOrPick()
           }}
         />
         <div className="chat-input-toolbar">

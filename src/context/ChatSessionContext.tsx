@@ -16,7 +16,13 @@ import { pickThinkingMessage } from '../lib/nuckyThinking'
 import { useAuth } from './AuthContext'
 import { useAgentChat } from '../components/nuckyai/useAgentChat'
 import {
+  appendPendingTurn,
+  applyStreamChunk,
+  applyStreamDone,
+  applyStreamError,
   canAcceptChatSubmit,
+  createChatRequestId,
+  isAuxiliaryBlankHref,
   shouldFlipSubscriptionReadyOff,
   shouldReloadConversationMessages,
 } from '../components/nuckyai/chatSessionGuards'
@@ -32,6 +38,8 @@ interface ChatSessionContextValue {
   conversationsLoading: boolean
   messages: MessageRow[]
   streaming: boolean
+  sending: boolean
+  quotaBlocked: boolean
   activeConversationId: string | null
   toast: string | null
   checkoutLoading: boolean
@@ -69,11 +77,14 @@ export function ChatSessionProvider({ children }: { children: ReactNode }) {
   )
   const pendingSendRef = useRef(false)
   const sendLockRef = useRef(false)
+  const activeRequestIdRef = useRef<string | null>(null)
   const conversationsHydratedRef = useRef(false)
   const resolvedUserIdRef = useRef<string | null>(null)
   const searchParamsRef = useRef(searchParams)
   const activeConversationIdRef = useRef(activeConversationId)
   const messagesRef = useRef(messages)
+  const [sending, setSending] = useState(false)
+  const [quotaBlocked, setQuotaBlocked] = useState(false)
   const [inputFocusTrigger, setInputFocusTrigger] = useState(0)
   const { streaming, sendMessage, stop: stopStream } = useAgentChat()
 
@@ -153,7 +164,13 @@ export function ChatSessionProvider({ children }: { children: ReactNode }) {
   const selectConversation = useCallback(
     (conversationId: string) => {
       if (pendingSendRef.current && conversationId === activeConversationIdRef.current) return
+      if (pendingSendRef.current) {
+        stopStream()
+      }
       pendingSendRef.current = false
+      sendLockRef.current = false
+      activeRequestIdRef.current = null
+      setSending(false)
       setActiveConversationId(conversationId)
       applyConversationId(conversationId)
       if (
@@ -164,7 +181,7 @@ export function ChatSessionProvider({ children }: { children: ReactNode }) {
       }
       void loadMessages(conversationId)
     },
-    [applyConversationId, loadMessages],
+    [applyConversationId, loadMessages, stopStream],
   )
 
   useEffect(() => {
@@ -259,18 +276,25 @@ export function ChatSessionProvider({ children }: { children: ReactNode }) {
     void loadMessages(fromQuery as string)
   }, [loadMessages, searchParams])
 
-  const releaseSend = useCallback(() => {
+  const releaseSend = useCallback((requestId?: string) => {
+    if (requestId && activeRequestIdRef.current && activeRequestIdRef.current !== requestId) {
+      return
+    }
     sendLockRef.current = false
     pendingSendRef.current = false
+    activeRequestIdRef.current = null
+    setSending(false)
   }, [])
 
   const streamAssistant = useCallback(
     (message: string, options?: { skipUserAppend?: boolean }): boolean => {
+      if (isAuxiliaryBlankHref(window.location.href)) return false
       if (
         !canAcceptChatSubmit({
           text: message,
           sendLocked: sendLockRef.current,
           streaming: sendLockRef.current,
+          quotaBlocked,
         })
       ) {
         return false
@@ -278,119 +302,75 @@ export function ChatSessionProvider({ children }: { children: ReactNode }) {
 
       const now = new Date().toISOString()
       const displayMessage = message.trim()
+      const requestId = createChatRequestId()
       sendLockRef.current = true
       pendingSendRef.current = true
+      activeRequestIdRef.current = requestId
+      setSending(true)
 
-      setMessages((prev) => {
-        const withoutLastAssistant =
-          options?.skipUserAppend && prev.length && prev[prev.length - 1]?.role === 'assistant'
-            ? prev.slice(0, -1)
-            : prev
-        const base = options?.skipUserAppend
-          ? withoutLastAssistant
-          : [
-              ...withoutLastAssistant,
-              { role: 'user' as const, content: displayMessage, created_at: now },
-            ]
-        return [
-          ...base,
-          {
-            role: 'assistant' as const,
-            content: pickThinkingMessage(displayMessage),
-            created_at: now,
-            retryable: false,
-            thinking: true,
-          },
-        ]
-      })
+      setMessages((prev) =>
+        appendPendingTurn(prev, {
+          requestId,
+          text: displayMessage,
+          thinking: pickThinkingMessage(displayMessage),
+          createdAt: now,
+          skipUserAppend: options?.skipUserAppend,
+        }),
+      )
 
       let receivedChunk = false
       void sendMessage({
         message,
         conversationId: activeConversationIdRef.current ?? undefined,
         onMetadata: (conversationId) => {
+          if (activeRequestIdRef.current !== requestId) return
           setActiveConversationId(conversationId)
           applyConversationId(conversationId)
         },
         onChunk: (chunk) => {
           receivedChunk = true
-          setMessages((prev) => {
-            const copy = [...prev]
-            for (let i = copy.length - 1; i >= 0; i -= 1) {
-              if (copy[i].role === 'assistant') {
-                const wasThinking = copy[i].thinking
-                copy[i] = {
-                  ...copy[i],
-                  thinking: false,
-                  content: wasThinking ? chunk : `${copy[i].content}${chunk}`,
-                }
-                break
-              }
-            }
-            return copy
-          })
+          setMessages((prev) => applyStreamChunk(prev, requestId, chunk))
         },
         onDone: () => {
-          releaseSend()
-          if (!receivedChunk) {
-            setMessages((prev) => {
-              const copy = [...prev]
-              for (let i = copy.length - 1; i >= 0; i -= 1) {
-                if (copy[i].role === 'assistant' && copy[i].thinking) {
-                  copy[i] = {
-                    ...copy[i],
-                    thinking: false,
-                    content: "couldn't get a response — try again.",
-                    retryable: true,
-                  }
-                  break
-                }
-              }
-              return copy
-            })
-          }
+          setMessages((prev) => applyStreamDone(prev, requestId, receivedChunk))
+          releaseSend(requestId)
           void loadConversations()
         },
         onError: (err) => {
-          releaseSend()
-          setMessages((prev) => {
-            const copy = [...prev]
-            for (let i = copy.length - 1; i >= 0; i -= 1) {
-              if (copy[i].role === 'assistant') {
-                copy[i] = { ...copy[i], content: err, retryable: true, thinking: false }
-                return copy
-              }
-            }
-            return [
-              ...copy,
-              { role: 'assistant', content: err, created_at: new Date().toISOString(), retryable: true },
-            ]
-          })
+          if (err.kind === 'quota') setQuotaBlocked(true)
+          setMessages((prev) => applyStreamError(prev, requestId, err))
+          releaseSend(requestId)
         },
       }).then((started) => {
-        if (started === false) releaseSend()
+        if (started === false) releaseSend(requestId)
       })
       return true
     },
-    [applyConversationId, loadConversations, releaseSend, sendMessage],
+    [applyConversationId, loadConversations, quotaBlocked, releaseSend, sendMessage],
   )
 
   const send = useCallback((message: string) => streamAssistant(message), [streamAssistant])
 
   const regenerate = useCallback(() => {
+    if (quotaBlocked) return
+    const lastAssistant = [...messages].reverse().find((m) => m.role === 'assistant')
+    if (lastAssistant?.kind === 'error' && lastAssistant.errorKind === 'quota') return
     const lastUser = [...messages].reverse().find((m) => m.role === 'user')
     if (!lastUser?.content) return
     streamAssistant(lastUser.content, { skipUserAppend: true })
-  }, [messages, streamAssistant])
+  }, [messages, quotaBlocked, streamAssistant])
 
   const beginNewChat = useCallback(() => {
+    if (pendingSendRef.current) stopStream()
     pendingSendRef.current = false
     sendLockRef.current = false
+    activeRequestIdRef.current = null
+    setSending(false)
     setActiveConversationId(null)
     setMessages([])
     setInputFocusTrigger((n) => n + 1)
     applyConversationId(null)
-  }, [applyConversationId])
+  }, [applyConversationId, stopStream])
 
   const deleteConversation = useCallback(
     async (conversationId: string) => {
@@ -454,8 +434,12 @@ export function ChatSessionProvider({ children }: { children: ReactNode }) {
   }, [user, loadProfile])
 
   const stop = useCallback(() => {
-    releaseSend()
+    const requestId = activeRequestIdRef.current
     stopStream()
+    if (requestId) {
+      setMessages((prev) => applyStreamDone(prev, requestId, false))
+    }
+    releaseSend(requestId ?? undefined)
   }, [releaseSend, stopStream])
 
   const value = useMemo<ChatSessionContextValue>(
@@ -468,6 +452,8 @@ export function ChatSessionProvider({ children }: { children: ReactNode }) {
       conversationsLoading,
       messages,
       streaming,
+      sending,
+      quotaBlocked,
       activeConversationId,
       toast,
       checkoutLoading,
@@ -493,6 +479,8 @@ export function ChatSessionProvider({ children }: { children: ReactNode }) {
       conversationsLoading,
       messages,
       streaming,
+      sending,
+      quotaBlocked,
       activeConversationId,
       toast,
       checkoutLoading,

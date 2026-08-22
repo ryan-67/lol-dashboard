@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react'
 import MessageBubble from './MessageBubble'
+import { messageListKey } from './chatSessionGuards'
 import type { MessageRow } from './types'
 
 interface MessageListProps {
@@ -51,7 +52,7 @@ export default function MessageList({
       <div className="chat-messages-inner">
         {messages.map((message, idx) => (
           <MessageBubble
-            key={message.id ?? `${message.role}-${message.created_at ?? idx}-${idx}`}
+            key={messageListKey(message, idx)}
             message={message}
             isAssistant={message.role === 'assistant'}
             onRegenerate={onRegenerate}

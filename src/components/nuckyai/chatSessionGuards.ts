@@ -3,6 +3,8 @@
  * Keep /chat mounted, keep the composer alive, and send each prompt once.
  */
 
+import type { AgentChatError, ChatErrorKind, MessageRow } from './types'
+
 export function shouldShowConversationListSkeleton(
   loading: boolean,
   conversationCount: number,
@@ -22,8 +24,11 @@ export function canAcceptChatSubmit(args: {
   text: string
   sendLocked: boolean
   streaming: boolean
+  composing?: boolean
+  quotaBlocked?: boolean
 }): boolean {
-  return Boolean(args.text.trim()) && !args.sendLocked && !args.streaming
+  if (args.composing || args.sendLocked || args.streaming || args.quotaBlocked) return false
+  return Boolean(args.text.trim())
 }
 
 export function shouldReloadConversationMessages(args: {
@@ -35,4 +40,270 @@ export function shouldReloadConversationMessages(args: {
   if (!args.queryId || args.sendInFlight) return false
   if (args.queryId === args.activeId && args.messageCount > 0) return false
   return true
+}
+
+export function isComposerSendEnter(event: {
+  key: string
+  shiftKey: boolean
+  repeat?: boolean
+  isComposing?: boolean
+  keyCode?: number
+}): boolean {
+  if (event.key !== 'Enter' || event.shiftKey) return false
+  if (event.repeat) return false
+  if (event.isComposing) return false
+  // IME confirmation on many browsers (Windows/Chrome, Korean/JP/CN).
+  if (event.keyCode === 229) return false
+  return true
+}
+
+export function createChatRequestId(): string {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return crypto.randomUUID()
+  }
+  return `req-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`
+}
+
+export function conversationHref(conversationId: string): string {
+  return `/chat?conversation_id=${encodeURIComponent(conversationId)}`
+}
+
+export function isAuxiliaryBlankHref(href: string | null | undefined): boolean {
+  if (!href) return true
+  const trimmed = href.trim().toLowerCase()
+  return trimmed === '' || trimmed === 'about:blank' || trimmed.startsWith('about:blank')
+}
+
+/** Primary unmodified click stays in this ChatSession; modified clicks use the real /chat href. */
+export function shouldHandleConversationClick(event: {
+  button?: number
+  metaKey?: boolean
+  ctrlKey?: boolean
+  shiftKey?: boolean
+  altKey?: boolean
+}): boolean {
+  if ((event.button ?? 0) !== 0) return false
+  if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return false
+  return true
+}
+
+const QUOTA_TEXT = /usage limit|quota_exceeded|monthly usage limit/i
+
+export function looksLikeQuotaProse(text: string): boolean {
+  const trimmed = text.trim()
+  if (!trimmed || trimmed.length > 240) return false
+  return QUOTA_TEXT.test(trimmed)
+}
+
+export function classifyChatError(code?: string, message?: string): AgentChatError {
+  const text = (message ?? '').trim()
+  if (code === 'quota_exceeded' || looksLikeQuotaProse(text) || code === '429') {
+    return {
+      kind: 'quota',
+      message: text || 'monthly usage limit reached — check your profile for reset date.',
+      retryable: false,
+      code: code ?? 'quota_exceeded',
+    }
+  }
+  if (code === 'unauthorized' || code === '401') {
+    return {
+      kind: 'auth',
+      message: text || 'session expired — log in again.',
+      retryable: true,
+      code,
+    }
+  }
+  if (code === 'forbidden' || code === '403') {
+    return {
+      kind: 'forbidden',
+      message: text || 'subscription required — upgrade to chat with nucky.',
+      retryable: false,
+      code,
+    }
+  }
+  if (code === 'server' || (typeof code === 'string' && /^5\d\d$/.test(code))) {
+    return {
+      kind: 'server',
+      message: text || 'server error — try again in a moment.',
+      retryable: true,
+      code,
+    }
+  }
+  return {
+    kind: 'unknown',
+    message: text || 'nucky hit an error. try again.',
+    retryable: true,
+    code,
+  }
+}
+
+export type AgentSseInterpretation =
+  | { type: 'done' }
+  | { type: 'metadata'; conversationId: string }
+  | { type: 'chunk'; text: string }
+  | { type: 'error'; error: AgentChatError }
+  | { type: 'ignore' }
+
+export function interpretAgentSseData(data: string): AgentSseInterpretation {
+  const raw = data.trim()
+  if (!raw) return { type: 'ignore' }
+  if (raw === '[DONE]') return { type: 'done' }
+
+  let parsed: unknown = null
+  try {
+    parsed = JSON.parse(raw)
+  } catch {
+    if (looksLikeQuotaProse(raw)) {
+      return { type: 'error', error: classifyChatError('quota_exceeded', raw) }
+    }
+    return { type: 'ignore' }
+  }
+
+  if (!parsed || typeof parsed !== 'object') return { type: 'ignore' }
+  const rec = parsed as Record<string, unknown>
+  const recType = typeof rec.type === 'string' ? rec.type : ''
+  const code = typeof rec.code === 'string' ? rec.code : undefined
+  const message = typeof rec.message === 'string' ? rec.message : undefined
+  const chunk = typeof rec.chunk === 'string' ? rec.chunk : ''
+  const conversationId =
+    typeof rec.conversation_id === 'string' ? rec.conversation_id : ''
+
+  if (recType === 'error' || code === 'quota_exceeded' || looksLikeQuotaProse(message ?? '')) {
+    return { type: 'error', error: classifyChatError(code, message) }
+  }
+  if (recType === 'metadata' && conversationId) {
+    return { type: 'metadata', conversationId }
+  }
+  if ((recType === 'chunk' || chunk) && chunk) {
+    if (looksLikeQuotaProse(chunk)) {
+      return { type: 'error', error: classifyChatError('quota_exceeded', chunk) }
+    }
+    return { type: 'chunk', text: chunk }
+  }
+  return { type: 'ignore' }
+}
+
+export function appendPendingTurn(
+  prev: MessageRow[],
+  args: {
+    requestId: string
+    text: string
+    thinking: string
+    createdAt: string
+    skipUserAppend?: boolean
+  },
+): MessageRow[] {
+  const withoutLastAssistant =
+    args.skipUserAppend && prev.length && prev[prev.length - 1]?.role === 'assistant'
+      ? prev.slice(0, -1)
+      : prev
+  const base = args.skipUserAppend
+    ? withoutLastAssistant
+    : [
+        ...withoutLastAssistant,
+        {
+          role: 'user' as const,
+          content: args.text,
+          created_at: args.createdAt,
+          requestId: args.requestId,
+          kind: 'text' as const,
+        },
+      ]
+  return [
+    ...base,
+    {
+      role: 'assistant' as const,
+      content: args.thinking,
+      created_at: args.createdAt,
+      requestId: args.requestId,
+      retryable: false,
+      thinking: true,
+      kind: 'text' as const,
+    },
+  ]
+}
+
+function mapAssistantByRequest(
+  messages: MessageRow[],
+  requestId: string,
+  update: (message: MessageRow) => MessageRow,
+): { next: MessageRow[]; found: boolean } {
+  let found = false
+  const next = messages.map((message) => {
+    if (found || message.role !== 'assistant' || message.requestId !== requestId) {
+      return message
+    }
+    found = true
+    return update(message)
+  })
+  return { next, found }
+}
+
+export function applyStreamChunk(
+  messages: MessageRow[],
+  requestId: string,
+  chunk: string,
+): MessageRow[] {
+  if (!chunk || !requestId) return messages
+  const { next, found } = mapAssistantByRequest(messages, requestId, (message) => ({
+    ...message,
+    thinking: false,
+    kind: 'text',
+    content: message.thinking ? chunk : `${message.content}${chunk}`,
+  }))
+  return found ? next : messages
+}
+
+export function applyStreamError(
+  messages: MessageRow[],
+  requestId: string,
+  error: AgentChatError,
+): MessageRow[] {
+  const { next, found } = mapAssistantByRequest(messages, requestId, (message) => ({
+    ...message,
+    thinking: false,
+    kind: 'error',
+    errorKind: error.kind,
+    retryable: error.retryable,
+    content: error.message,
+  }))
+  if (found) return next
+  return [
+    ...messages,
+    {
+      role: 'assistant',
+      content: error.message,
+      created_at: new Date().toISOString(),
+      requestId,
+      kind: 'error',
+      errorKind: error.kind,
+      retryable: error.retryable,
+    },
+  ]
+}
+
+export function applyStreamDone(
+  messages: MessageRow[],
+  requestId: string,
+  receivedChunk: boolean,
+): MessageRow[] {
+  if (receivedChunk) return messages
+  const { next, found } = mapAssistantByRequest(messages, requestId, (message) => {
+    if (!message.thinking) return message
+    return {
+      ...message,
+      thinking: false,
+      kind: 'error',
+      errorKind: 'unknown' as ChatErrorKind,
+      retryable: true,
+      content: "couldn't get a response — try again.",
+    }
+  })
+  return found ? next : messages
+}
+
+export function messageListKey(message: MessageRow, idx: number): string {
+  if (message.id) return message.id
+  if (message.requestId) return `${message.requestId}-${message.role}`
+  return `${message.role}-${message.created_at ?? idx}-${idx}`
 }

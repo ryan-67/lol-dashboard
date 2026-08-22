@@ -1,6 +1,7 @@
 import { useCallback, useRef, useState } from 'react'
 import { supabase } from '../../lib/supabaseClient'
-import type { MessageRow } from './types'
+import { classifyChatError, interpretAgentSseData } from './chatSessionGuards'
+import type { AgentChatError, MessageRow } from './types'
 
 export interface AgentFilterContext {
   league?: string
@@ -18,27 +19,8 @@ interface SendMessageArgs {
   onMetadata?: (conversationId: string) => void
   onChunk?: (chunk: string) => void
   onDone?: () => void
-  onError?: (message: string) => void
+  onError?: (error: AgentChatError) => void
 }
-
-interface AgentMetadataEvent {
-  type: 'metadata'
-  conversation_id: string
-}
-
-interface AgentChunkEvent {
-  type: 'chunk'
-  chunk: string
-}
-
-interface AgentErrorEvent {
-  type: 'error'
-  code: string
-  message?: string
-  reset_at?: string
-}
-
-type AgentSseEvent = AgentMetadataEvent | AgentChunkEvent | AgentErrorEvent
 
 function parseDataLine(line: string): string | null {
   if (!line.startsWith('data:')) return null
@@ -50,26 +32,17 @@ function getFunctionUrl(): string {
   return `${base}/functions/v1/agent-chat`
 }
 
-function mapHttpError(status: number): string {
-  if (status === 401) return 'session expired — log in again.'
-  if (status === 403) return 'subscription required — upgrade to chat with nucky.'
-  if (status === 429) return 'monthly usage limit reached — check your profile for reset date.'
-  if (status >= 500) return 'server error — try again in a moment.'
-  return `request failed (${status}). try again.`
-}
-
-function mapSseError(event: AgentErrorEvent): string {
-  if (event.code === 'quota_exceeded') {
-    return event.message ?? 'you\'ve hit your usage limit for the month.'
-  }
-  if (event.code === 'unauthorized') return 'session expired — log in again.'
-  if (event.code === 'forbidden') return 'subscription required — upgrade to chat with nucky.'
-  return event.message ?? 'nucky hit an error. try again.'
+function mapHttpError(status: number): AgentChatError {
+  if (status === 401) return classifyChatError('401')
+  if (status === 403) return classifyChatError('403')
+  if (status === 429) return classifyChatError('429')
+  if (status >= 500) return classifyChatError('500')
+  return classifyChatError(undefined, `request failed (${status}). try again.`)
 }
 
 export function useAgentChat() {
   const [streaming, setStreaming] = useState(false)
-  const [streamError, setStreamError] = useState<string | null>(null)
+  const [streamError, setStreamError] = useState<AgentChatError | null>(null)
   const abortRef = useRef<AbortController | null>(null)
   const inFlightRef = useRef(false)
 
@@ -98,6 +71,11 @@ export function useAgentChat() {
 
       const controller = new AbortController()
       abortRef.current = controller
+
+      const emitError = (error: AgentChatError) => {
+        setStreamError(error)
+        onError?.(error)
+      }
 
       try {
         const {
@@ -129,71 +107,79 @@ export function useAgentChat() {
         })
 
         if (!response.ok || !response.body) {
-          throw new Error(mapHttpError(response.status))
+          emitError(mapHttpError(response.status))
+          return true
         }
 
         const reader = response.body.getReader()
         const decoder = new TextDecoder()
         let buffer = ''
+        let settled = false
 
-        let doneCalled = false
-        const finish = () => {
-          if (doneCalled) return
-          doneCalled = true
+        const finishOk = () => {
+          if (settled) return
+          settled = true
           onDone?.()
+        }
+
+        const finishError = (error: AgentChatError) => {
+          if (settled) return
+          settled = true
+          emitError(error)
+        }
+
+        const handleData = (data: string) => {
+          if (settled) return
+          const event = interpretAgentSseData(data)
+          if (event.type === 'done') {
+            finishOk()
+            return
+          }
+          if (event.type === 'metadata') {
+            onMetadata?.(event.conversationId)
+            return
+          }
+          if (event.type === 'chunk') {
+            onChunk?.(event.text)
+            return
+          }
+          if (event.type === 'error') {
+            finishError(event.error)
+          }
+        }
+
+        const consume = (text: string, flushRemainder: boolean) => {
+          buffer += text
+          const lines = buffer.split('\n')
+          if (!flushRemainder) {
+            buffer = lines.pop() ?? ''
+          } else {
+            buffer = ''
+          }
+          for (const line of lines) {
+            const data = parseDataLine(line.trim())
+            if (!data) continue
+            handleData(data)
+          }
         }
 
         while (true) {
           const { done, value } = await reader.read()
-          if (done) break
-
-          buffer += decoder.decode(value, { stream: true })
-          const lines = buffer.split('\n')
-          buffer = lines.pop() ?? ''
-
-          for (const line of lines) {
-            const data = parseDataLine(line.trim())
-            if (!data) continue
-            if (data === '[DONE]') {
-              finish()
-              continue
-            }
-
-            let parsed: AgentSseEvent | null = null
-            try {
-              parsed = JSON.parse(data) as AgentSseEvent
-            } catch {
-              parsed = null
-            }
-
-            if (!parsed) continue
-            if (parsed.type === 'metadata' && parsed.conversation_id) {
-              onMetadata?.(parsed.conversation_id)
-            }
-            if (parsed.type === 'chunk' && parsed.chunk) {
-              onChunk?.(parsed.chunk)
-            }
-            if (parsed.type === 'error') {
-              const msg = mapSseError(parsed)
-              setStreamError(msg)
-              onError?.(msg)
-              finish()
-              return true
-            }
+          if (value) consume(decoder.decode(value, { stream: true }), false)
+          if (done) {
+            consume(decoder.decode(), true)
+            break
           }
         }
-        finish()
+        if (!settled) finishOk()
         return true
       } catch (err) {
         if (controller.signal.aborted) return true
         const msg =
-          err instanceof Error && err.message && !err.message.startsWith('agent request failed')
+          err instanceof Error && err.message
             ? err.message
-            : err instanceof Error
-              ? err.message
-              : 'nucky is taking a nap. try again.'
-        setStreamError(msg)
-        onError?.(msg)
+            : 'nucky is taking a nap. try again.'
+        emitError(classifyChatError(undefined, msg))
         return true
       } finally {
         inFlightRef.current = false
@@ -211,6 +197,9 @@ export function useAgentChat() {
         role: 'assistant',
         content: message,
         created_at: new Date().toISOString(),
+        kind: 'error',
+        errorKind: 'unknown',
+        retryable: true,
       },
     ]
   }, [])

@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react'
 import AuthModal from '../AuthModal'
 import NuckyAiPaywall from '../nuckyai/NuckyAiPaywall'
 import ChatWindow from '../nuckyai/ChatWindow'
@@ -27,6 +28,14 @@ export default function ChatPane({ embedded = false }: ChatPaneProps) {
   const { profile } = useProfile()
   const displayName =
     profile?.username ?? chat.profile?.username ?? undefined
+  const [composerReady, setComposerReady] = useState(false)
+
+  useEffect(() => {
+    if (chat.user && chat.isSubscribed && chat.subscriptionReady) {
+      setComposerReady(true)
+    }
+    if (!chat.user) setComposerReady(false)
+  }, [chat.user, chat.isSubscribed, chat.subscriptionReady])
 
   if (authLoading) {
     return <ChatLoading embedded={embedded} />
@@ -48,11 +57,11 @@ export default function ChatPane({ embedded = false }: ChatPaneProps) {
     )
   }
 
-  if (!chat.subscriptionReady) {
+  if (!chat.subscriptionReady && !composerReady) {
     return <ChatLoading embedded={embedded} />
   }
 
-  if (!chat.isSubscribed) {
+  if (!chat.isSubscribed && !(composerReady && !chat.subscriptionReady)) {
     return (
       <div className={`chat-pane ${embedded ? 'chat-pane-embedded' : ''}`}>
         <div className="chat-pane-gate">
@@ -78,6 +87,8 @@ export default function ChatPane({ embedded = false }: ChatPaneProps) {
       <ChatWindow
         messages={chat.messages}
         streaming={chat.streaming}
+        sending={chat.sending}
+        quotaBlocked={chat.quotaBlocked}
         onSend={chat.send}
         onRegenerate={chat.regenerate}
         onRetry={chat.regenerate}
