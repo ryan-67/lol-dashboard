@@ -49,14 +49,14 @@ Persona: **nucky** — blunt lolesports fan who knows lane states, macro, draft 
 | `TAVILY_API_KEY` | Supabase (required for web fallback) | agent-time web search (server-only, never `VITE_`) |
 | `CITO_API_KEY` | Supabase (required for Cito tier) | structured esports API fallback (server-only) |
 | `KALSHI_API_KEY` | Supabase (optional) | Kalshi trade API auth; public `/markets` + orderbook work without it |
-| `AGENT_USAGE_LIMITS` | Supabase | Default on. Set `false` to disable the 1M token/mo gate for bulk `npm run eval:nuckyai-chat` |
+| `AGENT_USAGE_LIMITS` | Supabase | Default off (testing). Set `true` to re-enable the 1M token/mo gate |
 
 ```bash
 npx supabase secrets set OPENROUTER_API_KEY=...
 npx supabase secrets set TAVILY_API_KEY=...
 npx supabase secrets set CITO_API_KEY=...
 npx supabase secrets set KALSHI_API_KEY=...   # optional — improves rate limits
-npx supabase secrets set AGENT_USAGE_LIMITS=false   # only while running bulk chat eval
+npx supabase secrets set AGENT_USAGE_LIMITS=true    # re-enable monthly quota after testing
 ```
 
 ### Offline chat eval

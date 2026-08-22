@@ -32,10 +32,10 @@ interface ChatRequestBody {
 const encoder = new TextEncoder();
 
 // Beta limits — keep in sync with src/lib/nuckyAiBilling.ts ($3.99/mo tier).
-// Set Supabase secret AGENT_USAGE_LIMITS=false for bulk `npm run eval:nuckyai-chat`.
+// Off during nuckyAI testing. Set AGENT_USAGE_LIMITS=true to re-enable the 1M token/mo gate.
 const USAGE_LIMITS_ENABLED =
-  (Deno.env.get("AGENT_USAGE_LIMITS") ?? "true") !== "false" &&
-  Deno.env.get("AGENT_USAGE_LIMITS") !== "0";
+  Deno.env.get("AGENT_USAGE_LIMITS") === "true" ||
+  Deno.env.get("AGENT_USAGE_LIMITS") === "1";
 const MONTHLY_TOKEN_LIMIT = 1_000_000;
 
 function getClientIp(req: Request): string {
