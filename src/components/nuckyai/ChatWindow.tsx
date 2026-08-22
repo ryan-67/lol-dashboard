@@ -23,6 +23,8 @@ function greetingForNow(name?: string): string {
 interface ChatWindowProps {
   messages: MessageRow[]
   streaming: boolean
+  sending?: boolean
+  quotaBlocked?: boolean
   onSend: (message: string) => boolean | void
   onRegenerate: () => void
   onRetry: () => void
@@ -34,6 +36,8 @@ interface ChatWindowProps {
 export default function ChatWindow({
   messages,
   streaming,
+  sending = false,
+  quotaBlocked = false,
   onSend,
   onRegenerate,
   onRetry,
@@ -45,12 +49,17 @@ export default function ChatWindow({
   const [draft, setDraft] = useState('')
   const draftRef = useRef(draft)
   const sendLockRef = useRef(false)
-  const showConversation = messages.length > 0 || streaming
+  const showConversation = messages.length > 0 || streaming || sending
+  const inputLocked = streaming || sending || quotaBlocked
   draftRef.current = draft
 
   useEffect(() => {
-    if (!streaming) sendLockRef.current = false
-  }, [streaming])
+    if (streaming || sending) {
+      sendLockRef.current = true
+      return
+    }
+    sendLockRef.current = false
+  }, [sending, streaming])
 
   useGSAP(
     () => {
@@ -81,7 +90,8 @@ export default function ChatWindow({
       !canAcceptChatSubmit({
         text: trimmed,
         sendLocked: sendLockRef.current,
-        streaming,
+        streaming: inputLocked,
+        quotaBlocked,
       })
     ) {
       return
@@ -102,34 +112,23 @@ export default function ChatWindow({
   }
 
   return (
-    <section className="chat-window">
+    <section className={`chat-window${showConversation ? '' : ' justify-center'}`}>
       {showConversation ? (
         <MessageList
           messages={messages}
           onRegenerate={onRegenerate}
           onRetry={onRetry}
-          isTyping={streaming}
-          streaming={streaming}
+          isTyping={streaming || sending}
+          streaming={streaming || sending}
         />
       ) : (
-        <div className="chat-empty" data-lenis-prevent ref={emptyRef}>
+        <div className="chat-empty !flex-none" data-lenis-prevent ref={emptyRef}>
           <p className="chat-empty-eyebrow chat-empty-reveal">analyst · evidence-backed</p>
           <h1 className="chat-empty-greeting chat-empty-reveal">{greetingForNow(displayName)}</h1>
           <p className="chat-empty-sub chat-empty-reveal">
             Ask about players, teams, drafts, and series lean — grounded in the same ratings and
             match evidence as the dashboard.
           </p>
-          <div className="chat-empty-input-slot chat-empty-reveal">
-            <ChatInput
-              value={draft}
-              onChange={setDraft}
-              onSend={handleSend}
-              disabled={streaming}
-              onStop={onStop}
-              focusTrigger={inputFocusTrigger}
-              floating
-            />
-          </div>
           <div className="chat-empty-prompts" role="list" aria-label="Suggested prompts">
             {PROMPTS.map((prompt) => (
               <button
@@ -152,16 +151,17 @@ export default function ChatWindow({
         </div>
       )}
 
-      {showConversation ? (
+      <div className={showConversation ? undefined : 'chat-empty-input-slot mx-auto w-full px-6 pb-10'}>
         <ChatInput
           value={draft}
           onChange={setDraft}
           onSend={handleSend}
-          disabled={streaming}
+          disabled={inputLocked}
           onStop={onStop}
           focusTrigger={inputFocusTrigger}
+          floating={!showConversation}
         />
-      ) : null}
+      </div>
     </section>
   )
 }

@@ -13,6 +13,15 @@ export interface ConversationRow {
   created_at: string
 }
 
+export type ChatErrorKind = 'quota' | 'auth' | 'forbidden' | 'server' | 'unknown'
+
+export interface AgentChatError {
+  kind: ChatErrorKind
+  message: string
+  retryable: boolean
+  code?: string
+}
+
 export interface MessageRow {
   id?: string
   role: 'user' | 'assistant' | 'system' | 'tool'
@@ -21,6 +30,10 @@ export interface MessageRow {
   retryable?: boolean
   /** True while waiting for first streamed token — shows thinking copy, hides actions */
   thinking?: boolean
+  /** Client id pairing a user prompt to the assistant turn it produced. */
+  requestId?: string
+  kind?: 'text' | 'error'
+  errorKind?: ChatErrorKind
 }
 
 export interface ChartDataset {

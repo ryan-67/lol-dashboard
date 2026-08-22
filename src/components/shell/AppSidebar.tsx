@@ -19,7 +19,11 @@ import EntitySearch from './EntitySearch'
 import ProfileMenu from './ProfileMenu'
 import SignalLoader from '../ui/SignalLoader'
 import { pathForView } from '../../lib/viewPreference'
-import { shouldShowConversationListSkeleton } from '../nuckyai/chatSessionGuards'
+import {
+  conversationHref,
+  shouldHandleConversationClick,
+  shouldShowConversationListSkeleton,
+} from '../nuckyai/chatSessionGuards'
 import type { ConversationRow } from '../nuckyai/types'
 
 type ShellMode = 'duo' | 'chat' | 'dashboard'
@@ -75,9 +79,7 @@ function MenuDotsIcon() {
 }
 
 function conversationShareUrl(id: string): string {
-  const url = new URL('/chat', window.location.origin)
-  url.searchParams.set('conversation_id', id)
-  return url.toString()
+  return new URL(conversationHref(id), window.location.origin).toString()
 }
 
 interface ConversationItemProps {
@@ -188,9 +190,17 @@ function ConversationItem({
 
   return (
     <li className={`app-sidebar-convo-row${active ? ' is-active' : ''}${menuOpen ? ' is-menu-open' : ''}`}>
-      <button type="button" className="app-sidebar-convo" onClick={onSelect}>
+      <Link
+        to={conversationHref(conversation.id)}
+        className="app-sidebar-convo"
+        onClick={(e) => {
+          if (!shouldHandleConversationClick(e)) return
+          e.preventDefault()
+          onSelect()
+        }}
+      >
         {conversation.title || 'untitled'}
-      </button>
+      </Link>
       <div className="app-sidebar-convo-menu-wrap" ref={menuOpen ? menuRef : undefined}>
         <button
           type="button"

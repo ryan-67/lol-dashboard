@@ -312,7 +312,11 @@ export default function MessageBubble({
   }
 
   const isThinking = Boolean(message.thinking)
-  const isError = Boolean(message.retryable) || /^failed to fetch/i.test(message.content.trim())
+  const isError =
+    message.kind === 'error' ||
+    Boolean(message.retryable) ||
+    /^failed to fetch/i.test(message.content.trim())
+  const isQuotaError = message.errorKind === 'quota'
   const roleLabel = isAssistant ? 'nucky' : 'you'
 
   return (
@@ -370,10 +374,12 @@ export default function MessageBubble({
                   copy
                 </button>
                 <ClipboardToast visible={copied} />
-                <button type="button" className="nuckyai-action" onClick={onRegenerate}>
-                  regenerate
-                </button>
-                {message.retryable ? (
+                {!isError ? (
+                  <button type="button" className="nuckyai-action" onClick={onRegenerate}>
+                    regenerate
+                  </button>
+                ) : null}
+                {message.retryable && !isQuotaError ? (
                   <button type="button" className="nuckyai-action" onClick={onRetry}>
                     retry
                   </button>
