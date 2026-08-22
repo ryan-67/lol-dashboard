@@ -25,9 +25,9 @@ interface ChatWindowProps {
   streaming: boolean
   sending?: boolean
   quotaBlocked?: boolean
-  onSend: (message: string) => boolean | void
+  onSend: (message: string) => boolean | 'duplicate' | void
   onRegenerate: () => void
-  onRetry: () => void
+  onRetry: (assistantIndex: number) => void
   onStop: () => void
   inputFocusTrigger?: number
   displayName?: string
@@ -49,6 +49,7 @@ export default function ChatWindow({
   const [draft, setDraft] = useState('')
   const draftRef = useRef(draft)
   const sendLockRef = useRef(false)
+  const composerQuietUntilRef = useRef(0)
   const showConversation = messages.length > 0 || streaming || sending
   const inputLocked = streaming || sending || quotaBlocked
   draftRef.current = draft
@@ -84,7 +85,8 @@ export default function ChatWindow({
     { dependencies: [showConversation], scope: emptyRef },
   )
 
-  const handleSubmitText = (text: string) => {
+  const handleSubmitText = (text: string): boolean => {
+    if (Date.now() < composerQuietUntilRef.current) return false
     const trimmed = text.trim()
     if (
       !canAcceptChatSubmit({
@@ -94,21 +96,27 @@ export default function ChatWindow({
         quotaBlocked,
       })
     ) {
-      return
+      return false
     }
     sendLockRef.current = true
     draftRef.current = ''
     setDraft('')
     const accepted = onSend(trimmed)
+    // In-flight / duplicate must not put a leftover prompt back into the composer.
     if (accepted === false) {
       sendLockRef.current = false
       draftRef.current = trimmed
       setDraft(trimmed)
+      return false
     }
+    return true
   }
 
-  const handleSend = () => {
-    handleSubmitText(draftRef.current)
+  const handleSend = () => handleSubmitText(draftRef.current)
+
+  const handleRetry = (assistantIndex: number) => {
+    composerQuietUntilRef.current = Date.now() + 500
+    onRetry(assistantIndex)
   }
 
   return (
@@ -117,7 +125,7 @@ export default function ChatWindow({
         <MessageList
           messages={messages}
           onRegenerate={onRegenerate}
-          onRetry={onRetry}
+          onRetry={handleRetry}
           isTyping={streaming || sending}
           streaming={streaming || sending}
         />

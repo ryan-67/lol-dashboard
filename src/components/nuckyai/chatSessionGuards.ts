@@ -46,6 +46,10 @@ function isEnterKey(key: string | undefined): boolean {
   return key === 'Enter' || key === 'NumpadEnter'
 }
 
+export function isFunctionKey(key: string | undefined): boolean {
+  return typeof key === 'string' && /^F(?:[1-9]|1[0-2])$/.test(key)
+}
+
 export function isComposerSendEnter(event: {
   key: string
   shiftKey: boolean
@@ -59,6 +63,69 @@ export function isComposerSendEnter(event: {
   // IME confirmation on many browsers (Windows/Chrome, Korean/JP/CN).
   if (event.keyCode === 229) return false
   return true
+}
+
+export type ChatSendResult = true | false | 'duplicate'
+
+export function isDuplicateChatSubmit(
+  last: { text: string; at: number } | null | undefined,
+  next: string,
+  now: number,
+  windowMs = 800,
+): boolean {
+  if (!last) return false
+  const text = next.trim()
+  if (!text || last.text !== text) return false
+  return now - last.at < windowMs
+}
+
+export type KeyTargetSnapshot = {
+  tagName?: string
+  isContentEditable?: boolean
+  readOnly?: boolean
+  disabled?: boolean
+}
+
+export function readKeyTarget(target: EventTarget | null | undefined): KeyTargetSnapshot | null {
+  if (!target || typeof target !== 'object') return null
+  const el = target as {
+    tagName?: string
+    isContentEditable?: boolean
+    readOnly?: boolean
+    disabled?: boolean
+  }
+  return {
+    tagName: typeof el.tagName === 'string' ? el.tagName : undefined,
+    isContentEditable: Boolean(el.isContentEditable),
+    readOnly: Boolean(el.readOnly),
+    disabled: Boolean(el.disabled),
+  }
+}
+
+export function isEditableComposerTarget(target: KeyTargetSnapshot | null | undefined): boolean {
+  if (!target) return false
+  if (target.isContentEditable) return true
+  const tag = (target.tagName ?? '').toUpperCase()
+  if (tag !== 'TEXTAREA' && tag !== 'INPUT') return false
+  return !target.readOnly && !target.disabled
+}
+
+/** Backspace outside an editable field is Firefox/legacy "go back" and can land on about:blank. */
+export function shouldBlockHistoryNavigationKey(
+  event: {
+    key: string
+    metaKey?: boolean
+    ctrlKey?: boolean
+    altKey?: boolean
+    target?: KeyTargetSnapshot | null
+  },
+  args?: { composerLocked?: boolean },
+): boolean {
+  if (event.key !== 'Backspace' && event.key !== 'Delete') return false
+  if (event.metaKey || event.ctrlKey || event.altKey) return false
+  if (args?.composerLocked) return true
+  if (event.key === 'Delete') return false
+  return !isEditableComposerTarget(event.target)
 }
 
 /**
@@ -85,11 +152,13 @@ export function composerEnterOpensNewBrowsingContext(event: {
   const linkTarget = (event.linkTarget ?? '').trim().toLowerCase()
   if (formTarget === '_blank' || formTarget === '_new') return true
   if (linkTarget === '_blank' || linkTarget === '_new') return true
-  if (composerSubmitTarget({
-    method: event.formMethod,
-    target: event.formTarget,
-    action: event.formAction,
-  }) !== 'stay') {
+  if (
+    composerSubmitTarget({
+      method: event.formMethod,
+      target: event.formTarget,
+      action: event.formAction,
+    }) !== 'stay'
+  ) {
     return true
   }
   return false
@@ -163,6 +232,46 @@ export function shouldHandleConversationClick(event: {
   if ((event.button ?? 0) !== 0) return false
   if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return false
   return true
+}
+
+export function chatDocumentHref(conversationId?: string | null): string {
+  if (conversationId && !isAuxiliaryBlankHref(conversationId)) {
+    return conversationHref(conversationId)
+  }
+  return '/chat'
+}
+
+export function shouldRestoreChatDocument(args: {
+  pathname: string
+  href: string
+  sendInFlight: boolean
+}): boolean {
+  if (!args.sendInFlight) return false
+  if (isAuxiliaryBlankHref(args.href)) return true
+  return args.pathname !== '/chat'
+}
+
+/** RETRY must resend the user prompt paired to that assistant error, not a later draft. */
+export function userPromptBeforeAssistant(
+  messages: MessageRow[],
+  assistantIndex: number,
+): string | null {
+  if (assistantIndex < 0 || assistantIndex >= messages.length) return null
+  const assistant = messages[assistantIndex]
+  if (!assistant || assistant.role !== 'assistant') return null
+  if (assistant.errorKind === 'quota') return null
+  if (assistant.requestId) {
+    const paired = messages.find(
+      (message) => message.role === 'user' && message.requestId === assistant.requestId,
+    )
+    if (paired?.content?.trim()) return paired.content
+  }
+  for (let i = assistantIndex - 1; i >= 0; i -= 1) {
+    if (messages[i]?.role === 'user' && messages[i].content.trim()) {
+      return messages[i].content
+    }
+  }
+  return null
 }
 
 const QUOTA_TEXT = /usage limit|quota_exceeded|monthly usage limit/i
@@ -362,7 +471,9 @@ export function applyStreamError(
 
 const EMPTY_STREAM_MESSAGE = "couldn't get a response — try again."
 
-export function assistantHasVisibleText(message: Pick<MessageRow, 'content' | 'thinking' | 'kind'>): boolean {
+export function assistantHasVisibleText(
+  message: Pick<MessageRow, 'content' | 'thinking' | 'kind'>,
+): boolean {
   if (message.thinking) return true
   return Boolean(message.content?.trim())
 }

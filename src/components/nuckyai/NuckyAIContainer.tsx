@@ -21,9 +21,13 @@ import {
   createChatRequestId,
   hydrateLoadedMessages,
   isAuxiliaryBlankHref,
+  isDuplicateChatSubmit,
   shouldFlipSubscriptionReadyOff,
   shouldReloadConversationMessages,
+  userPromptBeforeAssistant,
+  type ChatSendResult,
 } from './chatSessionGuards'
+import { useChatDocumentStay } from './useChatDocumentStay'
 import type { ConversationRow, MessageRow, ProfileRow } from './types'
 
 export default function NuckyAIContainer() {
@@ -54,11 +58,18 @@ export default function NuckyAIContainer() {
   const [inputFocusTrigger, setInputFocusTrigger] = useState(0)
   const [sending, setSending] = useState(false)
   const [quotaBlocked, setQuotaBlocked] = useState(false)
+  const lastSubmitRef = useRef<{ text: string; at: number } | null>(null)
   const { streaming, sendMessage, stop: stopStream } = useAgentChat()
 
   searchParamsRef.current = searchParams
   activeConversationIdRef.current = activeConversationId
   messagesRef.current = messages
+
+  useChatDocumentStay({
+    active: true,
+    sendInFlight: sending || streaming,
+    conversationId: activeConversationId,
+  })
 
   useGSAP(() => {
     scrollEntrance(document.querySelector('.nuckyai-shell'))
@@ -247,8 +258,16 @@ export default function NuckyAIContainer() {
   }, [])
 
   const streamAssistant = useCallback(
-    (message: string, options?: { skipUserAppend?: boolean }): boolean => {
+    (message: string, options?: { skipUserAppend?: boolean }): ChatSendResult => {
       if (isAuxiliaryBlankHref(window.location.href)) return false
+      const displayMessage = message.trim()
+      if (sendLockRef.current) return 'duplicate'
+      if (
+        !options?.skipUserAppend &&
+        isDuplicateChatSubmit(lastSubmitRef.current, displayMessage, Date.now())
+      ) {
+        return 'duplicate'
+      }
       if (
         !canAcceptChatSubmit({
           text: message,
@@ -261,8 +280,8 @@ export default function NuckyAIContainer() {
       }
 
       const now = new Date().toISOString()
-      const displayMessage = message.trim()
       const requestId = createChatRequestId()
+      lastSubmitRef.current = { text: displayMessage, at: Date.now() }
       sendLockRef.current = true
       pendingSendRef.current = true
       activeRequestIdRef.current = requestId
@@ -321,6 +340,16 @@ export default function NuckyAIContainer() {
     if (!lastUser?.content) return
     streamAssistant(lastUser.content, { skipUserAppend: true })
   }, [messages, quotaBlocked, streamAssistant])
+
+  const retryTurn = useCallback(
+    (assistantIndex: number) => {
+      if (quotaBlocked) return
+      const prompt = userPromptBeforeAssistant(messages, assistantIndex)
+      if (!prompt) return
+      streamAssistant(prompt, { skipUserAppend: true })
+    },
+    [messages, quotaBlocked, streamAssistant],
+  )
 
   const beginNewChat = useCallback(() => {
     if (pendingSendRef.current) stopStream()
@@ -485,7 +514,7 @@ export default function NuckyAIContainer() {
           quotaBlocked={quotaBlocked}
           onSend={send}
           onRegenerate={regenerate}
-          onRetry={regenerate}
+          onRetry={retryTurn}
           onStop={stopStream}
           inputFocusTrigger={inputFocusTrigger}
         />
