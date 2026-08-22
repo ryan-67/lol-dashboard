@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type FormEvent, type KeyboardEvent } from 'react'
+import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react'
 import { useDashboard } from '../../context/DashboardContext'
 import {
   buildEntitySearchIndex,
@@ -6,7 +6,7 @@ import {
   type EntitySearchEntry,
 } from '../../lib/entities/searchIndex'
 import ChampionIcon from '../entities/ChampionIcon'
-import { composerFormAttrs, isComposerSendEnter } from './chatSessionGuards'
+import { isComposerSendEnter } from './chatSessionGuards'
 
 interface ChatInputProps {
   value: string
@@ -90,12 +90,6 @@ export default function ChatInput({
     requestAnimationFrame(() => ref.current?.focus())
   }
 
-  const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
-    e.preventDefault()
-    e.stopPropagation()
-    handleSendOrPick()
-  }
-
   const handleComposerKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
     if (showTypeahead && results.length) {
       if (e.key === 'ArrowDown') {
@@ -142,15 +136,8 @@ export default function ChatInput({
     onChange(next)
   }
 
-  const formAttrs = composerFormAttrs()
-
   return (
-    <form
-      className={`chat-input-wrap${floating ? ' chat-input-floating' : ''}`}
-      method={formAttrs.method}
-      target={formAttrs.target}
-      onSubmit={handleSubmit}
-    >
+    <div className={`chat-input-wrap${floating ? ' chat-input-floating' : ''}`}>
       {disabled && onStop ? (
         <div className="chat-input-stop-row">
           <button
@@ -202,15 +189,16 @@ export default function ChatInput({
             enter to send
           </span>
           <button
-            type="submit"
+            type="button"
             className="chat-input-send"
             disabled={disabled || !value.trim()}
+            onClick={handleSendOrPick}
             aria-label="Send message"
           >
             ↑
           </button>
         </div>
       </div>
-    </form>
+    </div>
   )
 }

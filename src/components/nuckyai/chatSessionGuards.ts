@@ -85,15 +85,36 @@ export function composerEnterOpensNewBrowsingContext(event: {
   const linkTarget = (event.linkTarget ?? '').trim().toLowerCase()
   if (formTarget === '_blank' || formTarget === '_new') return true
   if (linkTarget === '_blank' || linkTarget === '_new') return true
-  const method = (event.formMethod ?? '').trim().toLowerCase()
-  const action = (event.formAction ?? '').trim()
-  if (method === 'get' && action) return true
+  if (composerSubmitTarget({
+    method: event.formMethod,
+    target: event.formTarget,
+    action: event.formAction,
+  }) !== 'stay') {
+    return true
+  }
   return false
 }
 
-/** Attributes the composer form must use so submit cannot spawn /chat. */
-export function composerFormAttrs(): { method: 'dialog'; target: '_self'; action: undefined } {
-  return { method: 'dialog', target: '_self', action: undefined }
+/**
+ * A composer <form> is unsafe: method=dialog blanks this tab (about:blank),
+ * GET /chat or target=_blank forks a second document.
+ */
+export function composerSubmitTarget(attrs: {
+  method?: string | null
+  target?: string | null
+  action?: string | null
+}): 'stay' | 'new-tab' | 'about:blank' {
+  const method = (attrs.method ?? '').trim().toLowerCase()
+  const target = (attrs.target ?? '').trim().toLowerCase()
+  if (target === '_blank' || target === '_new') return 'new-tab'
+  if (method === 'dialog') return 'about:blank'
+  if (attrs.action != null && isAuxiliaryBlankHref(attrs.action)) return 'about:blank'
+  if (method === 'get' && (attrs.action ?? '').trim()) return 'new-tab'
+  return 'stay'
+}
+
+export function composerUsesDocumentForm(): boolean {
+  return false
 }
 
 /** New tab only for cmd/ctrl/middle mouse. Keyboard Enter never opens a second /chat. */
@@ -301,7 +322,7 @@ export function applyStreamChunk(
   requestId: string,
   chunk: string,
 ): MessageRow[] {
-  if (!chunk || !requestId) return messages
+  if (!chunk.trim() || !requestId) return messages
   const { next, found } = mapAssistantByRequest(messages, requestId, (message) => ({
     ...message,
     thinking: false,
@@ -339,24 +360,47 @@ export function applyStreamError(
   ]
 }
 
+const EMPTY_STREAM_MESSAGE = "couldn't get a response — try again."
+
+export function assistantHasVisibleText(message: Pick<MessageRow, 'content' | 'thinking' | 'kind'>): boolean {
+  if (message.thinking) return true
+  return Boolean(message.content?.trim())
+}
+
 export function applyStreamDone(
   messages: MessageRow[],
   requestId: string,
   receivedChunk: boolean,
 ): MessageRow[] {
-  if (receivedChunk) return messages
   const { next, found } = mapAssistantByRequest(messages, requestId, (message) => {
-    if (!message.thinking) return message
+    if (receivedChunk && assistantHasVisibleText(message) && !message.thinking) {
+      return message
+    }
     return {
       ...message,
       thinking: false,
       kind: 'error',
       errorKind: 'unknown' as ChatErrorKind,
       retryable: true,
-      content: "couldn't get a response — try again.",
+      content: EMPTY_STREAM_MESSAGE,
     }
   })
   return found ? next : messages
+}
+
+/** DB rows with an empty assistant body become a retryable error, not a blank NUCKY bubble. */
+export function hydrateLoadedMessages(rows: MessageRow[]): MessageRow[] {
+  return rows.map((message) => {
+    if (message.role !== 'assistant' || assistantHasVisibleText(message)) return message
+    return {
+      ...message,
+      thinking: false,
+      kind: 'error',
+      errorKind: 'unknown' as ChatErrorKind,
+      retryable: true,
+      content: EMPTY_STREAM_MESSAGE,
+    }
+  })
 }
 
 export function messageListKey(message: MessageRow, idx: number): string {

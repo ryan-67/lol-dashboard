@@ -19,6 +19,7 @@ import {
   applyStreamError,
   canAcceptChatSubmit,
   createChatRequestId,
+  hydrateLoadedMessages,
   isAuxiliaryBlankHref,
   shouldFlipSubscriptionReadyOff,
   shouldReloadConversationMessages,
@@ -65,6 +66,7 @@ export default function NuckyAIContainer() {
 
   const applyConversationId = useCallback(
     (conversationId: string | null) => {
+      if (conversationId && isAuxiliaryBlankHref(conversationId)) return
       const next = new URLSearchParams(searchParamsRef.current)
       if (conversationId) next.set('conversation_id', conversationId)
       else next.delete('conversation_id')
@@ -124,7 +126,7 @@ export default function NuckyAIContainer() {
         return
       }
 
-      setMessages((data as MessageRow[] | null) ?? [])
+      setMessages(hydrateLoadedMessages((data as MessageRow[] | null) ?? []))
     },
     [userId],
   )
@@ -287,6 +289,7 @@ export default function NuckyAIContainer() {
           applyConversationId(conversationId)
         },
         onChunk: (chunk) => {
+          if (!chunk.trim()) return
           receivedChunk = true
           setMessages((prev) => applyStreamChunk(prev, requestId, chunk))
         },

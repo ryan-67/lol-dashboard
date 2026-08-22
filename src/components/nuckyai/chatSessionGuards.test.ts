@@ -8,8 +8,10 @@ import {
   canAcceptChatSubmit,
   classifyChatError,
   composerEnterOpensNewBrowsingContext,
-  composerFormAttrs,
+  composerSubmitTarget,
+  composerUsesDocumentForm,
   conversationHref,
+  hydrateLoadedMessages,
   interpretAgentSseData,
   isAuxiliaryBlankHref,
   isComposerSendEnter,
@@ -96,18 +98,10 @@ describe('nuckyAI session guards', () => {
   })
 
   it('Enter does not open a new browsing context', () => {
-    const form = composerFormAttrs()
-    assert.equal(form.method, 'dialog')
-    assert.equal(form.target, '_self')
-    assert.equal(form.action, undefined)
+    assert.equal(composerUsesDocumentForm(), false)
+    assert.equal(composerSubmitTarget({}), 'stay')
     assert.equal(
-      composerEnterOpensNewBrowsingContext({
-        key: 'Enter',
-        shiftKey: false,
-        formMethod: form.method,
-        formTarget: form.target,
-        formAction: form.action,
-      }),
+      composerEnterOpensNewBrowsingContext({ key: 'Enter', shiftKey: false }),
       false,
     )
     assert.equal(
@@ -134,6 +128,22 @@ describe('nuckyAI session guards', () => {
     assert.equal(shouldOpenConversationInNewBrowsingContext({ button: 0, ctrlKey: true }), true)
     assert.equal(shouldOpenConversationInNewBrowsingContext({ button: 1 }), true)
     assert.equal(shouldHandleConversationClick({ key: 'Enter', button: 0 }), true)
+  })
+
+  it('does not navigate this tab to about:blank', () => {
+    assert.equal(composerSubmitTarget({ method: 'dialog' }), 'about:blank')
+    assert.equal(composerSubmitTarget({ action: '' }), 'about:blank')
+    assert.equal(composerSubmitTarget({ action: 'about:blank' }), 'about:blank')
+    assert.equal(
+      composerEnterOpensNewBrowsingContext({
+        key: 'Enter',
+        shiftKey: false,
+        formMethod: 'dialog',
+      }),
+      true,
+    )
+    assert.equal(isAuxiliaryBlankHref('about:blank'), true)
+    assert.equal(isAuxiliaryBlankHref('/chat?conversation_id=8b38946c'), false)
   })
 
   it('pairs streamed chunks to the request that produced them', () => {
@@ -240,6 +250,29 @@ describe('nuckyAI session guards', () => {
     assert.equal(assistant?.thinking, false)
     assert.equal(assistant?.kind, 'error')
     assert.equal(assistant?.retryable, true)
+  })
+
+  it('does not render an empty NUCKY bubble when the stream has no text', () => {
+    let messages = appendPendingTurn([], {
+      requestId: 'req-blank',
+      text: 'hey',
+      thinking: 'looking…',
+      createdAt: 't1',
+    })
+    messages = applyStreamChunk(messages, 'req-blank', '   ')
+    messages = applyStreamDone(messages, 'req-blank', true)
+    const assistant = messages.find((m) => m.requestId === 'req-blank' && m.role === 'assistant')
+    assert.equal(assistant?.thinking, false)
+    assert.equal(assistant?.kind, 'error')
+    assert.equal(assistant?.retryable, true)
+    assert.match(assistant?.content ?? '', /try again/i)
+
+    const hydrated = hydrateLoadedMessages([
+      { role: 'user', content: 'hey', created_at: 't1' },
+      { role: 'assistant', content: '', created_at: 't2' },
+    ])
+    assert.equal(hydrated[1]?.kind, 'error')
+    assert.match(hydrated[1]?.content ?? '', /try again/i)
   })
 
   it('keeps conversation links on /chat instead of about:blank', () => {
