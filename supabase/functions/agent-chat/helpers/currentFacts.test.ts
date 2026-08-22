@@ -12,21 +12,30 @@ import {
   lookupWorldsHistory,
 } from "./worldsHistory.ts";
 import {
+  dropSeriesNotInWarehouse,
   formatWeeklyWarehouseBlock,
   hasSeriesEvidence,
   isDatedMatchupRecap,
   isWeeklyLeagueRecapQuestion,
   keyLaneMatchups,
   lastMeetingFromWarehouse,
+  overlayWarehouseSeasonRecords,
   parseAskedDate,
   pickWarehouseSeries,
   rowsInWeek,
   seasonH2hFromWarehouse,
   seasonRecordsFromWarehouse,
   shouldDrawCompareChart,
+  weekContainsPair,
   type WarehouseSeriesRow,
 } from "./warehouseFacts.ts";
-import { extractTeams } from "./analystTools.ts";
+import { extractTeams, runWarehouseSeriesRecap } from "./analystTools.ts";
+import {
+  gengLckTitleFact,
+  isTeamLckTitleQuestion,
+  lookupTeamLckTitles,
+  staleGengYearListCannotVeto,
+} from "./teamTitles.ts";
 import { hasSufficientKnowledge } from "./knowledgeCoverage.ts";
 import {
   careerFactKey,
@@ -336,30 +345,83 @@ Deno.test("career fact_hash is stable across splits so upsert replaces the stale
   assert(a !== other, "different entity is a different key");
 });
 
-Deno.test("GEN LCK titles and MSI 2026 HLE champ verify from one wiki page", () => {
+Deno.test("GEN LCK titles are 5 modern season titles, not KOO/SSG 2017–2020", () => {
   const genAsk = "How many LCK titles has GEN won?";
-  const genFacts = extractCareerFactsFromWiki([
-    {
-      title: "Gen.G",
-      url: "https://lol.fandom.com/wiki/Gen.G",
-      content:
-        "Gen.G has won 8 LCK titles (2016, 2017, 2022, 2023, 2024, 2025). The organization is the most decorated LCK champion.",
-      score: 1,
-    },
-  ], genAsk);
+  assert(isTeamLckTitleQuestion(genAsk), "GEN LCK titles hit the curated table");
+  const table = lookupTeamLckTitles(genAsk);
+  assert(table, "curated GEN table answers");
+  assertEquals(table!.tool, "team_lck_titles", "team_lck_titles tool");
+  assertEquals(table!.data.lckTitles as number, 5, "five modern season titles");
+  const labels = (table!.data.titles as Array<{ label: string; labelLong: string }>)
+    .map((t) => t.label);
+  assert(labels.includes("2022 Sum"), "2022 Sum");
+  assert(labels.includes("2023 Spr"), "2023 Spr");
+  assert(labels.includes("2023 Sum"), "2023 Sum");
+  assert(labels.includes("2024 Spr"), "2024 Spr");
+  assert(labels.includes("2025"), "2025");
+  assert(
+    labels.every((l) => !/\b2017\b|\b2018\b|\b2020\b/.test(l)),
+    "no 2017/2018/2020 KOO/SSG-era years",
+  );
+
+  const wikiSnippet = {
+    title: "Gen.G",
+    url: "https://lol.fandom.com/wiki/Gen.G",
+    content:
+      "Predecessor KOO Tigers / Samsung Galaxy / SSG: 2017 Summer, 2018 Summer, 2020 Summer. " +
+      "Modern Gen.G LCK season titles: 2022 Summer, 2023 Spring, 2023 Summer, 2024 Spring, 2025 (5 titles). " +
+      "LCK Cup 2026 is a separate cup.",
+    score: 1,
+  };
+  const genFacts = extractCareerFactsFromWiki([wikiSnippet], genAsk);
   assert(genFacts.length >= 1, "wiki yields a GEN title fact");
-  const genVerified = verifyFact(genFacts[0]!, [
-    {
-      title: "Gen.G",
-      url: "https://lol.fandom.com/wiki/Gen.G",
-      content:
-        "Gen.G has won 8 LCK titles (2016, 2017, 2022, 2023, 2024, 2025). The organization is the most decorated LCK champion.",
-      score: 1,
-    },
-  ]);
-  assert(genVerified.verified, "one Leaguepedia page verifies GEN titles");
+  const blob = genFacts.map((f) => f.fact).join(" ");
+  assert(/2022/.test(blob) && /Summer/.test(blob), "2022 Summer");
+  assert(/2023/.test(blob) && /Spring/.test(blob) && /Summer/.test(blob), "both 2023s");
+  assert(/2024/.test(blob) && /Spring/.test(blob), "2024 Spring");
+  assert(/2025/.test(blob), "2025");
+  assert(!/\b2017\b/.test(blob) && !/\b2018\b/.test(blob) && !/\b2020\b/.test(blob), "no predecessor years");
+  assert(!/cup 2026/i.test(blob) || /separate/i.test(blob), "Cup 2026 is not a 6th season title");
+
+  const genVerified = verifyFact(genFacts[0]!, [wikiSnippet]);
+  assert(genVerified.verified, "one Leaguepedia page verifies modern GEN titles");
   assert(!/not in WORLD_CONTEXT/i.test(genVerified.fact), "fact is the wiki sentence");
 
+  const stale =
+    "Gen.G has won 6 LCK titles (2017 Summer, 2018 Summer, 2020 Summer, 2022 Summer, 2024 Spring, 2025 Summer)";
+  assert(staleGengYearListCannotVeto(gengLckTitleFact(), stale), "stale 6 cannot veto modern 5");
+  assert(staleTitleChunkCannotVeto(gengLckTitleFact(), stale), "stale year list cannot veto");
+
+  const staleChunk: RagFactChunk = {
+    content: stale,
+    source: "web_verified",
+    title: "Gen.G",
+    entity_id: "geng",
+    metadata: { kind: "career", written_at: "2024-01-01T00:00:00.000Z" },
+  };
+  const freshChunk: RagFactChunk = {
+    content: gengLckTitleFact(),
+    source: "web_verified",
+    title: "Gen.G",
+    entity_id: "geng",
+    metadata: { kind: "career", written_at: "2026-08-21T00:00:00.000Z" },
+  };
+  const won = selectWinningRagChunks([staleChunk, freshChunk]);
+  assertEquals(won.length, 1, "one GEN career fact");
+  assert(/5/.test(won[0]!.content) && /2023/.test(won[0]!.content), "winner is modern 5");
+  assert(!gengPredecessorIn(won[0]!.content), "winner has no 2017/2018/2020");
+
+  const afterTools = dropChunksContradictingTools([staleChunk, freshChunk], {
+    tools: [{ tool: "team_lck_titles", lckTitles: 5, years: [2022, 2023, 2023, 2024, 2025] }],
+  });
+  assert(afterTools.every((c) => !/\b2017\b/.test(c.content)), "tool 5-title drops KOO/SSG list");
+});
+
+function gengPredecessorIn(text: string): boolean {
+  return /\b2017\b/.test(text) || /\b2018\b/.test(text) || /\b2020\b/.test(text);
+}
+
+Deno.test("MSI 2026 HLE champ verifies from one wiki page", () => {
   const msiAsk = "Who won MSI 2026?";
   const msiFacts = extractCareerFactsFromWiki([
     {
@@ -442,4 +504,96 @@ Deno.test("weekly warehouse block keeps real opponents and standings", () => {
   assert(!/challenger/i.test(teams), "no academy");
   assert(Array.isArray(block.standings) && (block.standings as unknown[]).length > 0, "standings attached");
   assert(teams.includes("Gen.G") && teams.includes("KT Rolster"), "GEN vs KT present");
+});
+
+Deno.test("weekly recap does not invent HLE vs FearX Aug 19", () => {
+  const { completed, upcoming } = rowsInWeek(QA_WAREHOUSE, WEEK_NOW, "LCK");
+  assert(
+    !weekContainsPair(completed, upcoming, "Hanwha Life Esports", "FearX", "2026-08-19"),
+    "warehouse week has no HLE vs FearX on Aug 19",
+  );
+  const leftoverOe = {
+    teamA: "Hanwha Life Esports",
+    teamB: "FearX",
+    scoreA: 0,
+    scoreB: 2,
+    winner: "FearX",
+    loser: "Hanwha Life Esports",
+    score: "0-2",
+    date: "2026-08-19",
+    league: "LCK",
+    status: "completed" as const,
+  };
+  const emitted = dropSeriesNotInWarehouse([...completed, leftoverOe], QA_WAREHOUSE);
+  assert(
+    !emitted.some((s) =>
+      s.date === "2026-08-19" &&
+      /hanwha/i.test(`${s.teamA} ${s.teamB}`) &&
+      /fearx/i.test(`${s.teamA} ${s.teamB}`)
+    ),
+    "leftover OE HLE 0-2 FearX is not emitted",
+  );
+  const block = formatWeeklyWarehouseBlock(emitted, upcoming, "LCK");
+  const blob = JSON.stringify(block.completed);
+  assert(
+    !emitted.some((s) => /hanwha/i.test(s.teamA + s.teamB) && /fearx/i.test(s.teamA + s.teamB)),
+    "week block has no invented HLE-FearX",
+  );
+  assert(!/HLE 0-2 FearX|FearX 2-0 Hanwha/i.test(blob), "no leftover HLE-FearX scoreline");
+  assert(
+    JSON.stringify(block.note).includes("FAIL-CLOSED") ||
+      JSON.stringify(block.note).includes("not listed"),
+    "fail-closed note present",
+  );
+});
+
+/** Pad 2026 LCK so T1 is 17-8 and KT is 15-11 series (QA fixture alone is leftover 3-3). */
+function seasonWarehouse(): WarehouseSeriesRow[] {
+  const extra: WarehouseSeriesRow[] = [];
+  for (let i = 1; i <= 14; i++) {
+    extra.push(row(`2026-03-${String(i).padStart(2, "0")}`, "T1", "DRX", 2, 0));
+  }
+  for (let i = 1; i <= 5; i++) {
+    extra.push(row(`2026-02-${String(i).padStart(2, "0")}`, "DRX", "T1", 2, 0));
+  }
+  for (let i = 1; i <= 15; i++) {
+    extra.push(row(`2026-04-${String(i).padStart(2, "0")}`, "KT Rolster", "Nongshim RedForce", 2, 0));
+  }
+  for (let i = 1; i <= 9; i++) {
+    extra.push(row(`2026-05-${String(i).padStart(2, "0")}`, "Nongshim RedForce", "KT Rolster", 2, 0));
+  }
+  return [...QA_WAREHOUSE, ...extra];
+}
+
+Deno.test("dated T1–KT recap uses warehouse series W/L, not leftover OE 3-3 / 1-6", () => {
+  const leftoverOe = [
+    { team: "T1", seriesWins: 3, seriesLosses: 3, gameWins: 8, gameLosses: 8 },
+    { team: "KT Rolster", seriesWins: 1, seriesLosses: 6, gameWins: 4, gameLosses: 14 },
+  ];
+  const warehouse = [
+    { team: "T1", seriesWins: 17, seriesLosses: 8, gameWins: 40, gameLosses: 22 },
+    { team: "KT Rolster", seriesWins: 15, seriesLosses: 11, gameWins: 38, gameLosses: 30 },
+  ];
+  const overlaid = overlayWarehouseSeasonRecords(
+    { teamA: "T1", teamB: "KT Rolster", seriesScore: "2-1", date: "2026-08-21", note: "series" },
+    warehouse,
+    leftoverOe,
+  );
+  const records = overlaid.seasonRecords as Array<{ team: string; series: string }>;
+  assert(records.some((r) => r.team === "T1" && r.series === "17-8"), "T1 warehouse 17-8");
+  assert(records.some((r) => r.team === "KT Rolster" && r.series === "15-11"), "KT warehouse 15-11");
+  assert(
+    records.every((r) => r.series !== "3-3" && r.series !== "1-6"),
+    "leftover OE 3-3 / 1-6 must not attach",
+  );
+
+  const recap = runWarehouseSeriesRecap("T1 vs KT Aug 21", seasonWarehouse(), [], WEEK_NOW);
+  assert(recap, "warehouse series recap fires");
+  assertEquals((recap!.data.seriesScore as string), "2-1", "score 2-1 stays");
+  const attached = recap!.data.seasonRecords as Array<{ team: string; series: string }>;
+  const t1 = attached.find((r) => r.team === "T1");
+  const kt = attached.find((r) => r.team === "KT Rolster");
+  assert(t1 && t1.series === "17-8", `T1 series W/L is 17-8, got ${t1?.series}`);
+  assert(kt && kt.series === "15-11", `KT series W/L is 15-11, got ${kt?.series}`);
+  assert(/17-8/.test(String(recap!.data.note)) || /warehouse/.test(String(recap!.data.note)), "note cites warehouse W/L");
 });

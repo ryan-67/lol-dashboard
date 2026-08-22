@@ -102,17 +102,49 @@ function titleRichness(chunk: RagFactChunk): number {
   return years.length * 10 + count;
 }
 
+function isGengLckChunk(chunk: RagFactChunk): boolean {
+  const blob = `${chunk.content} ${chunk.title ?? ""} ${chunk.entity_id ?? ""}`;
+  return /gen\.?g|\bgeng\b/i.test(blob) && /\blck\b/i.test(blob);
+}
+
+function gengPredecessorHit(text: string): boolean {
+  return /\b2017\b/.test(text) || /\b2018\b/.test(text) || /\b2020\b/.test(text);
+}
+
+function gengHasBoth2023s(text: string): boolean {
+  return /2023/.test(text) && /spring/i.test(text) && /summer/i.test(text);
+}
+
 /** Newer / richer verified career fact wins. Stale "4 titles" cannot veto 6. */
 export function compareCareerChunks(a: RagFactChunk, b: RagFactChunk): number {
   const yearsA = extractTitleYears(a.content);
   const yearsB = extractTitleYears(b.content);
+  // Modern Gen.G LCK: a KOO/SSG year-list cannot beat the 5-title 2022–2025 set
+  // even when the stale list has a higher raw count.
+  if (isGengLckChunk(a) && isGengLckChunk(b)) {
+    const predA = gengPredecessorHit(a.content);
+    const predB = gengPredecessorHit(b.content);
+    if (predA !== predB) return predA ? 1 : -1;
+    const both2023A = gengHasBoth2023s(a.content);
+    const both2023B = gengHasBoth2023s(b.content);
+    if (both2023A !== both2023B) return both2023A ? -1 : 1;
+  }
+
   const has2024or2025A = yearsA.includes(2024) || yearsA.includes(2025);
   const has2024or2025B = yearsB.includes(2024) || yearsB.includes(2025);
   if (has2024or2025A !== has2024or2025B) return has2024or2025A ? -1 : 1;
 
   const countA = extractTitleCount(a.content) ?? 0;
   const countB = extractTitleCount(b.content) ?? 0;
-  if (countA !== countB) return countB - countA;
+  if (countA !== countB) {
+    if (isGengLckChunk(a) || isGengLckChunk(b)) {
+      // Higher count that includes 2017–2020 is the stale list — do not prefer it.
+      if (gengPredecessorHit(a.content) !== gengPredecessorHit(b.content)) {
+        return gengPredecessorHit(a.content) ? 1 : -1;
+      }
+    }
+    return countB - countA;
+  }
 
   const rich = titleRichness(b) - titleRichness(a);
   if (rich) return rich;
@@ -183,7 +215,12 @@ export function isStaleRelativeToWinners(
       /\b4\b/.test(text) &&
       /\b(titles?|championships?|worlds?)\b/.test(text) &&
       (winCount ?? 0) >= 6;
-    if (staleCount || missingRecent || fourTitlesVeto) return true;
+    const gengKooVeto =
+      /gen\.?g|\bgeng\b/i.test(`${chunk.content} ${chunk.title ?? ""} ${entity}`) &&
+      /\blck\b/i.test(winner.content) &&
+      gengPredecessorHit(chunk.content) &&
+      (gengHasBoth2023s(winner.content) || (winCount ?? 0) === 5);
+    if (staleCount || missingRecent || fourTitlesVeto || gengKooVeto) return true;
   }
   return false;
 }
@@ -198,6 +235,13 @@ export function hasFreshCareerFact(
   if (!winner) return false;
   const years = extractTitleYears(winner.content);
   const count = extractTitleCount(winner.content) ?? 0;
+  // A GEN LCK list that still credits 2017–2020 is not fresh — look up again.
+  if (
+    /geng|gen\.?g/i.test(entityId) &&
+    gengPredecessorHit(winner.content)
+  ) {
+    return false;
+  }
   return years.includes(2024) || years.includes(2025) || count >= 5;
 }
 
@@ -212,13 +256,24 @@ export function dropChunksContradictingTools(
     /"worldsTitles":\s*6/.test(blob) &&
     /2024/.test(blob) &&
     /2025/.test(blob);
-  if (!faker6) return chunks;
+  const geng5 = /team_lck_titles/.test(blob) &&
+    /"lckTitles":\s*5/.test(blob) &&
+    /2023/.test(blob);
+  if (!faker6 && !geng5) return chunks;
   return chunks.filter((c) => {
-    if (!/faker/i.test(`${c.content} ${c.title ?? ""}`)) return true;
-    const years = extractTitleYears(c.content);
-    const count = extractTitleCount(c.content);
-    if (count != null && count <= 4) return false;
-    if (years.length && !years.includes(2024) && !years.includes(2025)) return false;
+    if (faker6 && /faker/i.test(`${c.content} ${c.title ?? ""}`)) {
+      const years = extractTitleYears(c.content);
+      const count = extractTitleCount(c.content);
+      if (count != null && count <= 4) return false;
+      if (years.length && !years.includes(2024) && !years.includes(2025)) return false;
+    }
+    if (
+      geng5 &&
+      /gen\.?g|\bgeng\b/i.test(`${c.content} ${c.title ?? ""}`) &&
+      gengPredecessorHit(c.content)
+    ) {
+      return false;
+    }
     return true;
   });
 }
@@ -230,6 +285,15 @@ export function staleTitleChunkCannotVeto(winnerText: string, staleText: string)
   const staleYears = extractTitleYears(staleText);
   if (winYears.includes(2024) && winYears.includes(2025) && winCount >= 6) {
     return staleCount <= 4 || (!staleYears.includes(2024) && !staleYears.includes(2025));
+  }
+  // GEN LCK: stale 6-title 2017/18/20 list cannot veto modern 5 with both 2023s.
+  if (
+    /gen\.?g/i.test(winnerText) &&
+    /\blck\b/i.test(winnerText) &&
+    (gengHasBoth2023s(winnerText) || winCount === 5) &&
+    (gengPredecessorHit(staleText) || !staleYears.includes(2023))
+  ) {
+    return true;
   }
   return winCount > staleCount;
 }

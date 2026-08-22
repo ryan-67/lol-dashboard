@@ -65,6 +65,9 @@ export function hasSufficientKnowledge(input: CoverageInput): boolean {
   const intent = input.webSearchIntent;
   const statsBlob = JSON.stringify(input.matchStats);
   if (/player_worlds_titles/.test(statsBlob)) return true;
+  if (/"tool":"team_lck_titles"/.test(statsBlob) && /"lckTitles":\s*5/.test(statsBlob)) {
+    return true;
+  }
   if (/"tool":"weekly_warehouse_recap"/.test(statsBlob) && /"completed":\s*\[\{/.test(statsBlob)) {
     return true;
   }

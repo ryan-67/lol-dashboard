@@ -28,9 +28,11 @@ import {
 } from "./teamIdentity.ts";
 import { fetchWarehouseRows } from "./warehouseFetch.ts";
 import {
+  dropSeriesNotInWarehouse,
   formatWeeklyWarehouseBlock,
   isWeeklyLeagueRecapQuestion,
   lastMeetingFromWarehouse,
+  overlayWarehouseSeasonRecords,
   pickWarehouseSeries,
   rowsInWeek,
   seasonH2hFromWarehouse,
@@ -1340,12 +1342,14 @@ export function runWeeklyWarehouseRecap(
     (league !== "All Tier 1" ? league : undefined);
   const now = clientNow ?? new Date().toISOString();
   const { completed, upcoming } = rowsInWeek(rows, now, leagueFilter);
-  if (!completed.length && !upcoming.length) return null;
+  const weekCompleted = dropSeriesNotInWarehouse(completed, rows);
+  const weekUpcoming = dropSeriesNotInWarehouse(upcoming, rows);
+  if (!weekCompleted.length && !weekUpcoming.length) return null;
   const year = Number(now.slice(0, 4));
   const standings = seasonRecordsFromWarehouse(rows, year, leagueFilter);
   return {
     tool: "weekly_warehouse_recap",
-    data: formatWeeklyWarehouseBlock(completed, upcoming, leagueFilter ?? league, standings),
+    data: formatWeeklyWarehouseBlock(weekCompleted, weekUpcoming, leagueFilter ?? league, standings),
   };
 }
 
@@ -1380,9 +1384,11 @@ export function runWarehouseSeriesRecap(
   const scoreFromA = teamsAreSame(hit.teamA, a.name)
     ? `${hit.scoreA}-${hit.scoreB}`
     : `${hit.scoreB}-${hit.scoreA}`;
-  return {
-    tool: "warehouse_series_recap",
-    data: {
+  const year = Number((hit.date || clientNow || new Date().toISOString()).slice(0, 4));
+  const leagueFilter = hit.league || "LCK";
+  const records = seasonRecordsFromWarehouse(rows, year, leagueFilter);
+  const data = overlayWarehouseSeasonRecords(
+    {
       teamA: a.name,
       teamB: b.name,
       seriesScore: scoreFromA,
@@ -1396,6 +1402,11 @@ export function runWarehouseSeriesRecap(
         "Series score from the live Riot warehouse. Recap this series — do not draw a compare/radar card. " +
         "Cite this score even if OE gameLog is empty or older.",
     },
+    records,
+  );
+  return {
+    tool: "warehouse_series_recap",
+    data,
   };
 }
 

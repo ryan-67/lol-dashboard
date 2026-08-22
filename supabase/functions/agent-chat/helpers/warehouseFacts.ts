@@ -224,6 +224,19 @@ function displayName(raw: string): string {
   return canonicalTeamName(raw) || raw.trim();
 }
 
+function coerceScore(value: unknown): number | null {
+  if (typeof value === "number" && Number.isFinite(value) && value >= 0) return value;
+  if (typeof value === "string" && /^\d+$/.test(value.trim())) return Number(value);
+  return null;
+}
+
+export function seriesPairKey(date: string, teamA: string, teamB: string): string {
+  const a = canonicalTeamName(teamA);
+  const b = canonicalTeamName(teamB);
+  const [left, right] = [a, b].sort((x, y) => x.localeCompare(y));
+  return `${date}|${left}|${right}`;
+}
+
 export function toScoreline(row: WarehouseSeriesRow): SeriesScoreline | null {
   const teamA = displayName(String(row.team_a ?? ""));
   const teamB = displayName(String(row.team_b ?? ""));
@@ -240,11 +253,14 @@ export function toScoreline(row: WarehouseSeriesRow): SeriesScoreline | null {
     return null;
   }
 
-  const scoreA = Number(row.team_a_score ?? 0);
-  const scoreB = Number(row.team_b_score ?? 0);
+  const rawA = coerceScore(row.team_a_score);
+  const rawB = coerceScore(row.team_b_score);
+  const scored = rawA != null && rawB != null;
+  const scoreA = scored ? rawA : 0;
+  const scoreB = scored ? rawB : 0;
   const status = rowStatus(row);
   let winner = displayName(String(row.winner_team ?? ""));
-  if (!winner && scoreA !== scoreB) winner = scoreA > scoreB ? teamA : teamB;
+  if (!winner && scored && scoreA !== scoreB) winner = scoreA > scoreB ? teamA : teamB;
   const loser = winner && teamsAreSame(winner, teamA) ? teamB : winner ? teamA : "";
   return {
     teamA,
@@ -253,7 +269,7 @@ export function toScoreline(row: WarehouseSeriesRow): SeriesScoreline | null {
     scoreB,
     winner,
     loser,
-    score: `${scoreA}-${scoreB}`,
+    score: scored ? `${scoreA}-${scoreB}` : "0-0",
     date: datePrefix(row.scheduled_at),
     league: String(row.league ?? ""),
     status,
@@ -280,9 +296,12 @@ export function rowsInWeek(
     const line = toScoreline(row);
     if (!line) continue;
     if (line.date < start) continue;
-    if (line.status === "completed" && line.date <= upcomingEnd) {
-      if (line.scoreA + line.scoreB > 0 || line.winner) completed.push(line);
-    } else if (line.date <= upcomingEnd) {
+    if (line.date > upcomingEnd) continue;
+    // Fail-closed: completed week rows need real numeric scores from the
+    // warehouse. Do not invent 0-2 / winner-only leftovers.
+    if (line.status === "completed" && line.scoreA + line.scoreB > 0) {
+      completed.push(line);
+    } else if (line.status !== "completed") {
       upcoming.push(line);
     }
   }
@@ -502,8 +521,72 @@ export function formatWeeklyWarehouseBlock(
     })),
     note:
       "Tier-1 domestic/international only. Opponent names are real team names — never print ???. " +
-      "Do not treat Challengers/academy as LCK. Cite these scores; do not invent series not listed. " +
+      "Do not treat Challengers/academy as LCK. FAIL-CLOSED: describe ONLY series in completed + upcoming. " +
+      "If a series is not listed (e.g. HLE vs FearX on Aug 19), it did not happen — do not invent it. " +
       "standings[].series is THIS-season series W/L from the warehouse — not leftover OE 10-5 / 8-9.",
+  };
+}
+
+/** Drop leftover OE / invented pairings that are not warehouse week rows. */
+export function dropSeriesNotInWarehouse(
+  candidates: SeriesScoreline[],
+  warehouseRows: WarehouseSeriesRow[],
+): SeriesScoreline[] {
+  const keys = new Set<string>();
+  for (const row of filterWarehouseDisplayRows(warehouseRows)) {
+    const line = toScoreline(row);
+    if (!line) continue;
+    keys.add(seriesPairKey(line.date, line.teamA, line.teamB));
+  }
+  return candidates.filter((s) => keys.has(seriesPairKey(s.date, s.teamA, s.teamB)));
+}
+
+export function weekContainsPair(
+  completed: SeriesScoreline[],
+  upcoming: SeriesScoreline[],
+  teamA: string,
+  teamB: string,
+  date?: string,
+): boolean {
+  const hay = [...completed, ...upcoming];
+  return hay.some((s) => {
+    if (date && s.date !== date) return false;
+    const aHit = teamsAreSame(s.teamA, teamA) || teamsAreSame(s.teamB, teamA);
+    const bHit = teamsAreSame(s.teamA, teamB) || teamsAreSame(s.teamB, teamB);
+    return aHit && bHit;
+  });
+}
+
+export function overlayWarehouseSeasonRecords(
+  recap: Record<string, unknown>,
+  records: TeamSeasonRecord[],
+  leftoverOe: TeamSeasonRecord[] = [],
+): Record<string, unknown> {
+  const teamA = String(recap.teamA ?? "");
+  const teamB = String(recap.teamB ?? "");
+  const pick = (name: string) => records.find((r) => teamsAreSame(r.team, name));
+  const a = pick(teamA);
+  const b = pick(teamB);
+  const leftoverKeys = new Set(
+    leftoverOe.map((r) => `${canonicalTeamName(r.team)}|${r.seriesWins}-${r.seriesLosses}`),
+  );
+  const seasonRecords = [a, b].filter((r): r is TeamSeasonRecord => Boolean(r)).map((r) => {
+    const series = `${r.seriesWins}-${r.seriesLosses}`;
+    const leftoverHit = leftoverKeys.has(`${canonicalTeamName(r.team)}|${series}`);
+    return {
+      team: r.team,
+      series,
+      games: `${r.gameWins}-${r.gameLosses}`,
+      source: "cito_schedules (riot gw warehouse)",
+      leftoverOe: leftoverHit,
+    };
+  }).filter((r) => !r.leftoverOe).map(({ leftoverOe: _drop, ...rest }) => rest);
+  return {
+    ...recap,
+    seasonRecords,
+    note:
+      `${String(recap.note ?? "")} Cite seasonRecords series W/L from the 2026 warehouse ` +
+      `(T1 ~17-8, KT ~15-11). Do NOT attach leftover OE form 3-3 / 1-6.`,
   };
 }
 
