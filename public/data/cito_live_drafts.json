@@ -1,6 +1,126 @@
 {
-  "generatedAt": "2026-08-23T06:42:18.595Z",
+  "generatedAt": "2026-08-23T08:32:01.996Z",
   "drafts": [
+    {
+      "matchId": "lol-match-116566854547835296",
+      "gameId": "lol-game-116566854547835297",
+      "gameNumber": 1,
+      "league": "LPL",
+      "teamA": "THUNDER TALK GAMING",
+      "teamB": "LGD GAMING",
+      "blueTeam": "tt",
+      "redTeam": "lgd",
+      "bluePicks": [
+        {
+          "championName": "Locke",
+          "role": "Mid"
+        },
+        {
+          "championName": "K'Sante",
+          "role": "Top"
+        },
+        {
+          "championName": "Qiyana",
+          "role": "Jungle"
+        },
+        {
+          "championName": "Ezreal",
+          "role": "ADC"
+        },
+        {
+          "championName": "Karma",
+          "role": "Support"
+        }
+      ],
+      "redPicks": [
+        {
+          "championName": "Naafiri",
+          "role": "Jungle"
+        },
+        {
+          "championName": "Jhin",
+          "role": "ADC"
+        },
+        {
+          "championName": "Jayce",
+          "role": "Top"
+        },
+        {
+          "championName": "Cassiopeia",
+          "role": "Mid"
+        },
+        {
+          "championName": "Bard",
+          "role": "Support"
+        }
+      ],
+      "blueBans": [],
+      "redBans": [],
+      "draftComplete": true,
+      "status": "inprogress",
+      "scheduledAt": "2026-08-23T07:00:00+00:00",
+      "fetchedAt": "2026-08-23T08:31:59.202Z"
+    },
+    {
+      "matchId": "lol-match-115548147900553481",
+      "gameId": "lol-game-115548147900553482",
+      "gameNumber": 1,
+      "league": "LCK",
+      "teamA": "Hanwha Life Esports",
+      "teamB": "T1",
+      "blueTeam": "t1",
+      "redTeam": "hle",
+      "bluePicks": [
+        {
+          "championName": "Orianna",
+          "role": "Mid"
+        },
+        {
+          "championName": "Xin Zhao",
+          "role": "Jungle"
+        },
+        {
+          "championName": "K'Sante",
+          "role": "Top"
+        },
+        {
+          "championName": "Ezreal",
+          "role": "ADC"
+        },
+        {
+          "championName": "Karma",
+          "role": "Support"
+        }
+      ],
+      "redPicks": [
+        {
+          "championName": "Cassiopeia",
+          "role": "Mid"
+        },
+        {
+          "championName": "Jhin",
+          "role": "ADC"
+        },
+        {
+          "championName": "Lee Sin",
+          "role": "Jungle"
+        },
+        {
+          "championName": "Alistar",
+          "role": "Support"
+        },
+        {
+          "championName": "Jayce",
+          "role": "Top"
+        }
+      ],
+      "blueBans": [],
+      "redBans": [],
+      "draftComplete": true,
+      "status": "inprogress",
+      "scheduledAt": "2026-08-23T08:00:00+00:00",
+      "fetchedAt": "2026-08-23T08:32:00.171Z"
+    },
     {
       "matchId": "lol-match-115564797163886763",
       "gameId": "lol-game-115564797163886764",
