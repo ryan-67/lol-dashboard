@@ -2,36 +2,34 @@
 # Rebase a just-made CI commit onto origin/main and push.
 # Long refresh / ML jobs race humans and Cloud Agents pushing to the same branch.
 #
-# Mid-job callers (OE CDN publish) leave Riot/ingest files dirty on purpose.
-# Stash tracked leftover, rebase/push, then pop so later steps still have those files.
+# Do not stash-pop. Sibling jobs and Cloud Agents also rewrite the same generated
+# JSON caches; stash-pop left those files unmerged and broke the next git commit.
 set -euo pipefail
 
 RETRIES="${1:-8}"
-STASHED=0
+SNAP="${PRESERVE_SNAP_DIR:-$(mktemp -d)}"
+export PRESERVE_SNAP_DIR="$SNAP"
 
-restore_stash() {
-  if [[ "$STASHED" -eq 1 ]]; then
-    echo "Restoring leftover worktree after rebase/push."
-    git stash pop || echo "::warning::stash pop failed; later job steps may see a cleaner tree."
-    STASHED=0
-  fi
+# shellcheck source=preserve-generated-worktree.sh
+source "$(dirname "$0")/preserve-generated-worktree.sh"
+
+cleanup() {
+  rm -rf "$SNAP"
 }
-trap restore_stash EXIT
+trap cleanup EXIT
 
-if ! git diff --quiet || ! git diff --cached --quiet; then
-  echo "Stashing leftover tracked changes so rebase can run:"
-  git status --porcelain
-  git stash push -m "ci: leftover after commit $(date -u +%Y-%m-%dT%H:%M:%SZ)"
-  STASHED=1
-fi
+echo "Preparing a clean tree for rebase (keeping a snapshot of leftover files):"
+git status --porcelain || true
+snapshot_leftover
+clear_vcs_state
 
 # During rebase, "theirs" is the commit being replayed (this job's artifacts).
-# Prefer those over a Cloud Agent touching the same JSON in the same window.
 for attempt in $(seq 1 "$RETRIES"); do
   git fetch origin main
   if git rebase origin/main -X theirs; then
     if git push origin HEAD:main; then
       echo "Pushed main on attempt ${attempt}."
+      restore_leftover
       exit 0
     fi
     echo "Push rejected on attempt ${attempt}/${RETRIES} — concurrent main update."
@@ -43,4 +41,5 @@ for attempt in $(seq 1 "$RETRIES"); do
 done
 
 echo "::error::Could not rebase/push onto origin/main after ${RETRIES} attempts."
+restore_leftover
 exit 1

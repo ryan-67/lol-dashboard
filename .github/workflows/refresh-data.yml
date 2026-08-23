@@ -209,6 +209,7 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
+          bash scripts/ci/preserve-generated-worktree.sh
           git add \
             data/riot \
             data/ml/riot_oe_supplement.csv \
@@ -376,6 +377,7 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
+          bash scripts/ci/preserve-generated-worktree.sh
           git add supabase/functions/agent-chat/ml/ || true
           git add \
             data/riot \
@@ -386,7 +388,8 @@ jobs:
             public/data/prediction_holdout_log.json \
             public/data/model_metadata.json \
             public/data/ml_freshness.json \
-            public/data/cito_player_stats_cache.json || true
+            public/data/cito_player_stats_cache.json \
+            public/data/riot_schedule_cache.json || true
           git add -f \
             data/ml/artifacts/region_strength.json \
             data/ml/artifacts/cito_elo_bump_state.json || true
@@ -515,6 +518,7 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
+          bash scripts/ci/preserve-generated-worktree.sh
           git add public/data/gol_game_cache.json
           if ! git diff --staged --quiet; then
             git commit -m "chore(data): backfill gol.gg gold timelines"
@@ -593,6 +597,7 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
+          bash scripts/ci/preserve-generated-worktree.sh
           git add supabase/functions/agent-chat/ml/ || true
           git add \
             data/riot \
@@ -602,7 +607,9 @@ jobs:
             public/data/accuracy_scorecard.json \
             public/data/prediction_holdout_log.json \
             public/data/model_metadata.json \
-            public/data/ml_freshness.json || true
+            public/data/ml_freshness.json \
+            public/data/cito_player_stats_cache.json \
+            public/data/riot_schedule_cache.json || true
           git add -f \
             data/ml/artifacts/region_strength.json \
             data/ml/artifacts/cito_elo_bump_state.json || true
