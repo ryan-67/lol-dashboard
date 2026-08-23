@@ -1,29 +1,29 @@
 {
-  "exported_at": "2026-08-22T02:07:26.048886+00:00",
+  "exported_at": "2026-08-23T23:31:15.245147+00:00",
   "algo": "xgboost",
   "inference_mode": "logistic_linear_v1",
   "model_file": "series_model.json",
-  "trained_rows": 3468,
-  "trained_series": 1734,
+  "trained_rows": 3502,
+  "trained_series": 1751,
   "date_range": [
-    "2024-08-23",
-    "2026-08-21"
+    "2024-08-24",
+    "2026-08-23"
   ],
-  "feature_count": 874,
+  "feature_count": 882,
   "walk_forward_metrics": {
     "aggregate": {
-      "log_loss": 0.631614130311949,
-      "brier": 0.2152944584733274,
-      "accuracy": 0.6897839044786479
+      "log_loss": 0.6352814054355284,
+      "brier": 0.21644195414195602,
+      "accuracy": 0.6866149073531129
     },
     "baseline_aggregate": {
-      "log_loss": 0.6923807423014797,
-      "brier": 0.24075622651399667,
-      "accuracy": 0.615966722435237
+      "log_loss": 0.6886534436561557,
+      "brier": 0.23932353483561689,
+      "accuracy": 0.6171493602272473
     },
     "beats_baseline": true,
     "holdout_weeks": 20,
-    "holdout_rows": 1156
+    "holdout_rows": 1196
   },
   "ship_gate_passed": true,
   "phase3_modes": [
