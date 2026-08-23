@@ -1,6 +1,66 @@
 {
-  "generatedAt": "2026-08-23T16:27:31.211Z",
+  "generatedAt": "2026-08-23T18:31:22.819Z",
   "drafts": [
+    {
+      "matchId": "lol-match-115548681803406223",
+      "gameId": "lol-game-115548681803406224",
+      "gameNumber": 1,
+      "league": "LEC",
+      "teamA": "Shifters",
+      "teamB": "Karmine Corp",
+      "blueTeam": "shft",
+      "redTeam": "kc",
+      "bluePicks": [
+        {
+          "championName": "Nautilus",
+          "role": "Support"
+        },
+        {
+          "championName": "Viktor",
+          "role": "Mid"
+        },
+        {
+          "championName": "Varus",
+          "role": "ADC"
+        },
+        {
+          "championName": "Vi",
+          "role": "Jungle"
+        },
+        {
+          "championName": "Jax",
+          "role": "Top"
+        }
+      ],
+      "redPicks": [
+        {
+          "championName": "Bard",
+          "role": "Support"
+        },
+        {
+          "championName": "Ambessa",
+          "role": "Top"
+        },
+        {
+          "championName": "Caitlyn",
+          "role": "ADC"
+        },
+        {
+          "championName": "Cassiopeia",
+          "role": "Mid"
+        },
+        {
+          "championName": "Xin Zhao",
+          "role": "Jungle"
+        }
+      ],
+      "blueBans": [],
+      "redBans": [],
+      "draftComplete": true,
+      "status": "inprogress",
+      "scheduledAt": "2026-08-23T17:15:00+00:00",
+      "fetchedAt": "2026-08-23T18:31:21.640Z"
+    },
     {
       "matchId": "lol-match-115548681803406123",
       "gameId": "lol-game-115548681803406124",
@@ -12,46 +72,46 @@
       "redTeam": "th",
       "bluePicks": [
         {
-          "championName": "Anivia",
-          "role": "Mid"
+          "role": "Mid",
+          "championName": "Anivia"
         },
         {
-          "championName": "Rumble",
-          "role": "Top"
+          "role": "Top",
+          "championName": "Rumble"
         },
         {
-          "championName": "Rell",
-          "role": "Support"
+          "role": "Support",
+          "championName": "Rell"
         },
         {
-          "championName": "Jhin",
-          "role": "ADC"
+          "role": "ADC",
+          "championName": "Jhin"
         },
         {
-          "championName": "Jarvan IV",
-          "role": "Jungle"
+          "role": "Jungle",
+          "championName": "Jarvan IV"
         }
       ],
       "redPicks": [
         {
-          "championName": "Jayce",
-          "role": "Top"
+          "role": "Top",
+          "championName": "Jayce"
         },
         {
-          "championName": "Xin Zhao",
-          "role": "Jungle"
+          "role": "Jungle",
+          "championName": "Xin Zhao"
         },
         {
-          "championName": "Bard",
-          "role": "Support"
+          "role": "Support",
+          "championName": "Bard"
         },
         {
-          "championName": "Ryze",
-          "role": "Mid"
+          "role": "Mid",
+          "championName": "Ryze"
         },
         {
-          "championName": "Caitlyn",
-          "role": "ADC"
+          "role": "ADC",
+          "championName": "Caitlyn"
         }
       ],
       "blueBans": [],
@@ -59,7 +119,7 @@
       "draftComplete": true,
       "status": "inprogress",
       "scheduledAt": "2026-08-23T15:00:00+00:00",
-      "fetchedAt": "2026-08-23T16:27:29.476Z"
+      "fetchedAt": "2026-08-23T16:27:29.476+00:00"
     },
     {
       "matchId": "lol-match-116566854547769664",
