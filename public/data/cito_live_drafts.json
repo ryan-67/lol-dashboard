@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-23T03:04:30.883Z",
+  "generatedAt": "2026-08-23T04:38:38.256Z",
   "drafts": [
     {
       "matchId": "lol-match-115564797163886763",
@@ -120,66 +120,6 @@
       "status": "inprogress",
       "scheduledAt": "2026-08-22T17:15:00+00:00",
       "fetchedAt": "2026-08-22T18:32:21.984+00:00"
-    },
-    {
-      "matchId": "lol-match-115548681803406219",
-      "gameId": "lol-game-115548681803406220",
-      "gameNumber": 1,
-      "league": "LEC",
-      "teamA": "Fnatic",
-      "teamB": "Shifters",
-      "blueTeam": "fnc",
-      "redTeam": "shft",
-      "bluePicks": [
-        {
-          "role": "Support",
-          "championName": "Nami"
-        },
-        {
-          "role": "Mid",
-          "championName": "Yone"
-        },
-        {
-          "role": "Top",
-          "championName": "Rumble"
-        },
-        {
-          "role": "ADC",
-          "championName": "Lucian"
-        },
-        {
-          "role": "Jungle",
-          "championName": "Jarvan IV"
-        }
-      ],
-      "redPicks": [
-        {
-          "role": "Top",
-          "championName": "Galio"
-        },
-        {
-          "role": "Mid",
-          "championName": "Viktor"
-        },
-        {
-          "role": "ADC",
-          "championName": "Yunara"
-        },
-        {
-          "role": "Jungle",
-          "championName": "Lee Sin"
-        },
-        {
-          "role": "Support",
-          "championName": "Milio"
-        }
-      ],
-      "blueBans": [],
-      "redBans": [],
-      "draftComplete": true,
-      "status": "inprogress",
-      "scheduledAt": "2026-08-22T15:00:00+00:00",
-      "fetchedAt": "2026-08-22T16:25:54.261+00:00"
     }
   ]
 }
