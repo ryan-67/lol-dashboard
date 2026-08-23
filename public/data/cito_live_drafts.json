@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-22T22:23:44.831Z",
+  "generatedAt": "2026-08-23T01:21:08.767Z",
   "drafts": [
     {
       "matchId": "lol-match-115564797163886763",
@@ -12,46 +12,46 @@
       "redTeam": "disguised",
       "bluePicks": [
         {
-          "championName": "Lee Sin",
-          "role": "Jungle"
+          "role": "Jungle",
+          "championName": "Lee Sin"
         },
         {
-          "championName": "Karma",
-          "role": "Support"
+          "role": "Support",
+          "championName": "Karma"
         },
         {
-          "championName": "Ezreal",
-          "role": "ADC"
+          "role": "ADC",
+          "championName": "Ezreal"
         },
         {
-          "championName": "Ryze",
-          "role": "Mid"
+          "role": "Mid",
+          "championName": "Ryze"
         },
         {
-          "championName": "K'Sante",
-          "role": "Top"
+          "role": "Top",
+          "championName": "K'Sante"
         }
       ],
       "redPicks": [
         {
-          "championName": "Olaf",
-          "role": "Top"
+          "role": "Top",
+          "championName": "Olaf"
         },
         {
-          "championName": "Twisted Fate",
-          "role": "Mid"
+          "role": "Mid",
+          "championName": "Twisted Fate"
         },
         {
-          "championName": "Pantheon",
-          "role": "Jungle"
+          "role": "Jungle",
+          "championName": "Pantheon"
         },
         {
-          "championName": "Jhin",
-          "role": "ADC"
+          "role": "ADC",
+          "championName": "Jhin"
         },
         {
-          "championName": "Shen",
-          "role": "Support"
+          "role": "Support",
+          "championName": "Shen"
         }
       ],
       "blueBans": [],
@@ -59,7 +59,7 @@
       "draftComplete": true,
       "status": "inprogress",
       "scheduledAt": "2026-08-22T22:00:00+00:00",
-      "fetchedAt": "2026-08-22T22:23:44.627Z"
+      "fetchedAt": "2026-08-22T22:23:44.627+00:00"
     },
     {
       "matchId": "lol-match-115548681803406251",
@@ -180,186 +180,6 @@
       "status": "inprogress",
       "scheduledAt": "2026-08-22T15:00:00+00:00",
       "fetchedAt": "2026-08-22T16:25:54.261+00:00"
-    },
-    {
-      "matchId": "lol-match-116566854547769692",
-      "gameId": "lol-game-116566854547769693",
-      "gameNumber": 1,
-      "league": "LPL",
-      "teamA": "Beijing JDG Esports",
-      "teamB": "TOP ESPORTS",
-      "blueTeam": "jdg",
-      "redTeam": "tes",
-      "bluePicks": [
-        {
-          "role": "Jungle",
-          "championName": "Nocturne"
-        },
-        {
-          "role": "Top",
-          "championName": "Olaf"
-        },
-        {
-          "role": "Mid",
-          "championName": "Ahri"
-        },
-        {
-          "role": "ADC",
-          "championName": "Ezreal"
-        },
-        {
-          "role": "Support",
-          "championName": "Seraphine"
-        }
-      ],
-      "redPicks": [
-        {
-          "role": "Support",
-          "championName": "Karma"
-        },
-        {
-          "role": "Top",
-          "championName": "Rumble"
-        },
-        {
-          "role": "Mid",
-          "championName": "Viktor"
-        },
-        {
-          "role": "Jungle",
-          "championName": "Trundle"
-        },
-        {
-          "role": "ADC",
-          "championName": "Jhin"
-        }
-      ],
-      "blueBans": [],
-      "redBans": [],
-      "draftComplete": true,
-      "status": "inprogress",
-      "scheduledAt": "2026-08-22T12:30:00+00:00",
-      "fetchedAt": "2026-08-22T12:40:30.484+00:00"
-    },
-    {
-      "matchId": "lol-match-116566854547835332",
-      "gameId": "lol-game-116566854547835333",
-      "gameNumber": 1,
-      "league": "LPL",
-      "teamA": "Shenzhen NINJAS IN PYJAMAS",
-      "teamB": "Invictus Gaming",
-      "blueTeam": "nip",
-      "redTeam": "ig",
-      "bluePicks": [
-        {
-          "role": "Mid",
-          "championName": "Yone"
-        },
-        {
-          "role": "Top",
-          "championName": "Anivia"
-        },
-        {
-          "role": "ADC",
-          "championName": "Yunara"
-        },
-        {
-          "role": "Jungle",
-          "championName": "Maokai"
-        },
-        {
-          "role": "Support",
-          "championName": "Lulu"
-        }
-      ],
-      "redPicks": [
-        {
-          "role": "ADC",
-          "championName": "Jhin"
-        },
-        {
-          "role": "Top",
-          "championName": "Olaf"
-        },
-        {
-          "role": "Jungle",
-          "championName": "Naafiri"
-        },
-        {
-          "role": "Mid",
-          "championName": "Ryze"
-        },
-        {
-          "role": "Support",
-          "championName": "Karma"
-        }
-      ],
-      "blueBans": [],
-      "redBans": [],
-      "draftComplete": true,
-      "status": "inprogress",
-      "scheduledAt": "2026-08-22T10:30:00+00:00",
-      "fetchedAt": "2026-08-22T10:24:57.868+00:00"
-    },
-    {
-      "matchId": "lol-match-115548147900619049",
-      "gameId": "lol-game-115548147900684586",
-      "gameNumber": 1,
-      "league": "LCK",
-      "teamA": "Dplus KIA",
-      "teamB": "Gen.G Esports",
-      "blueTeam": "gen",
-      "redTeam": "dk",
-      "bluePicks": [
-        {
-          "role": "Mid",
-          "championName": "Ryze"
-        },
-        {
-          "role": "Top",
-          "championName": "Olaf"
-        },
-        {
-          "role": "ADC",
-          "championName": "Ezreal"
-        },
-        {
-          "role": "Support",
-          "championName": "Seraphine"
-        },
-        {
-          "role": "Jungle",
-          "championName": "Pantheon"
-        }
-      ],
-      "redPicks": [
-        {
-          "role": "Mid",
-          "championName": "Locke"
-        },
-        {
-          "role": "Support",
-          "championName": "Lulu"
-        },
-        {
-          "role": "Top",
-          "championName": "Jax"
-        },
-        {
-          "role": "ADC",
-          "championName": "Yunara"
-        },
-        {
-          "role": "Jungle",
-          "championName": "Vi"
-        }
-      ],
-      "blueBans": [],
-      "redBans": [],
-      "draftComplete": true,
-      "status": "inprogress",
-      "scheduledAt": "2026-08-22T08:00:00+00:00",
-      "fetchedAt": "2026-08-22T10:24:56.916+00:00"
     }
   ]
 }
