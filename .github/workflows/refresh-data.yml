@@ -70,6 +70,8 @@ permissions:
 #
 # Cloud Agents / humans may push to main while this job trains. Artifact commits
 # rebase + retry via scripts/ci/push-main-with-rebase.sh — do not pause agents.
+# ML jobs fast-forward to origin/main after checkout so sync-current's new
+# data/riot/games files are tracked (not untracked collisions on rebase).
 concurrency:
   group: refresh-dashboard-data
   cancel-in-progress: true
@@ -247,6 +249,9 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+
+      - name: Fast-forward to origin/main
+        run: bash scripts/ci/ff-origin-main.sh
 
       - name: Free disk space
         uses: jlumbroso/free-disk-space@v1.3.1
@@ -435,6 +440,9 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+
+      - name: Fast-forward to origin/main
+        run: bash scripts/ci/ff-origin-main.sh
 
       - name: Free disk space
         uses: jlumbroso/free-disk-space@v1.3.1

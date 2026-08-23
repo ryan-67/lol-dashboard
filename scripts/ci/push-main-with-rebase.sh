@@ -26,6 +26,17 @@ clear_vcs_state
 # During rebase, "theirs" is the commit being replayed (this job's artifacts).
 for attempt in $(seq 1 "$RETRIES"); do
   git fetch origin main
+  # Cloud Agents / sync-current may have committed files this job still has as ??.
+  remove_snapshotted_untracked
+  while IFS= read -r f; do
+    [[ -z "$f" || ! -e "$f" ]] && continue
+    if git cat-file -e "origin/main:$f" 2>/dev/null; then
+      mkdir -p "$SNAP/$(dirname "$f")"
+      cp -a "$f" "$SNAP/$f"
+      rm -f "$f"
+      echo "  set aside untracked $f (present on origin/main)"
+    fi
+  done < <(git ls-files --others --exclude-standard)
   if git rebase origin/main -X theirs; then
     if git push origin HEAD:main; then
       echo "Pushed main on attempt ${attempt}."

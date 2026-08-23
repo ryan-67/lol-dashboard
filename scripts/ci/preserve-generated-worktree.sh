@@ -14,6 +14,9 @@ list_leftover_files() {
     git ls-files -u | awk '{print $4}'
     git diff --name-only
     git diff --name-only --cached
+    # New Riot game JSONs are untracked here but already committed on origin/main
+    # by sync-current or a Cloud Agent — rebase checkout will refuse to overwrite.
+    git ls-files --others --exclude-standard
   } | sort -u
 }
 
@@ -32,10 +35,24 @@ snapshot_leftover() {
   done < <(list_leftover_files)
 }
 
+remove_snapshotted_untracked() {
+  local f
+  while IFS= read -r f; do
+    [[ -z "$f" ]] && continue
+    if [[ -e "$SNAP/$f" && -e "$f" ]]; then
+      rm -f "$f"
+      echo "  moved aside untracked $f (in snapshot)"
+    fi
+  done < <(git ls-files --others --exclude-standard)
+}
+
 clear_vcs_state() {
   git merge --abort >/dev/null 2>&1 || true
   git rebase --abort >/dev/null 2>&1 || true
   git reset --hard HEAD
+  # reset --hard does not delete untracked files. Those block rebase when
+  # origin/main already added the same Riot game JSONs.
+  remove_snapshotted_untracked
 }
 
 restore_leftover() {
