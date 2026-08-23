@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-23T04:38:38.256Z",
+  "generatedAt": "2026-08-23T06:42:18.595Z",
   "drafts": [
     {
       "matchId": "lol-match-115564797163886763",
@@ -60,66 +60,6 @@
       "status": "inprogress",
       "scheduledAt": "2026-08-22T22:00:00+00:00",
       "fetchedAt": "2026-08-22T22:23:44.627+00:00"
-    },
-    {
-      "matchId": "lol-match-115548681803406251",
-      "gameId": "lol-game-115548681803406252",
-      "gameNumber": 1,
-      "league": "LEC",
-      "teamA": "SK Gaming",
-      "teamB": "Movistar KOI",
-      "blueTeam": "mkoi",
-      "redTeam": "sk-gaming",
-      "bluePicks": [
-        {
-          "role": "Jungle",
-          "championName": "Vi"
-        },
-        {
-          "role": "Mid",
-          "championName": "Ryze"
-        },
-        {
-          "role": "Support",
-          "championName": "Renata Glasc"
-        },
-        {
-          "role": "ADC",
-          "championName": "Kalista"
-        },
-        {
-          "role": "Top",
-          "championName": "Jayce"
-        }
-      ],
-      "redPicks": [
-        {
-          "role": "Support",
-          "championName": "Bard"
-        },
-        {
-          "role": "Mid",
-          "championName": "Viktor"
-        },
-        {
-          "role": "Top",
-          "championName": "Rumble"
-        },
-        {
-          "role": "Jungle",
-          "championName": "Jarvan IV"
-        },
-        {
-          "role": "ADC",
-          "championName": "Jhin"
-        }
-      ],
-      "blueBans": [],
-      "redBans": [],
-      "draftComplete": true,
-      "status": "inprogress",
-      "scheduledAt": "2026-08-22T17:15:00+00:00",
-      "fetchedAt": "2026-08-22T18:32:21.984+00:00"
     }
   ]
 }
