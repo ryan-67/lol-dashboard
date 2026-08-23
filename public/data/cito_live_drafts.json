@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-23T12:41:23.611Z",
+  "generatedAt": "2026-08-23T14:25:23.860Z",
   "drafts": [
     {
       "matchId": "lol-match-116566854547769664",
@@ -20,16 +20,16 @@
           "role": "ADC"
         },
         {
-          "championName": "Karma",
-          "role": "Support"
-        },
-        {
           "championName": "Nocturne",
           "role": "Jungle"
         },
         {
           "championName": "Ryze",
           "role": "Mid"
+        },
+        {
+          "championName": "Karma",
+          "role": "Support"
         }
       ],
       "redPicks": [
@@ -42,16 +42,16 @@
           "role": "ADC"
         },
         {
+          "championName": "Naafiri",
+          "role": "Jungle"
+        },
+        {
           "championName": "Jayce",
           "role": "Top"
         },
         {
           "championName": "Bard",
           "role": "Support"
-        },
-        {
-          "championName": "Naafiri",
-          "role": "Jungle"
         }
       ],
       "blueBans": [],
@@ -59,7 +59,7 @@
       "draftComplete": true,
       "status": "inprogress",
       "scheduledAt": "2026-08-23T12:30:00+00:00",
-      "fetchedAt": "2026-08-23T12:41:22.316Z"
+      "fetchedAt": "2026-08-23T14:25:22.418Z"
     },
     {
       "matchId": "lol-match-116566854547769748",
