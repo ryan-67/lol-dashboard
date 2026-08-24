@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-24T12:51:58.290Z",
+  "generatedAt": "2026-08-24T14:43:46.310Z",
   "drafts": [
     {
       "matchId": "lol-match-116889604984222939",
@@ -12,8 +12,8 @@
       "redTeam": "hle",
       "bluePicks": [
         {
-          "championName": "Kai",
-          "role": "ADC"
+          "championName": "Rell",
+          "role": "Support"
         },
         {
           "championName": "Olaf",
@@ -24,12 +24,12 @@
           "role": "Jungle"
         },
         {
-          "championName": "Akali",
-          "role": "Mid"
+          "championName": "Kai",
+          "role": "ADC"
         },
         {
-          "championName": "Rell",
-          "role": "Support"
+          "championName": "Akali",
+          "role": "Mid"
         }
       ],
       "redPicks": [
@@ -42,12 +42,12 @@
           "role": "ADC"
         },
         {
-          "championName": "Ambessa",
-          "role": "Top"
-        },
-        {
           "championName": "Jarvan IV",
           "role": "Jungle"
+        },
+        {
+          "championName": "Ambessa",
+          "role": "Top"
         },
         {
           "championName": "Orianna",
@@ -71,7 +71,7 @@
       "draftComplete": true,
       "status": "unstarted",
       "scheduledAt": "2026-08-24T08:30:00+00:00",
-      "fetchedAt": "2026-08-24T12:51:57.345Z"
+      "fetchedAt": "2026-08-24T14:43:45.286Z"
     }
   ]
 }
