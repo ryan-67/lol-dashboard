@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-24T04:45:33.657Z",
+  "generatedAt": "2026-08-24T06:59:39.925Z",
   "drafts": [
     {
       "matchId": "lol-match-115564797163886767",
@@ -120,66 +120,6 @@
       "status": "inprogress",
       "scheduledAt": "2026-08-23T20:00:00+00:00",
       "fetchedAt": "2026-08-23T20:24:18.618+00:00"
-    },
-    {
-      "matchId": "lol-match-115548681803406223",
-      "gameId": "lol-game-115548681803406224",
-      "gameNumber": 1,
-      "league": "LEC",
-      "teamA": "Shifters",
-      "teamB": "Karmine Corp",
-      "blueTeam": "shft",
-      "redTeam": "kc",
-      "bluePicks": [
-        {
-          "role": "Support",
-          "championName": "Nautilus"
-        },
-        {
-          "role": "Mid",
-          "championName": "Viktor"
-        },
-        {
-          "role": "ADC",
-          "championName": "Varus"
-        },
-        {
-          "role": "Jungle",
-          "championName": "Vi"
-        },
-        {
-          "role": "Top",
-          "championName": "Jax"
-        }
-      ],
-      "redPicks": [
-        {
-          "role": "Support",
-          "championName": "Bard"
-        },
-        {
-          "role": "Top",
-          "championName": "Ambessa"
-        },
-        {
-          "role": "ADC",
-          "championName": "Caitlyn"
-        },
-        {
-          "role": "Mid",
-          "championName": "Cassiopeia"
-        },
-        {
-          "role": "Jungle",
-          "championName": "Xin Zhao"
-        }
-      ],
-      "blueBans": [],
-      "redBans": [],
-      "draftComplete": true,
-      "status": "inprogress",
-      "scheduledAt": "2026-08-23T17:15:00+00:00",
-      "fetchedAt": "2026-08-23T18:31:21.64+00:00"
     }
   ]
 }
