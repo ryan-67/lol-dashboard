@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-24T01:19:04.035Z",
+  "generatedAt": "2026-08-24T03:05:16.118Z",
   "drafts": [
     {
       "matchId": "lol-match-115564797163886767",
@@ -240,66 +240,6 @@
       "status": "inprogress",
       "scheduledAt": "2026-08-23T15:00:00+00:00",
       "fetchedAt": "2026-08-23T16:27:29.476+00:00"
-    },
-    {
-      "matchId": "lol-match-116566854547769664",
-      "gameId": "lol-game-116566854547769665",
-      "gameNumber": 1,
-      "league": "LPL",
-      "teamA": "Anyone's Legend",
-      "teamB": "BILIBILI GAMING",
-      "blueTeam": "al",
-      "redTeam": "blg",
-      "bluePicks": [
-        {
-          "role": "Top",
-          "championName": "K'Sante"
-        },
-        {
-          "role": "ADC",
-          "championName": "Sivir"
-        },
-        {
-          "role": "Jungle",
-          "championName": "Nocturne"
-        },
-        {
-          "role": "Mid",
-          "championName": "Ryze"
-        },
-        {
-          "role": "Support",
-          "championName": "Karma"
-        }
-      ],
-      "redPicks": [
-        {
-          "role": "Mid",
-          "championName": "Ahri"
-        },
-        {
-          "role": "ADC",
-          "championName": "Ezreal"
-        },
-        {
-          "role": "Jungle",
-          "championName": "Naafiri"
-        },
-        {
-          "role": "Top",
-          "championName": "Jayce"
-        },
-        {
-          "role": "Support",
-          "championName": "Bard"
-        }
-      ],
-      "blueBans": [],
-      "redBans": [],
-      "draftComplete": true,
-      "status": "inprogress",
-      "scheduledAt": "2026-08-23T12:30:00+00:00",
-      "fetchedAt": "2026-08-23T14:25:22.418+00:00"
     }
   ]
 }
