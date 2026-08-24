@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-24T19:30:01.157712+00:00",
+  "generatedAt": "2026-08-24T21:24:08.042723+00:00",
   "championsCurated": 172,
   "primaryRoleValidation": {
     "checked": 122,
@@ -46,7 +46,7 @@
         ],
         "empiricalPrimaryRole": "jungle",
         "roleShift": false,
-        "totalGames": 803
+        "totalGames": 804
       },
       {
         "champion": "Ziggs",
@@ -65,7 +65,7 @@
         ],
         "empiricalPrimaryRole": "support",
         "roleShift": false,
-        "totalGames": 209
+        "totalGames": 210
       },
       {
         "champion": "Tristana",
@@ -178,8 +178,8 @@
           "champion": "Ambessa",
           "curatedLaneBully": true,
           "empiricalLaneBully": false,
-          "vsRoleMedianGd15": -36.1,
-          "games": 899
+          "vsRoleMedianGd15": -35.8,
+          "games": 900
         },
         {
           "champion": "Aphelios",
@@ -283,8 +283,8 @@
           "champion": "Lucian",
           "curatedLaneBully": true,
           "empiricalLaneBully": false,
-          "vsRoleMedianGd15": 86.9,
-          "games": 550
+          "vsRoleMedianGd15": 85.8,
+          "games": 551
         },
         {
           "champion": "Lux",
@@ -319,7 +319,7 @@
           "curatedLate": false,
           "empiricalLateGameScaler": true,
           "scalingCurve": "mid",
-          "games": 899
+          "games": 900
         },
         {
           "champion": "Aphelios",
@@ -368,7 +368,7 @@
           "curatedLate": false,
           "empiricalLateGameScaler": true,
           "scalingCurve": "mid",
-          "games": 973
+          "games": 974
         },
         {
           "champion": "Gangplank",
@@ -487,7 +487,7 @@
           "curatedEarly": true,
           "empiricalFrontLoaded": false,
           "scalingCurve": "early",
-          "games": 475
+          "games": 476
         },
         {
           "champion": "Aphelios",
@@ -615,7 +615,7 @@
         "defenderTag": "cc_heavy",
         "label": "Mobility escapes hard-CC/engage",
         "status": "validated",
-        "gamesWithCondition": 6073,
+        "gamesWithCondition": 6076,
         "winrateWithCondition": 50.1,
         "gamesWithout": 175,
         "winrateWithout": 51.4,
@@ -626,18 +626,18 @@
         "defenderTag": "engage",
         "label": "Mobility escapes engage comps",
         "status": "validated",
-        "gamesWithCondition": 5897,
+        "gamesWithCondition": 5899,
         "winrateWithCondition": 50.3,
-        "gamesWithout": 351,
-        "winrateWithout": 48.1,
-        "liftPp": 2.1
+        "gamesWithout": 352,
+        "winrateWithout": 48.3,
+        "liftPp": 2.0
       },
       {
         "attackerTag": "tank",
         "defenderTag": "burst",
         "label": "Tanks blunt burst-heavy comps",
         "status": "validated",
-        "gamesWithCondition": 4049,
+        "gamesWithCondition": 4050,
         "winrateWithCondition": 49.8,
         "gamesWithout": 1716,
         "winrateWithout": 48.1,
@@ -648,7 +648,7 @@
         "defenderTag": "dive",
         "label": "Poke checks dive comps before they close",
         "status": "validated",
-        "gamesWithCondition": 6284,
+        "gamesWithCondition": 6286,
         "winrateWithCondition": 49.4,
         "gamesWithout": 406,
         "winrateWithout": 50.0,
@@ -659,18 +659,18 @@
         "defenderTag": "engage",
         "label": "Split push punishes comps lacking wave clear/pull-back (proxy: engage-heavy)",
         "status": "validated",
-        "gamesWithCondition": 1101,
-        "winrateWithCondition": 50.0,
+        "gamesWithCondition": 1102,
+        "winrateWithCondition": 49.9,
         "gamesWithout": 44,
         "winrateWithout": 50.0,
-        "liftPp": -0.0
+        "liftPp": -0.1
       },
       {
         "attackerTag": "anti_dive",
         "defenderTag": "dive",
         "label": "Peel/anti-dive protects into dive comps",
         "status": "validated",
-        "gamesWithCondition": 4417,
+        "gamesWithCondition": 4420,
         "winrateWithCondition": 50.9,
         "gamesWithout": 302,
         "winrateWithout": 47.7,
