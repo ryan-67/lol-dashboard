@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-24T06:59:39.925Z",
+  "generatedAt": "2026-08-24T08:49:45.339Z",
   "drafts": [
     {
       "matchId": "lol-match-115564797163886767",
@@ -60,66 +60,6 @@
       "status": "inprogress",
       "scheduledAt": "2026-08-23T22:00:00+00:00",
       "fetchedAt": "2026-08-23T22:39:11.236+00:00"
-    },
-    {
-      "matchId": "lol-match-115564797163821183",
-      "gameId": "lol-game-115564797163821184",
-      "gameNumber": 1,
-      "league": "LCS",
-      "teamA": "Disguised",
-      "teamB": "Sentinels",
-      "blueTeam": "sentinels",
-      "redTeam": "disguised",
-      "bluePicks": [
-        {
-          "role": "Top",
-          "championName": "K'Sante"
-        },
-        {
-          "role": "ADC",
-          "championName": "Ezreal"
-        },
-        {
-          "role": "Support",
-          "championName": "Seraphine"
-        },
-        {
-          "role": "Mid",
-          "championName": "Ryze"
-        },
-        {
-          "role": "Jungle",
-          "championName": "Lee Sin"
-        }
-      ],
-      "redPicks": [
-        {
-          "role": "Jungle",
-          "championName": "Jarvan IV"
-        },
-        {
-          "role": "Mid",
-          "championName": "Ahri"
-        },
-        {
-          "role": "ADC",
-          "championName": "Lucian"
-        },
-        {
-          "role": "Top",
-          "championName": "Gnar"
-        },
-        {
-          "role": "Support",
-          "championName": "Milio"
-        }
-      ],
-      "blueBans": [],
-      "redBans": [],
-      "draftComplete": true,
-      "status": "inprogress",
-      "scheduledAt": "2026-08-23T20:00:00+00:00",
-      "fetchedAt": "2026-08-23T20:24:18.618+00:00"
     }
   ]
 }
