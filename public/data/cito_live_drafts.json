@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-24T10:39:07.377Z",
+  "generatedAt": "2026-08-24T12:51:58.290Z",
   "drafts": [
     {
       "matchId": "lol-match-116889604984222939",
@@ -11,6 +11,10 @@
       "blueTeam": "bfx",
       "redTeam": "hle",
       "bluePicks": [
+        {
+          "championName": "Kai",
+          "role": "ADC"
+        },
         {
           "championName": "Olaf",
           "role": "Top"
@@ -24,15 +28,19 @@
           "role": "Mid"
         },
         {
-          "championName": "Kai",
-          "role": "ADC"
-        },
-        {
           "championName": "Rell",
           "role": "Support"
         }
       ],
       "redPicks": [
+        {
+          "championName": "Nautilus",
+          "role": "Support"
+        },
+        {
+          "championName": "Yunara",
+          "role": "ADC"
+        },
         {
           "championName": "Ambessa",
           "role": "Top"
@@ -44,14 +52,6 @@
         {
           "championName": "Orianna",
           "role": "Mid"
-        },
-        {
-          "championName": "Yunara",
-          "role": "ADC"
-        },
-        {
-          "championName": "Nautilus",
-          "role": "Support"
         }
       ],
       "blueBans": [
@@ -71,67 +71,7 @@
       "draftComplete": true,
       "status": "unstarted",
       "scheduledAt": "2026-08-24T08:30:00+00:00",
-      "fetchedAt": "2026-08-24T10:39:06.364Z"
-    },
-    {
-      "matchId": "lol-match-115564797163886767",
-      "gameId": "lol-game-115564797163886768",
-      "gameNumber": 1,
-      "league": "LCS",
-      "teamA": "Dignitas",
-      "teamB": "FlyQuest",
-      "blueTeam": "dig",
-      "redTeam": "fly",
-      "bluePicks": [
-        {
-          "role": "ADC",
-          "championName": "Caitlyn"
-        },
-        {
-          "role": "Jungle",
-          "championName": "Jarvan IV"
-        },
-        {
-          "role": "Mid",
-          "championName": "Locke"
-        },
-        {
-          "role": "Support",
-          "championName": "Karma"
-        },
-        {
-          "role": "Top",
-          "championName": "Gnar"
-        }
-      ],
-      "redPicks": [
-        {
-          "role": "Jungle",
-          "championName": "Shyvana"
-        },
-        {
-          "role": "Top",
-          "championName": "Rumble"
-        },
-        {
-          "role": "ADC",
-          "championName": "Ezreal"
-        },
-        {
-          "role": "Mid",
-          "championName": "Orianna"
-        },
-        {
-          "role": "Support",
-          "championName": "Bard"
-        }
-      ],
-      "blueBans": [],
-      "redBans": [],
-      "draftComplete": true,
-      "status": "inprogress",
-      "scheduledAt": "2026-08-23T22:00:00+00:00",
-      "fetchedAt": "2026-08-23T22:39:11.236+00:00"
+      "fetchedAt": "2026-08-24T12:51:57.345Z"
     }
   ]
 }
