@@ -1,6 +1,78 @@
 {
-  "generatedAt": "2026-08-24T08:49:45.339Z",
+  "generatedAt": "2026-08-24T10:39:07.377Z",
   "drafts": [
+    {
+      "matchId": "lol-match-116889604984222939",
+      "gameId": "lol-game-116889604984222940",
+      "gameNumber": 1,
+      "league": "LCK",
+      "teamA": "BNK FEARX",
+      "teamB": "Hanwha Life Esports",
+      "blueTeam": "bfx",
+      "redTeam": "hle",
+      "bluePicks": [
+        {
+          "championName": "Olaf",
+          "role": "Top"
+        },
+        {
+          "championName": "Vi",
+          "role": "Jungle"
+        },
+        {
+          "championName": "Akali",
+          "role": "Mid"
+        },
+        {
+          "championName": "Kai",
+          "role": "ADC"
+        },
+        {
+          "championName": "Rell",
+          "role": "Support"
+        }
+      ],
+      "redPicks": [
+        {
+          "championName": "Ambessa",
+          "role": "Top"
+        },
+        {
+          "championName": "Jarvan IV",
+          "role": "Jungle"
+        },
+        {
+          "championName": "Orianna",
+          "role": "Mid"
+        },
+        {
+          "championName": "Yunara",
+          "role": "ADC"
+        },
+        {
+          "championName": "Nautilus",
+          "role": "Support"
+        }
+      ],
+      "blueBans": [
+        "Poppy",
+        "Ezreal",
+        "Cassiopeia",
+        "Xayah",
+        "Corki"
+      ],
+      "redBans": [
+        "Lee Sin",
+        "Lucian",
+        "Camille",
+        "Lulu",
+        "Shen"
+      ],
+      "draftComplete": true,
+      "status": "unstarted",
+      "scheduledAt": "2026-08-24T08:30:00+00:00",
+      "fetchedAt": "2026-08-24T10:39:06.364Z"
+    },
     {
       "matchId": "lol-match-115564797163886767",
       "gameId": "lol-game-115564797163886768",
