@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-24T03:05:16.118Z",
+  "generatedAt": "2026-08-24T04:45:33.657Z",
   "drafts": [
     {
       "matchId": "lol-match-115564797163886767",
@@ -180,66 +180,6 @@
       "status": "inprogress",
       "scheduledAt": "2026-08-23T17:15:00+00:00",
       "fetchedAt": "2026-08-23T18:31:21.64+00:00"
-    },
-    {
-      "matchId": "lol-match-115548681803406123",
-      "gameId": "lol-game-115548681803406124",
-      "gameNumber": 1,
-      "league": "LEC",
-      "teamA": "Team Heretics",
-      "teamB": "GIANTX (archived)",
-      "blueTeam": "giantx-lec",
-      "redTeam": "th",
-      "bluePicks": [
-        {
-          "role": "Mid",
-          "championName": "Anivia"
-        },
-        {
-          "role": "Top",
-          "championName": "Rumble"
-        },
-        {
-          "role": "Support",
-          "championName": "Rell"
-        },
-        {
-          "role": "ADC",
-          "championName": "Jhin"
-        },
-        {
-          "role": "Jungle",
-          "championName": "Jarvan IV"
-        }
-      ],
-      "redPicks": [
-        {
-          "role": "Top",
-          "championName": "Jayce"
-        },
-        {
-          "role": "Jungle",
-          "championName": "Xin Zhao"
-        },
-        {
-          "role": "Support",
-          "championName": "Bard"
-        },
-        {
-          "role": "Mid",
-          "championName": "Ryze"
-        },
-        {
-          "role": "ADC",
-          "championName": "Caitlyn"
-        }
-      ],
-      "blueBans": [],
-      "redBans": [],
-      "draftComplete": true,
-      "status": "inprogress",
-      "scheduledAt": "2026-08-23T15:00:00+00:00",
-      "fetchedAt": "2026-08-23T16:27:29.476+00:00"
     }
   ]
 }
