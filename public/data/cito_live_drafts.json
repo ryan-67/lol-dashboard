@@ -1,6 +1,66 @@
 {
-  "generatedAt": "2026-08-24T16:39:06.820Z",
+  "generatedAt": "2026-08-24T18:41:32.296Z",
   "drafts": [
+    {
+      "matchId": "lol-match-115548681803406247",
+      "gameId": "lol-game-115548681803406248",
+      "gameNumber": 1,
+      "league": "LEC",
+      "teamA": "GIANTX (archived)",
+      "teamB": "G2 Esports",
+      "blueTeam": "g2",
+      "redTeam": "giantx-lec",
+      "bluePicks": [
+        {
+          "championName": "Akali",
+          "role": "Mid"
+        },
+        {
+          "championName": "Ambessa",
+          "role": "Top"
+        },
+        {
+          "championName": "Ashe",
+          "role": "ADC"
+        },
+        {
+          "championName": "Seraphine",
+          "role": "Support"
+        },
+        {
+          "championName": "Jarvan IV",
+          "role": "Jungle"
+        }
+      ],
+      "redPicks": [
+        {
+          "championName": "Ezreal",
+          "role": "ADC"
+        },
+        {
+          "championName": "Karma",
+          "role": "Support"
+        },
+        {
+          "championName": "Yone",
+          "role": "Mid"
+        },
+        {
+          "championName": "Rumble",
+          "role": "Top"
+        },
+        {
+          "championName": "Xin Zhao",
+          "role": "Jungle"
+        }
+      ],
+      "blueBans": [],
+      "redBans": [],
+      "draftComplete": true,
+      "status": "inprogress",
+      "scheduledAt": "2026-08-24T17:15:00+00:00",
+      "fetchedAt": "2026-08-24T18:41:32.107Z"
+    },
     {
       "matchId": "lol-match-115548681803406167",
       "gameId": "lol-game-115548681803406168",
@@ -12,46 +72,46 @@
       "redTeam": "natus-vincere",
       "bluePicks": [
         {
-          "championName": "Ezreal",
-          "role": "ADC"
+          "role": "ADC",
+          "championName": "Ezreal"
         },
         {
-          "championName": "Nocturne",
-          "role": "Jungle"
+          "role": "Jungle",
+          "championName": "Nocturne"
         },
         {
-          "championName": "Locke",
-          "role": "Mid"
+          "role": "Mid",
+          "championName": "Locke"
         },
         {
-          "championName": "Ambessa",
-          "role": "Top"
+          "role": "Top",
+          "championName": "Ambessa"
         },
         {
-          "championName": "Seraphine",
-          "role": "Support"
+          "role": "Support",
+          "championName": "Seraphine"
         }
       ],
       "redPicks": [
         {
-          "championName": "Shen",
-          "role": "Support"
+          "role": "Support",
+          "championName": "Shen"
         },
         {
-          "championName": "Kai'Sa",
-          "role": "ADC"
+          "role": "ADC",
+          "championName": "Kai'Sa"
         },
         {
-          "championName": "Rumble",
-          "role": "Top"
+          "role": "Top",
+          "championName": "Rumble"
         },
         {
-          "championName": "Zaahen",
-          "role": "Jungle"
+          "role": "Jungle",
+          "championName": "Zaahen"
         },
         {
-          "championName": "Orianna",
-          "role": "Mid"
+          "role": "Mid",
+          "championName": "Orianna"
         }
       ],
       "blueBans": [],
@@ -59,7 +119,7 @@
       "draftComplete": true,
       "status": "inprogress",
       "scheduledAt": "2026-08-24T15:00:00+00:00",
-      "fetchedAt": "2026-08-24T16:39:06.140Z"
+      "fetchedAt": "2026-08-24T16:39:06.14+00:00"
     },
     {
       "matchId": "lol-match-116889604984222939",
