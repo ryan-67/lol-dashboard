@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-25T14:46:56.334Z",
+  "generatedAt": "2026-08-25T16:41:16.489Z",
   "drafts": [
     {
       "matchId": "lol-match-116889604984222945",
@@ -12,46 +12,46 @@
       "redTeam": "drx-challengers",
       "bluePicks": [
         {
-          "championName": "Olaf",
-          "role": "Top"
+          "role": "Top",
+          "championName": "Olaf"
         },
         {
-          "championName": "Vi",
-          "role": "Jungle"
+          "role": "Jungle",
+          "championName": "Vi"
         },
         {
-          "championName": "Akali",
-          "role": "Mid"
+          "role": "Mid",
+          "championName": "Akali"
         },
         {
-          "championName": "Karma",
-          "role": "Support"
+          "role": "Support",
+          "championName": "Karma"
         },
         {
-          "championName": "Ezreal",
-          "role": "ADC"
+          "role": "ADC",
+          "championName": "Ezreal"
         }
       ],
       "redPicks": [
         {
-          "championName": "Jax",
-          "role": "Top"
+          "role": "Top",
+          "championName": "Jax"
         },
         {
-          "championName": "Jarvan IV",
-          "role": "Jungle"
+          "role": "Jungle",
+          "championName": "Jarvan IV"
         },
         {
-          "championName": "Orianna",
-          "role": "Mid"
+          "role": "Mid",
+          "championName": "Orianna"
         },
         {
-          "championName": "Jhin",
-          "role": "ADC"
+          "role": "ADC",
+          "championName": "Jhin"
         },
         {
-          "championName": "Bard",
-          "role": "Support"
+          "role": "Support",
+          "championName": "Bard"
         }
       ],
       "blueBans": [],
@@ -59,7 +59,7 @@
       "draftComplete": true,
       "status": "unstarted",
       "scheduledAt": "2026-08-25T08:00:00+00:00",
-      "fetchedAt": "2026-08-25T14:46:56.030Z"
+      "fetchedAt": "2026-08-25T14:46:56.03+00:00"
     }
   ]
 }
