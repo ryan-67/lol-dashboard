@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-25T03:00:31.304Z",
+  "generatedAt": "2026-08-25T04:40:42.954Z",
   "drafts": [
     {
       "matchId": "lol-match-115548681803406247",
@@ -60,66 +60,6 @@
       "status": "inprogress",
       "scheduledAt": "2026-08-24T17:15:00+00:00",
       "fetchedAt": "2026-08-24T18:41:32.107+00:00"
-    },
-    {
-      "matchId": "lol-match-115548681803406167",
-      "gameId": "lol-game-115548681803406168",
-      "gameNumber": 1,
-      "league": "LEC",
-      "teamA": "Natus Vincere",
-      "teamB": "Fnatic",
-      "blueTeam": "fnc",
-      "redTeam": "natus-vincere",
-      "bluePicks": [
-        {
-          "role": "ADC",
-          "championName": "Ezreal"
-        },
-        {
-          "role": "Jungle",
-          "championName": "Nocturne"
-        },
-        {
-          "role": "Mid",
-          "championName": "Locke"
-        },
-        {
-          "role": "Top",
-          "championName": "Ambessa"
-        },
-        {
-          "role": "Support",
-          "championName": "Seraphine"
-        }
-      ],
-      "redPicks": [
-        {
-          "role": "Support",
-          "championName": "Shen"
-        },
-        {
-          "role": "ADC",
-          "championName": "Kai'Sa"
-        },
-        {
-          "role": "Top",
-          "championName": "Rumble"
-        },
-        {
-          "role": "Jungle",
-          "championName": "Zaahen"
-        },
-        {
-          "role": "Mid",
-          "championName": "Orianna"
-        }
-      ],
-      "blueBans": [],
-      "redBans": [],
-      "draftComplete": true,
-      "status": "inprogress",
-      "scheduledAt": "2026-08-24T15:00:00+00:00",
-      "fetchedAt": "2026-08-24T16:39:06.14+00:00"
     }
   ]
 }
