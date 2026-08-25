@@ -1,4 +1,65 @@
 {
-  "generatedAt": "2026-08-25T08:43:29.592Z",
-  "drafts": []
+  "generatedAt": "2026-08-25T10:34:52.223Z",
+  "drafts": [
+    {
+      "matchId": "lol-match-116889604984222945",
+      "gameId": "lol-game-116889604984222946",
+      "gameNumber": 1,
+      "league": "LCK",
+      "teamA": "TBD",
+      "teamB": "TBD",
+      "blueTeam": "bfx",
+      "redTeam": "drx-challengers",
+      "bluePicks": [
+        {
+          "championName": "Olaf",
+          "role": "Top"
+        },
+        {
+          "championName": "Vi",
+          "role": "Jungle"
+        },
+        {
+          "championName": "Akali",
+          "role": "Mid"
+        },
+        {
+          "championName": "Karma",
+          "role": "Support"
+        },
+        {
+          "championName": "Ezreal",
+          "role": "ADC"
+        }
+      ],
+      "redPicks": [
+        {
+          "championName": "Jax",
+          "role": "Top"
+        },
+        {
+          "championName": "Jarvan IV",
+          "role": "Jungle"
+        },
+        {
+          "championName": "Orianna",
+          "role": "Mid"
+        },
+        {
+          "championName": "Jhin",
+          "role": "ADC"
+        },
+        {
+          "championName": "Bard",
+          "role": "Support"
+        }
+      ],
+      "blueBans": [],
+      "redBans": [],
+      "draftComplete": true,
+      "status": "unstarted",
+      "scheduledAt": "2026-08-25T08:00:00+00:00",
+      "fetchedAt": "2026-08-25T10:34:51.858Z"
+    }
+  ]
 }
