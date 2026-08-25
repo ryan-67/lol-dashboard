@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-24T21:24:08.042723+00:00",
+  "generatedAt": "2026-08-25T02:04:54.943155+00:00",
   "championsCurated": 172,
   "primaryRoleValidation": {
     "checked": 122,
@@ -46,7 +46,7 @@
         ],
         "empiricalPrimaryRole": "jungle",
         "roleShift": false,
-        "totalGames": 804
+        "totalGames": 805
       },
       {
         "champion": "Ziggs",
@@ -56,7 +56,7 @@
         ],
         "empiricalPrimaryRole": "adc",
         "roleShift": false,
-        "totalGames": 269
+        "totalGames": 270
       },
       {
         "champion": "Shen",
@@ -65,7 +65,7 @@
         ],
         "empiricalPrimaryRole": "support",
         "roleShift": false,
-        "totalGames": 210
+        "totalGames": 211
       },
       {
         "champion": "Tristana",
@@ -178,8 +178,8 @@
           "champion": "Ambessa",
           "curatedLaneBully": true,
           "empiricalLaneBully": false,
-          "vsRoleMedianGd15": -35.8,
-          "games": 900
+          "vsRoleMedianGd15": -34.8,
+          "games": 901
         },
         {
           "champion": "Aphelios",
@@ -199,8 +199,8 @@
           "champion": "Camille",
           "curatedLaneBully": true,
           "empiricalLaneBully": false,
-          "vsRoleMedianGd15": 95.3,
-          "games": 191
+          "vsRoleMedianGd15": 100.2,
+          "games": 192
         },
         {
           "champion": "Cassiopeia",
@@ -234,8 +234,8 @@
           "champion": "Gnar",
           "curatedLaneBully": true,
           "empiricalLaneBully": false,
-          "vsRoleMedianGd15": 125.6,
-          "games": 581
+          "vsRoleMedianGd15": 123.6,
+          "games": 582
         },
         {
           "champion": "Kalista",
@@ -255,8 +255,8 @@
           "champion": "Kled",
           "curatedLaneBully": true,
           "empiricalLaneBully": false,
-          "vsRoleMedianGd15": -15.8,
-          "games": 34
+          "vsRoleMedianGd15": -22.1,
+          "games": 35
         },
         {
           "champion": "LeBlanc",
@@ -269,8 +269,8 @@
           "champion": "Lee Sin",
           "curatedLaneBully": false,
           "empiricalLaneBully": true,
-          "vsRoleMedianGd15": 160.3,
-          "games": 349
+          "vsRoleMedianGd15": 160.9,
+          "games": 350
         },
         {
           "champion": "Lillia",
@@ -283,8 +283,8 @@
           "champion": "Lucian",
           "curatedLaneBully": true,
           "empiricalLaneBully": false,
-          "vsRoleMedianGd15": 85.8,
-          "games": 551
+          "vsRoleMedianGd15": 88.7,
+          "games": 552
         },
         {
           "champion": "Lux",
@@ -319,7 +319,7 @@
           "curatedLate": false,
           "empiricalLateGameScaler": true,
           "scalingCurve": "mid",
-          "games": 900
+          "games": 901
         },
         {
           "champion": "Aphelios",
@@ -368,7 +368,7 @@
           "curatedLate": false,
           "empiricalLateGameScaler": true,
           "scalingCurve": "mid",
-          "games": 974
+          "games": 975
         },
         {
           "champion": "Gangplank",
@@ -389,14 +389,14 @@
           "curatedLate": true,
           "empiricalLateGameScaler": false,
           "scalingCurve": "mid",
-          "games": 402
+          "games": 403
         },
         {
           "champion": "Jarvan IV",
           "curatedLate": false,
           "empiricalLateGameScaler": true,
           "scalingCurve": "mid",
-          "games": 734
+          "games": 735
         },
         {
           "champion": "Jhin",
@@ -473,7 +473,7 @@
           "curatedEarly": false,
           "empiricalFrontLoaded": true,
           "scalingCurve": "mid",
-          "games": 346
+          "games": 347
         },
         {
           "champion": "Alistar",
@@ -501,7 +501,7 @@
           "curatedEarly": false,
           "empiricalFrontLoaded": true,
           "scalingCurve": "mid",
-          "games": 466
+          "games": 467
         },
         {
           "champion": "Blitzcrank",
@@ -543,7 +543,7 @@
           "curatedEarly": true,
           "empiricalFrontLoaded": false,
           "scalingCurve": "early",
-          "games": 652
+          "games": 653
         },
         {
           "champion": "K'Sante",
@@ -564,7 +564,7 @@
           "curatedEarly": false,
           "empiricalFrontLoaded": true,
           "scalingCurve": "mid",
-          "games": 431
+          "games": 432
         },
         {
           "champion": "Kennen",
@@ -578,7 +578,7 @@
           "curatedEarly": true,
           "empiricalFrontLoaded": false,
           "scalingCurve": "early",
-          "games": 34
+          "games": 35
         },
         {
           "champion": "LeBlanc",
@@ -592,7 +592,7 @@
           "curatedEarly": true,
           "empiricalFrontLoaded": false,
           "scalingCurve": "early",
-          "games": 349
+          "games": 350
         },
         {
           "champion": "Leona",
@@ -615,7 +615,7 @@
         "defenderTag": "cc_heavy",
         "label": "Mobility escapes hard-CC/engage",
         "status": "validated",
-        "gamesWithCondition": 6076,
+        "gamesWithCondition": 6082,
         "winrateWithCondition": 50.1,
         "gamesWithout": 175,
         "winrateWithout": 51.4,
@@ -626,18 +626,18 @@
         "defenderTag": "engage",
         "label": "Mobility escapes engage comps",
         "status": "validated",
-        "gamesWithCondition": 5899,
+        "gamesWithCondition": 5904,
         "winrateWithCondition": 50.3,
-        "gamesWithout": 352,
-        "winrateWithout": 48.3,
-        "liftPp": 2.0
+        "gamesWithout": 353,
+        "winrateWithout": 48.2,
+        "liftPp": 2.1
       },
       {
         "attackerTag": "tank",
         "defenderTag": "burst",
         "label": "Tanks blunt burst-heavy comps",
         "status": "validated",
-        "gamesWithCondition": 4050,
+        "gamesWithCondition": 4052,
         "winrateWithCondition": 49.8,
         "gamesWithout": 1716,
         "winrateWithout": 48.1,
@@ -648,33 +648,33 @@
         "defenderTag": "dive",
         "label": "Poke checks dive comps before they close",
         "status": "validated",
-        "gamesWithCondition": 6286,
-        "winrateWithCondition": 49.4,
-        "gamesWithout": 406,
-        "winrateWithout": 50.0,
-        "liftPp": -0.6
+        "gamesWithCondition": 6289,
+        "winrateWithCondition": 49.5,
+        "gamesWithout": 407,
+        "winrateWithout": 49.9,
+        "liftPp": -0.4
       },
       {
         "attackerTag": "split_push",
         "defenderTag": "engage",
         "label": "Split push punishes comps lacking wave clear/pull-back (proxy: engage-heavy)",
         "status": "validated",
-        "gamesWithCondition": 1102,
-        "winrateWithCondition": 49.9,
+        "gamesWithCondition": 1103,
+        "winrateWithCondition": 50.0,
         "gamesWithout": 44,
         "winrateWithout": 50.0,
-        "liftPp": -0.1
+        "liftPp": -0.0
       },
       {
         "attackerTag": "anti_dive",
         "defenderTag": "dive",
         "label": "Peel/anti-dive protects into dive comps",
         "status": "validated",
-        "gamesWithCondition": 4420,
+        "gamesWithCondition": 4422,
         "winrateWithCondition": 50.9,
-        "gamesWithout": 302,
-        "winrateWithout": 47.7,
-        "liftPp": 3.2
+        "gamesWithout": 303,
+        "winrateWithout": 47.5,
+        "liftPp": 3.4
       }
     ]
   },
