@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-26T10:36:59.704Z",
+  "generatedAt": "2026-08-26T12:54:28.277Z",
   "drafts": [
     {
       "matchId": "lol-match-117030752644841571",
@@ -12,46 +12,46 @@
       "redTeam": "kt",
       "bluePicks": [
         {
-          "championName": "Kled",
-          "role": "Top"
+          "role": "Top",
+          "championName": "Kled"
         },
         {
-          "championName": "Jarvan IV",
-          "role": "Jungle"
+          "role": "Jungle",
+          "championName": "Jarvan IV"
         },
         {
-          "championName": "Anivia",
-          "role": "Mid"
+          "role": "Mid",
+          "championName": "Anivia"
         },
         {
-          "championName": "Lucian",
-          "role": "ADC"
+          "role": "ADC",
+          "championName": "Lucian"
         },
         {
-          "championName": "Milio",
-          "role": "Support"
+          "role": "Support",
+          "championName": "Milio"
         }
       ],
       "redPicks": [
         {
-          "championName": "Olaf",
-          "role": "Top"
+          "role": "Top",
+          "championName": "Olaf"
         },
         {
-          "championName": "Nocturne",
-          "role": "Jungle"
+          "role": "Jungle",
+          "championName": "Nocturne"
         },
         {
-          "championName": "Ryze",
-          "role": "Mid"
+          "role": "Mid",
+          "championName": "Ryze"
         },
         {
-          "championName": "Miss Fortune",
-          "role": "ADC"
+          "role": "ADC",
+          "championName": "Miss Fortune"
         },
         {
-          "championName": "Nautilus",
-          "role": "Support"
+          "role": "Support",
+          "championName": "Nautilus"
         }
       ],
       "blueBans": [],
@@ -59,7 +59,7 @@
       "draftComplete": true,
       "status": "inprogress",
       "scheduledAt": "2026-08-26T08:00:00+00:00",
-      "fetchedAt": "2026-08-26T10:36:59.461Z"
+      "fetchedAt": "2026-08-26T10:36:59.461+00:00"
     }
   ]
 }
