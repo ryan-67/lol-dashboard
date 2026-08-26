@@ -1,4 +1,65 @@
 {
-  "generatedAt": "2026-08-26T06:51:38.735Z",
-  "drafts": []
+  "generatedAt": "2026-08-26T08:44:26.872Z",
+  "drafts": [
+    {
+      "matchId": "lol-match-117030752644841571",
+      "gameId": "lol-game-117030752644841572",
+      "gameNumber": 1,
+      "league": "LCK",
+      "teamA": "kt Rolster",
+      "teamB": "HANJIN BRION",
+      "blueTeam": "bro",
+      "redTeam": "kt",
+      "bluePicks": [
+        {
+          "championName": "Kled",
+          "role": "Top"
+        },
+        {
+          "championName": "Jarvan IV",
+          "role": "Jungle"
+        },
+        {
+          "championName": "Anivia",
+          "role": "Mid"
+        },
+        {
+          "championName": "Lucian",
+          "role": "ADC"
+        },
+        {
+          "championName": "Milio",
+          "role": "Support"
+        }
+      ],
+      "redPicks": [
+        {
+          "championName": "Olaf",
+          "role": "Top"
+        },
+        {
+          "championName": "Nocturne",
+          "role": "Jungle"
+        },
+        {
+          "championName": "Ryze",
+          "role": "Mid"
+        },
+        {
+          "championName": "Miss Fortune",
+          "role": "ADC"
+        },
+        {
+          "championName": "Nautilus",
+          "role": "Support"
+        }
+      ],
+      "blueBans": [],
+      "redBans": [],
+      "draftComplete": true,
+      "status": "inprogress",
+      "scheduledAt": "2026-08-26T08:00:00+00:00",
+      "fetchedAt": "2026-08-26T08:44:26.799Z"
+    }
+  ]
 }
