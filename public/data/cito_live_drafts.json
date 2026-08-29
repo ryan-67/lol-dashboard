@@ -1,6 +1,66 @@
 {
-  "generatedAt": "2026-08-29T16:21:43.539Z",
+  "generatedAt": "2026-08-29T20:32:30.689Z",
   "drafts": [
+    {
+      "matchId": "lol-match-115564797164345571",
+      "gameId": "lol-game-115564797164345572",
+      "gameNumber": 1,
+      "league": "LCS",
+      "teamA": "Team Liquid Alienware",
+      "teamB": "Shopify Rebellion",
+      "blueTeam": "tl",
+      "redTeam": "sr",
+      "bluePicks": [
+        {
+          "championName": "Trundle",
+          "role": "Jungle"
+        },
+        {
+          "championName": "Olaf",
+          "role": "Top"
+        },
+        {
+          "championName": "Akali",
+          "role": "Mid"
+        },
+        {
+          "championName": "Ezreal",
+          "role": "ADC"
+        },
+        {
+          "championName": "Neeko",
+          "role": "Support"
+        }
+      ],
+      "redPicks": [
+        {
+          "championName": "Rakan",
+          "role": "Support"
+        },
+        {
+          "championName": "Pantheon",
+          "role": "Jungle"
+        },
+        {
+          "championName": "Xayah",
+          "role": "ADC"
+        },
+        {
+          "championName": "K'Sante",
+          "role": "Top"
+        },
+        {
+          "championName": "Orianna",
+          "role": "Mid"
+        }
+      ],
+      "blueBans": [],
+      "redBans": [],
+      "draftComplete": true,
+      "status": "inprogress",
+      "scheduledAt": "2026-08-29T20:00:00+00:00",
+      "fetchedAt": "2026-08-29T20:32:29.377Z"
+    },
     {
       "matchId": "lol-match-115548681803406259",
       "gameId": "lol-game-115548681803406260",
@@ -12,46 +72,46 @@
       "redTeam": "sk-gaming",
       "bluePicks": [
         {
-          "championName": "Twisted Fate",
-          "role": "Top"
+          "role": "Top",
+          "championName": "Twisted Fate"
         },
         {
-          "championName": "Ezreal",
-          "role": "ADC"
+          "role": "ADC",
+          "championName": "Ezreal"
         },
         {
-          "championName": "Lee Sin",
-          "role": "Jungle"
+          "role": "Jungle",
+          "championName": "Lee Sin"
         },
         {
-          "championName": "Leona",
-          "role": "Support"
+          "role": "Support",
+          "championName": "Leona"
         },
         {
-          "championName": "Syndra",
-          "role": "Mid"
+          "role": "Mid",
+          "championName": "Syndra"
         }
       ],
       "redPicks": [
         {
-          "championName": "Cassiopeia",
-          "role": "Mid"
+          "role": "Mid",
+          "championName": "Cassiopeia"
         },
         {
-          "championName": "Gnar",
-          "role": "Top"
+          "role": "Top",
+          "championName": "Gnar"
         },
         {
-          "championName": "Rell",
-          "role": "Support"
+          "role": "Support",
+          "championName": "Rell"
         },
         {
-          "championName": "Jarvan IV",
-          "role": "Jungle"
+          "role": "Jungle",
+          "championName": "Jarvan IV"
         },
         {
-          "championName": "Kai'Sa",
-          "role": "ADC"
+          "role": "ADC",
+          "championName": "Kai'Sa"
         }
       ],
       "blueBans": [],
@@ -59,7 +119,7 @@
       "draftComplete": true,
       "status": "inprogress",
       "scheduledAt": "2026-08-29T15:00:00+00:00",
-      "fetchedAt": "2026-08-29T16:21:42.147Z"
+      "fetchedAt": "2026-08-29T16:21:42.147+00:00"
     },
     {
       "matchId": "lol-match-117155436343202136",
