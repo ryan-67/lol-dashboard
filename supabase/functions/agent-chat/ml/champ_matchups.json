@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-29T11:40:24.746080+00:00",
+  "generatedAt": "2026-08-29T17:10:25.126706+00:00",
   "methodology": "Same-role matrix: direct-lane champ-vs-champ win rate + avg GD@15 delta, min 6 meetings. Draft-order reconstruction uses OE's firstPick flag + the standard competitive ban/pick slot pattern to recover true reveal order (not column order) for the counter-pick validation. Cross-role lift validates hand-curated archetype tag interactions against realized win rates, not assumed.",
   "sameRoleMatchups": {
     "top": {
