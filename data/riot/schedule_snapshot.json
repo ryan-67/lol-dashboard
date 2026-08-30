@@ -1,5 +1,5 @@
 {
-"generated_at": "2026-08-30T22:27:23.621405+00:00",
+"generated_at": "2026-08-30T22:52:14.073135+00:00",
 "lookback_days": 21,
 "rows": [
 {
@@ -16,7 +16,7 @@
 "team_b_score": 1,
 "winner_team": "TOP ESPORTS",
 "best_of": 1,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "112966669924129225",
 "_state": "completed",
 "_team_codes": [
@@ -38,7 +38,7 @@
 "team_b_score": 1,
 "winner_team": "Gen.G Esports",
 "best_of": 1,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "112966669924129231",
 "_state": "completed",
 "_team_codes": [
@@ -60,7 +60,7 @@
 "team_b_score": 0,
 "winner_team": "Dplus KIA",
 "best_of": 1,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "112966669924129229",
 "_state": "completed",
 "_team_codes": [
@@ -82,7 +82,7 @@
 "team_b_score": 0,
 "winner_team": "Suzhou LNG Esports",
 "best_of": 1,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "112966669924129227",
 "_state": "completed",
 "_team_codes": [
@@ -104,7 +104,7 @@
 "team_b_score": 1,
 "winner_team": "Hanwha Life Esports",
 "best_of": 1,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "112966669924129217",
 "_state": "completed",
 "_team_codes": [
@@ -126,7 +126,7 @@
 "team_b_score": 0,
 "winner_team": "FlyQuest",
 "best_of": 1,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "112966669924129219",
 "_state": "completed",
 "_team_codes": [
@@ -148,7 +148,7 @@
 "team_b_score": 1,
 "winner_team": "G2 Esports",
 "best_of": 1,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "112966669924129221",
 "_state": "completed",
 "_team_codes": [
@@ -170,7 +170,7 @@
 "team_b_score": 0,
 "winner_team": "Suzhou LNG Esports",
 "best_of": 1,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "112966669924194775",
 "_state": "completed",
 "_team_codes": [
@@ -192,7 +192,7 @@
 "team_b_score": 1,
 "winner_team": "Gen.G Esports",
 "best_of": 1,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "112966669924194773",
 "_state": "completed",
 "_team_codes": [
@@ -214,7 +214,7 @@
 "team_b_score": 0,
 "winner_team": "Hanwha Life Esports",
 "best_of": 1,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "112966669924129233",
 "_state": "completed",
 "_team_codes": [
@@ -236,7 +236,7 @@
 "team_b_score": 0,
 "winner_team": "WeiboGaming",
 "best_of": 1,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "112966669924194781",
 "_state": "completed",
 "_team_codes": [
@@ -258,7 +258,7 @@
 "team_b_score": 1,
 "winner_team": "T1",
 "best_of": 1,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "112966669924194777",
 "_state": "completed",
 "_team_codes": [
@@ -280,7 +280,7 @@
 "team_b_score": 1,
 "winner_team": "Dplus KIA",
 "best_of": 1,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "112966669924194771",
 "_state": "completed",
 "_team_codes": [
@@ -302,7 +302,7 @@
 "team_b_score": 1,
 "winner_team": "Fnatic",
 "best_of": 1,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "112966669924194783",
 "_state": "completed",
 "_team_codes": [
@@ -324,7 +324,7 @@
 "team_b_score": 1,
 "winner_team": "PSG Talon",
 "best_of": 1,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "112966669924194779",
 "_state": "completed",
 "_team_codes": [
@@ -346,7 +346,7 @@
 "team_b_score": 0,
 "winner_team": "Suzhou LNG Esports",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "112966669924194789",
 "_state": "completed",
 "_team_codes": [
@@ -368,7 +368,7 @@
 "team_b_score": 1,
 "winner_team": "Gen.G Esports",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "112966669924194785",
 "_state": "completed",
 "_team_codes": [
@@ -390,7 +390,7 @@
 "team_b_score": 1,
 "winner_team": "TOP ESPORTS",
 "best_of": 1,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "112966669924194797",
 "_state": "completed",
 "_team_codes": [
@@ -412,7 +412,7 @@
 "team_b_score": 0,
 "winner_team": "T1",
 "best_of": 1,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "112966669924194793",
 "_state": "completed",
 "_team_codes": [
@@ -434,7 +434,7 @@
 "team_b_score": 1,
 "winner_team": "FlyQuest",
 "best_of": 1,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "112966669924194795",
 "_state": "completed",
 "_team_codes": [
@@ -456,7 +456,7 @@
 "team_b_score": 1,
 "winner_team": "G2 Esports",
 "best_of": 1,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "112966669924194799",
 "_state": "completed",
 "_team_codes": [
@@ -478,7 +478,7 @@
 "team_b_score": 1,
 "winner_team": "GAM Esports",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "112966669924194805",
 "_state": "completed",
 "_team_codes": [
@@ -500,7 +500,7 @@
 "team_b_score": 2,
 "winner_team": "Team Liquid Alienware",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "112966669924194801",
 "_state": "completed",
 "_team_codes": [
@@ -522,7 +522,7 @@
 "team_b_score": 2,
 "winner_team": "TOP ESPORTS",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "112966669924194809",
 "_state": "completed",
 "_team_codes": [
@@ -544,7 +544,7 @@
 "team_b_score": 2,
 "winner_team": "Hanwha Life Esports",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "112966669924194817",
 "_state": "completed",
 "_team_codes": [
@@ -566,7 +566,7 @@
 "team_b_score": 0,
 "winner_team": "T1",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "112966669924194813",
 "_state": "completed",
 "_team_codes": [
@@ -588,7 +588,7 @@
 "team_b_score": 2,
 "winner_team": "BILIBILI GAMING",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "112966669924194829",
 "_state": "completed",
 "_team_codes": [
@@ -610,7 +610,7 @@
 "team_b_score": 1,
 "winner_team": "WeiboGaming",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "112966669924194825",
 "_state": "completed",
 "_team_codes": [
@@ -632,7 +632,7 @@
 "team_b_score": 2,
 "winner_team": "Team Liquid Alienware",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "112966669924194821",
 "_state": "completed",
 "_team_codes": [
@@ -654,7 +654,7 @@
 "team_b_score": 1,
 "winner_team": "WeiboGaming",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "112966669924194833",
 "_state": "completed",
 "_team_codes": [
@@ -676,7 +676,7 @@
 "team_b_score": 1,
 "winner_team": "BILIBILI GAMING",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "112966669924194841",
 "_state": "completed",
 "_team_codes": [
@@ -698,7 +698,7 @@
 "team_b_score": 2,
 "winner_team": "FlyQuest",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "112966669924194837",
 "_state": "completed",
 "_team_codes": [
@@ -720,7 +720,7 @@
 "team_b_score": 3,
 "winner_team": "WeiboGaming",
 "best_of": 5,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "112966669924194845",
 "_state": "completed",
 "_team_codes": [
@@ -742,7 +742,7 @@
 "team_b_score": 1,
 "winner_team": "BILIBILI GAMING",
 "best_of": 5,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "112966669924194851",
 "_state": "completed",
 "_team_codes": [
@@ -764,7 +764,7 @@
 "team_b_score": 0,
 "winner_team": "T1",
 "best_of": 5,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "112966669924194857",
 "_state": "completed",
 "_team_codes": [
@@ -786,7 +786,7 @@
 "team_b_score": 3,
 "winner_team": "Gen.G Esports",
 "best_of": 5,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "112966669924194863",
 "_state": "completed",
 "_team_codes": [
@@ -808,7 +808,7 @@
 "team_b_score": 0,
 "winner_team": "BILIBILI GAMING",
 "best_of": 5,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "112966669924194869",
 "_state": "completed",
 "_team_codes": [
@@ -830,7 +830,7 @@
 "team_b_score": 3,
 "winner_team": "T1",
 "best_of": 5,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "112966669924194875",
 "_state": "completed",
 "_team_codes": [
@@ -852,7 +852,7 @@
 "team_b_score": 3,
 "winner_team": "T1",
 "best_of": 5,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "112966669924194881",
 "_state": "completed",
 "_team_codes": [
@@ -874,7 +874,7 @@
 "team_b_score": 1,
 "winner_team": "T1",
 "best_of": 5,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "113475493522079909",
 "_state": "completed",
 "_team_codes": [
@@ -896,7 +896,7 @@
 "team_b_score": 1,
 "winner_team": "Team Secret Whales",
 "best_of": 1,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "113475798006599034",
 "_state": "completed",
 "_team_codes": [
@@ -918,7 +918,7 @@
 "team_b_score": 1,
 "winner_team": "CTBC Flying Oyster",
 "best_of": 1,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "113475798006664572",
 "_state": "completed",
 "_team_codes": [
@@ -940,7 +940,7 @@
 "team_b_score": 1,
 "winner_team": "kt Rolster",
 "best_of": 1,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "113475798006664574",
 "_state": "completed",
 "_team_codes": [
@@ -962,7 +962,7 @@
 "team_b_score": 0,
 "winner_team": "100 Thieves",
 "best_of": 1,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "113475798006664576",
 "_state": "completed",
 "_team_codes": [
@@ -984,7 +984,7 @@
 "team_b_score": 0,
 "winner_team": "T1",
 "best_of": 1,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "113475798006664578",
 "_state": "completed",
 "_team_codes": [
@@ -1006,7 +1006,7 @@
 "team_b_score": 0,
 "winner_team": "Anyone's Legend",
 "best_of": 1,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "113475798006664580",
 "_state": "completed",
 "_team_codes": [
@@ -1028,7 +1028,7 @@
 "team_b_score": 0,
 "winner_team": "TOP ESPORTS",
 "best_of": 1,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "113475798006664582",
 "_state": "completed",
 "_team_codes": [
@@ -1050,7 +1050,7 @@
 "team_b_score": 1,
 "winner_team": "Gen.G Esports",
 "best_of": 1,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "113475798006664584",
 "_state": "completed",
 "_team_codes": [
@@ -1072,7 +1072,7 @@
 "team_b_score": 0,
 "winner_team": "FlyQuest",
 "best_of": 1,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "113475798006664594",
 "_state": "completed",
 "_team_codes": [
@@ -1094,7 +1094,7 @@
 "team_b_score": 1,
 "winner_team": "kt Rolster",
 "best_of": 1,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "113475798006664586",
 "_state": "completed",
 "_team_codes": [
@@ -1116,7 +1116,7 @@
 "team_b_score": 0,
 "winner_team": "G2 Esports",
 "best_of": 1,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "113475798006664596",
 "_state": "completed",
 "_team_codes": [
@@ -1138,7 +1138,7 @@
 "team_b_score": 1,
 "winner_team": "TOP ESPORTS",
 "best_of": 1,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "113475798006664588",
 "_state": "completed",
 "_team_codes": [
@@ -1160,7 +1160,7 @@
 "team_b_score": 1,
 "winner_team": "CTBC Flying Oyster",
 "best_of": 1,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "113475798006664590",
 "_state": "completed",
 "_team_codes": [
@@ -1182,7 +1182,7 @@
 "team_b_score": 0,
 "winner_team": "Anyone's Legend",
 "best_of": 1,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "113475798006664592",
 "_state": "completed",
 "_team_codes": [
@@ -1204,7 +1204,7 @@
 "team_b_score": 1,
 "winner_team": "BILIBILI GAMING",
 "best_of": 1,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "113475798006664598",
 "_state": "completed",
 "_team_codes": [
@@ -1226,7 +1226,7 @@
 "team_b_score": 1,
 "winner_team": "Hanwha Life Esports",
 "best_of": 1,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "113475798006664600",
 "_state": "completed",
 "_team_codes": [
@@ -1248,7 +1248,7 @@
 "team_b_score": 2,
 "winner_team": "kt Rolster",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "113475798006664602",
 "_state": "completed",
 "_team_codes": [
@@ -1270,7 +1270,7 @@
 "team_b_score": 1,
 "winner_team": "Anyone's Legend",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "113475798006664606",
 "_state": "completed",
 "_team_codes": [
@@ -1292,7 +1292,7 @@
 "team_b_score": 1,
 "winner_team": "FlyQuest",
 "best_of": 1,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "113475798006664610",
 "_state": "completed",
 "_team_codes": [
@@ -1314,7 +1314,7 @@
 "team_b_score": 1,
 "winner_team": "Gen.G Esports",
 "best_of": 1,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "113475798006664612",
 "_state": "completed",
 "_team_codes": [
@@ -1336,7 +1336,7 @@
 "team_b_score": 0,
 "winner_team": "G2 Esports",
 "best_of": 1,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "113475798006664614",
 "_state": "completed",
 "_team_codes": [
@@ -1358,7 +1358,7 @@
 "team_b_score": 1,
 "winner_team": "Hanwha Life Esports",
 "best_of": 1,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "113475798006664616",
 "_state": "completed",
 "_team_codes": [
@@ -1380,7 +1380,7 @@
 "team_b_score": 2,
 "winner_team": "Movistar KOI",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "113475798006664618",
 "_state": "completed",
 "_team_codes": [
@@ -1402,7 +1402,7 @@
 "team_b_score": 1,
 "winner_team": "Vivo Keyd Stars",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "113475798006664622",
 "_state": "completed",
 "_team_codes": [
@@ -1424,7 +1424,7 @@
 "team_b_score": 0,
 "winner_team": "Hanwha Life Esports",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "113475798006664626",
 "_state": "completed",
 "_team_codes": [
@@ -1446,7 +1446,7 @@
 "team_b_score": 1,
 "winner_team": "G2 Esports",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "113475798006664630",
 "_state": "completed",
 "_team_codes": [
@@ -1468,7 +1468,7 @@
 "team_b_score": 2,
 "winner_team": "Movistar KOI",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "113475798006664638",
 "_state": "completed",
 "_team_codes": [
@@ -1490,7 +1490,7 @@
 "team_b_score": 2,
 "winner_team": "Gen.G Esports",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "113475798006664634",
 "_state": "completed",
 "_team_codes": [
@@ -1512,7 +1512,7 @@
 "team_b_score": 2,
 "winner_team": "BILIBILI GAMING",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "113475798006664642",
 "_state": "completed",
 "_team_codes": [
@@ -1534,7 +1534,7 @@
 "team_b_score": 0,
 "winner_team": "T1",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "113475798006664646",
 "_state": "completed",
 "_team_codes": [
@@ -1556,7 +1556,7 @@
 "team_b_score": 2,
 "winner_team": "CTBC Flying Oyster",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "113475798006664650",
 "_state": "completed",
 "_team_codes": [
@@ -1578,7 +1578,7 @@
 "team_b_score": 2,
 "winner_team": "TOP ESPORTS",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "113475798006664654",
 "_state": "completed",
 "_team_codes": [
@@ -1600,7 +1600,7 @@
 "team_b_score": 0,
 "winner_team": "T1",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "113475798006664658",
 "_state": "completed",
 "_team_codes": [
@@ -1622,7 +1622,7 @@
 "team_b_score": 3,
 "winner_team": "Gen.G Esports",
 "best_of": 5,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "113475871523985223",
 "_state": "completed",
 "_team_codes": [
@@ -1644,7 +1644,7 @@
 "team_b_score": 3,
 "winner_team": "kt Rolster",
 "best_of": 5,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "113475871523985229",
 "_state": "completed",
 "_team_codes": [
@@ -1666,7 +1666,7 @@
 "team_b_score": 3,
 "winner_team": "TOP ESPORTS",
 "best_of": 5,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "113475871523985217",
 "_state": "completed",
 "_team_codes": [
@@ -1688,7 +1688,7 @@
 "team_b_score": 2,
 "winner_team": "T1",
 "best_of": 5,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "113475871523985211",
 "_state": "completed",
 "_team_codes": [
@@ -1710,7 +1710,7 @@
 "team_b_score": 1,
 "winner_team": "kt Rolster",
 "best_of": 5,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "113475871523985241",
 "_state": "completed",
 "_team_codes": [
@@ -1732,7 +1732,7 @@
 "team_b_score": 3,
 "winner_team": "T1",
 "best_of": 5,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "113475871523985235",
 "_state": "completed",
 "_team_codes": [
@@ -1754,7 +1754,7 @@
 "team_b_score": 2,
 "winner_team": "T1",
 "best_of": 5,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "113475871524050783",
 "_state": "completed",
 "_team_codes": [
@@ -1776,7 +1776,7 @@
 "team_b_score": 2,
 "winner_team": "FlyQuest",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "112274687401036074",
 "_state": "completed",
 "_team_codes": [
@@ -1798,7 +1798,7 @@
 "team_b_score": 2,
 "winner_team": "T1",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "112274687401036078",
 "_state": "completed",
 "_team_codes": [
@@ -1820,7 +1820,7 @@
 "team_b_score": 2,
 "winner_team": "Fnatic",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "112274687401036094",
 "_state": "completed",
 "_team_codes": [
@@ -1842,7 +1842,7 @@
 "team_b_score": 2,
 "winner_team": "TOP ESPORTS",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "112274687401036098",
 "_state": "completed",
 "_team_codes": [
@@ -1864,7 +1864,7 @@
 "team_b_score": 2,
 "winner_team": "T1",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "112274687401036082",
 "_state": "completed",
 "_team_codes": [
@@ -1886,7 +1886,7 @@
 "team_b_score": 2,
 "winner_team": "TOP ESPORTS",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "112274687401036102",
 "_state": "completed",
 "_team_codes": [
@@ -1908,7 +1908,7 @@
 "team_b_score": 2,
 "winner_team": "PSG Talon",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "112274687401036086",
 "_state": "completed",
 "_team_codes": [
@@ -1930,7 +1930,7 @@
 "team_b_score": 1,
 "winner_team": "GAM Esports",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "112274687401036106",
 "_state": "completed",
 "_team_codes": [
@@ -1952,7 +1952,7 @@
 "team_b_score": 0,
 "winner_team": "PSG Talon",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "112274687401036090",
 "_state": "completed",
 "_team_codes": [
@@ -1974,7 +1974,7 @@
 "team_b_score": 2,
 "winner_team": "Fnatic",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "112274687401036110",
 "_state": "completed",
 "_team_codes": [
@@ -1996,7 +1996,7 @@
 "team_b_score": 0,
 "winner_team": "TOP ESPORTS",
 "best_of": 5,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "112274705999818732",
 "_state": "completed",
 "_team_codes": [
@@ -2018,7 +2018,7 @@
 "team_b_score": 3,
 "winner_team": "Gen.G Esports",
 "best_of": 5,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "112274705999818738",
 "_state": "completed",
 "_team_codes": [
@@ -2040,7 +2040,7 @@
 "team_b_score": 3,
 "winner_team": "BILIBILI GAMING",
 "best_of": 5,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "112274705999818744",
 "_state": "completed",
 "_team_codes": [
@@ -2062,7 +2062,7 @@
 "team_b_score": 2,
 "winner_team": "T1",
 "best_of": 5,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "112274705999818750",
 "_state": "completed",
 "_team_codes": [
@@ -2084,7 +2084,7 @@
 "team_b_score": 1,
 "winner_team": "Team Liquid Alienware",
 "best_of": 5,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "112274705999884304",
 "_state": "completed",
 "_team_codes": [
@@ -2106,7 +2106,7 @@
 "team_b_score": 3,
 "winner_team": "Gen.G Esports",
 "best_of": 5,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "112274705999884292",
 "_state": "completed",
 "_team_codes": [
@@ -2128,7 +2128,7 @@
 "team_b_score": 3,
 "winner_team": "G2 Esports",
 "best_of": 5,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "112274705999884310",
 "_state": "completed",
 "_team_codes": [
@@ -2150,7 +2150,7 @@
 "team_b_score": 3,
 "winner_team": "BILIBILI GAMING",
 "best_of": 5,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "112274705999884298",
 "_state": "completed",
 "_team_codes": [
@@ -2172,7 +2172,7 @@
 "team_b_score": 0,
 "winner_team": "G2 Esports",
 "best_of": 5,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "112274705999884328",
 "_state": "completed",
 "_team_codes": [
@@ -2194,7 +2194,7 @@
 "team_b_score": 3,
 "winner_team": "T1",
 "best_of": 5,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "112274705999884322",
 "_state": "completed",
 "_team_codes": [
@@ -2216,7 +2216,7 @@
 "team_b_score": 3,
 "winner_team": "Gen.G Esports",
 "best_of": 5,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "112274705999884316",
 "_state": "completed",
 "_team_codes": [
@@ -2238,7 +2238,7 @@
 "team_b_score": 3,
 "winner_team": "T1",
 "best_of": 5,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "112274705999884334",
 "_state": "completed",
 "_team_codes": [
@@ -2260,7 +2260,7 @@
 "team_b_score": 3,
 "winner_team": "BILIBILI GAMING",
 "best_of": 5,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "112274705999884340",
 "_state": "completed",
 "_team_codes": [
@@ -2282,7 +2282,7 @@
 "team_b_score": 3,
 "winner_team": "Gen.G Esports",
 "best_of": 5,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "112274705999884346",
 "_state": "completed",
 "_team_codes": [
@@ -2304,7 +2304,7 @@
 "team_b_score": 2,
 "winner_team": "G2 Esports",
 "best_of": 5,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "113470922764572270",
 "_state": "completed",
 "_team_codes": [
@@ -2326,7 +2326,7 @@
 "team_b_score": 3,
 "winner_team": "BILIBILI GAMING",
 "best_of": 5,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "113470922764572276",
 "_state": "completed",
 "_team_codes": [
@@ -2348,7 +2348,7 @@
 "team_b_score": 3,
 "winner_team": "GAM Esports",
 "best_of": 5,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "113470922764572288",
 "_state": "completed",
 "_team_codes": [
@@ -2370,7 +2370,7 @@
 "team_b_score": 3,
 "winner_team": "BILIBILI GAMING",
 "best_of": 5,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "113470922764572282",
 "_state": "completed",
 "_team_codes": [
@@ -2392,7 +2392,7 @@
 "team_b_score": 3,
 "winner_team": "G2 Esports",
 "best_of": 5,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "113470922764572294",
 "_state": "completed",
 "_team_codes": [
@@ -2414,7 +2414,7 @@
 "team_b_score": 3,
 "winner_team": "Gen.G Esports",
 "best_of": 5,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "113470922758018585",
 "_state": "completed",
 "_team_codes": [
@@ -2436,7 +2436,7 @@
 "team_b_score": 3,
 "winner_team": "Anyone's Legend",
 "best_of": 5,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "113470922758215199",
 "_state": "completed",
 "_team_codes": [
@@ -2458,7 +2458,7 @@
 "team_b_score": 1,
 "winner_team": "BILIBILI GAMING",
 "best_of": 5,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "113470922758215211",
 "_state": "completed",
 "_team_codes": [
@@ -2480,7 +2480,7 @@
 "team_b_score": 2,
 "winner_team": "T1",
 "best_of": 5,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "113470922758215205",
 "_state": "completed",
 "_team_codes": [
@@ -2502,7 +2502,7 @@
 "team_b_score": 3,
 "winner_team": "FlyQuest",
 "best_of": 5,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "113470922758215229",
 "_state": "completed",
 "_team_codes": [
@@ -2524,7 +2524,7 @@
 "team_b_score": 2,
 "winner_team": "Gen.G Esports",
 "best_of": 5,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "113470922758215217",
 "_state": "completed",
 "_team_codes": [
@@ -2546,7 +2546,7 @@
 "team_b_score": 3,
 "winner_team": "CTBC Flying Oyster",
 "best_of": 5,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "113470922758215235",
 "_state": "completed",
 "_team_codes": [
@@ -2568,7 +2568,7 @@
 "team_b_score": 0,
 "winner_team": "T1",
 "best_of": 5,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "113470922758215223",
 "_state": "completed",
 "_team_codes": [
@@ -2590,7 +2590,7 @@
 "team_b_score": 1,
 "winner_team": "Anyone's Legend",
 "best_of": 5,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "113470922758215253",
 "_state": "completed",
 "_team_codes": [
@@ -2612,7 +2612,7 @@
 "team_b_score": 2,
 "winner_team": "BILIBILI GAMING",
 "best_of": 5,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "113470922758215247",
 "_state": "completed",
 "_team_codes": [
@@ -2634,7 +2634,7 @@
 "team_b_score": 2,
 "winner_team": "Gen.G Esports",
 "best_of": 5,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "113470922758215241",
 "_state": "completed",
 "_team_codes": [
@@ -2656,7 +2656,7 @@
 "team_b_score": 3,
 "winner_team": "Anyone's Legend",
 "best_of": 5,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "113470922758215259",
 "_state": "completed",
 "_team_codes": [
@@ -2678,7 +2678,7 @@
 "team_b_score": 3,
 "winner_team": "T1",
 "best_of": 5,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "113470922758215265",
 "_state": "completed",
 "_team_codes": [
@@ -2700,7 +2700,7 @@
 "team_b_score": 3,
 "winner_team": "Gen.G Esports",
 "best_of": 5,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "113470922758215271",
 "_state": "completed",
 "_team_codes": [
@@ -2722,7 +2722,7 @@
 "team_b_score": 0,
 "winner_team": "T1",
 "best_of": 5,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115570934355614497",
 "_state": "completed",
 "_team_codes": [
@@ -2744,7 +2744,7 @@
 "team_b_score": 3,
 "winner_team": "Karmine Corp",
 "best_of": 5,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115570934355614503",
 "_state": "completed",
 "_team_codes": [
@@ -2766,7 +2766,7 @@
 "team_b_score": 0,
 "winner_team": "T1",
 "best_of": 5,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115570934355614509",
 "_state": "completed",
 "_team_codes": [
@@ -2788,7 +2788,7 @@
 "team_b_score": 0,
 "winner_team": "Team Liquid Alienware",
 "best_of": 5,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115846993721104369",
 "_state": "completed",
 "_team_codes": [
@@ -2810,7 +2810,7 @@
 "team_b_score": 0,
 "winner_team": "Team Liquid Alienware",
 "best_of": 5,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115570934355614521",
 "_state": "completed",
 "_team_codes": [
@@ -2832,7 +2832,7 @@
 "team_b_score": 0,
 "winner_team": "T1",
 "best_of": 5,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115570969745329263",
 "_state": "completed",
 "_team_codes": [
@@ -2854,7 +2854,7 @@
 "team_b_score": 0,
 "winner_team": "Hanwha Life Esports",
 "best_of": 5,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115570934355614539",
 "_state": "completed",
 "_team_codes": [
@@ -2876,7 +2876,7 @@
 "team_b_score": 3,
 "winner_team": "G2 Esports",
 "best_of": 5,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115570934355614545",
 "_state": "completed",
 "_team_codes": [
@@ -2898,7 +2898,7 @@
 "team_b_score": 3,
 "winner_team": "LYON",
 "best_of": 5,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115570934355614533",
 "_state": "completed",
 "_team_codes": [
@@ -2920,7 +2920,7 @@
 "team_b_score": 3,
 "winner_team": "BILIBILI GAMING",
 "best_of": 5,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115570934355614527",
 "_state": "completed",
 "_team_codes": [
@@ -2942,7 +2942,7 @@
 "team_b_score": 1,
 "winner_team": "Team Secret Whales",
 "best_of": 5,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115570934355614569",
 "_state": "completed",
 "_team_codes": [
@@ -2964,7 +2964,7 @@
 "team_b_score": 0,
 "winner_team": "Hanwha Life Esports",
 "best_of": 5,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115570934355614557",
 "_state": "completed",
 "_team_codes": [
@@ -2986,7 +2986,7 @@
 "team_b_score": 0,
 "winner_team": "BILIBILI GAMING",
 "best_of": 5,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115570934355614551",
 "_state": "completed",
 "_team_codes": [
@@ -3008,7 +3008,7 @@
 "team_b_score": 0,
 "winner_team": "T1",
 "best_of": 5,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115570934355614563",
 "_state": "completed",
 "_team_codes": [
@@ -3030,7 +3030,7 @@
 "team_b_score": 0,
 "winner_team": "LYON",
 "best_of": 5,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115570934355614587",
 "_state": "completed",
 "_team_codes": [
@@ -3052,7 +3052,7 @@
 "team_b_score": 1,
 "winner_team": "G2 Esports",
 "best_of": 5,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115570934355614581",
 "_state": "completed",
 "_team_codes": [
@@ -3074,7 +3074,7 @@
 "team_b_score": 1,
 "winner_team": "BILIBILI GAMING",
 "best_of": 5,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115570934355614575",
 "_state": "completed",
 "_team_codes": [
@@ -3096,7 +3096,7 @@
 "team_b_score": 3,
 "winner_team": "LYON",
 "best_of": 5,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115570934355614593",
 "_state": "completed",
 "_team_codes": [
@@ -3118,7 +3118,7 @@
 "team_b_score": 3,
 "winner_team": "Hanwha Life Esports",
 "best_of": 5,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115570934355614599",
 "_state": "completed",
 "_team_codes": [
@@ -3140,7 +3140,7 @@
 "team_b_score": 3,
 "winner_team": "Hanwha Life Esports",
 "best_of": 5,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115570934355614605",
 "_state": "completed",
 "_team_codes": [
@@ -3162,7 +3162,7 @@
 "team_b_score": 1,
 "winner_team": "Team Liquid Alienware",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "113470740396151227",
 "_state": "completed",
 "_team_codes": [
@@ -3184,7 +3184,7 @@
 "team_b_score": 2,
 "winner_team": "Hanwha Life Esports",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "113470740396478935",
 "_state": "completed",
 "_team_codes": [
@@ -3206,7 +3206,7 @@
 "team_b_score": 2,
 "winner_team": "CTBC Flying Oyster",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "113470740396478931",
 "_state": "completed",
 "_team_codes": [
@@ -3228,7 +3228,7 @@
 "team_b_score": 2,
 "winner_team": "TOP ESPORTS",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "113470740396478915",
 "_state": "completed",
 "_team_codes": [
@@ -3250,7 +3250,7 @@
 "team_b_score": 2,
 "winner_team": "Hanwha Life Esports",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "113470740396478939",
 "_state": "completed",
 "_team_codes": [
@@ -3272,7 +3272,7 @@
 "team_b_score": 0,
 "winner_team": "Karmine Corp",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "113470740396478927",
 "_state": "completed",
 "_team_codes": [
@@ -3294,7 +3294,7 @@
 "team_b_score": 0,
 "winner_team": "CTBC Flying Oyster",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "113470740396478919",
 "_state": "completed",
 "_team_codes": [
@@ -3316,7 +3316,7 @@
 "team_b_score": 1,
 "winner_team": "Hanwha Life Esports",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "113470740396478923",
 "_state": "completed",
 "_team_codes": [
@@ -3338,7 +3338,7 @@
 "team_b_score": 2,
 "winner_team": "CTBC Flying Oyster",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "113470740396478943",
 "_state": "completed",
 "_team_codes": [
@@ -3360,7 +3360,7 @@
 "team_b_score": 1,
 "winner_team": "Hanwha Life Esports",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "113470740396413375",
 "_state": "completed",
 "_team_codes": [
@@ -3382,7 +3382,7 @@
 "team_b_score": 2,
 "winner_team": "Karmine Corp",
 "best_of": 5,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "113470740396478953",
 "_state": "completed",
 "_team_codes": [
@@ -3404,7 +3404,7 @@
 "team_b_score": 3,
 "winner_team": "Hanwha Life Esports",
 "best_of": 5,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "113470740396478947",
 "_state": "completed",
 "_team_codes": [
@@ -3426,7 +3426,7 @@
 "team_b_score": 3,
 "winner_team": "Hanwha Life Esports",
 "best_of": 5,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "113470740396478959",
 "_state": "completed",
 "_team_codes": [
@@ -3448,7 +3448,7 @@
 "team_b_score": 3,
 "winner_team": "BILIBILI GAMING",
 "best_of": 5,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115570888977308363",
 "_state": "completed",
 "_team_codes": [
@@ -3470,7 +3470,7 @@
 "team_b_score": 3,
 "winner_team": "G2 Esports",
 "best_of": 5,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115570888977308369",
 "_state": "completed",
 "_team_codes": [
@@ -3492,7 +3492,7 @@
 "team_b_score": 3,
 "winner_team": "Gen.G Esports",
 "best_of": 5,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115570888977308393",
 "_state": "completed",
 "_team_codes": [
@@ -3514,7 +3514,7 @@
 "team_b_score": 2,
 "winner_team": "LYON",
 "best_of": 5,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115570888977308399",
 "_state": "completed",
 "_team_codes": [
@@ -3536,7 +3536,7 @@
 "team_b_score": 0,
 "winner_team": "BILIBILI GAMING",
 "best_of": 5,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115570888977308375",
 "_state": "completed",
 "_team_codes": [
@@ -3558,7 +3558,7 @@
 "team_b_score": 3,
 "winner_team": "BNK FEARX",
 "best_of": 5,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115846976541810692",
 "_state": "completed",
 "_team_codes": [
@@ -3580,7 +3580,7 @@
 "team_b_score": 3,
 "winner_team": "Gen.G Esports",
 "best_of": 5,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115570888977308405",
 "_state": "completed",
 "_team_codes": [
@@ -3602,7 +3602,7 @@
 "team_b_score": 0,
 "winner_team": "Beijing JDG Esports",
 "best_of": 5,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115846976541941770",
 "_state": "completed",
 "_team_codes": [
@@ -3624,7 +3624,7 @@
 "team_b_score": 3,
 "winner_team": "G2 Esports",
 "best_of": 5,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115570888977308387",
 "_state": "completed",
 "_team_codes": [
@@ -3646,7 +3646,7 @@
 "team_b_score": 1,
 "winner_team": "Beijing JDG Esports",
 "best_of": 5,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115570888977308417",
 "_state": "completed",
 "_team_codes": [
@@ -3668,7 +3668,7 @@
 "team_b_score": 0,
 "winner_team": "G2 Esports",
 "best_of": 5,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115570888977308429",
 "_state": "completed",
 "_team_codes": [
@@ -3690,7 +3690,7 @@
 "team_b_score": 3,
 "winner_team": "BILIBILI GAMING",
 "best_of": 5,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115570888977308423",
 "_state": "completed",
 "_team_codes": [
@@ -3712,7 +3712,7 @@
 "team_b_score": 3,
 "winner_team": "BILIBILI GAMING",
 "best_of": 5,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115570888977308435",
 "_state": "completed",
 "_team_codes": [
@@ -3734,7 +3734,7 @@
 "team_b_score": 3,
 "winner_team": "Team Liquid Alienware",
 "best_of": 5,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115564689066907732",
 "_state": "completed",
 "_team_codes": [
@@ -3756,7 +3756,7 @@
 "team_b_score": 3,
 "winner_team": "LYON",
 "best_of": 5,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115564689066907726",
 "_state": "completed",
 "_team_codes": [
@@ -3778,7 +3778,7 @@
 "team_b_score": 0,
 "winner_team": "Cloud9 Kia",
 "best_of": 5,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115564689066907720",
 "_state": "completed",
 "_team_codes": [
@@ -3800,7 +3800,7 @@
 "team_b_score": 1,
 "winner_team": "LYON",
 "best_of": 5,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115564689066907738",
 "_state": "completed",
 "_team_codes": [
@@ -3822,7 +3822,7 @@
 "team_b_score": 3,
 "winner_team": "LYON",
 "best_of": 5,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115564689066907744",
 "_state": "completed",
 "_team_codes": [
@@ -3844,7 +3844,7 @@
 "team_b_score": 3,
 "winner_team": "LYON",
 "best_of": 5,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115564689066973286",
 "_state": "completed",
 "_team_codes": [
@@ -3866,7 +3866,7 @@
 "team_b_score": 2,
 "winner_team": "Cloud9 Kia",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115564793879403680",
 "_state": "completed",
 "_team_codes": [
@@ -3888,7 +3888,7 @@
 "team_b_score": 1,
 "winner_team": "Disguised",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115564793879338112",
 "_state": "completed",
 "_team_codes": [
@@ -3910,7 +3910,7 @@
 "team_b_score": 1,
 "winner_team": "Team Liquid Alienware",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115564793879469272",
 "_state": "completed",
 "_team_codes": [
@@ -3932,7 +3932,7 @@
 "team_b_score": 2,
 "winner_team": "Shopify Rebellion",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115564793879403704",
 "_state": "completed",
 "_team_codes": [
@@ -3954,7 +3954,7 @@
 "team_b_score": 0,
 "winner_team": "Team Liquid Alienware",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115564793879469284",
 "_state": "completed",
 "_team_codes": [
@@ -3976,7 +3976,7 @@
 "team_b_score": 1,
 "winner_team": "LYON",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115564793879403700",
 "_state": "completed",
 "_team_codes": [
@@ -3998,7 +3998,7 @@
 "team_b_score": 0,
 "winner_team": "FlyQuest",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115564793879403712",
 "_state": "completed",
 "_team_codes": [
@@ -4020,7 +4020,7 @@
 "team_b_score": 1,
 "winner_team": "Cloud9 Kia",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115564793879338104",
 "_state": "completed",
 "_team_codes": [
@@ -4042,7 +4042,7 @@
 "team_b_score": 0,
 "winner_team": "Cloud9 Kia",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115564793879403672",
 "_state": "completed",
 "_team_codes": [
@@ -4064,7 +4064,7 @@
 "team_b_score": 2,
 "winner_team": "Sentinels",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115564793879338116",
 "_state": "completed",
 "_team_codes": [
@@ -4086,7 +4086,7 @@
 "team_b_score": 2,
 "winner_team": "LYON",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115564793879469276",
 "_state": "completed",
 "_team_codes": [
@@ -4108,7 +4108,7 @@
 "team_b_score": 1,
 "winner_team": "Team Liquid Alienware",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115564793879403708",
 "_state": "completed",
 "_team_codes": [
@@ -4130,7 +4130,7 @@
 "team_b_score": 2,
 "winner_team": "FlyQuest",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115564793879403696",
 "_state": "completed",
 "_team_codes": [
@@ -4152,7 +4152,7 @@
 "team_b_score": 2,
 "winner_team": "Cloud9 Kia",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115564793879403684",
 "_state": "completed",
 "_team_codes": [
@@ -4174,7 +4174,7 @@
 "team_b_score": 2,
 "winner_team": "LYON",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115564793879403716",
 "_state": "completed",
 "_team_codes": [
@@ -4196,7 +4196,7 @@
 "team_b_score": 1,
 "winner_team": "Team Liquid Alienware",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115564793879338128",
 "_state": "completed",
 "_team_codes": [
@@ -4218,7 +4218,7 @@
 "team_b_score": 2,
 "winner_team": "Cloud9 Kia",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115564793879338132",
 "_state": "completed",
 "_team_codes": [
@@ -4240,7 +4240,7 @@
 "team_b_score": 2,
 "winner_team": "Team Liquid Alienware",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115564793879403724",
 "_state": "completed",
 "_team_codes": [
@@ -4262,7 +4262,7 @@
 "team_b_score": 0,
 "winner_team": "LYON",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115564793879338120",
 "_state": "completed",
 "_team_codes": [
@@ -4284,7 +4284,7 @@
 "team_b_score": 2,
 "winner_team": "FlyQuest",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115564793879469268",
 "_state": "completed",
 "_team_codes": [
@@ -4306,7 +4306,7 @@
 "team_b_score": 2,
 "winner_team": "Sentinels",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115564793879338124",
 "_state": "completed",
 "_team_codes": [
@@ -4328,7 +4328,7 @@
 "team_b_score": 2,
 "winner_team": "Disguised",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115564793879403692",
 "_state": "completed",
 "_team_codes": [
@@ -4350,7 +4350,7 @@
 "team_b_score": 2,
 "winner_team": "Cloud9 Kia",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115564793879403676",
 "_state": "completed",
 "_team_codes": [
@@ -4372,7 +4372,7 @@
 "team_b_score": 2,
 "winner_team": "LYON",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115564793879469280",
 "_state": "completed",
 "_team_codes": [
@@ -4394,7 +4394,7 @@
 "team_b_score": 0,
 "winner_team": "Cloud9 Kia",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115564793879403688",
 "_state": "completed",
 "_team_codes": [
@@ -4416,7 +4416,7 @@
 "team_b_score": 0,
 "winner_team": "Shopify Rebellion",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115564793879403720",
 "_state": "completed",
 "_team_codes": [
@@ -4438,7 +4438,7 @@
 "team_b_score": 2,
 "winner_team": "Sentinels",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115564793879338108",
 "_state": "completed",
 "_team_codes": [
@@ -4460,7 +4460,7 @@
 "team_b_score": 2,
 "winner_team": "FlyQuest",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115564793879469264",
 "_state": "completed",
 "_team_codes": [
@@ -4482,7 +4482,7 @@
 "team_b_score": 3,
 "winner_team": "Cloud9 Kia",
 "best_of": 5,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115564793879469288",
 "_state": "completed",
 "_team_codes": [
@@ -4504,7 +4504,7 @@
 "team_b_score": 3,
 "winner_team": "LYON",
 "best_of": 5,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115564793879469294",
 "_state": "completed",
 "_team_codes": [
@@ -4526,7 +4526,7 @@
 "team_b_score": 0,
 "winner_team": "FlyQuest",
 "best_of": 5,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115564793879469306",
 "_state": "completed",
 "_team_codes": [
@@ -4548,7 +4548,7 @@
 "team_b_score": 3,
 "winner_team": "Team Liquid Alienware",
 "best_of": 5,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115564793879469312",
 "_state": "completed",
 "_team_codes": [
@@ -4570,7 +4570,7 @@
 "team_b_score": 3,
 "winner_team": "Team Liquid Alienware",
 "best_of": 5,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115564793879469318",
 "_state": "completed",
 "_team_codes": [
@@ -4592,7 +4592,7 @@
 "team_b_score": 0,
 "winner_team": "LYON",
 "best_of": 5,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115564793879469300",
 "_state": "completed",
 "_team_codes": [
@@ -4614,7 +4614,7 @@
 "team_b_score": 0,
 "winner_team": "Team Liquid Alienware",
 "best_of": 5,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115564793879469324",
 "_state": "completed",
 "_team_codes": [
@@ -4636,7 +4636,7 @@
 "team_b_score": 3,
 "winner_team": "LYON",
 "best_of": 5,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115564793879469330",
 "_state": "completed",
 "_team_codes": [
@@ -4658,7 +4658,7 @@
 "team_b_score": 2,
 "winner_team": "LYON",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115564797164345551",
 "_state": "completed",
 "_team_codes": [
@@ -4680,7 +4680,7 @@
 "team_b_score": 1,
 "winner_team": "Sentinels",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115564797163821179",
 "_state": "completed",
 "_team_codes": [
@@ -4702,7 +4702,7 @@
 "team_b_score": 0,
 "winner_team": "Team Liquid Alienware",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115564797163886759",
 "_state": "completed",
 "_team_codes": [
@@ -4724,7 +4724,7 @@
 "team_b_score": 0,
 "winner_team": "Shopify Rebellion",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115564797163952327",
 "_state": "completed",
 "_team_codes": [
@@ -4746,7 +4746,7 @@
 "team_b_score": 2,
 "winner_team": "Cloud9 Kia",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115564797163821203",
 "_state": "completed",
 "_team_codes": [
@@ -4768,7 +4768,7 @@
 "team_b_score": 2,
 "winner_team": "FlyQuest",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115564797163886783",
 "_state": "completed",
 "_team_codes": [
@@ -4790,7 +4790,7 @@
 "team_b_score": 2,
 "winner_team": "LYON",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115564797164345563",
 "_state": "completed",
 "_team_codes": [
@@ -4812,7 +4812,7 @@
 "team_b_score": 0,
 "winner_team": "Team Liquid Alienware",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115564797163821199",
 "_state": "completed",
 "_team_codes": [
@@ -4834,7 +4834,7 @@
 "team_b_score": 2,
 "winner_team": "Cloud9 Kia",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115564797163886743",
 "_state": "completed",
 "_team_codes": [
@@ -4856,7 +4856,7 @@
 "team_b_score": 1,
 "winner_team": "Shopify Rebellion",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115564797163821195",
 "_state": "completed",
 "_team_codes": [
@@ -4878,7 +4878,7 @@
 "team_b_score": 2,
 "winner_team": "LYON",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115564797163886771",
 "_state": "completed",
 "_team_codes": [
@@ -4900,7 +4900,7 @@
 "team_b_score": 0,
 "winner_team": "Team Liquid Alienware",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115564797164345559",
 "_state": "completed",
 "_team_codes": [
@@ -4922,7 +4922,7 @@
 "team_b_score": 0,
 "winner_team": "Team Liquid Alienware",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115564797164280011",
 "_state": "completed",
 "_team_codes": [
@@ -4944,7 +4944,7 @@
 "team_b_score": 1,
 "winner_team": "Shopify Rebellion",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115564797163886775",
 "_state": "completed",
 "_team_codes": [
@@ -4966,7 +4966,7 @@
 "team_b_score": 0,
 "winner_team": "Cloud9 Kia",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115564797163886747",
 "_state": "completed",
 "_team_codes": [
@@ -4988,7 +4988,7 @@
 "team_b_score": 1,
 "winner_team": "Sentinels",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115564797163821191",
 "_state": "completed",
 "_team_codes": [
@@ -5010,7 +5010,7 @@
 "team_b_score": 0,
 "winner_team": "Sentinels",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115564797163821187",
 "_state": "completed",
 "_team_codes": [
@@ -5032,7 +5032,7 @@
 "team_b_score": 2,
 "winner_team": "Disguised",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115564797163886763",
 "_state": "completed",
 "_team_codes": [
@@ -5054,7 +5054,7 @@
 "team_b_score": 0,
 "winner_team": "Sentinels",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115564797163821183",
 "_state": "completed",
 "_team_codes": [
@@ -5076,7 +5076,7 @@
 "team_b_score": 2,
 "winner_team": "FlyQuest",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115564797163886767",
 "_state": "completed",
 "_team_codes": [
@@ -5098,7 +5098,7 @@
 "team_b_score": 1,
 "winner_team": "Team Liquid Alienware",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115564797164345571",
 "_state": "completed",
 "_team_codes": [
@@ -5120,7 +5120,7 @@
 "team_b_score": 0,
 "winner_team": "LYON",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115564797163886751",
 "_state": "completed",
 "_team_codes": [
@@ -5142,7 +5142,7 @@
 "team_b_score": 2,
 "winner_team": "LYON",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115564797164345567",
 "_state": "completed",
 "_team_codes": [
@@ -5161,10 +5161,10 @@
 "status": "live",
 "block_name": "Week 6",
 "team_a_score": 0,
-"team_b_score": 0,
-"winner_team": null,
+"team_b_score": 1,
+"winner_team": "Cloud9 Kia",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115564797163886755",
 "_state": "inprogress",
 "_team_codes": [
@@ -5186,7 +5186,7 @@
 "team_b_score": 0,
 "winner_team": null,
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115564797163821175",
 "_state": "unstarted",
 "_team_codes": [
@@ -5208,7 +5208,7 @@
 "team_b_score": 0,
 "winner_team": null,
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115564797163886779",
 "_state": "unstarted",
 "_team_codes": [
@@ -5230,7 +5230,7 @@
 "team_b_score": 0,
 "winner_team": null,
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115564797164345555",
 "_state": "unstarted",
 "_team_codes": [
@@ -5252,7 +5252,7 @@
 "team_b_score": 0,
 "winner_team": null,
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115564797163886787",
 "_state": "unstarted",
 "_team_codes": [
@@ -5274,7 +5274,7 @@
 "team_b_score": null,
 "winner_team": null,
 "best_of": 5,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115565004607949375",
 "_state": "unstarted",
 "_team_codes": [
@@ -5296,7 +5296,7 @@
 "team_b_score": null,
 "winner_team": null,
 "best_of": 5,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115565004607949381",
 "_state": "unstarted",
 "_team_codes": [
@@ -5318,7 +5318,7 @@
 "team_b_score": null,
 "winner_team": null,
 "best_of": 5,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115565004607949399",
 "_state": "unstarted",
 "_team_codes": [
@@ -5340,7 +5340,7 @@
 "team_b_score": null,
 "winner_team": null,
 "best_of": 5,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115565004607949387",
 "_state": "unstarted",
 "_team_codes": [
@@ -5362,7 +5362,7 @@
 "team_b_score": null,
 "winner_team": null,
 "best_of": 5,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115565004607949393",
 "_state": "unstarted",
 "_team_codes": [
@@ -5384,7 +5384,7 @@
 "team_b_score": null,
 "winner_team": null,
 "best_of": 5,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115565004607949411",
 "_state": "unstarted",
 "_team_codes": [
@@ -5406,7 +5406,7 @@
 "team_b_score": null,
 "winner_team": null,
 "best_of": 5,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115565004607949417",
 "_state": "unstarted",
 "_team_codes": [
@@ -5428,7 +5428,7 @@
 "team_b_score": null,
 "winner_team": null,
 "best_of": 5,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115565004607949405",
 "_state": "unstarted",
 "_team_codes": [
@@ -5450,7 +5450,7 @@
 "team_b_score": null,
 "winner_team": null,
 "best_of": 5,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115565004607949423",
 "_state": "unstarted",
 "_team_codes": [
@@ -5472,7 +5472,7 @@
 "team_b_score": null,
 "winner_team": null,
 "best_of": 5,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115565004607949429",
 "_state": "unstarted",
 "_team_codes": [
@@ -5494,7 +5494,7 @@
 "team_b_score": 2,
 "winner_team": "Karmine Corp",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115548668059523664",
 "_state": "completed",
 "_team_codes": [
@@ -5516,7 +5516,7 @@
 "team_b_score": 0,
 "winner_team": "SK Gaming",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115548668059589316",
 "_state": "completed",
 "_team_codes": [
@@ -5538,7 +5538,7 @@
 "team_b_score": 0,
 "winner_team": "GIANTX",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115548668059523732",
 "_state": "completed",
 "_team_codes": [
@@ -5560,7 +5560,7 @@
 "team_b_score": 1,
 "winner_team": "Natus Vincere",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115548668059523680",
 "_state": "completed",
 "_team_codes": [
@@ -5582,7 +5582,7 @@
 "team_b_score": 2,
 "winner_team": "G2 Esports",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115548668059589324",
 "_state": "completed",
 "_team_codes": [
@@ -5604,7 +5604,7 @@
 "team_b_score": 0,
 "winner_team": "Team Vitality",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115548668059523708",
 "_state": "completed",
 "_team_codes": [
@@ -5626,7 +5626,7 @@
 "team_b_score": 0,
 "winner_team": "Movistar KOI",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115548668059523656",
 "_state": "completed",
 "_team_codes": [
@@ -5648,7 +5648,7 @@
 "team_b_score": 0,
 "winner_team": "G2 Esports",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115548668059523752",
 "_state": "completed",
 "_team_codes": [
@@ -5670,7 +5670,7 @@
 "team_b_score": 2,
 "winner_team": "Karmine Corp",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115548668059589320",
 "_state": "completed",
 "_team_codes": [
@@ -5692,7 +5692,7 @@
 "team_b_score": 2,
 "winner_team": "Fnatic",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115548668059523744",
 "_state": "completed",
 "_team_codes": [
@@ -5714,7 +5714,7 @@
 "team_b_score": 2,
 "winner_team": "Karmine Corp",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115548668059523696",
 "_state": "completed",
 "_team_codes": [
@@ -5736,7 +5736,7 @@
 "team_b_score": 1,
 "winner_team": "Natus Vincere",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115548668059523692",
 "_state": "completed",
 "_team_codes": [
@@ -5758,7 +5758,7 @@
 "team_b_score": 1,
 "winner_team": "Karmine Corp",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115548668059523748",
 "_state": "completed",
 "_team_codes": [
@@ -5780,7 +5780,7 @@
 "team_b_score": 1,
 "winner_team": "Natus Vincere",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115548668059523676",
 "_state": "completed",
 "_team_codes": [
@@ -5802,7 +5802,7 @@
 "team_b_score": 1,
 "winner_team": "Karmine Corp",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115548668059589340",
 "_state": "completed",
 "_team_codes": [
@@ -5824,7 +5824,7 @@
 "team_b_score": 2,
 "winner_team": "Fnatic",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115548668059523660",
 "_state": "completed",
 "_team_codes": [
@@ -5846,7 +5846,7 @@
 "team_b_score": 2,
 "winner_team": "Team Vitality",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115548668059523712",
 "_state": "completed",
 "_team_codes": [
@@ -5868,7 +5868,7 @@
 "team_b_score": 2,
 "winner_team": "Shifters",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115548668059523644",
 "_state": "completed",
 "_team_codes": [
@@ -5890,7 +5890,7 @@
 "team_b_score": 2,
 "winner_team": "G2 Esports",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115548668059523700",
 "_state": "completed",
 "_team_codes": [
@@ -5912,7 +5912,7 @@
 "team_b_score": 1,
 "winner_team": "Team Vitality",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115548668059523720",
 "_state": "completed",
 "_team_codes": [
@@ -5934,7 +5934,7 @@
 "team_b_score": 1,
 "winner_team": "Movistar KOI",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115548668059523740",
 "_state": "completed",
 "_team_codes": [
@@ -5956,7 +5956,7 @@
 "team_b_score": 0,
 "winner_team": "G2 Esports",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115548668059589348",
 "_state": "completed",
 "_team_codes": [
@@ -5978,7 +5978,7 @@
 "team_b_score": 0,
 "winner_team": "Movistar KOI",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115548668059523760",
 "_state": "completed",
 "_team_codes": [
@@ -6000,7 +6000,7 @@
 "team_b_score": 2,
 "winner_team": "G2 Esports",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115548668059523772",
 "_state": "completed",
 "_team_codes": [
@@ -6022,7 +6022,7 @@
 "team_b_score": 1,
 "winner_team": "Karmine Corp",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115548668059589332",
 "_state": "completed",
 "_team_codes": [
@@ -6044,7 +6044,7 @@
 "team_b_score": 1,
 "winner_team": "GIANTX",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115548668059523768",
 "_state": "completed",
 "_team_codes": [
@@ -6066,7 +6066,7 @@
 "team_b_score": 2,
 "winner_team": "Movistar KOI",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115548668059589336",
 "_state": "completed",
 "_team_codes": [
@@ -6088,7 +6088,7 @@
 "team_b_score": 1,
 "winner_team": "G2 Esports",
 "best_of": 5,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115548668059589358",
 "_state": "completed",
 "_team_codes": [
@@ -6110,7 +6110,7 @@
 "team_b_score": 0,
 "winner_team": "Movistar KOI",
 "best_of": 5,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115548668059589352",
 "_state": "completed",
 "_team_codes": [
@@ -6132,7 +6132,7 @@
 "team_b_score": 3,
 "winner_team": "G2 Esports",
 "best_of": 5,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115548668059589364",
 "_state": "completed",
 "_team_codes": [
@@ -6154,7 +6154,7 @@
 "team_b_score": 3,
 "winner_team": "Karmine Corp",
 "best_of": 5,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115548668059589370",
 "_state": "completed",
 "_team_codes": [
@@ -6176,7 +6176,7 @@
 "team_b_score": 3,
 "winner_team": "GIANTX",
 "best_of": 5,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115548668059589376",
 "_state": "completed",
 "_team_codes": [
@@ -6198,7 +6198,7 @@
 "team_b_score": 0,
 "winner_team": "Karmine Corp",
 "best_of": 5,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115548668059589382",
 "_state": "completed",
 "_team_codes": [
@@ -6220,7 +6220,7 @@
 "team_b_score": 0,
 "winner_team": "Karmine Corp",
 "best_of": 5,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115548668059589388",
 "_state": "completed",
 "_team_codes": [
@@ -6242,7 +6242,7 @@
 "team_b_score": 2,
 "winner_team": "G2 Esports",
 "best_of": 5,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115548668059589394",
 "_state": "completed",
 "_team_codes": [
@@ -6264,7 +6264,7 @@
 "team_b_score": 2,
 "winner_team": "G2 Esports",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115548681803406275",
 "_state": "completed",
 "_team_codes": [
@@ -6286,7 +6286,7 @@
 "team_b_score": 0,
 "winner_team": "Karmine Corp",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115548681803406199",
 "_state": "completed",
 "_team_codes": [
@@ -6308,7 +6308,7 @@
 "team_b_score": 0,
 "winner_team": "G2 Esports",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115548681803406203",
 "_state": "completed",
 "_team_codes": [
@@ -6330,7 +6330,7 @@
 "team_b_score": 2,
 "winner_team": "Karmine Corp",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115548681803406271",
 "_state": "completed",
 "_team_codes": [
@@ -6352,7 +6352,7 @@
 "team_b_score": 1,
 "winner_team": "Team Vitality",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115548681803406191",
 "_state": "completed",
 "_team_codes": [
@@ -6374,7 +6374,7 @@
 "team_b_score": 2,
 "winner_team": "Karmine Corp",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115548681803406287",
 "_state": "completed",
 "_team_codes": [
@@ -6396,7 +6396,7 @@
 "team_b_score": 2,
 "winner_team": "Team Vitality",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115548681803406115",
 "_state": "completed",
 "_team_codes": [
@@ -6418,7 +6418,7 @@
 "team_b_score": 1,
 "winner_team": "Movistar KOI",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115548681803406215",
 "_state": "completed",
 "_team_codes": [
@@ -6440,7 +6440,7 @@
 "team_b_score": 2,
 "winner_team": "SK Gaming",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115548681803406231",
 "_state": "completed",
 "_team_codes": [
@@ -6462,7 +6462,7 @@
 "team_b_score": 0,
 "winner_team": "Karmine Corp",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115548681803406171",
 "_state": "completed",
 "_team_codes": [
@@ -6484,7 +6484,7 @@
 "team_b_score": 0,
 "winner_team": "G2 Esports",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115548681803406263",
 "_state": "completed",
 "_team_codes": [
@@ -6506,7 +6506,7 @@
 "team_b_score": 1,
 "winner_team": "Movistar KOI",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115548681803406267",
 "_state": "completed",
 "_team_codes": [
@@ -6528,7 +6528,7 @@
 "team_b_score": 0,
 "winner_team": "Natus Vincere",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115548681803406151",
 "_state": "completed",
 "_team_codes": [
@@ -6550,7 +6550,7 @@
 "team_b_score": 0,
 "winner_team": "Karmine Corp",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115548681803406139",
 "_state": "completed",
 "_team_codes": [
@@ -6572,7 +6572,7 @@
 "team_b_score": 2,
 "winner_team": "GIANTX",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115548681803406207",
 "_state": "completed",
 "_team_codes": [
@@ -6594,7 +6594,7 @@
 "team_b_score": 1,
 "winner_team": "Team Heretics",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115548681803406135",
 "_state": "completed",
 "_team_codes": [
@@ -6616,7 +6616,7 @@
 "team_b_score": 1,
 "winner_team": "Natus Vincere",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115548681803406159",
 "_state": "completed",
 "_team_codes": [
@@ -6638,7 +6638,7 @@
 "team_b_score": 0,
 "winner_team": "GIANTX",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115548681803406235",
 "_state": "completed",
 "_team_codes": [
@@ -6660,7 +6660,7 @@
 "team_b_score": 0,
 "winner_team": "G2 Esports",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115548681803406143",
 "_state": "completed",
 "_team_codes": [
@@ -6682,7 +6682,7 @@
 "team_b_score": 0,
 "winner_team": "Karmine Corp",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115548681803406279",
 "_state": "completed",
 "_team_codes": [
@@ -6704,7 +6704,7 @@
 "team_b_score": 2,
 "winner_team": "Team Vitality",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115548681803406187",
 "_state": "completed",
 "_team_codes": [
@@ -6726,7 +6726,7 @@
 "team_b_score": 0,
 "winner_team": "G2 Esports",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115548681803406175",
 "_state": "completed",
 "_team_codes": [
@@ -6748,7 +6748,7 @@
 "team_b_score": 0,
 "winner_team": "SK Gaming",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115548681803406211",
 "_state": "completed",
 "_team_codes": [
@@ -6770,7 +6770,7 @@
 "team_b_score": 2,
 "winner_team": "Team Vitality",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115548681803406183",
 "_state": "completed",
 "_team_codes": [
@@ -6792,7 +6792,7 @@
 "team_b_score": 0,
 "winner_team": "Fnatic",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115548681803406255",
 "_state": "completed",
 "_team_codes": [
@@ -6814,7 +6814,7 @@
 "team_b_score": 0,
 "winner_team": "G2 Esports",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115548681803406227",
 "_state": "completed",
 "_team_codes": [
@@ -6836,7 +6836,7 @@
 "team_b_score": 2,
 "winner_team": "Movistar KOI",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115548681803406163",
 "_state": "completed",
 "_team_codes": [
@@ -6858,7 +6858,7 @@
 "team_b_score": 0,
 "winner_team": "Fnatic",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115548681803406283",
 "_state": "completed",
 "_team_codes": [
@@ -6880,7 +6880,7 @@
 "team_b_score": 2,
 "winner_team": "Natus Vincere",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115548681803340575",
 "_state": "completed",
 "_team_codes": [
@@ -6902,7 +6902,7 @@
 "team_b_score": 0,
 "winner_team": "Karmine Corp",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115548681803406243",
 "_state": "completed",
 "_team_codes": [
@@ -6924,7 +6924,7 @@
 "team_b_score": 2,
 "winner_team": "Team Heretics",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115548681803406127",
 "_state": "completed",
 "_team_codes": [
@@ -6946,7 +6946,7 @@
 "team_b_score": 2,
 "winner_team": "Team Vitality",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115548681803406147",
 "_state": "completed",
 "_team_codes": [
@@ -6968,7 +6968,7 @@
 "team_b_score": 0,
 "winner_team": "Fnatic",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115548681803406219",
 "_state": "completed",
 "_team_codes": [
@@ -6990,7 +6990,7 @@
 "team_b_score": 2,
 "winner_team": "SK Gaming",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115548681803406251",
 "_state": "completed",
 "_team_codes": [
@@ -7012,7 +7012,7 @@
 "team_b_score": 0,
 "winner_team": "GIANTX",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115548681803406123",
 "_state": "completed",
 "_team_codes": [
@@ -7034,7 +7034,7 @@
 "team_b_score": 2,
 "winner_team": "Karmine Corp",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115548681803406223",
 "_state": "completed",
 "_team_codes": [
@@ -7056,7 +7056,7 @@
 "team_b_score": 2,
 "winner_team": "Natus Vincere",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115548681803406167",
 "_state": "completed",
 "_team_codes": [
@@ -7078,7 +7078,7 @@
 "team_b_score": 2,
 "winner_team": "GIANTX",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115548681803406247",
 "_state": "completed",
 "_team_codes": [
@@ -7100,7 +7100,7 @@
 "team_b_score": 2,
 "winner_team": "Shifters",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115548681803406119",
 "_state": "completed",
 "_team_codes": [
@@ -7122,7 +7122,7 @@
 "team_b_score": 2,
 "winner_team": "Team Vitality",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115548681803406195",
 "_state": "completed",
 "_team_codes": [
@@ -7144,7 +7144,7 @@
 "team_b_score": 0,
 "winner_team": "Karmine Corp",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115548681803406259",
 "_state": "completed",
 "_team_codes": [
@@ -7166,7 +7166,7 @@
 "team_b_score": 2,
 "winner_team": "Natus Vincere",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115548681803406155",
 "_state": "completed",
 "_team_codes": [
@@ -7188,7 +7188,7 @@
 "team_b_score": 0,
 "winner_team": "Team Vitality",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115548681803406179",
 "_state": "completed",
 "_team_codes": [
@@ -7210,7 +7210,7 @@
 "team_b_score": 2,
 "winner_team": "Movistar KOI",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115548681803406131",
 "_state": "completed",
 "_team_codes": [
@@ -7232,7 +7232,7 @@
 "team_b_score": 1,
 "winner_team": "GIANTX",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115548681803406239",
 "_state": "completed",
 "_team_codes": [
@@ -7254,7 +7254,7 @@
 "team_b_score": 1,
 "winner_team": "kt Rolster",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115548128962971871",
 "_state": "completed",
 "_team_codes": [
@@ -7276,7 +7276,7 @@
 "team_b_score": 2,
 "winner_team": "KIWOOM DRX",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115548128963037519",
 "_state": "completed",
 "_team_codes": [
@@ -7298,7 +7298,7 @@
 "team_b_score": 1,
 "winner_team": "T1",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115548128962971911",
 "_state": "completed",
 "_team_codes": [
@@ -7320,7 +7320,7 @@
 "team_b_score": 2,
 "winner_team": "kt Rolster",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115548128963037551",
 "_state": "completed",
 "_team_codes": [
@@ -7342,7 +7342,7 @@
 "team_b_score": 2,
 "winner_team": "Hanwha Life Esports",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115548128962906315",
 "_state": "completed",
 "_team_codes": [
@@ -7364,7 +7364,7 @@
 "team_b_score": 1,
 "winner_team": "Dplus KIA",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115548128963037507",
 "_state": "completed",
 "_team_codes": [
@@ -7386,7 +7386,7 @@
 "team_b_score": 2,
 "winner_team": "KIWOOM DRX",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115548128962971963",
 "_state": "completed",
 "_team_codes": [
@@ -7408,7 +7408,7 @@
 "team_b_score": 2,
 "winner_team": "Gen.G Esports",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115548128963037527",
 "_state": "completed",
 "_team_codes": [
@@ -7430,7 +7430,7 @@
 "team_b_score": 1,
 "winner_team": "Dplus KIA",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115548128962971927",
 "_state": "completed",
 "_team_codes": [
@@ -7452,7 +7452,7 @@
 "team_b_score": 1,
 "winner_team": "Hanwha Life Esports",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115548128962971875",
 "_state": "completed",
 "_team_codes": [
@@ -7474,7 +7474,7 @@
 "team_b_score": 0,
 "winner_team": "Gen.G Esports",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115548128962971947",
 "_state": "completed",
 "_team_codes": [
@@ -7496,7 +7496,7 @@
 "team_b_score": 0,
 "winner_team": "T1",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115548128962971891",
 "_state": "completed",
 "_team_codes": [
@@ -7518,7 +7518,7 @@
 "team_b_score": 1,
 "winner_team": "Gen.G Esports",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115548128962971863",
 "_state": "completed",
 "_team_codes": [
@@ -7540,7 +7540,7 @@
 "team_b_score": 1,
 "winner_team": "BNK FEARX",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115548128962971939",
 "_state": "completed",
 "_team_codes": [
@@ -7562,7 +7562,7 @@
 "team_b_score": 2,
 "winner_team": "NONGSHIM RED FORCE",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115548128962971959",
 "_state": "completed",
 "_team_codes": [
@@ -7584,7 +7584,7 @@
 "team_b_score": 0,
 "winner_team": "T1",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115548128962971903",
 "_state": "completed",
 "_team_codes": [
@@ -7606,7 +7606,7 @@
 "team_b_score": 1,
 "winner_team": "Dplus KIA",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115548128963037547",
 "_state": "completed",
 "_team_codes": [
@@ -7628,7 +7628,7 @@
 "team_b_score": 0,
 "winner_team": "Gen.G Esports",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115548128963037503",
 "_state": "completed",
 "_team_codes": [
@@ -7650,7 +7650,7 @@
 "team_b_score": 0,
 "winner_team": "kt Rolster",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115548128962971955",
 "_state": "completed",
 "_team_codes": [
@@ -7672,7 +7672,7 @@
 "team_b_score": 2,
 "winner_team": "T1",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115548128962971883",
 "_state": "completed",
 "_team_codes": [
@@ -7694,7 +7694,7 @@
 "team_b_score": 0,
 "winner_team": "Hanwha Life Esports",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115548128962971859",
 "_state": "completed",
 "_team_codes": [
@@ -7716,7 +7716,7 @@
 "team_b_score": 2,
 "winner_team": "Dplus KIA",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115548128963037543",
 "_state": "completed",
 "_team_codes": [
@@ -7738,7 +7738,7 @@
 "team_b_score": 0,
 "winner_team": "Dplus KIA",
 "best_of": 5,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115548128963037563",
 "_state": "completed",
 "_team_codes": [
@@ -7760,7 +7760,7 @@
 "team_b_score": 2,
 "winner_team": "kt Rolster",
 "best_of": 5,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115548128963037569",
 "_state": "completed",
 "_team_codes": [
@@ -7782,7 +7782,7 @@
 "team_b_score": 1,
 "winner_team": "Hanwha Life Esports",
 "best_of": 5,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115548128963037575",
 "_state": "completed",
 "_team_codes": [
@@ -7804,7 +7804,7 @@
 "team_b_score": 0,
 "winner_team": "Gen.G Esports",
 "best_of": 5,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115548128963037581",
 "_state": "completed",
 "_team_codes": [
@@ -7826,7 +7826,7 @@
 "team_b_score": 2,
 "winner_team": "T1",
 "best_of": 5,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115548128963037587",
 "_state": "completed",
 "_team_codes": [
@@ -7848,7 +7848,7 @@
 "team_b_score": 2,
 "winner_team": "NONGSHIM RED FORCE",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115548147900684661",
 "_state": "completed",
 "_team_codes": [
@@ -7870,7 +7870,7 @@
 "team_b_score": 2,
 "winner_team": "kt Rolster",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115548147900553461",
 "_state": "completed",
 "_team_codes": [
@@ -7892,7 +7892,7 @@
 "team_b_score": 0,
 "winner_team": "BNK FEARX",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115548147900684657",
 "_state": "completed",
 "_team_codes": [
@@ -7914,7 +7914,7 @@
 "team_b_score": 2,
 "winner_team": "Dplus KIA",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115548147900553453",
 "_state": "completed",
 "_team_codes": [
@@ -7936,7 +7936,7 @@
 "team_b_score": 2,
 "winner_team": "T1",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115548147900553457",
 "_state": "completed",
 "_team_codes": [
@@ -7958,7 +7958,7 @@
 "team_b_score": 1,
 "winner_team": "KIWOOM DRX",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115548147900684637",
 "_state": "completed",
 "_team_codes": [
@@ -7980,7 +7980,7 @@
 "team_b_score": 1,
 "winner_team": "NONGSHIM RED FORCE",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115548147900684653",
 "_state": "completed",
 "_team_codes": [
@@ -8002,7 +8002,7 @@
 "team_b_score": 2,
 "winner_team": "Dplus KIA",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115548147900553473",
 "_state": "completed",
 "_team_codes": [
@@ -8024,7 +8024,7 @@
 "team_b_score": 2,
 "winner_team": "DN SOOPers",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115548147900684645",
 "_state": "completed",
 "_team_codes": [
@@ -8046,7 +8046,7 @@
 "team_b_score": 2,
 "winner_team": "kt Rolster",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115548147900553449",
 "_state": "completed",
 "_team_codes": [
@@ -8068,7 +8068,7 @@
 "team_b_score": 2,
 "winner_team": "HANJIN BRION",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115548147900684641",
 "_state": "completed",
 "_team_codes": [
@@ -8090,7 +8090,7 @@
 "team_b_score": 1,
 "winner_team": "Gen.G Esports",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115548147900553445",
 "_state": "completed",
 "_team_codes": [
@@ -8112,7 +8112,7 @@
 "team_b_score": 0,
 "winner_team": "KIWOOM DRX",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115548147900684665",
 "_state": "completed",
 "_team_codes": [
@@ -8134,7 +8134,7 @@
 "team_b_score": 0,
 "winner_team": "T1",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115548147900553465",
 "_state": "completed",
 "_team_codes": [
@@ -8156,7 +8156,7 @@
 "team_b_score": 0,
 "winner_team": "Gen.G Esports",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115548147900553469",
 "_state": "completed",
 "_team_codes": [
@@ -8178,7 +8178,7 @@
 "team_b_score": 0,
 "winner_team": "HANJIN BRION",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115548147900684633",
 "_state": "completed",
 "_team_codes": [
@@ -8200,7 +8200,7 @@
 "team_b_score": 2,
 "winner_team": "Hanwha Life Esports",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115548147900487905",
 "_state": "completed",
 "_team_codes": [
@@ -8222,7 +8222,7 @@
 "team_b_score": 0,
 "winner_team": "DN SOOPers",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115548147900684669",
 "_state": "completed",
 "_team_codes": [
@@ -8244,7 +8244,7 @@
 "team_b_score": 2,
 "winner_team": "Dplus KIA",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115548147900553477",
 "_state": "completed",
 "_team_codes": [
@@ -8266,7 +8266,7 @@
 "team_b_score": 0,
 "winner_team": "BNK FEARX",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115548147900684649",
 "_state": "completed",
 "_team_codes": [
@@ -8288,7 +8288,7 @@
 "team_b_score": 2,
 "winner_team": "DN SOOPers",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115548147900750245",
 "_state": "completed",
 "_team_codes": [
@@ -8310,7 +8310,7 @@
 "team_b_score": 0,
 "winner_team": "Dplus KIA",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115548147900684589",
 "_state": "completed",
 "_team_codes": [
@@ -8332,7 +8332,7 @@
 "team_b_score": 2,
 "winner_team": "BNK FEARX",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115548147900750225",
 "_state": "completed",
 "_team_codes": [
@@ -8354,7 +8354,7 @@
 "team_b_score": 2,
 "winner_team": "Gen.G Esports",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115548147900619021",
 "_state": "completed",
 "_team_codes": [
@@ -8376,7 +8376,7 @@
 "team_b_score": 1,
 "winner_team": "Dplus KIA",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115548147900619041",
 "_state": "completed",
 "_team_codes": [
@@ -8398,7 +8398,7 @@
 "team_b_score": 2,
 "winner_team": "NONGSHIM RED FORCE",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115548147900684681",
 "_state": "completed",
 "_team_codes": [
@@ -8420,7 +8420,7 @@
 "team_b_score": 2,
 "winner_team": "Hanwha Life Esports",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115548147900619025",
 "_state": "completed",
 "_team_codes": [
@@ -8442,7 +8442,7 @@
 "team_b_score": 2,
 "winner_team": "DN SOOPers",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115548147900750233",
 "_state": "completed",
 "_team_codes": [
@@ -8464,7 +8464,7 @@
 "team_b_score": 0,
 "winner_team": "Gen.G Esports",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115548147900619033",
 "_state": "completed",
 "_team_codes": [
@@ -8486,7 +8486,7 @@
 "team_b_score": 1,
 "winner_team": "HANJIN BRION",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115548147900684677",
 "_state": "completed",
 "_team_codes": [
@@ -8508,7 +8508,7 @@
 "team_b_score": 1,
 "winner_team": "Gen.G Esports",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115548147900619045",
 "_state": "completed",
 "_team_codes": [
@@ -8530,7 +8530,7 @@
 "team_b_score": 2,
 "winner_team": "HANJIN BRION",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115548147900684685",
 "_state": "completed",
 "_team_codes": [
@@ -8552,7 +8552,7 @@
 "team_b_score": 0,
 "winner_team": "Hanwha Life Esports",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115548147900619029",
 "_state": "completed",
 "_team_codes": [
@@ -8574,7 +8574,7 @@
 "team_b_score": 2,
 "winner_team": "NONGSHIM RED FORCE",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115548147900750237",
 "_state": "completed",
 "_team_codes": [
@@ -8596,7 +8596,7 @@
 "team_b_score": 1,
 "winner_team": "BNK FEARX",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115548147900684673",
 "_state": "completed",
 "_team_codes": [
@@ -8618,7 +8618,7 @@
 "team_b_score": 1,
 "winner_team": "T1",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115548147900619037",
 "_state": "completed",
 "_team_codes": [
@@ -8640,7 +8640,7 @@
 "team_b_score": 2,
 "winner_team": "Dplus KIA",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115548147900619049",
 "_state": "completed",
 "_team_codes": [
@@ -8662,7 +8662,7 @@
 "team_b_score": 2,
 "winner_team": "DN SOOPers",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115548147900750241",
 "_state": "completed",
 "_team_codes": [
@@ -8684,7 +8684,7 @@
 "team_b_score": 2,
 "winner_team": "Hanwha Life Esports",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115548147900553481",
 "_state": "completed",
 "_team_codes": [
@@ -8706,7 +8706,7 @@
 "team_b_score": 1,
 "winner_team": "NONGSHIM RED FORCE",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "115548147900750229",
 "_state": "completed",
 "_team_codes": [
@@ -8728,7 +8728,7 @@
 "team_b_score": 3,
 "winner_team": "kt Rolster",
 "best_of": 5,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "117030752644841571",
 "_state": "completed",
 "_team_codes": [
@@ -8750,7 +8750,7 @@
 "team_b_score": 1,
 "winner_team": "BNK FEARX",
 "best_of": 5,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "117030752644841577",
 "_state": "completed",
 "_team_codes": [
@@ -8772,7 +8772,7 @@
 "team_b_score": 2,
 "winner_team": "BNK FEARX",
 "best_of": 5,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "117030752644841583",
 "_state": "completed",
 "_team_codes": [
@@ -8794,7 +8794,7 @@
 "team_b_score": 3,
 "winner_team": "T1",
 "best_of": 5,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "117030752644841589",
 "_state": "completed",
 "_team_codes": [
@@ -8816,7 +8816,7 @@
 "team_b_score": 0,
 "winner_team": "kt Rolster",
 "best_of": 5,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "117030752644841595",
 "_state": "completed",
 "_team_codes": [
@@ -8838,7 +8838,7 @@
 "team_b_score": 0,
 "winner_team": null,
 "best_of": 5,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "117030752644841601",
 "_state": "unstarted",
 "_team_codes": [
@@ -8860,7 +8860,7 @@
 "team_b_score": 0,
 "winner_team": null,
 "best_of": 5,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "117030752644841607",
 "_state": "unstarted",
 "_team_codes": [
@@ -8882,7 +8882,7 @@
 "team_b_score": 0,
 "winner_team": null,
 "best_of": 5,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "117030752644841613",
 "_state": "unstarted",
 "_team_codes": [
@@ -8904,7 +8904,7 @@
 "team_b_score": null,
 "winner_team": null,
 "best_of": 5,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "117030752644841625",
 "_state": "unstarted",
 "_team_codes": [
@@ -8926,7 +8926,7 @@
 "team_b_score": null,
 "winner_team": null,
 "best_of": 5,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "117030752644841619",
 "_state": "unstarted",
 "_team_codes": [
@@ -8948,7 +8948,7 @@
 "team_b_score": null,
 "winner_team": null,
 "best_of": 5,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "117030752644841631",
 "_state": "unstarted",
 "_team_codes": [
@@ -8970,7 +8970,7 @@
 "team_b_score": null,
 "winner_team": null,
 "best_of": 5,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "117030752644841637",
 "_state": "unstarted",
 "_team_codes": [
@@ -8992,7 +8992,7 @@
 "team_b_score": null,
 "winner_team": null,
 "best_of": 5,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "117030752644841643",
 "_state": "unstarted",
 "_team_codes": [
@@ -9014,7 +9014,7 @@
 "team_b_score": 2,
 "winner_team": "Xi'an Team WE",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "116566854547769600",
 "_state": "completed",
 "_team_codes": [
@@ -9036,7 +9036,7 @@
 "team_b_score": 1,
 "winner_team": "BILIBILI GAMING",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "116566854547769564",
 "_state": "completed",
 "_team_codes": [
@@ -9058,7 +9058,7 @@
 "team_b_score": 0,
 "winner_team": "Xi'an Team WE",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "116566854547769604",
 "_state": "completed",
 "_team_codes": [
@@ -9080,7 +9080,7 @@
 "team_b_score": 1,
 "winner_team": "Invictus Gaming",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "116566854547835312",
 "_state": "completed",
 "_team_codes": [
@@ -9102,7 +9102,7 @@
 "team_b_score": 1,
 "winner_team": "TOP ESPORTS",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "116566854547769592",
 "_state": "completed",
 "_team_codes": [
@@ -9124,7 +9124,7 @@
 "team_b_score": 2,
 "winner_team": "Shenzhen NINJAS IN PYJAMAS",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "116566854547835316",
 "_state": "completed",
 "_team_codes": [
@@ -9146,7 +9146,7 @@
 "team_b_score": 2,
 "winner_team": "THUNDER TALK GAMING",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "116566854547769652",
 "_state": "completed",
 "_team_codes": [
@@ -9168,7 +9168,7 @@
 "team_b_score": 1,
 "winner_team": "BILIBILI GAMING",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "116566854547769552",
 "_state": "completed",
 "_team_codes": [
@@ -9190,7 +9190,7 @@
 "team_b_score": 0,
 "winner_team": "Anyone's Legend",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "116566854547769576",
 "_state": "completed",
 "_team_codes": [
@@ -9212,7 +9212,7 @@
 "team_b_score": 2,
 "winner_team": "BILIBILI GAMING",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "116566854547769560",
 "_state": "completed",
 "_team_codes": [
@@ -9234,7 +9234,7 @@
 "team_b_score": 0,
 "winner_team": "Shenzhen NINJAS IN PYJAMAS",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "116566854547835324",
 "_state": "completed",
 "_team_codes": [
@@ -9256,7 +9256,7 @@
 "team_b_score": 2,
 "winner_team": "Xi'an Team WE",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "116566854547769608",
 "_state": "completed",
 "_team_codes": [
@@ -9278,7 +9278,7 @@
 "team_b_score": 1,
 "winner_team": "Beijing JDG Esports",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "116566854547769640",
 "_state": "completed",
 "_team_codes": [
@@ -9300,7 +9300,7 @@
 "team_b_score": 0,
 "winner_team": "Anyone's Legend",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "116566854547769624",
 "_state": "completed",
 "_team_codes": [
@@ -9322,7 +9322,7 @@
 "team_b_score": 2,
 "winner_team": "BILIBILI GAMING",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "116566854547769548",
 "_state": "completed",
 "_team_codes": [
@@ -9344,7 +9344,7 @@
 "team_b_score": 2,
 "winner_team": "Anyone's Legend",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "116566854547769628",
 "_state": "completed",
 "_team_codes": [
@@ -9366,7 +9366,7 @@
 "team_b_score": 1,
 "winner_team": "TOP ESPORTS",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "116566854547769584",
 "_state": "completed",
 "_team_codes": [
@@ -9388,7 +9388,7 @@
 "team_b_score": 2,
 "winner_team": "BILIBILI GAMING",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "116566854547769556",
 "_state": "completed",
 "_team_codes": [
@@ -9410,7 +9410,7 @@
 "team_b_score": 2,
 "winner_team": "Xi'an Team WE",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "116566854547769612",
 "_state": "completed",
 "_team_codes": [
@@ -9432,7 +9432,7 @@
 "team_b_score": 0,
 "winner_team": "Invictus Gaming",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "116566854547835304",
 "_state": "completed",
 "_team_codes": [
@@ -9454,7 +9454,7 @@
 "team_b_score": 0,
 "winner_team": "TOP ESPORTS",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "116566854547769580",
 "_state": "completed",
 "_team_codes": [
@@ -9476,7 +9476,7 @@
 "team_b_score": 2,
 "winner_team": "Beijing JDG Esports",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "116566854547769632",
 "_state": "completed",
 "_team_codes": [
@@ -9498,7 +9498,7 @@
 "team_b_score": 0,
 "winner_team": "TOP ESPORTS",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "116566854547769588",
 "_state": "completed",
 "_team_codes": [
@@ -9520,7 +9520,7 @@
 "team_b_score": 2,
 "winner_team": "THUNDER TALK GAMING",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "116566854547769648",
 "_state": "completed",
 "_team_codes": [
@@ -9542,7 +9542,7 @@
 "team_b_score": 2,
 "winner_team": "Shenzhen NINJAS IN PYJAMAS",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "116566854547835308",
 "_state": "completed",
 "_team_codes": [
@@ -9564,7 +9564,7 @@
 "team_b_score": 0,
 "winner_team": "Xi'an Team WE",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "116566854547769596",
 "_state": "completed",
 "_team_codes": [
@@ -9586,7 +9586,7 @@
 "team_b_score": 2,
 "winner_team": "Beijing JDG Esports",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "116566854547769636",
 "_state": "completed",
 "_team_codes": [
@@ -9608,7 +9608,7 @@
 "team_b_score": 2,
 "winner_team": "THUNDER TALK GAMING",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "116566854547769724",
 "_state": "completed",
 "_team_codes": [
@@ -9630,7 +9630,7 @@
 "team_b_score": 0,
 "winner_team": "TOP ESPORTS",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "116566854547704008",
 "_state": "completed",
 "_team_codes": [
@@ -9652,7 +9652,7 @@
 "team_b_score": 0,
 "winner_team": "WeiboGaming",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "116566854547835320",
 "_state": "completed",
 "_team_codes": [
@@ -9674,7 +9674,7 @@
 "team_b_score": 2,
 "winner_team": "Anyone's Legend",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "116566854547769732",
 "_state": "completed",
 "_team_codes": [
@@ -9696,7 +9696,7 @@
 "team_b_score": 2,
 "winner_team": "BILIBILI GAMING",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "116566854547769676",
 "_state": "completed",
 "_team_codes": [
@@ -9718,7 +9718,7 @@
 "team_b_score": 2,
 "winner_team": "Invictus Gaming",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "116566854547835328",
 "_state": "completed",
 "_team_codes": [
@@ -9740,7 +9740,7 @@
 "team_b_score": 2,
 "winner_team": "TOP ESPORTS",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "116566854547769704",
 "_state": "completed",
 "_team_codes": [
@@ -9762,7 +9762,7 @@
 "team_b_score": 2,
 "winner_team": "Beijing JDG Esports",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "116566854547769712",
 "_state": "completed",
 "_team_codes": [
@@ -9784,7 +9784,7 @@
 "team_b_score": 1,
 "winner_team": "Anyone's Legend",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "116566854547769736",
 "_state": "completed",
 "_team_codes": [
@@ -9806,7 +9806,7 @@
 "team_b_score": 1,
 "winner_team": "Beijing JDG Esports",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "116566854547769668",
 "_state": "completed",
 "_team_codes": [
@@ -9828,7 +9828,7 @@
 "team_b_score": 2,
 "winner_team": "Shenzhen NINJAS IN PYJAMAS",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "116566854547835348",
 "_state": "completed",
 "_team_codes": [
@@ -9850,7 +9850,7 @@
 "team_b_score": 0,
 "winner_team": "LGD GAMING",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "116566854547769696",
 "_state": "completed",
 "_team_codes": [
@@ -9872,7 +9872,7 @@
 "team_b_score": 0,
 "winner_team": "BILIBILI GAMING",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "116566854547769680",
 "_state": "completed",
 "_team_codes": [
@@ -9894,7 +9894,7 @@
 "team_b_score": 2,
 "winner_team": "LGD GAMING",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "116566854547835292",
 "_state": "completed",
 "_team_codes": [
@@ -9916,7 +9916,7 @@
 "team_b_score": 0,
 "winner_team": "Xi'an Team WE",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "116566854547769684",
 "_state": "completed",
 "_team_codes": [
@@ -9938,7 +9938,7 @@
 "team_b_score": 2,
 "winner_team": "Anyone's Legend",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "116566854547769728",
 "_state": "completed",
 "_team_codes": [
@@ -9960,7 +9960,7 @@
 "team_b_score": 1,
 "winner_team": "Shenzhen NINJAS IN PYJAMAS",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "116566854547835340",
 "_state": "completed",
 "_team_codes": [
@@ -9982,7 +9982,7 @@
 "team_b_score": 1,
 "winner_team": "Anyone's Legend",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "116566854547769740",
 "_state": "completed",
 "_team_codes": [
@@ -10004,7 +10004,7 @@
 "team_b_score": 0,
 "winner_team": "BILIBILI GAMING",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "116566854547769660",
 "_state": "completed",
 "_team_codes": [
@@ -10026,7 +10026,7 @@
 "team_b_score": 2,
 "winner_team": "LGD GAMING",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "116566854547769744",
 "_state": "completed",
 "_team_codes": [
@@ -10048,7 +10048,7 @@
 "team_b_score": 2,
 "winner_team": "Invictus Gaming",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "116566854547835336",
 "_state": "completed",
 "_team_codes": [
@@ -10070,7 +10070,7 @@
 "team_b_score": 2,
 "winner_team": "TOP ESPORTS",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "116566854547769700",
 "_state": "completed",
 "_team_codes": [
@@ -10092,7 +10092,7 @@
 "team_b_score": 1,
 "winner_team": "WeiboGaming",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "116566854547835344",
 "_state": "completed",
 "_team_codes": [
@@ -10114,7 +10114,7 @@
 "team_b_score": 1,
 "winner_team": "TOP ESPORTS",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "116566854547769688",
 "_state": "completed",
 "_team_codes": [
@@ -10136,7 +10136,7 @@
 "team_b_score": 0,
 "winner_team": "EDWARD GAMING",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "116566854547769720",
 "_state": "completed",
 "_team_codes": [
@@ -10158,7 +10158,7 @@
 "team_b_score": 2,
 "winner_team": "Beijing JDG Esports",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "116566854547769752",
 "_state": "completed",
 "_team_codes": [
@@ -10180,7 +10180,7 @@
 "team_b_score": 2,
 "winner_team": "BILIBILI GAMING",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "116566854547769672",
 "_state": "completed",
 "_team_codes": [
@@ -10202,7 +10202,7 @@
 "team_b_score": 2,
 "winner_team": "EDWARD GAMING",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "116566854547835300",
 "_state": "completed",
 "_team_codes": [
@@ -10224,7 +10224,7 @@
 "team_b_score": 2,
 "winner_team": "Xi'an Team WE",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "116566854547769708",
 "_state": "completed",
 "_team_codes": [
@@ -10246,7 +10246,7 @@
 "team_b_score": 0,
 "winner_team": "BILIBILI GAMING",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "116566854547769656",
 "_state": "completed",
 "_team_codes": [
@@ -10268,7 +10268,7 @@
 "team_b_score": 1,
 "winner_team": "LGD GAMING",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "116566854547769716",
 "_state": "completed",
 "_team_codes": [
@@ -10290,7 +10290,7 @@
 "team_b_score": 0,
 "winner_team": "Shenzhen NINJAS IN PYJAMAS",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "116566854547835332",
 "_state": "completed",
 "_team_codes": [
@@ -10312,7 +10312,7 @@
 "team_b_score": 0,
 "winner_team": "Beijing JDG Esports",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "116566854547769692",
 "_state": "completed",
 "_team_codes": [
@@ -10334,7 +10334,7 @@
 "team_b_score": 2,
 "winner_team": "LGD GAMING",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "116566854547835296",
 "_state": "completed",
 "_team_codes": [
@@ -10356,7 +10356,7 @@
 "team_b_score": 1,
 "winner_team": "Beijing JDG Esports",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "116566854547769748",
 "_state": "completed",
 "_team_codes": [
@@ -10378,7 +10378,7 @@
 "team_b_score": 2,
 "winner_team": "BILIBILI GAMING",
 "best_of": 3,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "116566854547769664",
 "_state": "completed",
 "_team_codes": [
@@ -10400,7 +10400,7 @@
 "team_b_score": 3,
 "winner_team": "Shenzhen NINJAS IN PYJAMAS",
 "best_of": 5,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "116566921179138936",
 "_state": "completed",
 "_team_codes": [
@@ -10422,7 +10422,7 @@
 "team_b_score": 3,
 "winner_team": "Invictus Gaming",
 "best_of": 5,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "116566921179204478",
 "_state": "completed",
 "_team_codes": [
@@ -10444,7 +10444,7 @@
 "team_b_score": 3,
 "winner_team": "LGD GAMING",
 "best_of": 5,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "117155436343202136",
 "_state": "completed",
 "_team_codes": [
@@ -10466,7 +10466,7 @@
 "team_b_score": 3,
 "winner_team": "Xi'an Team WE",
 "best_of": 5,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "117155436343202142",
 "_state": "completed",
 "_team_codes": [
@@ -10488,7 +10488,7 @@
 "team_b_score": 0,
 "winner_team": null,
 "best_of": 5,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "117155436343202154",
 "_state": "unstarted",
 "_team_codes": [
@@ -10510,7 +10510,7 @@
 "team_b_score": 0,
 "winner_team": null,
 "best_of": 5,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "117155436343202148",
 "_state": "unstarted",
 "_team_codes": [
@@ -10532,7 +10532,7 @@
 "team_b_score": 0,
 "winner_team": null,
 "best_of": 5,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "117155436343202160",
 "_state": "unstarted",
 "_team_codes": [
@@ -10554,7 +10554,7 @@
 "team_b_score": 0,
 "winner_team": null,
 "best_of": 5,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "117155436343202166",
 "_state": "unstarted",
 "_team_codes": [
@@ -10576,7 +10576,7 @@
 "team_b_score": null,
 "winner_team": null,
 "best_of": 5,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "117155436343202178",
 "_state": "unstarted",
 "_team_codes": [
@@ -10598,7 +10598,7 @@
 "team_b_score": null,
 "winner_team": null,
 "best_of": 5,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "117155436343202184",
 "_state": "unstarted",
 "_team_codes": [
@@ -10620,7 +10620,7 @@
 "team_b_score": null,
 "winner_team": null,
 "best_of": 5,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "117155436343202172",
 "_state": "unstarted",
 "_team_codes": [
@@ -10642,7 +10642,7 @@
 "team_b_score": null,
 "winner_team": null,
 "best_of": 5,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "117155436343202190",
 "_state": "unstarted",
 "_team_codes": [
@@ -10664,7 +10664,7 @@
 "team_b_score": null,
 "winner_team": null,
 "best_of": 5,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "117155436343202196",
 "_state": "unstarted",
 "_team_codes": [
@@ -10686,7 +10686,7 @@
 "team_b_score": null,
 "winner_team": null,
 "best_of": 5,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "117155436343202202",
 "_state": "unstarted",
 "_team_codes": [
@@ -10708,7 +10708,7 @@
 "team_b_score": null,
 "winner_team": null,
 "best_of": 5,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "116957100120526824",
 "_state": "unstarted",
 "_team_codes": [
@@ -10730,7 +10730,7 @@
 "team_b_score": null,
 "winner_team": null,
 "best_of": 5,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "116957100120526830",
 "_state": "unstarted",
 "_team_codes": [
@@ -10752,7 +10752,7 @@
 "team_b_score": null,
 "winner_team": null,
 "best_of": 5,
-"fetched_at": "2026-08-30T22:27:23.621405+00:00",
+"fetched_at": "2026-08-30T22:52:14.073135+00:00",
 "_riot_match_id": "116957100120526836",
 "_state": "unstarted",
 "_team_codes": [
