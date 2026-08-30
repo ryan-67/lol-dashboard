@@ -1,6 +1,126 @@
 {
-  "generatedAt": "2026-08-30T04:00:31.577Z",
+  "generatedAt": "2026-08-30T09:55:11.006Z",
   "drafts": [
+    {
+      "matchId": "lol-match-117030752644841595",
+      "gameId": "lol-game-117030752644841596",
+      "gameNumber": 1,
+      "league": "LCK",
+      "teamA": "Dplus KIA",
+      "teamB": "kt Rolster",
+      "blueTeam": "kt",
+      "redTeam": "dk",
+      "bluePicks": [
+        {
+          "championName": "Trundle",
+          "role": "Top"
+        },
+        {
+          "championName": "Jarvan IV",
+          "role": "Jungle"
+        },
+        {
+          "championName": "Nautilus",
+          "role": "Support"
+        },
+        {
+          "championName": "Syndra",
+          "role": "Mid"
+        },
+        {
+          "championName": "Ezreal",
+          "role": "ADC"
+        }
+      ],
+      "redPicks": [
+        {
+          "championName": "Olaf",
+          "role": "Top"
+        },
+        {
+          "championName": "Orianna",
+          "role": "Mid"
+        },
+        {
+          "championName": "Bard",
+          "role": "Support"
+        },
+        {
+          "championName": "Caitlyn",
+          "role": "ADC"
+        },
+        {
+          "championName": "Xin Zhao",
+          "role": "Jungle"
+        }
+      ],
+      "blueBans": [],
+      "redBans": [],
+      "draftComplete": true,
+      "status": "inprogress",
+      "scheduledAt": "2026-08-30T08:00:00+00:00",
+      "fetchedAt": "2026-08-30T09:55:07.492Z"
+    },
+    {
+      "matchId": "lol-match-117155436343202142",
+      "gameId": "lol-game-117155436343202143",
+      "gameNumber": 1,
+      "league": "LPL",
+      "teamA": "Beijing JDG Esports",
+      "teamB": "Xi'an Team WE",
+      "blueTeam": "jdg",
+      "redTeam": "we",
+      "bluePicks": [
+        {
+          "championName": "LeBlanc",
+          "role": "Mid"
+        },
+        {
+          "championName": "Jhin",
+          "role": "ADC"
+        },
+        {
+          "championName": "Rumble",
+          "role": "Top"
+        },
+        {
+          "championName": "Bard",
+          "role": "Support"
+        },
+        {
+          "championName": "Qiyana",
+          "role": "Jungle"
+        }
+      ],
+      "redPicks": [
+        {
+          "championName": "Akali",
+          "role": "Mid"
+        },
+        {
+          "championName": "Yunara",
+          "role": "ADC"
+        },
+        {
+          "championName": "Ornn",
+          "role": "Top"
+        },
+        {
+          "championName": "Jarvan IV",
+          "role": "Jungle"
+        },
+        {
+          "championName": "Lulu",
+          "role": "Support"
+        }
+      ],
+      "blueBans": [],
+      "redBans": [],
+      "draftComplete": true,
+      "status": "unstarted",
+      "scheduledAt": "2026-08-30T09:00:00+00:00",
+      "fetchedAt": "2026-08-30T09:55:08.953Z"
+    },
     {
       "matchId": "lol-match-115564797163886751",
       "gameId": "lol-game-115564797163886752",
@@ -60,126 +180,6 @@
       "status": "inprogress",
       "scheduledAt": "2026-08-29T23:00:00+00:00",
       "fetchedAt": "2026-08-29T23:57:34.708+00:00"
-    },
-    {
-      "matchId": "lol-match-115564797164345571",
-      "gameId": "lol-game-115564797164345572",
-      "gameNumber": 1,
-      "league": "LCS",
-      "teamA": "Team Liquid Alienware",
-      "teamB": "Shopify Rebellion",
-      "blueTeam": "tl",
-      "redTeam": "sr",
-      "bluePicks": [
-        {
-          "role": "Jungle",
-          "championName": "Trundle"
-        },
-        {
-          "role": "Top",
-          "championName": "Olaf"
-        },
-        {
-          "role": "Mid",
-          "championName": "Akali"
-        },
-        {
-          "role": "ADC",
-          "championName": "Ezreal"
-        },
-        {
-          "role": "Support",
-          "championName": "Neeko"
-        }
-      ],
-      "redPicks": [
-        {
-          "role": "Support",
-          "championName": "Rakan"
-        },
-        {
-          "role": "Jungle",
-          "championName": "Pantheon"
-        },
-        {
-          "role": "ADC",
-          "championName": "Xayah"
-        },
-        {
-          "role": "Top",
-          "championName": "K'Sante"
-        },
-        {
-          "role": "Mid",
-          "championName": "Orianna"
-        }
-      ],
-      "blueBans": [],
-      "redBans": [],
-      "draftComplete": true,
-      "status": "inprogress",
-      "scheduledAt": "2026-08-29T20:00:00+00:00",
-      "fetchedAt": "2026-08-29T20:32:29.377+00:00"
-    },
-    {
-      "matchId": "lol-match-115548681803406259",
-      "gameId": "lol-game-115548681803406260",
-      "gameNumber": 1,
-      "league": "LEC",
-      "teamA": "Karmine Corp",
-      "teamB": "SK Gaming",
-      "blueTeam": "kc",
-      "redTeam": "sk-gaming",
-      "bluePicks": [
-        {
-          "role": "Top",
-          "championName": "Twisted Fate"
-        },
-        {
-          "role": "ADC",
-          "championName": "Ezreal"
-        },
-        {
-          "role": "Jungle",
-          "championName": "Lee Sin"
-        },
-        {
-          "role": "Support",
-          "championName": "Leona"
-        },
-        {
-          "role": "Mid",
-          "championName": "Syndra"
-        }
-      ],
-      "redPicks": [
-        {
-          "role": "Mid",
-          "championName": "Cassiopeia"
-        },
-        {
-          "role": "Top",
-          "championName": "Gnar"
-        },
-        {
-          "role": "Support",
-          "championName": "Rell"
-        },
-        {
-          "role": "Jungle",
-          "championName": "Jarvan IV"
-        },
-        {
-          "role": "ADC",
-          "championName": "Kai'Sa"
-        }
-      ],
-      "blueBans": [],
-      "redBans": [],
-      "draftComplete": true,
-      "status": "inprogress",
-      "scheduledAt": "2026-08-29T15:00:00+00:00",
-      "fetchedAt": "2026-08-29T16:21:42.147+00:00"
     }
   ]
 }

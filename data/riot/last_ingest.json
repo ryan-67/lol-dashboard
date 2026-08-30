@@ -1,12 +1,12 @@
 {
-  "ran_at": "2026-08-30T04:20:29.541406+00:00",
+  "ran_at": "2026-08-30T09:54:09.369100+00:00",
   "lookback_days": 14,
   "schedule_rows": 489,
-  "new_games": 0,
+  "new_games": 1,
   "fetch_failures": 0,
-  "gap_fill_games": 0,
-  "gap_fill_targets": 0,
+  "gap_fill_games": 1,
+  "gap_fill_targets": 1,
   "gap_fill_still_open": 0,
-  "supplement_rows": 5340,
-  "player_cache_rows": 2440
+  "supplement_rows": 5352,
+  "player_cache_rows": 2400
 }
