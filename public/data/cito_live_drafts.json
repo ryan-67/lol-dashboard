@@ -1,6 +1,66 @@
 {
-  "generatedAt": "2026-08-30T19:06:30.705Z",
+  "generatedAt": "2026-08-30T22:28:55.895Z",
   "drafts": [
+    {
+      "matchId": "lol-match-115564797163886755",
+      "gameId": "lol-game-115564797163886756",
+      "gameNumber": 1,
+      "league": "LCS",
+      "teamA": "Cloud9 Kia",
+      "teamB": "Shopify Rebellion",
+      "blueTeam": "sr",
+      "redTeam": "c9",
+      "bluePicks": [
+        {
+          "championName": "Orianna",
+          "role": "Mid"
+        },
+        {
+          "championName": "Kai'Sa",
+          "role": "ADC"
+        },
+        {
+          "championName": "Zaahen",
+          "role": "Top"
+        },
+        {
+          "championName": "Vi",
+          "role": "Jungle"
+        },
+        {
+          "championName": "Alistar",
+          "role": "Support"
+        }
+      ],
+      "redPicks": [
+        {
+          "championName": "Akali",
+          "role": "Mid"
+        },
+        {
+          "championName": "K'Sante",
+          "role": "Top"
+        },
+        {
+          "championName": "Rakan",
+          "role": "Support"
+        },
+        {
+          "championName": "Jarvan IV",
+          "role": "Jungle"
+        },
+        {
+          "championName": "Ezreal",
+          "role": "ADC"
+        }
+      ],
+      "blueBans": [],
+      "redBans": [],
+      "draftComplete": true,
+      "status": "inprogress",
+      "scheduledAt": "2026-08-30T22:00:00+00:00",
+      "fetchedAt": "2026-08-30T22:28:55.731Z"
+    },
     {
       "matchId": "lol-match-115548681803406131",
       "gameId": "lol-game-115548681803406132",
@@ -60,126 +120,6 @@
       "status": "inprogress",
       "scheduledAt": "2026-08-30T14:15:00+00:00",
       "fetchedAt": "2026-08-30T14:45:51.061+00:00"
-    },
-    {
-      "matchId": "lol-match-117155436343202142",
-      "gameId": "lol-game-117155436343202143",
-      "gameNumber": 1,
-      "league": "LPL",
-      "teamA": "Beijing JDG Esports",
-      "teamB": "Xi'an Team WE",
-      "blueTeam": "jdg",
-      "redTeam": "we",
-      "bluePicks": [
-        {
-          "role": "Mid",
-          "championName": "LeBlanc"
-        },
-        {
-          "role": "ADC",
-          "championName": "Jhin"
-        },
-        {
-          "role": "Top",
-          "championName": "Rumble"
-        },
-        {
-          "role": "Support",
-          "championName": "Bard"
-        },
-        {
-          "role": "Jungle",
-          "championName": "Qiyana"
-        }
-      ],
-      "redPicks": [
-        {
-          "role": "Mid",
-          "championName": "Akali"
-        },
-        {
-          "role": "ADC",
-          "championName": "Yunara"
-        },
-        {
-          "role": "Top",
-          "championName": "Ornn"
-        },
-        {
-          "role": "Jungle",
-          "championName": "Jarvan IV"
-        },
-        {
-          "role": "Support",
-          "championName": "Lulu"
-        }
-      ],
-      "blueBans": [],
-      "redBans": [],
-      "draftComplete": true,
-      "status": "unstarted",
-      "scheduledAt": "2026-08-30T09:00:00+00:00",
-      "fetchedAt": "2026-08-30T09:55:08.953+00:00"
-    },
-    {
-      "matchId": "lol-match-117030752644841595",
-      "gameId": "lol-game-117030752644841596",
-      "gameNumber": 1,
-      "league": "LCK",
-      "teamA": "Dplus KIA",
-      "teamB": "kt Rolster",
-      "blueTeam": "kt",
-      "redTeam": "dk",
-      "bluePicks": [
-        {
-          "role": "Top",
-          "championName": "Trundle"
-        },
-        {
-          "role": "Jungle",
-          "championName": "Jarvan IV"
-        },
-        {
-          "role": "Support",
-          "championName": "Nautilus"
-        },
-        {
-          "role": "Mid",
-          "championName": "Syndra"
-        },
-        {
-          "role": "ADC",
-          "championName": "Ezreal"
-        }
-      ],
-      "redPicks": [
-        {
-          "role": "Top",
-          "championName": "Olaf"
-        },
-        {
-          "role": "Mid",
-          "championName": "Orianna"
-        },
-        {
-          "role": "Support",
-          "championName": "Bard"
-        },
-        {
-          "role": "ADC",
-          "championName": "Caitlyn"
-        },
-        {
-          "role": "Jungle",
-          "championName": "Xin Zhao"
-        }
-      ],
-      "blueBans": [],
-      "redBans": [],
-      "draftComplete": true,
-      "status": "inprogress",
-      "scheduledAt": "2026-08-30T08:00:00+00:00",
-      "fetchedAt": "2026-08-30T09:55:07.492+00:00"
     }
   ]
 }
