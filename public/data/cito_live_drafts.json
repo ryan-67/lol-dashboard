@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-29T23:57:35.194Z",
+  "generatedAt": "2026-08-30T04:00:31.577Z",
   "drafts": [
     {
       "matchId": "lol-match-115564797163886751",
@@ -12,46 +12,46 @@
       "redTeam": "c9",
       "bluePicks": [
         {
-          "championName": "Locke",
-          "role": "Mid"
+          "role": "Mid",
+          "championName": "Locke"
         },
         {
-          "championName": "Xin Zhao",
-          "role": "Jungle"
+          "role": "Jungle",
+          "championName": "Xin Zhao"
         },
         {
-          "championName": "Gnar",
-          "role": "Top"
+          "role": "Top",
+          "championName": "Gnar"
         },
         {
-          "championName": "Lucian",
-          "role": "ADC"
+          "role": "ADC",
+          "championName": "Lucian"
         },
         {
-          "championName": "Milio",
-          "role": "Support"
+          "role": "Support",
+          "championName": "Milio"
         }
       ],
       "redPicks": [
         {
-          "championName": "Vi",
-          "role": "Jungle"
+          "role": "Jungle",
+          "championName": "Vi"
         },
         {
-          "championName": "Nautilus",
-          "role": "Support"
+          "role": "Support",
+          "championName": "Nautilus"
         },
         {
-          "championName": "Rumble",
-          "role": "Top"
+          "role": "Top",
+          "championName": "Rumble"
         },
         {
-          "championName": "Yone",
-          "role": "Mid"
+          "role": "Mid",
+          "championName": "Yone"
         },
         {
-          "championName": "Ziggs",
-          "role": "ADC"
+          "role": "ADC",
+          "championName": "Ziggs"
         }
       ],
       "blueBans": [],
@@ -59,7 +59,7 @@
       "draftComplete": true,
       "status": "inprogress",
       "scheduledAt": "2026-08-29T23:00:00+00:00",
-      "fetchedAt": "2026-08-29T23:57:34.708Z"
+      "fetchedAt": "2026-08-29T23:57:34.708+00:00"
     },
     {
       "matchId": "lol-match-115564797164345571",
