@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-30T14:45:52.063Z",
+  "generatedAt": "2026-08-30T19:06:30.705Z",
   "drafts": [
     {
       "matchId": "lol-match-115548681803406131",
@@ -12,46 +12,46 @@
       "redTeam": "mkoi",
       "bluePicks": [
         {
-          "championName": "Rumble",
-          "role": "Top"
+          "role": "Top",
+          "championName": "Rumble"
         },
         {
-          "championName": "Azir",
-          "role": "Mid"
+          "role": "Mid",
+          "championName": "Azir"
         },
         {
-          "championName": "Lucian",
-          "role": "ADC"
+          "role": "ADC",
+          "championName": "Lucian"
         },
         {
-          "championName": "Nocturne",
-          "role": "Jungle"
+          "role": "Jungle",
+          "championName": "Nocturne"
         },
         {
-          "championName": "Nami",
-          "role": "Support"
+          "role": "Support",
+          "championName": "Nami"
         }
       ],
       "redPicks": [
         {
-          "championName": "Galio",
-          "role": "Top"
+          "role": "Top",
+          "championName": "Galio"
         },
         {
-          "championName": "Yunara",
-          "role": "ADC"
+          "role": "ADC",
+          "championName": "Yunara"
         },
         {
-          "championName": "Ryze",
-          "role": "Mid"
+          "role": "Mid",
+          "championName": "Ryze"
         },
         {
-          "championName": "Lee Sin",
-          "role": "Jungle"
+          "role": "Jungle",
+          "championName": "Lee Sin"
         },
         {
-          "championName": "Lulu",
-          "role": "Support"
+          "role": "Support",
+          "championName": "Lulu"
         }
       ],
       "blueBans": [],
@@ -59,7 +59,7 @@
       "draftComplete": true,
       "status": "inprogress",
       "scheduledAt": "2026-08-30T14:15:00+00:00",
-      "fetchedAt": "2026-08-30T14:45:51.061Z"
+      "fetchedAt": "2026-08-30T14:45:51.061+00:00"
     },
     {
       "matchId": "lol-match-117155436343202142",
