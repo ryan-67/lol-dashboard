@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-30T22:28:55.895Z",
+  "generatedAt": "2026-08-31T04:04:33.589Z",
   "drafts": [
     {
       "matchId": "lol-match-115564797163886755",
@@ -12,46 +12,46 @@
       "redTeam": "c9",
       "bluePicks": [
         {
-          "championName": "Orianna",
-          "role": "Mid"
+          "role": "Mid",
+          "championName": "Orianna"
         },
         {
-          "championName": "Kai'Sa",
-          "role": "ADC"
+          "role": "ADC",
+          "championName": "Kai'Sa"
         },
         {
-          "championName": "Zaahen",
-          "role": "Top"
+          "role": "Top",
+          "championName": "Zaahen"
         },
         {
-          "championName": "Vi",
-          "role": "Jungle"
+          "role": "Jungle",
+          "championName": "Vi"
         },
         {
-          "championName": "Alistar",
-          "role": "Support"
+          "role": "Support",
+          "championName": "Alistar"
         }
       ],
       "redPicks": [
         {
-          "championName": "Akali",
-          "role": "Mid"
+          "role": "Mid",
+          "championName": "Akali"
         },
         {
-          "championName": "K'Sante",
-          "role": "Top"
+          "role": "Top",
+          "championName": "K'Sante"
         },
         {
-          "championName": "Rakan",
-          "role": "Support"
+          "role": "Support",
+          "championName": "Rakan"
         },
         {
-          "championName": "Jarvan IV",
-          "role": "Jungle"
+          "role": "Jungle",
+          "championName": "Jarvan IV"
         },
         {
-          "championName": "Ezreal",
-          "role": "ADC"
+          "role": "ADC",
+          "championName": "Ezreal"
         }
       ],
       "blueBans": [],
@@ -59,67 +59,7 @@
       "draftComplete": true,
       "status": "inprogress",
       "scheduledAt": "2026-08-30T22:00:00+00:00",
-      "fetchedAt": "2026-08-30T22:28:55.731Z"
-    },
-    {
-      "matchId": "lol-match-115548681803406131",
-      "gameId": "lol-game-115548681803406132",
-      "gameNumber": 1,
-      "league": "LEC",
-      "teamA": "Movistar KOI",
-      "teamB": "Team Heretics",
-      "blueTeam": "th",
-      "redTeam": "mkoi",
-      "bluePicks": [
-        {
-          "role": "Top",
-          "championName": "Rumble"
-        },
-        {
-          "role": "Mid",
-          "championName": "Azir"
-        },
-        {
-          "role": "ADC",
-          "championName": "Lucian"
-        },
-        {
-          "role": "Jungle",
-          "championName": "Nocturne"
-        },
-        {
-          "role": "Support",
-          "championName": "Nami"
-        }
-      ],
-      "redPicks": [
-        {
-          "role": "Top",
-          "championName": "Galio"
-        },
-        {
-          "role": "ADC",
-          "championName": "Yunara"
-        },
-        {
-          "role": "Mid",
-          "championName": "Ryze"
-        },
-        {
-          "role": "Jungle",
-          "championName": "Lee Sin"
-        },
-        {
-          "role": "Support",
-          "championName": "Lulu"
-        }
-      ],
-      "blueBans": [],
-      "redBans": [],
-      "draftComplete": true,
-      "status": "inprogress",
-      "scheduledAt": "2026-08-30T14:15:00+00:00",
-      "fetchedAt": "2026-08-30T14:45:51.061+00:00"
+      "fetchedAt": "2026-08-30T22:28:55.731+00:00"
     }
   ]
 }
