@@ -1,4 +1,65 @@
 {
-  "generatedAt": "2026-09-01T03:54:29.294Z",
-  "drafts": []
+  "generatedAt": "2026-09-01T09:15:23.602Z",
+  "drafts": [
+    {
+      "matchId": "lol-match-117030752644841601",
+      "gameId": "lol-game-117030752644841602",
+      "gameNumber": 1,
+      "league": "LCK",
+      "teamA": "Gen.G Esports",
+      "teamB": "kt Rolster",
+      "blueTeam": "gen",
+      "redTeam": "kt",
+      "bluePicks": [
+        {
+          "championName": "Lulu",
+          "role": "Support"
+        },
+        {
+          "championName": "Camille",
+          "role": "Top"
+        },
+        {
+          "championName": "Yunara",
+          "role": "ADC"
+        },
+        {
+          "championName": "Lee Sin",
+          "role": "Jungle"
+        },
+        {
+          "championName": "Ryze",
+          "role": "Mid"
+        }
+      ],
+      "redPicks": [
+        {
+          "championName": "Pantheon",
+          "role": "Jungle"
+        },
+        {
+          "championName": "Orianna",
+          "role": "Mid"
+        },
+        {
+          "championName": "Kalista",
+          "role": "ADC"
+        },
+        {
+          "championName": "Renata Glasc",
+          "role": "Support"
+        },
+        {
+          "championName": "Olaf",
+          "role": "Top"
+        }
+      ],
+      "blueBans": [],
+      "redBans": [],
+      "draftComplete": true,
+      "status": "inprogress",
+      "scheduledAt": "2026-09-01T08:00:00+00:00",
+      "fetchedAt": "2026-09-01T09:15:23.121Z"
+    }
+  ]
 }
