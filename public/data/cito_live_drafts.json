@@ -1,4 +1,65 @@
 {
-  "generatedAt": "2026-09-02T03:13:58.604Z",
-  "drafts": []
+  "generatedAt": "2026-09-02T08:29:25.045Z",
+  "drafts": [
+    {
+      "matchId": "lol-match-117030752644841607",
+      "gameId": "lol-game-117030752644841608",
+      "gameNumber": 1,
+      "league": "LCK",
+      "teamA": "Hanwha Life Esports",
+      "teamB": "T1",
+      "blueTeam": "t1",
+      "redTeam": "hle",
+      "bluePicks": [
+        {
+          "championName": "Pantheon",
+          "role": "Jungle"
+        },
+        {
+          "championName": "Ryze",
+          "role": "Mid"
+        },
+        {
+          "championName": "Kalista",
+          "role": "ADC"
+        },
+        {
+          "championName": "Jayce",
+          "role": "Top"
+        },
+        {
+          "championName": "Renata Glasc",
+          "role": "Support"
+        }
+      ],
+      "redPicks": [
+        {
+          "championName": "Olaf",
+          "role": "Top"
+        },
+        {
+          "championName": "Annie",
+          "role": "Mid"
+        },
+        {
+          "championName": "Seraphine",
+          "role": "Support"
+        },
+        {
+          "championName": "Ashe",
+          "role": "ADC"
+        },
+        {
+          "championName": "Lee Sin",
+          "role": "Jungle"
+        }
+      ],
+      "blueBans": [],
+      "redBans": [],
+      "draftComplete": true,
+      "status": "inprogress",
+      "scheduledAt": "2026-09-02T08:00:00+00:00",
+      "fetchedAt": "2026-09-02T08:29:24.707Z"
+    }
+  ]
 }
