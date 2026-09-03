@@ -1,4 +1,65 @@
 {
-  "generatedAt": "2026-09-03T03:15:42.217Z",
-  "drafts": []
+  "generatedAt": "2026-09-03T08:37:49.124Z",
+  "drafts": [
+    {
+      "matchId": "lol-match-117030752644841613",
+      "gameId": "lol-game-117030752644841614",
+      "gameNumber": 1,
+      "league": "LCK",
+      "teamA": "Dplus KIA",
+      "teamB": "BNK FEARX",
+      "blueTeam": "bfx",
+      "redTeam": "dk",
+      "bluePicks": [
+        {
+          "championName": "Pantheon",
+          "role": "Jungle"
+        },
+        {
+          "championName": "Viktor",
+          "role": "Mid"
+        },
+        {
+          "championName": "Lucian",
+          "role": "ADC"
+        },
+        {
+          "championName": "Milio",
+          "role": "Support"
+        },
+        {
+          "championName": "K'Sante",
+          "role": "Top"
+        }
+      ],
+      "redPicks": [
+        {
+          "championName": "Jayce",
+          "role": "Top"
+        },
+        {
+          "championName": "Rakan",
+          "role": "Support"
+        },
+        {
+          "championName": "Xayah",
+          "role": "ADC"
+        },
+        {
+          "championName": "Lee Sin",
+          "role": "Jungle"
+        },
+        {
+          "championName": "Syndra",
+          "role": "Mid"
+        }
+      ],
+      "blueBans": [],
+      "redBans": [],
+      "draftComplete": true,
+      "status": "inprogress",
+      "scheduledAt": "2026-09-03T08:00:00+00:00",
+      "fetchedAt": "2026-09-03T08:37:48.185Z"
+    }
+  ]
 }
