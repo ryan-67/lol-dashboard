@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-04T14:58:51.600484+00:00",
+  "generatedAt": "2026-09-04T22:59:16.975906+00:00",
   "championsCurated": 172,
   "primaryRoleValidation": {
     "checked": 122,
@@ -237,7 +237,7 @@
           "curatedLaneBully": true,
           "empiricalLaneBully": false,
           "vsRoleMedianGd15": 114.0,
-          "games": 595
+          "games": 596
         },
         {
           "champion": "Jinx",
@@ -377,7 +377,7 @@
           "curatedLate": false,
           "empiricalLateGameScaler": true,
           "scalingCurve": "mid",
-          "games": 992
+          "games": 993
         },
         {
           "champion": "Gangplank",
@@ -559,7 +559,7 @@
           "curatedEarly": true,
           "empiricalFrontLoaded": false,
           "scalingCurve": "early",
-          "games": 668
+          "games": 669
         },
         {
           "champion": "K'Sante",
@@ -580,7 +580,7 @@
           "curatedEarly": false,
           "empiricalFrontLoaded": true,
           "scalingCurve": "mid",
-          "games": 445
+          "games": 446
         },
         {
           "champion": "Kennen",
@@ -624,7 +624,7 @@
         "defenderTag": "cc_heavy",
         "label": "Mobility escapes hard-CC/engage",
         "status": "validated",
-        "gamesWithCondition": 6212,
+        "gamesWithCondition": 6214,
         "winrateWithCondition": 50.1,
         "gamesWithout": 180,
         "winrateWithout": 52.2,
@@ -635,11 +635,11 @@
         "defenderTag": "engage",
         "label": "Mobility escapes engage comps",
         "status": "validated",
-        "gamesWithCondition": 6025,
+        "gamesWithCondition": 6026,
         "winrateWithCondition": 50.3,
-        "gamesWithout": 367,
-        "winrateWithout": 47.7,
-        "liftPp": 2.6
+        "gamesWithout": 368,
+        "winrateWithout": 47.8,
+        "liftPp": 2.5
       },
       {
         "attackerTag": "tank",
@@ -657,11 +657,11 @@
         "defenderTag": "dive",
         "label": "Poke checks dive comps before they close",
         "status": "validated",
-        "gamesWithCondition": 6407,
+        "gamesWithCondition": 6408,
         "winrateWithCondition": 49.5,
-        "gamesWithout": 414,
-        "winrateWithout": 50.2,
-        "liftPp": -0.7
+        "gamesWithout": 415,
+        "winrateWithout": 50.4,
+        "liftPp": -0.9
       },
       {
         "attackerTag": "split_push",
@@ -679,7 +679,7 @@
         "defenderTag": "dive",
         "label": "Peel/anti-dive protects into dive comps",
         "status": "validated",
-        "gamesWithCondition": 4528,
+        "gamesWithCondition": 4529,
         "winrateWithCondition": 50.8,
         "gamesWithout": 309,
         "winrateWithout": 47.6,
