@@ -1,4 +1,65 @@
 {
-  "generatedAt": "2026-09-04T03:15:20.102Z",
-  "drafts": []
+  "generatedAt": "2026-09-04T08:38:54.191Z",
+  "drafts": [
+    {
+      "matchId": "lol-match-117030752644841625",
+      "gameId": "lol-game-117030752644841626",
+      "gameNumber": 1,
+      "league": "LCK",
+      "teamA": "kt Rolster",
+      "teamB": "Dplus KIA",
+      "blueTeam": "kt",
+      "redTeam": "dk",
+      "bluePicks": [
+        {
+          "championName": "Ezreal",
+          "role": "ADC"
+        },
+        {
+          "championName": "Ahri",
+          "role": "Mid"
+        },
+        {
+          "championName": "Pantheon",
+          "role": "Jungle"
+        },
+        {
+          "championName": "K'Sante",
+          "role": "Top"
+        },
+        {
+          "championName": "Seraphine",
+          "role": "Support"
+        }
+      ],
+      "redPicks": [
+        {
+          "championName": "Aurora",
+          "role": "Mid"
+        },
+        {
+          "championName": "Karma",
+          "role": "Support"
+        },
+        {
+          "championName": "Jayce",
+          "role": "Top"
+        },
+        {
+          "championName": "Jarvan IV",
+          "role": "Jungle"
+        },
+        {
+          "championName": "Sivir",
+          "role": "ADC"
+        }
+      ],
+      "blueBans": [],
+      "redBans": [],
+      "draftComplete": true,
+      "status": "inprogress",
+      "scheduledAt": "2026-09-04T08:00:00+00:00",
+      "fetchedAt": "2026-09-04T08:38:53.224Z"
+    }
+  ]
 }
