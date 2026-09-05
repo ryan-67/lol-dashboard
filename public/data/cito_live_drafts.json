@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-05T16:36:04.012Z",
+  "generatedAt": "2026-09-05T20:01:43.416Z",
   "drafts": [
     {
       "matchId": "lol-match-115548681803406291",
@@ -12,46 +12,46 @@
       "redTeam": "giantx-lec",
       "bluePicks": [
         {
-          "championName": "Jarvan IV",
-          "role": "Jungle"
+          "role": "Jungle",
+          "championName": "Jarvan IV"
         },
         {
-          "championName": "Ashe",
-          "role": "ADC"
+          "role": "ADC",
+          "championName": "Ashe"
         },
         {
-          "championName": "Jayce",
-          "role": "Top"
+          "role": "Top",
+          "championName": "Jayce"
         },
         {
-          "championName": "Seraphine",
-          "role": "Support"
+          "role": "Support",
+          "championName": "Seraphine"
         },
         {
-          "championName": "Anivia",
-          "role": "Mid"
+          "role": "Mid",
+          "championName": "Anivia"
         }
       ],
       "redPicks": [
         {
-          "championName": "Milio",
-          "role": "Support"
+          "role": "Support",
+          "championName": "Milio"
         },
         {
-          "championName": "Skarner",
-          "role": "Jungle"
+          "role": "Jungle",
+          "championName": "Skarner"
         },
         {
-          "championName": "Lucian",
-          "role": "ADC"
+          "role": "ADC",
+          "championName": "Lucian"
         },
         {
-          "championName": "Yorick",
-          "role": "Top"
+          "role": "Top",
+          "championName": "Yorick"
         },
         {
-          "championName": "Cassiopeia",
-          "role": "Mid"
+          "role": "Mid",
+          "championName": "Cassiopeia"
         }
       ],
       "blueBans": [],
@@ -59,7 +59,7 @@
       "draftComplete": true,
       "status": "inprogress",
       "scheduledAt": "2026-09-05T13:30:00+00:00",
-      "fetchedAt": "2026-09-05T16:36:02.829Z"
+      "fetchedAt": "2026-09-05T16:36:02.829+00:00"
     },
     {
       "matchId": "lol-match-117155436343202160",
