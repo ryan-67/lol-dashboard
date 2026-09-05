@@ -1,8 +1,8 @@
 {
-  "ran_at": "2026-09-05T22:03:03.227863+00:00",
+  "ran_at": "2026-09-05T22:27:49.279434+00:00",
   "lookback_days": 14,
   "schedule_rows": 489,
-  "new_games": 2,
+  "new_games": 0,
   "fetch_failures": 0,
   "gap_fill_games": 0,
   "gap_fill_targets": 0,
