@@ -1,4 +1,65 @@
 {
-  "generatedAt": "2026-09-05T03:17:20.994Z",
-  "drafts": []
+  "generatedAt": "2026-09-05T08:08:43.879Z",
+  "drafts": [
+    {
+      "matchId": "lol-match-117155436343202160",
+      "gameId": "lol-game-117155436343202161",
+      "gameNumber": 1,
+      "league": "LPL",
+      "teamA": "TOP ESPORTS",
+      "teamB": "Shenzhen NINJAS IN PYJAMAS",
+      "blueTeam": "nip",
+      "redTeam": "tes",
+      "bluePicks": [
+        {
+          "championName": "Qiyana",
+          "role": "Jungle"
+        },
+        {
+          "championName": "Olaf",
+          "role": "Top"
+        },
+        {
+          "championName": "Akali",
+          "role": "Mid"
+        },
+        {
+          "championName": "Lucian",
+          "role": "ADC"
+        },
+        {
+          "championName": "Milio",
+          "role": "Support"
+        }
+      ],
+      "redPicks": [
+        {
+          "championName": "Rumble",
+          "role": "Top"
+        },
+        {
+          "championName": "Jarvan IV",
+          "role": "Jungle"
+        },
+        {
+          "championName": "Orianna",
+          "role": "Mid"
+        },
+        {
+          "championName": "Lux",
+          "role": "Support"
+        },
+        {
+          "championName": "Caitlyn",
+          "role": "ADC"
+        }
+      ],
+      "blueBans": [],
+      "redBans": [],
+      "draftComplete": true,
+      "status": "inprogress",
+      "scheduledAt": "2026-09-05T07:00:00+00:00",
+      "fetchedAt": "2026-09-05T08:08:40.984Z"
+    }
+  ]
 }
