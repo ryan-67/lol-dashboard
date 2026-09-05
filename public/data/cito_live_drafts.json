@@ -1,6 +1,66 @@
 {
-  "generatedAt": "2026-09-05T13:20:02.580Z",
+  "generatedAt": "2026-09-05T16:36:04.012Z",
   "drafts": [
+    {
+      "matchId": "lol-match-115548681803406291",
+      "gameId": "lol-game-115548681803406292",
+      "gameNumber": 1,
+      "league": "LEC",
+      "teamA": "Karmine Corp",
+      "teamB": "GIANTX",
+      "blueTeam": "kc",
+      "redTeam": "giantx-lec",
+      "bluePicks": [
+        {
+          "championName": "Jarvan IV",
+          "role": "Jungle"
+        },
+        {
+          "championName": "Ashe",
+          "role": "ADC"
+        },
+        {
+          "championName": "Jayce",
+          "role": "Top"
+        },
+        {
+          "championName": "Seraphine",
+          "role": "Support"
+        },
+        {
+          "championName": "Anivia",
+          "role": "Mid"
+        }
+      ],
+      "redPicks": [
+        {
+          "championName": "Milio",
+          "role": "Support"
+        },
+        {
+          "championName": "Skarner",
+          "role": "Jungle"
+        },
+        {
+          "championName": "Lucian",
+          "role": "ADC"
+        },
+        {
+          "championName": "Yorick",
+          "role": "Top"
+        },
+        {
+          "championName": "Cassiopeia",
+          "role": "Mid"
+        }
+      ],
+      "blueBans": [],
+      "redBans": [],
+      "draftComplete": true,
+      "status": "inprogress",
+      "scheduledAt": "2026-09-05T13:30:00+00:00",
+      "fetchedAt": "2026-09-05T16:36:02.829Z"
+    },
     {
       "matchId": "lol-match-117155436343202160",
       "gameId": "lol-game-117155436343202161",
