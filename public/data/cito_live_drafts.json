@@ -1,53 +1,53 @@
 {
-  "generatedAt": "2026-09-06T08:26:45.937Z",
+  "generatedAt": "2026-09-06T13:27:51.945Z",
   "drafts": [
     {
-      "matchId": "lol-match-117155436343202178",
-      "gameId": "lol-game-117155436343202179",
+      "matchId": "lol-match-117155436343202184",
+      "gameId": "lol-game-117155436343202185",
       "gameNumber": 1,
       "league": "LPL",
-      "teamA": "Xi'an Team WE",
-      "teamB": "Invictus Gaming",
-      "blueTeam": "we",
-      "redTeam": "ig",
+      "teamA": "LGD GAMING",
+      "teamB": "Shenzhen NINJAS IN PYJAMAS",
+      "blueTeam": "lgd",
+      "redTeam": "nip",
       "bluePicks": [
         {
-          "championName": "Lulu",
-          "role": "Support"
-        },
-        {
-          "championName": "Syndra",
-          "role": "Mid"
-        },
-        {
-          "championName": "Nocturne",
+          "championName": "Qiyana",
           "role": "Jungle"
         },
         {
-          "championName": "Yunara",
-          "role": "ADC"
+          "championName": "Anivia",
+          "role": "Mid"
         },
         {
-          "championName": "Gwen",
+          "championName": "Milio",
+          "role": "Support"
+        },
+        {
+          "championName": "Kled",
           "role": "Top"
+        },
+        {
+          "championName": "Lucian",
+          "role": "ADC"
         }
       ],
       "redPicks": [
         {
-          "championName": "Caitlyn",
-          "role": "ADC"
-        },
-        {
-          "championName": "Lee Sin",
+          "championName": "Pantheon",
           "role": "Jungle"
         },
         {
-          "championName": "Bard",
-          "role": "Support"
+          "championName": "Ashe",
+          "role": "ADC"
         },
         {
-          "championName": "K'Sante",
+          "championName": "Olaf",
           "role": "Top"
+        },
+        {
+          "championName": "Seraphine",
+          "role": "Support"
         },
         {
           "championName": "Ryze",
@@ -57,9 +57,9 @@
       "blueBans": [],
       "redBans": [],
       "draftComplete": true,
-      "status": "inprogress",
-      "scheduledAt": "2026-09-06T06:00:00+00:00",
-      "fetchedAt": "2026-09-06T08:26:42.715Z"
+      "status": "unstarted",
+      "scheduledAt": "2026-09-06T09:00:00+00:00",
+      "fetchedAt": "2026-09-06T13:27:50.511Z"
     },
     {
       "matchId": "lol-match-117030752644841631",
@@ -72,46 +72,46 @@
       "redTeam": "t1",
       "bluePicks": [
         {
-          "championName": "Taliyah",
-          "role": "Mid"
+          "role": "Mid",
+          "championName": "Taliyah"
         },
         {
-          "championName": "Gnar",
-          "role": "Top"
+          "role": "Top",
+          "championName": "Gnar"
         },
         {
-          "championName": "Lucian",
-          "role": "ADC"
+          "role": "ADC",
+          "championName": "Lucian"
         },
         {
-          "championName": "Vi",
-          "role": "Jungle"
+          "role": "Jungle",
+          "championName": "Vi"
         },
         {
-          "championName": "Milio",
-          "role": "Support"
+          "role": "Support",
+          "championName": "Milio"
         }
       ],
       "redPicks": [
         {
-          "championName": "Rumble",
-          "role": "Top"
+          "role": "Top",
+          "championName": "Rumble"
         },
         {
-          "championName": "Xayah",
-          "role": "ADC"
+          "role": "ADC",
+          "championName": "Xayah"
         },
         {
-          "championName": "Lee Sin",
-          "role": "Jungle"
+          "role": "Jungle",
+          "championName": "Lee Sin"
         },
         {
-          "championName": "Cassiopeia",
-          "role": "Mid"
+          "role": "Mid",
+          "championName": "Cassiopeia"
         },
         {
-          "championName": "Rakan",
-          "role": "Support"
+          "role": "Support",
+          "championName": "Rakan"
         }
       ],
       "blueBans": [],
@@ -119,7 +119,67 @@
       "draftComplete": true,
       "status": "inprogress",
       "scheduledAt": "2026-09-06T08:00:00+00:00",
-      "fetchedAt": "2026-09-06T08:26:44.579Z"
+      "fetchedAt": "2026-09-06T08:26:44.579+00:00"
+    },
+    {
+      "matchId": "lol-match-117155436343202178",
+      "gameId": "lol-game-117155436343202179",
+      "gameNumber": 1,
+      "league": "LPL",
+      "teamA": "Xi'an Team WE",
+      "teamB": "Invictus Gaming",
+      "blueTeam": "we",
+      "redTeam": "ig",
+      "bluePicks": [
+        {
+          "role": "Support",
+          "championName": "Lulu"
+        },
+        {
+          "role": "Mid",
+          "championName": "Syndra"
+        },
+        {
+          "role": "Jungle",
+          "championName": "Nocturne"
+        },
+        {
+          "role": "ADC",
+          "championName": "Yunara"
+        },
+        {
+          "role": "Top",
+          "championName": "Gwen"
+        }
+      ],
+      "redPicks": [
+        {
+          "role": "ADC",
+          "championName": "Caitlyn"
+        },
+        {
+          "role": "Jungle",
+          "championName": "Lee Sin"
+        },
+        {
+          "role": "Support",
+          "championName": "Bard"
+        },
+        {
+          "role": "Top",
+          "championName": "K'Sante"
+        },
+        {
+          "role": "Mid",
+          "championName": "Ryze"
+        }
+      ],
+      "blueBans": [],
+      "redBans": [],
+      "draftComplete": true,
+      "status": "inprogress",
+      "scheduledAt": "2026-09-06T06:00:00+00:00",
+      "fetchedAt": "2026-09-06T08:26:42.715+00:00"
     }
   ]
 }
