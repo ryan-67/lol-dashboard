@@ -1,65 +1,65 @@
 {
-  "generatedAt": "2026-09-07T03:15:13.591Z",
+  "generatedAt": "2026-09-07T09:01:11.810Z",
   "drafts": [
     {
-      "matchId": "lol-match-115548681803406303",
-      "gameId": "lol-game-115548681803406304",
+      "matchId": "lol-match-116889604984222975",
+      "gameId": "lol-game-116889604984222976",
       "gameNumber": 1,
-      "league": "LEC",
-      "teamA": "G2 Esports",
-      "teamB": "Karmine Corp",
-      "blueTeam": "kc",
-      "redTeam": "g2",
+      "league": "LCK",
+      "teamA": "TBD",
+      "teamB": "TBD",
+      "blueTeam": "dns-challengers",
+      "redTeam": "drx-challengers",
       "bluePicks": [
         {
-          "role": "Top",
-          "championName": "Jayce"
+          "championName": "Trundle",
+          "role": "Top"
         },
         {
-          "role": "Jungle",
-          "championName": "Vi"
+          "championName": "Locke",
+          "role": "Mid"
         },
         {
-          "role": "Mid",
-          "championName": "Ahri"
+          "championName": "Kalista",
+          "role": "ADC"
         },
         {
-          "role": "ADC",
-          "championName": "Caitlyn"
+          "championName": "Nocturne",
+          "role": "Jungle"
         },
         {
-          "role": "Support",
-          "championName": "Bard"
+          "championName": "Renata Glasc",
+          "role": "Support"
         }
       ],
       "redPicks": [
         {
-          "role": "Jungle",
-          "championName": "Xin Zhao"
+          "championName": "Wukong",
+          "role": "Jungle"
         },
         {
-          "role": "Support",
-          "championName": "Karma"
+          "championName": "Taliyah",
+          "role": "ADC"
         },
         {
-          "role": "Top",
-          "championName": "K'Sante"
+          "championName": "Olaf",
+          "role": "Top"
         },
         {
-          "role": "ADC",
-          "championName": "Ezreal"
+          "championName": "Orianna",
+          "role": "Mid"
         },
         {
-          "role": "Mid",
-          "championName": "Viktor"
+          "championName": "Nautilus",
+          "role": "Support"
         }
       ],
       "blueBans": [],
       "redBans": [],
       "draftComplete": true,
-      "status": "inprogress",
-      "scheduledAt": "2026-09-06T15:00:00+00:00",
-      "fetchedAt": "2026-09-06T16:46:55.408+00:00"
+      "status": "unstarted",
+      "scheduledAt": "2026-09-07T08:00:00+00:00",
+      "fetchedAt": "2026-09-07T09:01:10.430Z"
     }
   ]
 }
