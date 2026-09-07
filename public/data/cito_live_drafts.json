@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-07T09:01:11.810Z",
+  "generatedAt": "2026-09-07T15:34:10.822Z",
   "drafts": [
     {
       "matchId": "lol-match-116889604984222975",
@@ -16,20 +16,20 @@
           "role": "Top"
         },
         {
-          "championName": "Locke",
-          "role": "Mid"
-        },
-        {
-          "championName": "Kalista",
-          "role": "ADC"
-        },
-        {
           "championName": "Nocturne",
           "role": "Jungle"
         },
         {
           "championName": "Renata Glasc",
           "role": "Support"
+        },
+        {
+          "championName": "Kalista",
+          "role": "ADC"
+        },
+        {
+          "championName": "Locke",
+          "role": "Mid"
         }
       ],
       "redPicks": [
@@ -54,12 +54,24 @@
           "role": "Support"
         }
       ],
-      "blueBans": [],
-      "redBans": [],
+      "blueBans": [
+        "Cassiopeia",
+        "Vi",
+        "Lee Sin",
+        "Neeko",
+        "Lulu"
+      ],
+      "redBans": [
+        "Lucian",
+        "Jarvan IV",
+        "Camille",
+        "Jax",
+        "KSante"
+      ],
       "draftComplete": true,
       "status": "unstarted",
       "scheduledAt": "2026-09-07T08:00:00+00:00",
-      "fetchedAt": "2026-09-07T09:01:10.430Z"
+      "fetchedAt": "2026-09-07T15:34:10.225Z"
     }
   ]
 }
