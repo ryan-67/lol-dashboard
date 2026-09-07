@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-07T15:34:10.822Z",
+  "generatedAt": "2026-09-07T19:39:02.550Z",
   "drafts": [
     {
       "matchId": "lol-match-116889604984222975",
@@ -12,46 +12,46 @@
       "redTeam": "drx-challengers",
       "bluePicks": [
         {
-          "championName": "Trundle",
-          "role": "Top"
+          "role": "Top",
+          "championName": "Trundle"
         },
         {
-          "championName": "Nocturne",
-          "role": "Jungle"
+          "role": "Jungle",
+          "championName": "Nocturne"
         },
         {
-          "championName": "Renata Glasc",
-          "role": "Support"
+          "role": "Support",
+          "championName": "Renata Glasc"
         },
         {
-          "championName": "Kalista",
-          "role": "ADC"
+          "role": "ADC",
+          "championName": "Kalista"
         },
         {
-          "championName": "Locke",
-          "role": "Mid"
+          "role": "Mid",
+          "championName": "Locke"
         }
       ],
       "redPicks": [
         {
-          "championName": "Wukong",
-          "role": "Jungle"
+          "role": "Jungle",
+          "championName": "Wukong"
         },
         {
-          "championName": "Taliyah",
-          "role": "ADC"
+          "role": "ADC",
+          "championName": "Taliyah"
         },
         {
-          "championName": "Olaf",
-          "role": "Top"
+          "role": "Top",
+          "championName": "Olaf"
         },
         {
-          "championName": "Orianna",
-          "role": "Mid"
+          "role": "Mid",
+          "championName": "Orianna"
         },
         {
-          "championName": "Nautilus",
-          "role": "Support"
+          "role": "Support",
+          "championName": "Nautilus"
         }
       ],
       "blueBans": [
@@ -71,7 +71,7 @@
       "draftComplete": true,
       "status": "unstarted",
       "scheduledAt": "2026-09-07T08:00:00+00:00",
-      "fetchedAt": "2026-09-07T15:34:10.225Z"
+      "fetchedAt": "2026-09-07T15:34:10.225+00:00"
     }
   ]
 }
