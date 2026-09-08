@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-08T15:11:04.008184+00:00",
+  "generatedAt": "2026-09-08T20:07:14.422843+00:00",
   "championsCurated": 172,
   "primaryRoleValidation": {
     "checked": 122,
@@ -46,7 +46,7 @@
         ],
         "empiricalPrimaryRole": "jungle",
         "roleShift": false,
-        "totalGames": 832
+        "totalGames": 833
       },
       {
         "champion": "Ziggs",
@@ -83,7 +83,7 @@
         ],
         "empiricalPrimaryRole": "jungle",
         "roleShift": false,
-        "totalGames": 127
+        "totalGames": 128
       },
       {
         "champion": "Mel",
@@ -178,22 +178,22 @@
           "champion": "Ambessa",
           "curatedLaneBully": true,
           "empiricalLaneBully": false,
-          "vsRoleMedianGd15": -46.6,
-          "games": 925
+          "vsRoleMedianGd15": -46.9,
+          "games": 926
         },
         {
           "champion": "Aurora",
           "curatedLaneBully": true,
           "empiricalLaneBully": false,
-          "vsRoleMedianGd15": 64.5,
-          "games": 723
+          "vsRoleMedianGd15": 67.4,
+          "games": 724
         },
         {
           "champion": "Camille",
           "curatedLaneBully": true,
           "empiricalLaneBully": false,
-          "vsRoleMedianGd15": 94.8,
-          "games": 210
+          "vsRoleMedianGd15": 92.2,
+          "games": 211
         },
         {
           "champion": "Cassiopeia",
@@ -227,8 +227,8 @@
           "champion": "Gnar",
           "curatedLaneBully": true,
           "empiricalLaneBully": false,
-          "vsRoleMedianGd15": 113.3,
-          "games": 605
+          "vsRoleMedianGd15": 113.6,
+          "games": 606
         },
         {
           "champion": "Jinx",
@@ -241,8 +241,8 @@
           "champion": "Kalista",
           "curatedLaneBully": true,
           "empiricalLaneBully": false,
-          "vsRoleMedianGd15": 68.1,
-          "games": 281
+          "vsRoleMedianGd15": 58.4,
+          "games": 282
         },
         {
           "champion": "Kennen",
@@ -283,8 +283,8 @@
           "champion": "Lucian",
           "curatedLaneBully": true,
           "empiricalLaneBully": false,
-          "vsRoleMedianGd15": 84.5,
-          "games": 582
+          "vsRoleMedianGd15": 81.2,
+          "games": 583
         },
         {
           "champion": "Lux",
@@ -319,14 +319,14 @@
           "curatedLate": false,
           "empiricalLateGameScaler": true,
           "scalingCurve": "mid",
-          "games": 925
+          "games": 926
         },
         {
           "champion": "Aphelios",
           "curatedLate": true,
           "empiricalLateGameScaler": false,
           "scalingCurve": "late",
-          "games": 155
+          "games": 156
         },
         {
           "champion": "Aurelion Sol",
@@ -361,7 +361,7 @@
           "curatedLate": false,
           "empiricalLateGameScaler": true,
           "scalingCurve": "mid",
-          "games": 1007
+          "games": 1008
         },
         {
           "champion": "Gangplank",
@@ -389,7 +389,7 @@
           "curatedLate": false,
           "empiricalLateGameScaler": true,
           "scalingCurve": "mid",
-          "games": 765
+          "games": 766
         },
         {
           "champion": "Jhin",
@@ -452,7 +452,7 @@
           "curatedLate": false,
           "empiricalLateGameScaler": true,
           "scalingCurve": "mid",
-          "games": 290
+          "games": 291
         }
       ]
     },
@@ -487,7 +487,7 @@
           "curatedEarly": false,
           "empiricalFrontLoaded": true,
           "scalingCurve": "mid",
-          "games": 495
+          "games": 496
         },
         {
           "champion": "Bard",
@@ -543,14 +543,14 @@
           "curatedEarly": false,
           "empiricalFrontLoaded": true,
           "scalingCurve": "mid",
-          "games": 281
+          "games": 282
         },
         {
           "champion": "Karma",
           "curatedEarly": false,
           "empiricalFrontLoaded": true,
           "scalingCurve": "mid",
-          "games": 460
+          "games": 461
         },
         {
           "champion": "Kennen",
@@ -592,14 +592,14 @@
           "curatedEarly": false,
           "empiricalFrontLoaded": true,
           "scalingCurve": "mid",
-          "games": 447
+          "games": 448
         },
         {
           "champion": "Maokai",
           "curatedEarly": true,
           "empiricalFrontLoaded": false,
           "scalingCurve": "early",
-          "games": 267
+          "games": 268
         }
       ]
     }
@@ -615,18 +615,18 @@
         "defenderTag": "cc_heavy",
         "label": "Mobility escapes hard-CC/engage",
         "status": "validated",
-        "gamesWithCondition": 6301,
-        "winrateWithCondition": 50.1,
-        "gamesWithout": 181,
-        "winrateWithout": 52.5,
-        "liftPp": -2.4
+        "gamesWithCondition": 6305,
+        "winrateWithCondition": 50.0,
+        "gamesWithout": 182,
+        "winrateWithout": 52.7,
+        "liftPp": -2.7
       },
       {
         "attackerTag": "mobility_high",
         "defenderTag": "engage",
         "label": "Mobility escapes engage comps",
         "status": "validated",
-        "gamesWithCondition": 6099,
+        "gamesWithCondition": 6104,
         "winrateWithCondition": 50.3,
         "gamesWithout": 383,
         "winrateWithout": 47.0,
@@ -639,16 +639,16 @@
         "status": "validated",
         "gamesWithCondition": 4178,
         "winrateWithCondition": 49.9,
-        "gamesWithout": 1743,
+        "gamesWithout": 1746,
         "winrateWithout": 48.0,
-        "liftPp": 1.8
+        "liftPp": 1.9
       },
       {
         "attackerTag": "poke",
         "defenderTag": "dive",
         "label": "Poke checks dive comps before they close",
         "status": "validated",
-        "gamesWithCondition": 6483,
+        "gamesWithCondition": 6488,
         "winrateWithCondition": 49.4,
         "gamesWithout": 426,
         "winrateWithout": 50.7,
@@ -670,7 +670,7 @@
         "defenderTag": "dive",
         "label": "Peel/anti-dive protects into dive comps",
         "status": "validated",
-        "gamesWithCondition": 4596,
+        "gamesWithCondition": 4599,
         "winrateWithCondition": 50.8,
         "gamesWithout": 321,
         "winrateWithout": 48.3,
