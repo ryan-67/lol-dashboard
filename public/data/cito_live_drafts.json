@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-09T14:13:49.899Z",
+  "generatedAt": "2026-09-09T19:09:10.176Z",
   "drafts": [
     {
       "matchId": "lol-match-116889604984222987",
@@ -12,46 +12,46 @@
       "redTeam": "dns-challengers",
       "bluePicks": [
         {
-          "championName": "Ryze",
-          "role": "Mid"
+          "role": "Mid",
+          "championName": "Ryze"
         },
         {
-          "championName": "Qiyana",
-          "role": "Jungle"
+          "role": "Jungle",
+          "championName": "Qiyana"
         },
         {
-          "championName": "Renata Glasc",
-          "role": "Support"
+          "role": "Support",
+          "championName": "Renata Glasc"
         },
         {
-          "championName": "Camille",
-          "role": "Top"
+          "role": "Top",
+          "championName": "Camille"
         },
         {
-          "championName": "Kalista",
-          "role": "ADC"
+          "role": "ADC",
+          "championName": "Kalista"
         }
       ],
       "redPicks": [
         {
-          "championName": "Jarvan IV",
-          "role": "Jungle"
+          "role": "Jungle",
+          "championName": "Jarvan IV"
         },
         {
-          "championName": "Lucian",
-          "role": "ADC"
+          "role": "ADC",
+          "championName": "Lucian"
         },
         {
-          "championName": "Milio",
-          "role": "Support"
+          "role": "Support",
+          "championName": "Milio"
         },
         {
-          "championName": "Olaf",
-          "role": "Top"
+          "role": "Top",
+          "championName": "Olaf"
         },
         {
-          "championName": "Orianna",
-          "role": "Mid"
+          "role": "Mid",
+          "championName": "Orianna"
         }
       ],
       "blueBans": [],
@@ -59,7 +59,7 @@
       "draftComplete": true,
       "status": "unstarted",
       "scheduledAt": "2026-09-09T08:00:00+00:00",
-      "fetchedAt": "2026-09-09T14:13:49.607Z"
+      "fetchedAt": "2026-09-09T14:13:49.607+00:00"
     }
   ]
 }
