@@ -1,4 +1,65 @@
 {
-  "generatedAt": "2026-09-10T03:24:51.688Z",
-  "drafts": []
+  "generatedAt": "2026-09-10T08:43:32.725Z",
+  "drafts": [
+    {
+      "matchId": "lol-match-116889604984222981",
+      "gameId": "lol-game-116889604984222982",
+      "gameNumber": 1,
+      "league": "LCK",
+      "teamA": "TBD",
+      "teamB": "TBD",
+      "blueTeam": "t1-challengers",
+      "redTeam": "dwg-kia-challengers",
+      "bluePicks": [
+        {
+          "championName": "Camille",
+          "role": "Support"
+        },
+        {
+          "championName": "Anivia",
+          "role": "Mid"
+        },
+        {
+          "championName": "Gnar",
+          "role": "Top"
+        },
+        {
+          "championName": "Jarvan IV",
+          "role": "Jungle"
+        },
+        {
+          "championName": "Jhin",
+          "role": "ADC"
+        }
+      ],
+      "redPicks": [
+        {
+          "championName": "Ezreal",
+          "role": "ADC"
+        },
+        {
+          "championName": "Karma",
+          "role": "Support"
+        },
+        {
+          "championName": "Ryze",
+          "role": "Mid"
+        },
+        {
+          "championName": "Naafiri",
+          "role": "Jungle"
+        },
+        {
+          "championName": "K'Sante",
+          "role": "Top"
+        }
+      ],
+      "blueBans": [],
+      "redBans": [],
+      "draftComplete": true,
+      "status": "unstarted",
+      "scheduledAt": "2026-09-10T08:00:00+00:00",
+      "fetchedAt": "2026-09-10T08:43:32.560Z"
+    }
+  ]
 }
