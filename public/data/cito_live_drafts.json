@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-10T14:08:30.389Z",
+  "generatedAt": "2026-09-10T19:00:33.466Z",
   "drafts": [
     {
       "matchId": "lol-match-116889604984222981",
@@ -12,46 +12,46 @@
       "redTeam": "dwg-kia-challengers",
       "bluePicks": [
         {
-          "championName": "Camille",
-          "role": "Support"
+          "role": "Support",
+          "championName": "Camille"
         },
         {
-          "championName": "Gnar",
-          "role": "Top"
+          "role": "Top",
+          "championName": "Gnar"
         },
         {
-          "championName": "Jarvan IV",
-          "role": "Jungle"
+          "role": "Jungle",
+          "championName": "Jarvan IV"
         },
         {
-          "championName": "Anivia",
-          "role": "Mid"
+          "role": "Mid",
+          "championName": "Anivia"
         },
         {
-          "championName": "Jhin",
-          "role": "ADC"
+          "role": "ADC",
+          "championName": "Jhin"
         }
       ],
       "redPicks": [
         {
-          "championName": "Karma",
-          "role": "Support"
+          "role": "Support",
+          "championName": "Karma"
         },
         {
-          "championName": "Ryze",
-          "role": "Mid"
+          "role": "Mid",
+          "championName": "Ryze"
         },
         {
-          "championName": "Ezreal",
-          "role": "ADC"
+          "role": "ADC",
+          "championName": "Ezreal"
         },
         {
-          "championName": "Naafiri",
-          "role": "Jungle"
+          "role": "Jungle",
+          "championName": "Naafiri"
         },
         {
-          "championName": "K'Sante",
-          "role": "Top"
+          "role": "Top",
+          "championName": "K'Sante"
         }
       ],
       "blueBans": [
@@ -71,7 +71,7 @@
       "draftComplete": true,
       "status": "unstarted",
       "scheduledAt": "2026-09-10T08:00:00+00:00",
-      "fetchedAt": "2026-09-10T14:08:29.829Z"
+      "fetchedAt": "2026-09-10T14:08:29.829+00:00"
     }
   ]
 }
