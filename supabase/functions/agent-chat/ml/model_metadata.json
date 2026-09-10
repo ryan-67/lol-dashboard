@@ -1,5 +1,5 @@
 {
-  "exported_at": "2026-09-10T15:04:50.859279+00:00",
+  "exported_at": "2026-09-10T23:04:53.215465+00:00",
   "algo": "xgboost",
   "inference_mode": "logistic_linear_v1",
   "model_file": "series_model.json",
@@ -9,12 +9,12 @@
     "2024-09-12",
     "2026-09-08"
   ],
-  "feature_count": 867,
+  "feature_count": 860,
   "walk_forward_metrics": {
     "aggregate": {
-      "log_loss": 0.619340655583265,
-      "brier": 0.20972621108084152,
-      "accuracy": 0.6875152209826904
+      "log_loss": 0.6252281801272379,
+      "brier": 0.21162370035389277,
+      "accuracy": 0.6877539791203309
     },
     "baseline_aggregate": {
       "log_loss": 0.6866278774680704,
