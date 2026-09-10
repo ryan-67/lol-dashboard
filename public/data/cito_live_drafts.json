@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-10T08:43:32.725Z",
+  "generatedAt": "2026-09-10T14:08:30.389Z",
   "drafts": [
     {
       "matchId": "lol-match-116889604984222981",
@@ -16,10 +16,6 @@
           "role": "Support"
         },
         {
-          "championName": "Anivia",
-          "role": "Mid"
-        },
-        {
           "championName": "Gnar",
           "role": "Top"
         },
@@ -28,15 +24,15 @@
           "role": "Jungle"
         },
         {
+          "championName": "Anivia",
+          "role": "Mid"
+        },
+        {
           "championName": "Jhin",
           "role": "ADC"
         }
       ],
       "redPicks": [
-        {
-          "championName": "Ezreal",
-          "role": "ADC"
-        },
         {
           "championName": "Karma",
           "role": "Support"
@@ -44,6 +40,10 @@
         {
           "championName": "Ryze",
           "role": "Mid"
+        },
+        {
+          "championName": "Ezreal",
+          "role": "ADC"
         },
         {
           "championName": "Naafiri",
@@ -54,12 +54,24 @@
           "role": "Top"
         }
       ],
-      "blueBans": [],
-      "redBans": [],
+      "blueBans": [
+        "Cassiopeia",
+        "Jayce",
+        "Vi",
+        "Qiyana",
+        "Rumble"
+      ],
+      "redBans": [
+        "Nocturne",
+        "Syndra",
+        "Lee Sin",
+        "Lulu",
+        "Vayne"
+      ],
       "draftComplete": true,
       "status": "unstarted",
       "scheduledAt": "2026-09-10T08:00:00+00:00",
-      "fetchedAt": "2026-09-10T08:43:32.560Z"
+      "fetchedAt": "2026-09-10T14:08:29.829Z"
     }
   ]
 }
