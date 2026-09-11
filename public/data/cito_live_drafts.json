@@ -1,4 +1,65 @@
 {
-  "generatedAt": "2026-09-11T08:40:20.669Z",
-  "drafts": []
+  "generatedAt": "2026-09-11T14:07:36.439Z",
+  "drafts": [
+    {
+      "matchId": "lol-match-116889604984222993",
+      "gameId": "lol-game-116889604984222994",
+      "gameNumber": 1,
+      "league": "LCK",
+      "teamA": "TBD",
+      "teamB": "TBD",
+      "blueTeam": "kt-challengers",
+      "redTeam": "dns",
+      "bluePicks": [
+        {
+          "championName": "Lee Sin",
+          "role": "Jungle"
+        },
+        {
+          "championName": "K'Sante",
+          "role": "Top"
+        },
+        {
+          "championName": "Jhin",
+          "role": "ADC"
+        },
+        {
+          "championName": "Rell",
+          "role": "Support"
+        },
+        {
+          "championName": "Ryze",
+          "role": "Mid"
+        }
+      ],
+      "redPicks": [
+        {
+          "championName": "Nautilus",
+          "role": "Support"
+        },
+        {
+          "championName": "Jarvan IV",
+          "role": "Jungle"
+        },
+        {
+          "championName": "Rumble",
+          "role": "Top"
+        },
+        {
+          "championName": "Corki",
+          "role": "ADC"
+        },
+        {
+          "championName": "Tristana",
+          "role": "Mid"
+        }
+      ],
+      "blueBans": [],
+      "redBans": [],
+      "draftComplete": true,
+      "status": "unstarted",
+      "scheduledAt": "2026-09-11T08:00:00+00:00",
+      "fetchedAt": "2026-09-11T14:07:35.564Z"
+    }
+  ]
 }
