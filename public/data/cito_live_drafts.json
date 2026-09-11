@@ -1,6 +1,66 @@
 {
-  "generatedAt": "2026-09-11T14:07:36.439Z",
+  "generatedAt": "2026-09-11T19:03:17.002Z",
   "drafts": [
+    {
+      "matchId": "lol-match-115548681803406309",
+      "gameId": "lol-game-115548681803406310",
+      "gameNumber": 1,
+      "league": "LEC",
+      "teamA": "GIANTX ITERO",
+      "teamB": "Natus Vincere",
+      "blueTeam": "giantx-lec",
+      "redTeam": "natus-vincere",
+      "bluePicks": [
+        {
+          "championName": "Rakan",
+          "role": "Support"
+        },
+        {
+          "championName": "Anivia",
+          "role": "Mid"
+        },
+        {
+          "championName": "Ambessa",
+          "role": "Top"
+        },
+        {
+          "championName": "Corki",
+          "role": "ADC"
+        },
+        {
+          "championName": "Vi",
+          "role": "Jungle"
+        }
+      ],
+      "redPicks": [
+        {
+          "championName": "Rumble",
+          "role": "Top"
+        },
+        {
+          "championName": "Jarvan IV",
+          "role": "Jungle"
+        },
+        {
+          "championName": "Ryze",
+          "role": "Mid"
+        },
+        {
+          "championName": "Xayah",
+          "role": "ADC"
+        },
+        {
+          "championName": "Nautilus",
+          "role": "Support"
+        }
+      ],
+      "blueBans": [],
+      "redBans": [],
+      "draftComplete": true,
+      "status": "inprogress",
+      "scheduledAt": "2026-09-11T15:00:00+00:00",
+      "fetchedAt": "2026-09-11T19:03:16.757Z"
+    },
     {
       "matchId": "lol-match-116889604984222993",
       "gameId": "lol-game-116889604984222994",
@@ -12,46 +72,46 @@
       "redTeam": "dns",
       "bluePicks": [
         {
-          "championName": "Lee Sin",
-          "role": "Jungle"
+          "role": "Jungle",
+          "championName": "Lee Sin"
         },
         {
-          "championName": "K'Sante",
-          "role": "Top"
+          "role": "Top",
+          "championName": "K'Sante"
         },
         {
-          "championName": "Jhin",
-          "role": "ADC"
+          "role": "ADC",
+          "championName": "Jhin"
         },
         {
-          "championName": "Rell",
-          "role": "Support"
+          "role": "Support",
+          "championName": "Rell"
         },
         {
-          "championName": "Ryze",
-          "role": "Mid"
+          "role": "Mid",
+          "championName": "Ryze"
         }
       ],
       "redPicks": [
         {
-          "championName": "Nautilus",
-          "role": "Support"
+          "role": "Support",
+          "championName": "Nautilus"
         },
         {
-          "championName": "Jarvan IV",
-          "role": "Jungle"
+          "role": "Jungle",
+          "championName": "Jarvan IV"
         },
         {
-          "championName": "Rumble",
-          "role": "Top"
+          "role": "Top",
+          "championName": "Rumble"
         },
         {
-          "championName": "Corki",
-          "role": "ADC"
+          "role": "ADC",
+          "championName": "Corki"
         },
         {
-          "championName": "Tristana",
-          "role": "Mid"
+          "role": "Mid",
+          "championName": "Tristana"
         }
       ],
       "blueBans": [],
@@ -59,7 +119,7 @@
       "draftComplete": true,
       "status": "unstarted",
       "scheduledAt": "2026-09-11T08:00:00+00:00",
-      "fetchedAt": "2026-09-11T14:07:35.564Z"
+      "fetchedAt": "2026-09-11T14:07:35.564+00:00"
     }
   ]
 }
