@@ -1,6 +1,66 @@
 {
-  "generatedAt": "2026-09-12T08:26:18.807Z",
+  "generatedAt": "2026-09-12T13:25:09.429Z",
   "drafts": [
+    {
+      "matchId": "lol-match-117155436343202196",
+      "gameId": "lol-game-117155436343202197",
+      "gameNumber": 1,
+      "league": "LPL",
+      "teamA": "Invictus Gaming",
+      "teamB": "Anyone's Legend",
+      "blueTeam": "ig",
+      "redTeam": "al",
+      "bluePicks": [
+        {
+          "championName": "Ryze",
+          "role": "Mid"
+        },
+        {
+          "championName": "Rumble",
+          "role": "Top"
+        },
+        {
+          "championName": "Ashe",
+          "role": "ADC"
+        },
+        {
+          "championName": "Seraphine",
+          "role": "Support"
+        },
+        {
+          "championName": "Qiyana",
+          "role": "Jungle"
+        }
+      ],
+      "redPicks": [
+        {
+          "championName": "Ornn",
+          "role": "Top"
+        },
+        {
+          "championName": "Lucian",
+          "role": "ADC"
+        },
+        {
+          "championName": "Milio",
+          "role": "Support"
+        },
+        {
+          "championName": "Nocturne",
+          "role": "Jungle"
+        },
+        {
+          "championName": "Annie",
+          "role": "Mid"
+        }
+      ],
+      "blueBans": [],
+      "redBans": [],
+      "draftComplete": true,
+      "status": "inprogress",
+      "scheduledAt": "2026-09-12T09:00:00+00:00",
+      "fetchedAt": "2026-09-12T13:25:07.838Z"
+    },
     {
       "matchId": "lol-match-117030752644841637",
       "gameId": "lol-game-117030752644841638",
@@ -12,46 +72,46 @@
       "redTeam": "t1",
       "bluePicks": [
         {
-          "championName": "Qiyana",
-          "role": "Jungle"
+          "role": "Jungle",
+          "championName": "Qiyana"
         },
         {
-          "championName": "Ryze",
-          "role": "Mid"
+          "role": "Mid",
+          "championName": "Ryze"
         },
         {
-          "championName": "Jhin",
-          "role": "ADC"
+          "role": "ADC",
+          "championName": "Jhin"
         },
         {
-          "championName": "Jayce",
-          "role": "Top"
+          "role": "Top",
+          "championName": "Jayce"
         },
         {
-          "championName": "Alistar",
-          "role": "Support"
+          "role": "Support",
+          "championName": "Alistar"
         }
       ],
       "redPicks": [
         {
-          "championName": "Lucian",
-          "role": "ADC"
+          "role": "ADC",
+          "championName": "Lucian"
         },
         {
-          "championName": "Naafiri",
-          "role": "Jungle"
+          "role": "Jungle",
+          "championName": "Naafiri"
         },
         {
-          "championName": "Gragas",
-          "role": "Top"
+          "role": "Top",
+          "championName": "Gragas"
         },
         {
-          "championName": "Milio",
-          "role": "Support"
+          "role": "Support",
+          "championName": "Milio"
         },
         {
-          "championName": "Orianna",
-          "role": "Mid"
+          "role": "Mid",
+          "championName": "Orianna"
         }
       ],
       "blueBans": [],
@@ -59,7 +119,7 @@
       "draftComplete": true,
       "status": "inprogress",
       "scheduledAt": "2026-09-12T05:00:00+00:00",
-      "fetchedAt": "2026-09-12T08:26:16.227Z"
+      "fetchedAt": "2026-09-12T08:26:16.227+00:00"
     }
   ]
 }
