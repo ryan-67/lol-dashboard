@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-12T20:17:18.153Z",
+  "generatedAt": "2026-09-12T23:49:18.301Z",
   "drafts": [
     {
       "matchId": "lol-match-115548681803406315",
@@ -120,66 +120,6 @@
       "status": "inprogress",
       "scheduledAt": "2026-09-12T09:00:00+00:00",
       "fetchedAt": "2026-09-12T13:25:07.838+00:00"
-    },
-    {
-      "matchId": "lol-match-117030752644841637",
-      "gameId": "lol-game-117030752644841638",
-      "gameNumber": 1,
-      "league": "LCK",
-      "teamA": "T1",
-      "teamB": "Hanwha Life Esports",
-      "blueTeam": "hle",
-      "redTeam": "t1",
-      "bluePicks": [
-        {
-          "role": "Jungle",
-          "championName": "Qiyana"
-        },
-        {
-          "role": "Mid",
-          "championName": "Ryze"
-        },
-        {
-          "role": "ADC",
-          "championName": "Jhin"
-        },
-        {
-          "role": "Top",
-          "championName": "Jayce"
-        },
-        {
-          "role": "Support",
-          "championName": "Alistar"
-        }
-      ],
-      "redPicks": [
-        {
-          "role": "ADC",
-          "championName": "Lucian"
-        },
-        {
-          "role": "Jungle",
-          "championName": "Naafiri"
-        },
-        {
-          "role": "Top",
-          "championName": "Gragas"
-        },
-        {
-          "role": "Support",
-          "championName": "Milio"
-        },
-        {
-          "role": "Mid",
-          "championName": "Orianna"
-        }
-      ],
-      "blueBans": [],
-      "redBans": [],
-      "draftComplete": true,
-      "status": "inprogress",
-      "scheduledAt": "2026-09-12T05:00:00+00:00",
-      "fetchedAt": "2026-09-12T08:26:16.227+00:00"
     }
   ]
 }
