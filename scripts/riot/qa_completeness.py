@@ -63,6 +63,7 @@ def main() -> None:
         if row.get("status") == "completed"
         and cutoff <= (parse_ts(row.get("scheduled_at")) or cutoff) <= now
     ]
+    window_ids = {str(r.get("match_id")) for r in series}
 
     games_by_series: dict[str, list[dict]] = {}
     gd15_ok = 0
@@ -74,11 +75,17 @@ def main() -> None:
             record = json.loads(path.read_text(encoding="utf-8"))
         except (json.JSONDecodeError, OSError):
             continue
-        start = parse_ts(record.get("gameStart") or record.get("seriesScheduledAt"))
+        sid = str(record.get("seriesMatchId") or "")
+        # Completeness joins on gated match_id: keep every warehouse game for a
+        # series already in the schedule window, even if gameStart < cutoff.
+        start = parse_ts(record.get("seriesScheduledAt") or record.get("gameStart"))
+        if sid in window_ids:
+            games_by_series.setdefault(sid, []).append(record)
+        elif start is None or start < cutoff:
+            continue
+
         if start is None or start < cutoff:
             continue
-        sid = str(record.get("seriesMatchId") or "")
-        games_by_series.setdefault(sid, []).append(record)
 
         is_gapfill = record.get("source") == "cito_gapfill" or (record.get("qa") or {}).get("gapFill")
         if is_gapfill:
