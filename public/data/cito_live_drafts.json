@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-14T09:38:46.034Z",
+  "generatedAt": "2026-09-14T16:13:13.000Z",
   "drafts": [
     {
       "matchId": "lol-match-116889604984222999",
@@ -12,46 +12,46 @@
       "redTeam": "dwg-kia-challengers",
       "bluePicks": [
         {
-          "championName": "K'Sante",
-          "role": "Top"
+          "role": "Top",
+          "championName": "K'Sante"
         },
         {
-          "championName": "Kalista",
-          "role": "ADC"
+          "role": "ADC",
+          "championName": "Kalista"
         },
         {
-          "championName": "Ryze",
-          "role": "Mid"
+          "role": "Mid",
+          "championName": "Ryze"
         },
         {
-          "championName": "Renata Glasc",
-          "role": "Support"
+          "role": "Support",
+          "championName": "Renata Glasc"
         },
         {
-          "championName": "Wukong",
-          "role": "Jungle"
+          "role": "Jungle",
+          "championName": "Wukong"
         }
       ],
       "redPicks": [
         {
-          "championName": "Gnar",
-          "role": "Top"
+          "role": "Top",
+          "championName": "Gnar"
         },
         {
-          "championName": "Orianna",
-          "role": "Mid"
+          "role": "Mid",
+          "championName": "Orianna"
         },
         {
-          "championName": "Pantheon",
-          "role": "Jungle"
+          "role": "Jungle",
+          "championName": "Pantheon"
         },
         {
-          "championName": "Yunara",
-          "role": "ADC"
+          "role": "ADC",
+          "championName": "Yunara"
         },
         {
-          "championName": "Lulu",
-          "role": "Support"
+          "role": "Support",
+          "championName": "Lulu"
         }
       ],
       "blueBans": [],
@@ -59,7 +59,7 @@
       "draftComplete": true,
       "status": "unstarted",
       "scheduledAt": "2026-09-14T08:00:00+00:00",
-      "fetchedAt": "2026-09-14T09:38:45.904Z"
+      "fetchedAt": "2026-09-14T09:38:45.904+00:00"
     }
   ]
 }
