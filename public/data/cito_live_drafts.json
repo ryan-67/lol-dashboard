@@ -1,4 +1,65 @@
 {
-  "generatedAt": "2026-09-14T03:43:03.394Z",
-  "drafts": []
+  "generatedAt": "2026-09-14T09:38:46.034Z",
+  "drafts": [
+    {
+      "matchId": "lol-match-116889604984222999",
+      "gameId": "lol-game-116889604984223000",
+      "gameNumber": 1,
+      "league": "LCK",
+      "teamA": "TBD",
+      "teamB": "TBD",
+      "blueTeam": "kt-challengers",
+      "redTeam": "dwg-kia-challengers",
+      "bluePicks": [
+        {
+          "championName": "K'Sante",
+          "role": "Top"
+        },
+        {
+          "championName": "Kalista",
+          "role": "ADC"
+        },
+        {
+          "championName": "Ryze",
+          "role": "Mid"
+        },
+        {
+          "championName": "Renata Glasc",
+          "role": "Support"
+        },
+        {
+          "championName": "Wukong",
+          "role": "Jungle"
+        }
+      ],
+      "redPicks": [
+        {
+          "championName": "Gnar",
+          "role": "Top"
+        },
+        {
+          "championName": "Orianna",
+          "role": "Mid"
+        },
+        {
+          "championName": "Pantheon",
+          "role": "Jungle"
+        },
+        {
+          "championName": "Yunara",
+          "role": "ADC"
+        },
+        {
+          "championName": "Lulu",
+          "role": "Support"
+        }
+      ],
+      "blueBans": [],
+      "redBans": [],
+      "draftComplete": true,
+      "status": "unstarted",
+      "scheduledAt": "2026-09-14T08:00:00+00:00",
+      "fetchedAt": "2026-09-14T09:38:45.904Z"
+    }
+  ]
 }
