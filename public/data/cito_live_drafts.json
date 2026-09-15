@@ -1,4 +1,77 @@
 {
-  "generatedAt": "2026-09-15T07:17:30.030Z",
-  "drafts": []
+  "generatedAt": "2026-09-15T13:12:32.143Z",
+  "drafts": [
+    {
+      "matchId": "lol-match-116889604984223005",
+      "gameId": "lol-game-116889604984223006",
+      "gameNumber": 1,
+      "league": "LCK",
+      "teamA": "TBD",
+      "teamB": "TBD",
+      "blueTeam": "t1-challengers",
+      "redTeam": "kt-challengers",
+      "bluePicks": [
+        {
+          "championName": "Bard",
+          "role": "Support"
+        },
+        {
+          "championName": "Qiyana",
+          "role": "Jungle"
+        },
+        {
+          "championName": "Camille",
+          "role": "Top"
+        },
+        {
+          "championName": "Orianna",
+          "role": "Mid"
+        },
+        {
+          "championName": "Ziggs",
+          "role": "ADC"
+        }
+      ],
+      "redPicks": [
+        {
+          "championName": "Ambessa",
+          "role": "Top"
+        },
+        {
+          "championName": "Orianna",
+          "role": "Mid"
+        },
+        {
+          "championName": "Lulu",
+          "role": "Support"
+        },
+        {
+          "championName": "Qiyana",
+          "role": "Jungle"
+        },
+        {
+          "championName": "Yunara",
+          "role": "ADC"
+        }
+      ],
+      "blueBans": [
+        "Cassiopeia",
+        "Lucian",
+        "Vi",
+        "Akali",
+        "KSante"
+      ],
+      "redBans": [
+        "Nocturne",
+        "Ryze",
+        "Lee Sin",
+        "Karma",
+        "Nautilus"
+      ],
+      "draftComplete": true,
+      "status": "unstarted",
+      "scheduledAt": "2026-09-15T08:00:00+00:00",
+      "fetchedAt": "2026-09-15T13:12:31.866Z"
+    }
+  ]
 }
