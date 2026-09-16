@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-15T21:50:59.076618+00:00",
+  "generatedAt": "2026-09-16T05:18:07.034639+00:00",
   "methodology": "Same-role matrix: direct-lane champ-vs-champ win rate + avg GD@15 delta, min 6 meetings. Draft-order reconstruction uses OE's firstPick flag + the standard competitive ban/pick slot pattern to recover true reveal order (not column order) for the counter-pick validation. Cross-role lift validates hand-curated archetype tag interactions against realized win rates, not assumed.",
   "sameRoleMatchups": {
     "top": {
@@ -22,7 +22,7 @@
         "Ambessa": {
           "games": 71,
           "winrate": 46.5,
-          "avgGd15Delta": -36.2
+          "avgGd15Delta": -34.8
         },
         "Jayce": {
           "games": 110,
@@ -618,7 +618,7 @@
         "K'Sante": {
           "games": 71,
           "winrate": 53.5,
-          "avgGd15Delta": 36.2
+          "avgGd15Delta": 34.8
         },
         "Udyr": {
           "games": 6,
@@ -6258,7 +6258,7 @@
         "Renata Glasc": {
           "games": 29,
           "winrate": 34.5,
-          "avgGd15Delta": -348.9
+          "avgGd15Delta": -349.1
         },
         "Lulu": {
           "games": 26,
@@ -6653,7 +6653,7 @@
         "Nautilus": {
           "games": 29,
           "winrate": 65.5,
-          "avgGd15Delta": 348.9
+          "avgGd15Delta": 349.1
         },
         "Bard": {
           "games": 14,

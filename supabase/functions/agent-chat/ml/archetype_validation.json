@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-15T21:51:37.298041+00:00",
+  "generatedAt": "2026-09-16T05:18:32.375480+00:00",
   "championsCurated": 172,
   "primaryRoleValidation": {
     "checked": 122,
@@ -250,7 +250,7 @@
           "champion": "Kalista",
           "curatedLaneBully": true,
           "empiricalLaneBully": false,
-          "vsRoleMedianGd15": 56.0,
+          "vsRoleMedianGd15": 56.1,
           "games": 288
         },
         {
