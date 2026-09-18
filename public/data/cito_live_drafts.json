@@ -1,4 +1,65 @@
 {
-  "generatedAt": "2026-09-18T18:56:18.988Z",
-  "drafts": []
+  "generatedAt": "2026-09-18T22:22:08.411Z",
+  "drafts": [
+    {
+      "matchId": "lol-match-115565004607949399",
+      "gameId": "lol-game-115565004607949400",
+      "gameNumber": 1,
+      "league": "LCS",
+      "teamA": "Sentinels",
+      "teamB": "Shopify Rebellion",
+      "blueTeam": "sr",
+      "redTeam": "sentinels",
+      "bluePicks": [
+        {
+          "championName": "K'Sante",
+          "role": "Top"
+        },
+        {
+          "championName": "Skarner",
+          "role": "Jungle"
+        },
+        {
+          "championName": "Orianna",
+          "role": "Mid"
+        },
+        {
+          "championName": "Kalista",
+          "role": "ADC"
+        },
+        {
+          "championName": "Renata Glasc",
+          "role": "Support"
+        }
+      ],
+      "redPicks": [
+        {
+          "championName": "Lee Sin",
+          "role": "Jungle"
+        },
+        {
+          "championName": "Syndra",
+          "role": "Mid"
+        },
+        {
+          "championName": "Rumble",
+          "role": "Top"
+        },
+        {
+          "championName": "Xayah",
+          "role": "ADC"
+        },
+        {
+          "championName": "Rakan",
+          "role": "Support"
+        }
+      ],
+      "blueBans": [],
+      "redBans": [],
+      "draftComplete": true,
+      "status": "inprogress",
+      "scheduledAt": "2026-09-18T20:00:00+00:00",
+      "fetchedAt": "2026-09-18T22:22:08.240Z"
+    }
+  ]
 }
