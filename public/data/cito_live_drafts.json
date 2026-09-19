@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-18T22:22:08.411Z",
+  "generatedAt": "2026-09-19T03:28:52.491Z",
   "drafts": [
     {
       "matchId": "lol-match-115565004607949399",
@@ -12,46 +12,46 @@
       "redTeam": "sentinels",
       "bluePicks": [
         {
-          "championName": "K'Sante",
-          "role": "Top"
+          "role": "Top",
+          "championName": "K'Sante"
         },
         {
-          "championName": "Skarner",
-          "role": "Jungle"
+          "role": "Jungle",
+          "championName": "Skarner"
         },
         {
-          "championName": "Orianna",
-          "role": "Mid"
+          "role": "Mid",
+          "championName": "Orianna"
         },
         {
-          "championName": "Kalista",
-          "role": "ADC"
+          "role": "ADC",
+          "championName": "Kalista"
         },
         {
-          "championName": "Renata Glasc",
-          "role": "Support"
+          "role": "Support",
+          "championName": "Renata Glasc"
         }
       ],
       "redPicks": [
         {
-          "championName": "Lee Sin",
-          "role": "Jungle"
+          "role": "Jungle",
+          "championName": "Lee Sin"
         },
         {
-          "championName": "Syndra",
-          "role": "Mid"
+          "role": "Mid",
+          "championName": "Syndra"
         },
         {
-          "championName": "Rumble",
-          "role": "Top"
+          "role": "Top",
+          "championName": "Rumble"
         },
         {
-          "championName": "Xayah",
-          "role": "ADC"
+          "role": "ADC",
+          "championName": "Xayah"
         },
         {
-          "championName": "Rakan",
-          "role": "Support"
+          "role": "Support",
+          "championName": "Rakan"
         }
       ],
       "blueBans": [],
@@ -59,7 +59,7 @@
       "draftComplete": true,
       "status": "inprogress",
       "scheduledAt": "2026-09-18T20:00:00+00:00",
-      "fetchedAt": "2026-09-18T22:22:08.240Z"
+      "fetchedAt": "2026-09-18T22:22:08.24+00:00"
     }
   ]
 }
