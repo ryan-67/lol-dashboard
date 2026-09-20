@@ -1,6 +1,66 @@
 {
-  "generatedAt": "2026-09-20T17:24:57.907Z",
+  "generatedAt": "2026-09-20T20:26:47.743Z",
   "drafts": [
+    {
+      "matchId": "lol-match-115565004607949393",
+      "gameId": "lol-game-115565004607949394",
+      "gameNumber": 1,
+      "league": "LCS",
+      "teamA": "FlyQuest",
+      "teamB": "Team Liquid Alienware",
+      "blueTeam": "tl",
+      "redTeam": "fly",
+      "bluePicks": [
+        {
+          "championName": "Ashe",
+          "role": "ADC"
+        },
+        {
+          "championName": "K'Sante",
+          "role": "Top"
+        },
+        {
+          "championName": "Syndra",
+          "role": "Mid"
+        },
+        {
+          "championName": "Qiyana",
+          "role": "Jungle"
+        },
+        {
+          "championName": "Karma",
+          "role": "Support"
+        }
+      ],
+      "redPicks": [
+        {
+          "championName": "Lulu",
+          "role": "Support"
+        },
+        {
+          "championName": "Sylas",
+          "role": "Mid"
+        },
+        {
+          "championName": "Rumble",
+          "role": "Top"
+        },
+        {
+          "championName": "Pantheon",
+          "role": "Jungle"
+        },
+        {
+          "championName": "Yunara",
+          "role": "ADC"
+        }
+      ],
+      "blueBans": [],
+      "redBans": [],
+      "draftComplete": true,
+      "status": "inprogress",
+      "scheduledAt": "2026-09-20T20:00:00+00:00",
+      "fetchedAt": "2026-09-20T20:26:47.378Z"
+    },
     {
       "matchId": "lol-match-115548681803406333",
       "gameId": "lol-game-115548681803406334",
@@ -12,46 +72,46 @@
       "redTeam": "mkoi",
       "bluePicks": [
         {
-          "championName": "Orianna",
-          "role": "Mid"
+          "role": "Mid",
+          "championName": "Orianna"
         },
         {
-          "championName": "Seraphine",
-          "role": "Support"
+          "role": "Support",
+          "championName": "Seraphine"
         },
         {
-          "championName": "Ambessa",
-          "role": "Top"
+          "role": "Top",
+          "championName": "Ambessa"
         },
         {
-          "championName": "Wukong",
-          "role": "Jungle"
+          "role": "Jungle",
+          "championName": "Wukong"
         },
         {
-          "championName": "Ashe",
-          "role": "ADC"
+          "role": "ADC",
+          "championName": "Ashe"
         }
       ],
       "redPicks": [
         {
-          "championName": "Zeri",
-          "role": "ADC"
+          "role": "ADC",
+          "championName": "Zeri"
         },
         {
-          "championName": "Rumble",
-          "role": "Top"
+          "role": "Top",
+          "championName": "Rumble"
         },
         {
-          "championName": "Lee Sin",
-          "role": "Jungle"
+          "role": "Jungle",
+          "championName": "Lee Sin"
         },
         {
-          "championName": "Ryze",
-          "role": "Mid"
+          "role": "Mid",
+          "championName": "Ryze"
         },
         {
-          "championName": "Yuumi",
-          "role": "Support"
+          "role": "Support",
+          "championName": "Yuumi"
         }
       ],
       "blueBans": [],
@@ -59,7 +119,7 @@
       "draftComplete": true,
       "status": "inprogress",
       "scheduledAt": "2026-09-20T15:00:00+00:00",
-      "fetchedAt": "2026-09-20T17:24:57.158Z"
+      "fetchedAt": "2026-09-20T17:24:57.158+00:00"
     }
   ]
 }
