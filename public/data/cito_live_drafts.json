@@ -1,4 +1,65 @@
 {
-  "generatedAt": "2026-09-20T13:59:46.703Z",
-  "drafts": []
+  "generatedAt": "2026-09-20T17:24:57.907Z",
+  "drafts": [
+    {
+      "matchId": "lol-match-115548681803406333",
+      "gameId": "lol-game-115548681803406334",
+      "gameNumber": 1,
+      "league": "LEC",
+      "teamA": "Movistar KOI",
+      "teamB": "G2 Esports",
+      "blueTeam": "g2",
+      "redTeam": "mkoi",
+      "bluePicks": [
+        {
+          "championName": "Orianna",
+          "role": "Mid"
+        },
+        {
+          "championName": "Seraphine",
+          "role": "Support"
+        },
+        {
+          "championName": "Ambessa",
+          "role": "Top"
+        },
+        {
+          "championName": "Wukong",
+          "role": "Jungle"
+        },
+        {
+          "championName": "Ashe",
+          "role": "ADC"
+        }
+      ],
+      "redPicks": [
+        {
+          "championName": "Zeri",
+          "role": "ADC"
+        },
+        {
+          "championName": "Rumble",
+          "role": "Top"
+        },
+        {
+          "championName": "Lee Sin",
+          "role": "Jungle"
+        },
+        {
+          "championName": "Ryze",
+          "role": "Mid"
+        },
+        {
+          "championName": "Yuumi",
+          "role": "Support"
+        }
+      ],
+      "blueBans": [],
+      "redBans": [],
+      "draftComplete": true,
+      "status": "inprogress",
+      "scheduledAt": "2026-09-20T15:00:00+00:00",
+      "fetchedAt": "2026-09-20T17:24:57.158Z"
+    }
+  ]
 }
