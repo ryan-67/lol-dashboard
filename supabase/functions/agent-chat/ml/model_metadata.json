@@ -1,5 +1,5 @@
 {
-  "exported_at": "2026-09-24T09:51:16.676409+00:00",
+  "exported_at": "2026-09-24T15:27:57.869174+00:00",
   "algo": "xgboost",
   "inference_mode": "logistic_linear_v1",
   "model_file": "series_model.json",
