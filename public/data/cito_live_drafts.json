@@ -1,4 +1,65 @@
 {
-  "generatedAt": "2026-09-25T19:53:09.711Z",
-  "drafts": []
+  "generatedAt": "2026-09-25T23:09:03.640Z",
+  "drafts": [
+    {
+      "matchId": "lol-match-115565004607949411",
+      "gameId": "lol-game-115565004607949412",
+      "gameNumber": 1,
+      "league": "LCS",
+      "teamA": "Shopify Rebellion",
+      "teamB": "FlyQuest",
+      "blueTeam": "sr",
+      "redTeam": "fly",
+      "bluePicks": [
+        {
+          "championName": "K'Sante",
+          "role": "Top"
+        },
+        {
+          "championName": "Lucian",
+          "role": "ADC"
+        },
+        {
+          "championName": "Locke",
+          "role": "Mid"
+        },
+        {
+          "championName": "Milio",
+          "role": "Support"
+        },
+        {
+          "championName": "Pantheon",
+          "role": "Jungle"
+        }
+      ],
+      "redPicks": [
+        {
+          "championName": "Syndra",
+          "role": "Mid"
+        },
+        {
+          "championName": "Ezreal",
+          "role": "ADC"
+        },
+        {
+          "championName": "Gwen",
+          "role": "Top"
+        },
+        {
+          "championName": "Lee Sin",
+          "role": "Jungle"
+        },
+        {
+          "championName": "Karma",
+          "role": "Support"
+        }
+      ],
+      "blueBans": [],
+      "redBans": [],
+      "draftComplete": true,
+      "status": "inprogress",
+      "scheduledAt": "2026-09-25T20:00:00+00:00",
+      "fetchedAt": "2026-09-25T23:09:03.543Z"
+    }
+  ]
 }
