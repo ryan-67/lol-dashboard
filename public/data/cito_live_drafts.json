@@ -1,4 +1,65 @@
 {
-  "generatedAt": "2026-09-26T19:05:58.661Z",
-  "drafts": []
+  "generatedAt": "2026-09-26T22:25:49.012Z",
+  "drafts": [
+    {
+      "matchId": "lol-match-115565004607949417",
+      "gameId": "lol-game-115565004607949418",
+      "gameNumber": 1,
+      "league": "LCS",
+      "teamA": "Shopify Rebellion",
+      "teamB": "LYON",
+      "blueTeam": "sr",
+      "redTeam": "lyon-gaming",
+      "bluePicks": [
+        {
+          "championName": "Ryze",
+          "role": "Mid"
+        },
+        {
+          "championName": "Milio",
+          "role": "Support"
+        },
+        {
+          "championName": "Lucian",
+          "role": "ADC"
+        },
+        {
+          "championName": "Gnar",
+          "role": "Top"
+        },
+        {
+          "championName": "Qiyana",
+          "role": "Jungle"
+        }
+      ],
+      "redPicks": [
+        {
+          "championName": "Lulu",
+          "role": "Support"
+        },
+        {
+          "championName": "Annie",
+          "role": "Mid"
+        },
+        {
+          "championName": "Olaf",
+          "role": "Top"
+        },
+        {
+          "championName": "Yunara",
+          "role": "ADC"
+        },
+        {
+          "championName": "Wukong",
+          "role": "Jungle"
+        }
+      ],
+      "blueBans": [],
+      "redBans": [],
+      "draftComplete": true,
+      "status": "inprogress",
+      "scheduledAt": "2026-09-26T20:00:00+00:00",
+      "fetchedAt": "2026-09-26T22:25:48.822Z"
+    }
+  ]
 }
