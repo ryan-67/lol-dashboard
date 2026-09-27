@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-26T22:25:49.012Z",
+  "generatedAt": "2026-09-27T04:02:04.083Z",
   "drafts": [
     {
       "matchId": "lol-match-115565004607949417",
@@ -12,46 +12,46 @@
       "redTeam": "lyon-gaming",
       "bluePicks": [
         {
-          "championName": "Ryze",
-          "role": "Mid"
+          "role": "Mid",
+          "championName": "Ryze"
         },
         {
-          "championName": "Milio",
-          "role": "Support"
+          "role": "Support",
+          "championName": "Milio"
         },
         {
-          "championName": "Lucian",
-          "role": "ADC"
+          "role": "ADC",
+          "championName": "Lucian"
         },
         {
-          "championName": "Gnar",
-          "role": "Top"
+          "role": "Top",
+          "championName": "Gnar"
         },
         {
-          "championName": "Qiyana",
-          "role": "Jungle"
+          "role": "Jungle",
+          "championName": "Qiyana"
         }
       ],
       "redPicks": [
         {
-          "championName": "Lulu",
-          "role": "Support"
+          "role": "Support",
+          "championName": "Lulu"
         },
         {
-          "championName": "Annie",
-          "role": "Mid"
+          "role": "Mid",
+          "championName": "Annie"
         },
         {
-          "championName": "Olaf",
-          "role": "Top"
+          "role": "Top",
+          "championName": "Olaf"
         },
         {
-          "championName": "Yunara",
-          "role": "ADC"
+          "role": "ADC",
+          "championName": "Yunara"
         },
         {
-          "championName": "Wukong",
-          "role": "Jungle"
+          "role": "Jungle",
+          "championName": "Wukong"
         }
       ],
       "blueBans": [],
@@ -59,7 +59,7 @@
       "draftComplete": true,
       "status": "inprogress",
       "scheduledAt": "2026-09-26T20:00:00+00:00",
-      "fetchedAt": "2026-09-26T22:25:48.822Z"
+      "fetchedAt": "2026-09-26T22:25:48.822+00:00"
     }
   ]
 }
