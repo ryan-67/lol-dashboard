@@ -1,4 +1,65 @@
 {
-  "generatedAt": "2026-09-27T19:35:20.245Z",
-  "drafts": []
+  "generatedAt": "2026-09-27T22:52:33.436Z",
+  "drafts": [
+    {
+      "matchId": "lol-match-115565004607949405",
+      "gameId": "lol-game-115565004607949406",
+      "gameNumber": 1,
+      "league": "LCS",
+      "teamA": "Team Liquid Alienware",
+      "teamB": "Cloud9 Kia",
+      "blueTeam": "tl",
+      "redTeam": "c9",
+      "bluePicks": [
+        {
+          "championName": "Rumble",
+          "role": "Top"
+        },
+        {
+          "championName": "Qiyana",
+          "role": "Jungle"
+        },
+        {
+          "championName": "Jhin",
+          "role": "ADC"
+        },
+        {
+          "championName": "Alistar",
+          "role": "Support"
+        },
+        {
+          "championName": "Viktor",
+          "role": "Mid"
+        }
+      ],
+      "redPicks": [
+        {
+          "championName": "Rakan",
+          "role": "Support"
+        },
+        {
+          "championName": "K'Sante",
+          "role": "Top"
+        },
+        {
+          "championName": "Wukong",
+          "role": "Jungle"
+        },
+        {
+          "championName": "Syndra",
+          "role": "Mid"
+        },
+        {
+          "championName": "Lucian",
+          "role": "ADC"
+        }
+      ],
+      "blueBans": [],
+      "redBans": [],
+      "draftComplete": true,
+      "status": "inprogress",
+      "scheduledAt": "2026-09-27T20:00:00+00:00",
+      "fetchedAt": "2026-09-27T22:52:33.174Z"
+    }
+  ]
 }
