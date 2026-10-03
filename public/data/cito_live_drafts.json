@@ -1,4 +1,65 @@
 {
-  "generatedAt": "2026-10-03T17:51:00.984Z",
-  "drafts": []
+  "generatedAt": "2026-10-03T20:41:46.810Z",
+  "drafts": [
+    {
+      "matchId": "lol-match-115565004607949423",
+      "gameId": "lol-game-115565004607949424",
+      "gameNumber": 1,
+      "league": "LCS",
+      "teamA": "LYON",
+      "teamB": "Cloud9 Kia",
+      "blueTeam": "lyon-gaming",
+      "redTeam": "c9",
+      "bluePicks": [
+        {
+          "championName": "Gwen",
+          "role": "Top"
+        },
+        {
+          "championName": "Xin Zhao",
+          "role": "Jungle"
+        },
+        {
+          "championName": "Syndra",
+          "role": "Mid"
+        },
+        {
+          "championName": "Lucian",
+          "role": "ADC"
+        },
+        {
+          "championName": "Milio",
+          "role": "Support"
+        }
+      ],
+      "redPicks": [
+        {
+          "championName": "K'Sante",
+          "role": "Top"
+        },
+        {
+          "championName": "Karma",
+          "role": "Support"
+        },
+        {
+          "championName": "Ezreal",
+          "role": "ADC"
+        },
+        {
+          "championName": "Naafiri",
+          "role": "Jungle"
+        },
+        {
+          "championName": "Orianna",
+          "role": "Mid"
+        }
+      ],
+      "blueBans": [],
+      "redBans": [],
+      "draftComplete": true,
+      "status": "inprogress",
+      "scheduledAt": "2026-10-03T20:00:00+00:00",
+      "fetchedAt": "2026-10-03T20:41:46.441Z"
+    }
+  ]
 }
