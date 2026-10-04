@@ -1,4 +1,65 @@
 {
-  "generatedAt": "2026-10-04T18:02:04.349Z",
-  "drafts": []
+  "generatedAt": "2026-10-04T21:17:05.476Z",
+  "drafts": [
+    {
+      "matchId": "lol-match-115565004607949429",
+      "gameId": "lol-game-115565004607949430",
+      "gameNumber": 1,
+      "league": "LCS",
+      "teamA": "LYON",
+      "teamB": "Team Liquid Alienware",
+      "blueTeam": "tl",
+      "redTeam": "lyon-gaming",
+      "bluePicks": [
+        {
+          "championName": "Lee Sin",
+          "role": "Jungle"
+        },
+        {
+          "championName": "Orianna",
+          "role": "Mid"
+        },
+        {
+          "championName": "Kalista",
+          "role": "ADC"
+        },
+        {
+          "championName": "Renata Glasc",
+          "role": "Support"
+        },
+        {
+          "championName": "Ambessa",
+          "role": "Top"
+        }
+      ],
+      "redPicks": [
+        {
+          "championName": "Syndra",
+          "role": "Mid"
+        },
+        {
+          "championName": "Yunara",
+          "role": "ADC"
+        },
+        {
+          "championName": "K'Sante",
+          "role": "Top"
+        },
+        {
+          "championName": "Lulu",
+          "role": "Support"
+        },
+        {
+          "championName": "Trundle",
+          "role": "Jungle"
+        }
+      ],
+      "blueBans": [],
+      "redBans": [],
+      "draftComplete": true,
+      "status": "inprogress",
+      "scheduledAt": "2026-10-04T20:00:00+00:00",
+      "fetchedAt": "2026-10-04T21:17:05.222Z"
+    }
+  ]
 }
