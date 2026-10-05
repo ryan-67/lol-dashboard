@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-04T21:17:05.476Z",
+  "generatedAt": "2026-10-05T00:31:08.231Z",
   "drafts": [
     {
       "matchId": "lol-match-115565004607949429",
@@ -12,46 +12,46 @@
       "redTeam": "lyon-gaming",
       "bluePicks": [
         {
-          "championName": "Lee Sin",
-          "role": "Jungle"
+          "role": "Jungle",
+          "championName": "Lee Sin"
         },
         {
-          "championName": "Orianna",
-          "role": "Mid"
+          "role": "Mid",
+          "championName": "Orianna"
         },
         {
-          "championName": "Kalista",
-          "role": "ADC"
+          "role": "ADC",
+          "championName": "Kalista"
         },
         {
-          "championName": "Renata Glasc",
-          "role": "Support"
+          "role": "Support",
+          "championName": "Renata Glasc"
         },
         {
-          "championName": "Ambessa",
-          "role": "Top"
+          "role": "Top",
+          "championName": "Ambessa"
         }
       ],
       "redPicks": [
         {
-          "championName": "Syndra",
-          "role": "Mid"
+          "role": "Mid",
+          "championName": "Syndra"
         },
         {
-          "championName": "Yunara",
-          "role": "ADC"
+          "role": "ADC",
+          "championName": "Yunara"
         },
         {
-          "championName": "K'Sante",
-          "role": "Top"
+          "role": "Top",
+          "championName": "K'Sante"
         },
         {
-          "championName": "Lulu",
-          "role": "Support"
+          "role": "Support",
+          "championName": "Lulu"
         },
         {
-          "championName": "Trundle",
-          "role": "Jungle"
+          "role": "Jungle",
+          "championName": "Trundle"
         }
       ],
       "blueBans": [],
@@ -59,7 +59,7 @@
       "draftComplete": true,
       "status": "inprogress",
       "scheduledAt": "2026-10-04T20:00:00+00:00",
-      "fetchedAt": "2026-10-04T21:17:05.222Z"
+      "fetchedAt": "2026-10-04T21:17:05.222+00:00"
     }
   ]
 }
