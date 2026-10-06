@@ -31,6 +31,7 @@ if str(SCRIPTS_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPTS_DIR))
 
 from oe_csv_io import TIER1_LEAGUES  # noqa: E402
+from oe_manifest import apply_manifest_split_hygiene  # noqa: E402
 
 
 def load_env() -> None:
@@ -48,14 +49,6 @@ def require_env(name: str) -> str:
         print(f"ERROR: missing {name}", file=sys.stderr)
         sys.exit(1)
     return value
-
-
-def split_sort_key(label: str) -> tuple[int, int, str]:
-    parts = label.split()
-    year = int(parts[0]) if parts and parts[0].isdigit() else 0
-    playoffs = 1 if "playoffs" in label.lower() else 0
-    season = " ".join(parts[1:]) if len(parts) > 1 else ""
-    return (year, playoffs, season)
 
 
 def main() -> None:
@@ -90,7 +83,6 @@ def main() -> None:
         sys.exit(1)
 
     slices: dict[str, dict] = {}
-    split_set: set[str] = set()
     league_set: set[str] = set()
     latest_updated: str | None = None
 
@@ -115,7 +107,6 @@ def main() -> None:
 
         key = f"{split}|{league}"
         slices[key] = data
-        split_set.add(split)
         league_set.add(league)
         updated_at = str(row.get("updated_at") or (slice_resp.data or {}).get("updated_at") or "")
         if updated_at and (not latest_updated or updated_at > latest_updated):
@@ -129,7 +120,7 @@ def main() -> None:
         "source": "Oracle's Elixir",
         "generated_at": latest_updated or datetime.now(timezone.utc).isoformat(),
         "leagues": sorted(l for l in TIER1_LEAGUES if l in league_set),
-        "splits": sorted(split_set, key=split_sort_key),
+        "splits": [],
         "schema_version": "2.1",
     }
 
@@ -148,10 +139,21 @@ def main() -> None:
         year_files[year] = write_year_shards(year, year_slices)
 
     manifest_path = OUT_DIR / MANIFEST_NAME
+    payload = {"meta": meta, "year_files": year_files}
+    dropped = apply_manifest_split_hygiene(payload, OUT_DIR)
+    if dropped:
+        print(
+            "Dropped manifest splits with no shard slice keys: "
+            + ", ".join(repr(split) for split in dropped),
+            file=sys.stderr,
+        )
     with manifest_path.open("w", encoding="utf-8") as f:
-        json.dump({"meta": meta, "year_files": year_files}, f, separators=(",", ":"))
+        json.dump(payload, f, separators=(",", ":"))
     print(f"Wrote {MANIFEST_NAME} ({manifest_path.stat().st_size / 1024:.1f} KB)")
-    print(f"Exported {len(slices)} slice keys across {len(year_files)} year shard(s)")
+    print(
+        f"Exported {len(slices)} slice keys across {len(year_files)} year shard(s); "
+        f"splits={len(payload['meta']['splits'])}"
+    )
 
     # Lean Hub bootstrap so SPA first paint skips full year parts.
     try:

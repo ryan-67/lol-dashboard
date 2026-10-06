@@ -32,6 +32,11 @@ if str(SCRIPTS_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPTS_DIR))
 
 from oe_csv_io import parse_download_years  # noqa: E402
+from oe_manifest import (  # noqa: E402
+    apply_manifest_split_hygiene,
+    split_sort_key,
+    splits_referenced_by_year_files,
+)
 
 
 def run(cmd: list[str], *, check: bool = True) -> subprocess.CompletedProcess:
@@ -61,8 +66,59 @@ def flatten_year_ref(value: str | list[str] | None) -> list[str]:
     if value is None:
         return []
     if isinstance(value, list):
-        return value
+        return [str(name) for name in value if name]
     return [value]
+
+
+def _format_split_list(splits: list[str]) -> str:
+    if not splits:
+        return "(none)"
+    return ", ".join(repr(split) for split in splits)
+
+
+def filter_year_files_for_publish(
+    year_files: dict[str, str | list[str]],
+    publish_years: set[str] | None,
+    data_dir: Path,
+    manifest_splits: list[str] | None = None,
+) -> tuple[dict[str, str | list[str]], list[str]]:
+    """Keep only ``publish_years``. One WARNING line per omitted year.
+
+    ``publish_years is None`` means publish every year (no warning).
+    Each warning names the year, its shard files, and the manifest splits
+    that disappear because those files are not published. A year outside the
+    scope is never dropped silently, even when its shard cannot be read.
+    """
+    if publish_years is None:
+        return dict(year_files), []
+
+    kept = {year: ref for year, ref in year_files.items() if year in publish_years}
+    skipped = [(year, ref) for year, ref in year_files.items() if year not in publish_years]
+    if not skipped:
+        return kept, []
+
+    manifest_set = {str(split) for split in (manifest_splits or []) if str(split).strip()}
+    kept_splits = splits_referenced_by_year_files(data_dir, kept)
+    warnings: list[str] = []
+    for year, ref in sorted(skipped, key=lambda item: item[0]):
+        filenames = sorted(flatten_year_ref(ref))
+        shard_splits = splits_referenced_by_year_files(data_dir, {year: ref})
+        if shard_splits:
+            dropped_set = (shard_splits - kept_splits) & manifest_set
+        else:
+            # Unreadable or missing shard: still name manifest splits for this year.
+            dropped_set = {
+                split
+                for split in manifest_set
+                if split == year or split.startswith(f"{year} ")
+            } - kept_splits
+        dropped = sorted(dropped_set, key=split_sort_key)
+        files = ", ".join(filenames) if filenames else "(none listed)"
+        warnings.append(
+            f"WARNING: skipping year {year} outside OE_CDN_PUBLISH_YEARS: "
+            f"files {files}; dropping splits from manifest: {_format_split_list(dropped)}"
+        )
+    return kept, warnings
 
 
 def restore_unpublished_shards(publish_years: set[str] | None) -> None:
@@ -103,10 +159,16 @@ def main() -> None:
 
     publish_years = parse_download_years(os.environ.get("OE_CDN_PUBLISH_YEARS", "current"))
     payload = json.loads(MANIFEST_PATH.read_text(encoding="utf-8"))
-    year_files: dict[str, str | list[str]] = dict(payload.get("year_files") or {})
-
-    if publish_years is not None:
-        year_files = {y: f for y, f in year_files.items() if y in publish_years}
+    year_files = dict(payload.get("year_files") or {})
+    manifest_splits = list((payload.get("meta") or {}).get("splits") or [])
+    year_files, scope_warnings = filter_year_files_for_publish(
+        year_files,
+        publish_years,
+        DATA_DIR,
+        manifest_splits,
+    )
+    for line in scope_warnings:
+        print(line, file=sys.stderr)
 
     staged_files: list[Path] = []
     skipped_large: list[str] = []
@@ -154,6 +216,17 @@ def main() -> None:
     remove_unpublished_shards_from_git(publish_years)
 
     payload["year_files"] = year_files
+    # Publishing a year subset (OE_CDN_PUBLISH_YEARS=current) drops other year
+    # shards. meta.splits must drop with them — otherwise a split that only
+    # lived in the omitted shard (2027 Summer|LCS → oe_slices_2027.json) stays
+    # in the committed manifest with zero slice keys.
+    dropped = apply_manifest_split_hygiene(payload, DATA_DIR)
+    if dropped:
+        print(
+            "Dropping manifest splits with no slice keys in published shards: "
+            + ", ".join(repr(split) for split in dropped),
+            file=sys.stderr,
+        )
     MANIFEST_PATH.write_text(json.dumps(payload, separators=(",", ":")), encoding="utf-8")
 
     run(["git", "config", "user.name", "github-actions[bot]"])

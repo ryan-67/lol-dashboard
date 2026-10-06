@@ -45,6 +45,7 @@ from oe_csv_io import (  # noqa: E402
     parse_playoffs_flag,
     resolve_playoffs_from_row,
 )
+from oe_manifest import apply_manifest_split_hygiene, split_sort_key  # noqa: E402
 
 LOL_DIR = ROOT / "lol"
 OUT_DIR = ROOT / "public" / "data"
@@ -71,17 +72,6 @@ POSITION_MAP = {
     "adc": "adc",
     "sup": "support",
     "support": "support",
-}
-
-# Chronological order within a competitive year for the split dropdown.
-SEASON_ORDER = {
-    "Winter": 0,
-    "First Stand": 1,
-    "Spring": 2,
-    "MSI": 3,
-    "EWC": 4,
-    "Summer": 5,
-    "Worlds": 6,
 }
 
 INTERNATIONAL_FROM_LEAGUE = {
@@ -386,15 +376,15 @@ def normalize_split(
 
 
 def canonical_split_key(league: str, year: str, raw_split: str, playoffs: str, date_raw: str = "") -> str:
+    """``"<year> <label>"``. The year is the row's year column, not the date.
+
+    An empty raw split falls through ``normalize_split``'s date fallback
+    (month <= 6 → Spring, otherwise Summer). A future year in that column
+    (for example LCS rows tagged ``2027`` inside the 2026 OE file) therefore
+    becomes a distinct split such as ``2027 Summer``.
+    """
     label, _ = normalize_split(league, year, raw_split, playoffs, date_raw)
     return f"{year} {label}"
-
-
-def split_sort_key(split_label: str) -> tuple:
-    parts = split_label.split(" ", 1)
-    year = int(parts[0]) if parts and parts[0].isdigit() else 0
-    season = parts[1] if len(parts) > 1 else parts[0]
-    return (year, SEASON_ORDER.get(season, 99), season.lower())
 
 
 def player_bucket():
@@ -1487,17 +1477,15 @@ def write_year_shards(year: str, year_slices: dict[str, dict]) -> str | list[str
     return names
 
 
-def load_existing_manifest() -> tuple[YearFilesMap, list[str]]:
+def load_existing_manifest() -> YearFilesMap:
     if not OUT_PATH.exists():
-        return {}, []
+        return {}
     try:
         payload = json.loads(OUT_PATH.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError):
-        return {}, []
+        return {}
     year_files = payload.get("year_files") if isinstance(payload.get("year_files"), dict) else {}
-    meta = payload.get("meta") if isinstance(payload.get("meta"), dict) else {}
-    splits = meta.get("splits") if isinstance(meta.get("splits"), list) else []
-    return dict(year_files), list(splits)
+    return dict(year_files)
 
 
 RIOT_SUPPLEMENT_PATH = ROOT / "data" / "ml" / "riot_oe_supplement.csv"
@@ -1616,7 +1604,6 @@ def ingest():
     global_game_teams, global_catalog_teams = build_global_game_teams_and_catalog(buckets)
 
     slices = {}
-    split_set = set()
     for (sk, league), store in buckets.items():
         for gid, teams in global_catalog_teams.items():
             cat = store["game_catalog"].setdefault(gid, {"teams": {}, "patch": "", "gameLength": None})
@@ -1628,14 +1615,13 @@ def ingest():
                 if team and team not in existing:
                     store["game_teams"][gid].append(side)
                     existing.add(team)
-        split_set.add(sk)
         slices[f"{sk}|{league}"] = compile_slice(store, sk, league)
 
     meta = {
         "source": "Oracle's Elixir",
         "generated_at": datetime.now(timezone.utc).isoformat(),
         "leagues": sorted(TARGET_LEAGUES),
-        "splits": sorted(split_set, key=split_sort_key),
+        "splits": [],
         "schema_version": "2.1",
         "csv_files": [p.name for p in csv_files],
     }
@@ -1651,16 +1637,8 @@ def ingest():
     for year, year_slices in sorted(slices_by_year.items()):
         shard_files[year] = write_year_shards(year, year_slices)
 
-    existing_year_files, existing_splits = load_existing_manifest()
+    existing_year_files = load_existing_manifest()
     merged_year_files: YearFilesMap = {**existing_year_files, **shard_files}
-    # Drop stale splits for years we just re-ingested (e.g. ghost "2026 Summer"
-    # left in the manifest after the slice itself disappeared).
-    if scoped_years is not None:
-        existing_splits = [
-            s for s in existing_splits
-            if not any(str(s).startswith(f"{y} ") for y in scoped_years)
-        ]
-    merged_splits = sorted(set(existing_splits) | split_set, key=split_sort_key)
 
     # Only remove shard files for years we just re-ingested; leave other CDN years alone.
     if scoped_years is not None:
@@ -1676,8 +1654,33 @@ def ingest():
             if year in merged_year_files and year not in shard_files:
                 merged_year_files.pop(year, None)
 
-    meta["splits"] = merged_splits
+    # Splits come only from slice keys inside the shards year_files points at.
+    # Do not union the previous meta.splits list: a scoped re-ingest used to
+    # keep names outside the scoped years (the "2027 Summer" ghost survived
+    # because the filter only dropped "2026 *" labels), and CDN publish drops
+    # non-current year shards without those names.
     payload = {"meta": meta, "year_files": merged_year_files}
+    dropped = apply_manifest_split_hygiene(payload, OUT_DIR)
+    meta = payload["meta"]
+    if dropped:
+        print(
+            "  Dropped manifest splits with no shard slice keys: "
+            + ", ".join(repr(split) for split in dropped),
+            file=sys.stderr,
+        )
+    if scoped_years is not None:
+        outside = [
+            split
+            for split in meta["splits"]
+            if split.split(" ", 1)[0] not in scoped_years
+        ]
+        if outside:
+            print(
+                "  WARNING: splits outside OE_DOWNLOAD_YEARS stay in this manifest "
+                "only while their year shard is listed in year_files. CDN publish "
+                f"with a narrower year scope will drop them: {outside}",
+                file=sys.stderr,
+            )
     with OUT_PATH.open("w", encoding="utf-8") as f:
         json.dump(payload, f, separators=(",", ":"))
 
