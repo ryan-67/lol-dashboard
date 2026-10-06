@@ -15,6 +15,7 @@ if str(SCRIPTS_DIR) not in sys.path:
 
 from ingest_csv import canonical_split_key  # noqa: E402
 from oe_manifest import apply_manifest_split_hygiene, audit_manifest_splits  # noqa: E402
+from publish_oe_cdn_to_git import filter_year_files_for_publish  # noqa: E402
 
 
 class CanonicalSplitKeyTest(unittest.TestCase):
@@ -104,6 +105,64 @@ class ManifestSplitHygieneTest(unittest.TestCase):
             dropped = apply_manifest_split_hygiene(payload, data)
             self.assertEqual(dropped, ["2027 Summer"])
             self.assertEqual(payload["meta"]["splits"], ["2026 Summer"])
+
+
+class PublishScopeWarningTest(unittest.TestCase):
+    def test_skipping_year_outside_publish_scope_names_files_and_splits(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            data = Path(tmp)
+            (data / "oe_slices_2026_p03.json").write_text(
+                json.dumps(
+                    {
+                        "slices": {
+                            "2026 Summer|LCS": {},
+                            "2026 Worlds|LPL": {},
+                        }
+                    }
+                ),
+                encoding="utf-8",
+            )
+            (data / "oe_slices_2027_p01.json").write_text(
+                json.dumps({"slices": {"2027 Summer|LCS": {}}}),
+                encoding="utf-8",
+            )
+            (data / "oe_slices_2027_p02.json").write_text(
+                json.dumps({"slices": {"2027 Winter|LCS": {}}}),
+                encoding="utf-8",
+            )
+            year_files = {
+                "2026": ["oe_slices_2026_p03.json"],
+                "2027": ["oe_slices_2027_p01.json", "oe_slices_2027_p02.json"],
+            }
+            manifest_splits = ["2026 Summer", "2026 Worlds", "2027 Summer", "2027 Winter"]
+            kept, warnings = filter_year_files_for_publish(
+                year_files,
+                {"2026"},
+                data,
+                manifest_splits,
+            )
+            self.assertEqual(list(kept), ["2026"])
+            self.assertEqual(len(warnings), 1)
+            warning = warnings[0]
+            self.assertTrue(warning.startswith("WARNING:"))
+            self.assertIn("skipping year 2027", warning)
+            self.assertIn("OE_CDN_PUBLISH_YEARS", warning)
+            self.assertIn("oe_slices_2027_p01.json", warning)
+            self.assertIn("oe_slices_2027_p02.json", warning)
+            self.assertIn("'2027 Summer'", warning)
+            self.assertIn("'2027 Winter'", warning)
+            self.assertNotIn("2026 Summer", warning)
+            self.assertNotIn("2026 Worlds", warning)
+
+    def test_publish_all_years_is_silent(self) -> None:
+        kept, warnings = filter_year_files_for_publish(
+            {"2026": "oe_slices_2026.json", "2027": "oe_slices_2027.json"},
+            None,
+            Path("."),
+            ["2026 Summer", "2027 Summer"],
+        )
+        self.assertEqual(warnings, [])
+        self.assertEqual(set(kept), {"2026", "2027"})
 
 
 if __name__ == "__main__":
