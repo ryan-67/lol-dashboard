@@ -32,6 +32,7 @@ if str(SCRIPTS_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPTS_DIR))
 
 from oe_csv_io import parse_download_years  # noqa: E402
+from oe_manifest import apply_manifest_split_hygiene  # noqa: E402
 
 
 def run(cmd: list[str], *, check: bool = True) -> subprocess.CompletedProcess:
@@ -154,6 +155,17 @@ def main() -> None:
     remove_unpublished_shards_from_git(publish_years)
 
     payload["year_files"] = year_files
+    # Publishing a year subset (OE_CDN_PUBLISH_YEARS=current) drops other year
+    # shards. meta.splits must drop with them — otherwise a split that only
+    # lived in the omitted shard (2027 Summer|LCS → oe_slices_2027.json) stays
+    # in the committed manifest with zero slice keys.
+    dropped = apply_manifest_split_hygiene(payload, DATA_DIR)
+    if dropped:
+        print(
+            "Dropping manifest splits with no slice keys in published shards: "
+            + ", ".join(repr(split) for split in dropped),
+            file=sys.stderr,
+        )
     MANIFEST_PATH.write_text(json.dumps(payload, separators=(",", ":")), encoding="utf-8")
 
     run(["git", "config", "user.name", "github-actions[bot]"])
