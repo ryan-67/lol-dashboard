@@ -1,4 +1,65 @@
 {
-  "generatedAt": "2026-10-08T17:15:39.602Z",
-  "drafts": []
+  "generatedAt": "2026-10-08T23:02:07.097Z",
+  "drafts": [
+    {
+      "matchId": "lol-match-117322971012796394",
+      "gameId": "lol-game-117322971012796395",
+      "gameNumber": 1,
+      "league": "LCS",
+      "teamA": "Maryville University",
+      "teamB": "Cupid Esports",
+      "blueTeam": "maryville-university",
+      "redTeam": "cupid-esports",
+      "bluePicks": [
+        {
+          "championName": "Rumble",
+          "role": "Top"
+        },
+        {
+          "championName": "Xin Zhao",
+          "role": "Jungle"
+        },
+        {
+          "championName": "Ryze",
+          "role": "Mid"
+        },
+        {
+          "championName": "Ezreal",
+          "role": "ADC"
+        },
+        {
+          "championName": "Karma",
+          "role": "Support"
+        }
+      ],
+      "redPicks": [
+        {
+          "championName": "Annie",
+          "role": "Mid"
+        },
+        {
+          "championName": "Milio",
+          "role": "Support"
+        },
+        {
+          "championName": "Jayce",
+          "role": "Top"
+        },
+        {
+          "championName": "Pantheon",
+          "role": "Jungle"
+        },
+        {
+          "championName": "Lucian",
+          "role": "ADC"
+        }
+      ],
+      "blueBans": [],
+      "redBans": [],
+      "draftComplete": true,
+      "status": "inprogress",
+      "scheduledAt": "2026-10-08T21:00:00+00:00",
+      "fetchedAt": "2026-10-08T23:02:06.742Z"
+    }
+  ]
 }
