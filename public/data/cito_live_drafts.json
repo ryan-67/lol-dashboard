@@ -1,4 +1,65 @@
 {
-  "generatedAt": "2026-10-09T19:19:16.986Z",
-  "drafts": []
+  "generatedAt": "2026-10-09T23:52:13.377Z",
+  "drafts": [
+    {
+      "matchId": "lol-match-117322971012796400",
+      "gameId": "lol-game-117322971012796401",
+      "gameNumber": 1,
+      "league": "LCS",
+      "teamA": "Disguised",
+      "teamB": "Fuego",
+      "blueTeam": "disguised",
+      "redTeam": "fue",
+      "bluePicks": [
+        {
+          "championName": "Milio",
+          "role": "Support"
+        },
+        {
+          "championName": "Pantheon",
+          "role": "Jungle"
+        },
+        {
+          "championName": "Lucian",
+          "role": "ADC"
+        },
+        {
+          "championName": "Rumble",
+          "role": "Top"
+        },
+        {
+          "championName": "Akali",
+          "role": "Mid"
+        }
+      ],
+      "redPicks": [
+        {
+          "championName": "Qiyana",
+          "role": "Jungle"
+        },
+        {
+          "championName": "Viktor",
+          "role": "Mid"
+        },
+        {
+          "championName": "Yunara",
+          "role": "ADC"
+        },
+        {
+          "championName": "Sion",
+          "role": "Top"
+        },
+        {
+          "championName": "Lulu",
+          "role": "Support"
+        }
+      ],
+      "blueBans": [],
+      "redBans": [],
+      "draftComplete": true,
+      "status": "inprogress",
+      "scheduledAt": "2026-10-09T23:30:00+00:00",
+      "fetchedAt": "2026-10-09T23:52:13.239Z"
+    }
+  ]
 }
