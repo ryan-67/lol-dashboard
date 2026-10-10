@@ -1,24 +1,24 @@
 {
-  "exported_at": "2026-10-09T20:01:07.041154+00:00",
+  "exported_at": "2026-10-10T05:32:55.195839+00:00",
   "algo": "xgboost",
   "inference_mode": "logistic_linear_v1",
   "model_file": "series_model.json",
-  "trained_rows": 3552,
-  "trained_series": 1776,
+  "trained_rows": 3548,
+  "trained_series": 1774,
   "date_range": [
-    "2024-10-10",
+    "2024-10-11",
     "2026-10-08"
   ],
-  "feature_count": 865,
+  "feature_count": 859,
   "walk_forward_metrics": {
     "aggregate": {
-      "log_loss": 0.6466599596805426,
-      "brier": 0.2190374086762437,
-      "accuracy": 0.6759246354502503
+      "log_loss": 0.6548960778557752,
+      "brier": 0.22274561636550277,
+      "accuracy": 0.6794958764192041
     },
     "baseline_aggregate": {
       "log_loss": 0.6968224787158255,
-      "brier": 0.2417310975343671,
+      "brier": 0.24173109753436714,
       "accuracy": 0.6131125865539816
     },
     "beats_baseline": true,
