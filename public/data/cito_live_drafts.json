@@ -1,4 +1,65 @@
 {
-  "generatedAt": "2026-10-10T17:20:11.311Z",
-  "drafts": []
+  "generatedAt": "2026-10-10T21:16:54.013Z",
+  "drafts": [
+    {
+      "matchId": "lol-match-117322971012796406",
+      "gameId": "lol-game-117322971012796407",
+      "gameNumber": 1,
+      "league": "LCS",
+      "teamA": "Disguised",
+      "teamB": "Cupid Esports",
+      "blueTeam": "disguised",
+      "redTeam": "cupid-esports",
+      "bluePicks": [
+        {
+          "championName": "Viktor",
+          "role": "Mid"
+        },
+        {
+          "championName": "Ashe",
+          "role": "ADC"
+        },
+        {
+          "championName": "Olaf",
+          "role": "Top"
+        },
+        {
+          "championName": "Lee Sin",
+          "role": "Jungle"
+        },
+        {
+          "championName": "Seraphine",
+          "role": "Support"
+        }
+      ],
+      "redPicks": [
+        {
+          "championName": "Syndra",
+          "role": "Mid"
+        },
+        {
+          "championName": "Zeri",
+          "role": "ADC"
+        },
+        {
+          "championName": "Gnar",
+          "role": "Top"
+        },
+        {
+          "championName": "Skarner",
+          "role": "Jungle"
+        },
+        {
+          "championName": "Yuumi",
+          "role": "Support"
+        }
+      ],
+      "blueBans": [],
+      "redBans": [],
+      "draftComplete": true,
+      "status": "inprogress",
+      "scheduledAt": "2026-10-10T21:00:00+00:00",
+      "fetchedAt": "2026-10-10T21:16:53.490Z"
+    }
+  ]
 }
