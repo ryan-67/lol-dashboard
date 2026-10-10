@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-09T23:52:13.377Z",
+  "generatedAt": "2026-10-10T04:39:56.599Z",
   "drafts": [
     {
       "matchId": "lol-match-117322971012796400",
@@ -12,46 +12,46 @@
       "redTeam": "fue",
       "bluePicks": [
         {
-          "championName": "Milio",
-          "role": "Support"
+          "role": "Support",
+          "championName": "Milio"
         },
         {
-          "championName": "Pantheon",
-          "role": "Jungle"
+          "role": "Jungle",
+          "championName": "Pantheon"
         },
         {
-          "championName": "Lucian",
-          "role": "ADC"
+          "role": "ADC",
+          "championName": "Lucian"
         },
         {
-          "championName": "Rumble",
-          "role": "Top"
+          "role": "Top",
+          "championName": "Rumble"
         },
         {
-          "championName": "Akali",
-          "role": "Mid"
+          "role": "Mid",
+          "championName": "Akali"
         }
       ],
       "redPicks": [
         {
-          "championName": "Qiyana",
-          "role": "Jungle"
+          "role": "Jungle",
+          "championName": "Qiyana"
         },
         {
-          "championName": "Viktor",
-          "role": "Mid"
+          "role": "Mid",
+          "championName": "Viktor"
         },
         {
-          "championName": "Yunara",
-          "role": "ADC"
+          "role": "ADC",
+          "championName": "Yunara"
         },
         {
-          "championName": "Sion",
-          "role": "Top"
+          "role": "Top",
+          "championName": "Sion"
         },
         {
-          "championName": "Lulu",
-          "role": "Support"
+          "role": "Support",
+          "championName": "Lulu"
         }
       ],
       "blueBans": [],
@@ -59,7 +59,7 @@
       "draftComplete": true,
       "status": "inprogress",
       "scheduledAt": "2026-10-09T23:30:00+00:00",
-      "fetchedAt": "2026-10-09T23:52:13.239Z"
+      "fetchedAt": "2026-10-09T23:52:13.239+00:00"
     }
   ]
 }
