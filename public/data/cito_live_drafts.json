@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-10T21:16:54.013Z",
+  "generatedAt": "2026-10-11T00:44:52.981Z",
   "drafts": [
     {
       "matchId": "lol-match-117322971012796406",
@@ -12,46 +12,46 @@
       "redTeam": "cupid-esports",
       "bluePicks": [
         {
-          "championName": "Viktor",
-          "role": "Mid"
+          "role": "Mid",
+          "championName": "Viktor"
         },
         {
-          "championName": "Ashe",
-          "role": "ADC"
+          "role": "ADC",
+          "championName": "Ashe"
         },
         {
-          "championName": "Olaf",
-          "role": "Top"
+          "role": "Top",
+          "championName": "Olaf"
         },
         {
-          "championName": "Lee Sin",
-          "role": "Jungle"
+          "role": "Jungle",
+          "championName": "Lee Sin"
         },
         {
-          "championName": "Seraphine",
-          "role": "Support"
+          "role": "Support",
+          "championName": "Seraphine"
         }
       ],
       "redPicks": [
         {
-          "championName": "Syndra",
-          "role": "Mid"
+          "role": "Mid",
+          "championName": "Syndra"
         },
         {
-          "championName": "Zeri",
-          "role": "ADC"
+          "role": "ADC",
+          "championName": "Zeri"
         },
         {
-          "championName": "Gnar",
-          "role": "Top"
+          "role": "Top",
+          "championName": "Gnar"
         },
         {
-          "championName": "Skarner",
-          "role": "Jungle"
+          "role": "Jungle",
+          "championName": "Skarner"
         },
         {
-          "championName": "Yuumi",
-          "role": "Support"
+          "role": "Support",
+          "championName": "Yuumi"
         }
       ],
       "blueBans": [],
@@ -59,7 +59,7 @@
       "draftComplete": true,
       "status": "inprogress",
       "scheduledAt": "2026-10-10T21:00:00+00:00",
-      "fetchedAt": "2026-10-10T21:16:53.490Z"
+      "fetchedAt": "2026-10-10T21:16:53.49+00:00"
     }
   ]
 }
