@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-15T19:45:46.263Z",
+  "generatedAt": "2026-10-15T22:57:02.959Z",
   "drafts": [
     {
       "matchId": "lol-match-115660588583171786",
@@ -59,7 +59,7 @@
       "draftComplete": true,
       "status": "inprogress",
       "scheduledAt": "2026-10-15T18:00:00+00:00",
-      "fetchedAt": "2026-10-15T19:45:45.433Z"
+      "fetchedAt": "2026-10-15T22:57:02.238Z"
     }
   ]
 }
