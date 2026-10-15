@@ -1,4 +1,65 @@
 {
-  "generatedAt": "2026-10-15T14:43:45.298Z",
-  "drafts": []
+  "generatedAt": "2026-10-15T19:45:46.263Z",
+  "drafts": [
+    {
+      "matchId": "lol-match-115660588583171786",
+      "gameId": "lol-game-115660588583171787",
+      "gameNumber": 1,
+      "league": "Worlds",
+      "teamA": "Cloud9 Kia",
+      "teamB": "Karmine Corp",
+      "blueTeam": "kc",
+      "redTeam": "c9",
+      "bluePicks": [
+        {
+          "championName": "Rumble",
+          "role": "Top"
+        },
+        {
+          "championName": "Syndra",
+          "role": "Mid"
+        },
+        {
+          "championName": "Lee Sin",
+          "role": "Jungle"
+        },
+        {
+          "championName": "Miss Fortune",
+          "role": "ADC"
+        },
+        {
+          "championName": "Nautilus",
+          "role": "Support"
+        }
+      ],
+      "redPicks": [
+        {
+          "championName": "Karma",
+          "role": "Support"
+        },
+        {
+          "championName": "Xin Zhao",
+          "role": "Jungle"
+        },
+        {
+          "championName": "Ezreal",
+          "role": "ADC"
+        },
+        {
+          "championName": "Locke",
+          "role": "Mid"
+        },
+        {
+          "championName": "Gnar",
+          "role": "Top"
+        }
+      ],
+      "blueBans": [],
+      "redBans": [],
+      "draftComplete": true,
+      "status": "inprogress",
+      "scheduledAt": "2026-10-15T18:00:00+00:00",
+      "fetchedAt": "2026-10-15T19:45:45.433Z"
+    }
+  ]
 }
