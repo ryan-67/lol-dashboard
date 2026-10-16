@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-15T22:57:02.959Z",
+  "generatedAt": "2026-10-16T03:27:40.066Z",
   "drafts": [
     {
       "matchId": "lol-match-115660588583171786",
@@ -12,46 +12,46 @@
       "redTeam": "c9",
       "bluePicks": [
         {
-          "championName": "Rumble",
-          "role": "Top"
+          "role": "Top",
+          "championName": "Rumble"
         },
         {
-          "championName": "Syndra",
-          "role": "Mid"
+          "role": "Mid",
+          "championName": "Syndra"
         },
         {
-          "championName": "Lee Sin",
-          "role": "Jungle"
+          "role": "Jungle",
+          "championName": "Lee Sin"
         },
         {
-          "championName": "Miss Fortune",
-          "role": "ADC"
+          "role": "ADC",
+          "championName": "Miss Fortune"
         },
         {
-          "championName": "Nautilus",
-          "role": "Support"
+          "role": "Support",
+          "championName": "Nautilus"
         }
       ],
       "redPicks": [
         {
-          "championName": "Karma",
-          "role": "Support"
+          "role": "Support",
+          "championName": "Karma"
         },
         {
-          "championName": "Xin Zhao",
-          "role": "Jungle"
+          "role": "Jungle",
+          "championName": "Xin Zhao"
         },
         {
-          "championName": "Ezreal",
-          "role": "ADC"
+          "role": "ADC",
+          "championName": "Ezreal"
         },
         {
-          "championName": "Locke",
-          "role": "Mid"
+          "role": "Mid",
+          "championName": "Locke"
         },
         {
-          "championName": "Gnar",
-          "role": "Top"
+          "role": "Top",
+          "championName": "Gnar"
         }
       ],
       "blueBans": [],
@@ -59,7 +59,7 @@
       "draftComplete": true,
       "status": "inprogress",
       "scheduledAt": "2026-10-15T18:00:00+00:00",
-      "fetchedAt": "2026-10-15T22:57:02.238Z"
+      "fetchedAt": "2026-10-15T22:57:02.238+00:00"
     }
   ]
 }
