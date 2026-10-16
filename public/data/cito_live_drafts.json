@@ -1,6 +1,66 @@
 {
-  "generatedAt": "2026-10-16T19:23:47.459Z",
+  "generatedAt": "2026-10-16T22:37:39.776Z",
   "drafts": [
+    {
+      "matchId": "lol-match-115660588583171794",
+      "gameId": "lol-game-115660588583171795",
+      "gameNumber": 1,
+      "league": "Worlds",
+      "teamA": "Cloud9 Kia",
+      "teamB": "FURIA",
+      "blueTeam": "furia",
+      "redTeam": "c9",
+      "bluePicks": [
+        {
+          "championName": "Kalista",
+          "role": "ADC"
+        },
+        {
+          "championName": "Ambessa",
+          "role": "Top"
+        },
+        {
+          "championName": "Renata Glasc",
+          "role": "Support"
+        },
+        {
+          "championName": "Jarvan IV",
+          "role": "Jungle"
+        },
+        {
+          "championName": "Ahri",
+          "role": "Mid"
+        }
+      ],
+      "redPicks": [
+        {
+          "championName": "Qiyana",
+          "role": "Jungle"
+        },
+        {
+          "championName": "Lucian",
+          "role": "ADC"
+        },
+        {
+          "championName": "Rumble",
+          "role": "Top"
+        },
+        {
+          "championName": "Syndra",
+          "role": "Mid"
+        },
+        {
+          "championName": "Milio",
+          "role": "Support"
+        }
+      ],
+      "blueBans": [],
+      "redBans": [],
+      "draftComplete": true,
+      "status": "inprogress",
+      "scheduledAt": "2026-10-16T21:00:00+00:00",
+      "fetchedAt": "2026-10-16T22:37:39.421Z"
+    },
     {
       "matchId": "lol-match-115660588583171790",
       "gameId": "lol-game-115660588583171791",
@@ -12,46 +72,46 @@
       "redTeam": "mvk",
       "bluePicks": [
         {
-          "championName": "Jayce",
-          "role": "Top"
+          "role": "Top",
+          "championName": "Jayce"
         },
         {
-          "championName": "Vi",
-          "role": "Jungle"
+          "role": "Jungle",
+          "championName": "Vi"
         },
         {
-          "championName": "Nautilus",
-          "role": "Support"
+          "role": "Support",
+          "championName": "Nautilus"
         },
         {
-          "championName": "Syndra",
-          "role": "Mid"
+          "role": "Mid",
+          "championName": "Syndra"
         },
         {
-          "championName": "Draven",
-          "role": "ADC"
+          "role": "ADC",
+          "championName": "Draven"
         }
       ],
       "redPicks": [
         {
-          "championName": "Ambessa",
-          "role": "Top"
+          "role": "Top",
+          "championName": "Ambessa"
         },
         {
-          "championName": "K'Sante",
-          "role": "Mid"
+          "role": "Mid",
+          "championName": "K'Sante"
         },
         {
-          "championName": "Tristana",
-          "role": "ADC"
+          "role": "ADC",
+          "championName": "Tristana"
         },
         {
-          "championName": "Lulu",
-          "role": "Support"
+          "role": "Support",
+          "championName": "Lulu"
         },
         {
-          "championName": "Maokai",
-          "role": "Jungle"
+          "role": "Jungle",
+          "championName": "Maokai"
         }
       ],
       "blueBans": [],
@@ -59,7 +119,7 @@
       "draftComplete": true,
       "status": "inprogress",
       "scheduledAt": "2026-10-16T18:00:00+00:00",
-      "fetchedAt": "2026-10-16T19:23:46.533Z"
+      "fetchedAt": "2026-10-16T19:23:46.533+00:00"
     }
   ]
 }
