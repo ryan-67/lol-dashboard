@@ -1,4 +1,65 @@
 {
-  "generatedAt": "2026-10-16T14:36:32.686Z",
-  "drafts": []
+  "generatedAt": "2026-10-16T19:23:47.459Z",
+  "drafts": [
+    {
+      "matchId": "lol-match-115660588583171790",
+      "gameId": "lol-game-115660588583171791",
+      "gameNumber": 1,
+      "league": "Worlds",
+      "teamA": "Karmine Corp",
+      "teamB": "MVK Esports",
+      "blueTeam": "kc",
+      "redTeam": "mvk",
+      "bluePicks": [
+        {
+          "championName": "Jayce",
+          "role": "Top"
+        },
+        {
+          "championName": "Vi",
+          "role": "Jungle"
+        },
+        {
+          "championName": "Nautilus",
+          "role": "Support"
+        },
+        {
+          "championName": "Syndra",
+          "role": "Mid"
+        },
+        {
+          "championName": "Draven",
+          "role": "ADC"
+        }
+      ],
+      "redPicks": [
+        {
+          "championName": "Ambessa",
+          "role": "Top"
+        },
+        {
+          "championName": "K'Sante",
+          "role": "Mid"
+        },
+        {
+          "championName": "Tristana",
+          "role": "ADC"
+        },
+        {
+          "championName": "Lulu",
+          "role": "Support"
+        },
+        {
+          "championName": "Maokai",
+          "role": "Jungle"
+        }
+      ],
+      "blueBans": [],
+      "redBans": [],
+      "draftComplete": true,
+      "status": "inprogress",
+      "scheduledAt": "2026-10-16T18:00:00+00:00",
+      "fetchedAt": "2026-10-16T19:23:46.533Z"
+    }
+  ]
 }
