@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-16T22:37:39.776Z",
+  "generatedAt": "2026-10-17T03:17:57.711Z",
   "drafts": [
     {
       "matchId": "lol-match-115660588583171794",
@@ -12,46 +12,46 @@
       "redTeam": "c9",
       "bluePicks": [
         {
-          "championName": "Kalista",
-          "role": "ADC"
+          "role": "ADC",
+          "championName": "Kalista"
         },
         {
-          "championName": "Ambessa",
-          "role": "Top"
+          "role": "Top",
+          "championName": "Ambessa"
         },
         {
-          "championName": "Renata Glasc",
-          "role": "Support"
+          "role": "Support",
+          "championName": "Renata Glasc"
         },
         {
-          "championName": "Jarvan IV",
-          "role": "Jungle"
+          "role": "Jungle",
+          "championName": "Jarvan IV"
         },
         {
-          "championName": "Ahri",
-          "role": "Mid"
+          "role": "Mid",
+          "championName": "Ahri"
         }
       ],
       "redPicks": [
         {
-          "championName": "Qiyana",
-          "role": "Jungle"
+          "role": "Jungle",
+          "championName": "Qiyana"
         },
         {
-          "championName": "Lucian",
-          "role": "ADC"
+          "role": "ADC",
+          "championName": "Lucian"
         },
         {
-          "championName": "Rumble",
-          "role": "Top"
+          "role": "Top",
+          "championName": "Rumble"
         },
         {
-          "championName": "Syndra",
-          "role": "Mid"
+          "role": "Mid",
+          "championName": "Syndra"
         },
         {
-          "championName": "Milio",
-          "role": "Support"
+          "role": "Support",
+          "championName": "Milio"
         }
       ],
       "blueBans": [],
@@ -59,7 +59,7 @@
       "draftComplete": true,
       "status": "inprogress",
       "scheduledAt": "2026-10-16T21:00:00+00:00",
-      "fetchedAt": "2026-10-16T22:37:39.421Z"
+      "fetchedAt": "2026-10-16T22:37:39.421+00:00"
     },
     {
       "matchId": "lol-match-115660588583171790",
