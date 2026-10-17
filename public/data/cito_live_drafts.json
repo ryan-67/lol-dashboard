@@ -1,4 +1,65 @@
 {
-  "generatedAt": "2026-10-17T16:54:25.571Z",
-  "drafts": []
+  "generatedAt": "2026-10-17T20:15:22.174Z",
+  "drafts": [
+    {
+      "matchId": "lol-match-115660588583171798",
+      "gameId": "lol-game-115660588583171799",
+      "gameNumber": 1,
+      "league": "Worlds",
+      "teamA": "MVK Esports",
+      "teamB": "FURIA",
+      "blueTeam": "mvk",
+      "redTeam": "furia",
+      "bluePicks": [
+        {
+          "championName": "Ezreal",
+          "role": "ADC"
+        },
+        {
+          "championName": "Cassiopeia",
+          "role": "Mid"
+        },
+        {
+          "championName": "Zaahen",
+          "role": "Top"
+        },
+        {
+          "championName": "Lulu",
+          "role": "Support"
+        },
+        {
+          "championName": "Jarvan IV",
+          "role": "Jungle"
+        }
+      ],
+      "redPicks": [
+        {
+          "championName": "Syndra",
+          "role": "Mid"
+        },
+        {
+          "championName": "Sejuani",
+          "role": "Jungle"
+        },
+        {
+          "championName": "Lucian",
+          "role": "ADC"
+        },
+        {
+          "championName": "Milio",
+          "role": "Support"
+        },
+        {
+          "championName": "Camille",
+          "role": "Top"
+        }
+      ],
+      "blueBans": [],
+      "redBans": [],
+      "draftComplete": true,
+      "status": "inprogress",
+      "scheduledAt": "2026-10-17T18:00:00+00:00",
+      "fetchedAt": "2026-10-17T20:15:21.872Z"
+    }
+  ]
 }
