@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-17T20:15:22.174Z",
+  "generatedAt": "2026-10-17T23:50:56.236Z",
   "drafts": [
     {
       "matchId": "lol-match-115660588583171798",
@@ -12,46 +12,46 @@
       "redTeam": "furia",
       "bluePicks": [
         {
-          "championName": "Ezreal",
-          "role": "ADC"
+          "role": "ADC",
+          "championName": "Ezreal"
         },
         {
-          "championName": "Cassiopeia",
-          "role": "Mid"
+          "role": "Mid",
+          "championName": "Cassiopeia"
         },
         {
-          "championName": "Zaahen",
-          "role": "Top"
+          "role": "Top",
+          "championName": "Zaahen"
         },
         {
-          "championName": "Lulu",
-          "role": "Support"
+          "role": "Support",
+          "championName": "Lulu"
         },
         {
-          "championName": "Jarvan IV",
-          "role": "Jungle"
+          "role": "Jungle",
+          "championName": "Jarvan IV"
         }
       ],
       "redPicks": [
         {
-          "championName": "Syndra",
-          "role": "Mid"
+          "role": "Mid",
+          "championName": "Syndra"
         },
         {
-          "championName": "Sejuani",
-          "role": "Jungle"
+          "role": "Jungle",
+          "championName": "Sejuani"
         },
         {
-          "championName": "Lucian",
-          "role": "ADC"
+          "role": "ADC",
+          "championName": "Lucian"
         },
         {
-          "championName": "Milio",
-          "role": "Support"
+          "role": "Support",
+          "championName": "Milio"
         },
         {
-          "championName": "Camille",
-          "role": "Top"
+          "role": "Top",
+          "championName": "Camille"
         }
       ],
       "blueBans": [],
@@ -59,7 +59,7 @@
       "draftComplete": true,
       "status": "inprogress",
       "scheduledAt": "2026-10-17T18:00:00+00:00",
-      "fetchedAt": "2026-10-17T20:15:21.872Z"
+      "fetchedAt": "2026-10-17T20:15:21.872+00:00"
     }
   ]
 }
