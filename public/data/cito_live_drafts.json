@@ -1,4 +1,65 @@
 {
-  "generatedAt": "2026-10-18T17:07:30.011Z",
-  "drafts": []
+  "generatedAt": "2026-10-18T20:12:57.223Z",
+  "drafts": [
+    {
+      "matchId": "lol-match-116299649498303884",
+      "gameId": "lol-game-116299649498303885",
+      "gameNumber": 1,
+      "league": "Worlds",
+      "teamA": "Karmine Corp",
+      "teamB": "MVK Esports",
+      "blueTeam": "kc",
+      "redTeam": "mvk",
+      "bluePicks": [
+        {
+          "championName": "Yuumi",
+          "role": "Support"
+        },
+        {
+          "championName": "Lee Sin",
+          "role": "Jungle"
+        },
+        {
+          "championName": "Cassiopeia",
+          "role": "Mid"
+        },
+        {
+          "championName": "Jayce",
+          "role": "Top"
+        },
+        {
+          "championName": "Zeri",
+          "role": "ADC"
+        }
+      ],
+      "redPicks": [
+        {
+          "championName": "Yorick",
+          "role": "Top"
+        },
+        {
+          "championName": "Akali",
+          "role": "Mid"
+        },
+        {
+          "championName": "Ashe",
+          "role": "ADC"
+        },
+        {
+          "championName": "Jarvan IV",
+          "role": "Jungle"
+        },
+        {
+          "championName": "Seraphine",
+          "role": "Support"
+        }
+      ],
+      "blueBans": [],
+      "redBans": [],
+      "draftComplete": true,
+      "status": "inprogress",
+      "scheduledAt": "2026-10-18T18:00:00+00:00",
+      "fetchedAt": "2026-10-18T20:12:57.052Z"
+    }
+  ]
 }
