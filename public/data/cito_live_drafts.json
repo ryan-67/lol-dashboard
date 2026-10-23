@@ -1,6 +1,66 @@
 {
-  "generatedAt": "2026-10-23T19:51:30.514Z",
+  "generatedAt": "2026-10-23T22:58:07.238Z",
   "drafts": [
+    {
+      "matchId": "lol-match-115660540726095007",
+      "gameId": "lol-game-115660540726095008",
+      "gameNumber": 1,
+      "league": "Worlds",
+      "teamA": "Team Liquid Alienware",
+      "teamB": "CTBC Flying Oyster",
+      "blueTeam": "tl",
+      "redTeam": "cfo",
+      "bluePicks": [
+        {
+          "championName": "Lee Sin",
+          "role": "Jungle"
+        },
+        {
+          "championName": "Galio",
+          "role": "Top"
+        },
+        {
+          "championName": "Jhin",
+          "role": "ADC"
+        },
+        {
+          "championName": "Syndra",
+          "role": "Mid"
+        },
+        {
+          "championName": "Rakan",
+          "role": "Support"
+        }
+      ],
+      "redPicks": [
+        {
+          "championName": "Viktor",
+          "role": "Mid"
+        },
+        {
+          "championName": "Qiyana",
+          "role": "Jungle"
+        },
+        {
+          "championName": "Rumble",
+          "role": "Top"
+        },
+        {
+          "championName": "Aphelios",
+          "role": "ADC"
+        },
+        {
+          "championName": "Alistar",
+          "role": "Support"
+        }
+      ],
+      "blueBans": [],
+      "redBans": [],
+      "draftComplete": true,
+      "status": "inprogress",
+      "scheduledAt": "2026-10-23T22:00:00+00:00",
+      "fetchedAt": "2026-10-23T22:58:05.902Z"
+    },
     {
       "matchId": "lol-match-115660540726095019",
       "gameId": "lol-game-115660540726095020",
@@ -12,46 +72,46 @@
       "redTeam": "blg",
       "bluePicks": [
         {
-          "championName": "Renekton",
-          "role": "Top"
+          "role": "Top",
+          "championName": "Renekton"
         },
         {
-          "championName": "Karma",
-          "role": "Support"
+          "role": "Support",
+          "championName": "Karma"
         },
         {
-          "championName": "Sylas",
-          "role": "Mid"
+          "role": "Mid",
+          "championName": "Sylas"
         },
         {
-          "championName": "Jarvan IV",
-          "role": "Jungle"
+          "role": "Jungle",
+          "championName": "Jarvan IV"
         },
         {
-          "championName": "Ezreal",
-          "role": "ADC"
+          "role": "ADC",
+          "championName": "Ezreal"
         }
       ],
       "redPicks": [
         {
-          "championName": "Ashe",
-          "role": "ADC"
+          "role": "ADC",
+          "championName": "Ashe"
         },
         {
-          "championName": "Seraphine",
-          "role": "Support"
+          "role": "Support",
+          "championName": "Seraphine"
         },
         {
-          "championName": "Ambessa",
-          "role": "Top"
+          "role": "Top",
+          "championName": "Ambessa"
         },
         {
-          "championName": "Akali",
-          "role": "Mid"
+          "role": "Mid",
+          "championName": "Akali"
         },
         {
-          "championName": "Pantheon",
-          "role": "Jungle"
+          "role": "Jungle",
+          "championName": "Pantheon"
         }
       ],
       "blueBans": [],
@@ -59,7 +119,7 @@
       "draftComplete": true,
       "status": "inprogress",
       "scheduledAt": "2026-10-23T19:00:00+00:00",
-      "fetchedAt": "2026-10-23T19:51:28.082Z"
+      "fetchedAt": "2026-10-23T19:51:28.082+00:00"
     }
   ]
 }
