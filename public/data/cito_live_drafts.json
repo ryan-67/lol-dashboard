@@ -1,4 +1,65 @@
 {
-  "generatedAt": "2026-10-23T14:43:59.429Z",
-  "drafts": []
+  "generatedAt": "2026-10-23T19:51:30.514Z",
+  "drafts": [
+    {
+      "matchId": "lol-match-115660540726095019",
+      "gameId": "lol-game-115660540726095020",
+      "gameNumber": 1,
+      "league": "Worlds",
+      "teamA": "BILIBILI GAMING",
+      "teamB": "Movistar KOI",
+      "blueTeam": "mkoi",
+      "redTeam": "blg",
+      "bluePicks": [
+        {
+          "championName": "Renekton",
+          "role": "Top"
+        },
+        {
+          "championName": "Karma",
+          "role": "Support"
+        },
+        {
+          "championName": "Sylas",
+          "role": "Mid"
+        },
+        {
+          "championName": "Jarvan IV",
+          "role": "Jungle"
+        },
+        {
+          "championName": "Ezreal",
+          "role": "ADC"
+        }
+      ],
+      "redPicks": [
+        {
+          "championName": "Ashe",
+          "role": "ADC"
+        },
+        {
+          "championName": "Seraphine",
+          "role": "Support"
+        },
+        {
+          "championName": "Ambessa",
+          "role": "Top"
+        },
+        {
+          "championName": "Akali",
+          "role": "Mid"
+        },
+        {
+          "championName": "Pantheon",
+          "role": "Jungle"
+        }
+      ],
+      "blueBans": [],
+      "redBans": [],
+      "draftComplete": true,
+      "status": "inprogress",
+      "scheduledAt": "2026-10-23T19:00:00+00:00",
+      "fetchedAt": "2026-10-23T19:51:28.082Z"
+    }
+  ]
 }
