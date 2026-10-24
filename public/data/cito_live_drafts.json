@@ -1,6 +1,66 @@
 {
-  "generatedAt": "2026-10-24T17:18:29.113Z",
+  "generatedAt": "2026-10-24T20:22:48.976Z",
   "drafts": [
+    {
+      "matchId": "lol-match-115660540726095023",
+      "gameId": "lol-game-115660540726095024",
+      "gameNumber": 1,
+      "league": "Worlds",
+      "teamA": "LYON",
+      "teamB": "Karmine Corp",
+      "blueTeam": "kc",
+      "redTeam": "lyon-gaming",
+      "bluePicks": [
+        {
+          "championName": "Kalista",
+          "role": "ADC"
+        },
+        {
+          "championName": "Cassiopeia",
+          "role": "Mid"
+        },
+        {
+          "championName": "Renata Glasc",
+          "role": "Support"
+        },
+        {
+          "championName": "Rumble",
+          "role": "Top"
+        },
+        {
+          "championName": "Lee Sin",
+          "role": "Jungle"
+        }
+      ],
+      "redPicks": [
+        {
+          "championName": "Galio",
+          "role": "Top"
+        },
+        {
+          "championName": "Lulu",
+          "role": "Support"
+        },
+        {
+          "championName": "Yunara",
+          "role": "ADC"
+        },
+        {
+          "championName": "Syndra",
+          "role": "Mid"
+        },
+        {
+          "championName": "Wukong",
+          "role": "Jungle"
+        }
+      ],
+      "blueBans": [],
+      "redBans": [],
+      "draftComplete": true,
+      "status": "inprogress",
+      "scheduledAt": "2026-10-24T20:00:00+00:00",
+      "fetchedAt": "2026-10-24T20:22:47.217Z"
+    },
     {
       "matchId": "lol-match-115660540726095029",
       "gameId": "lol-game-115660540726095030",
@@ -12,46 +72,46 @@
       "redTeam": "al",
       "bluePicks": [
         {
-          "championName": "Ambessa",
-          "role": "Top"
+          "role": "Top",
+          "championName": "Ambessa"
         },
         {
-          "championName": "Locke",
-          "role": "Mid"
+          "role": "Mid",
+          "championName": "Locke"
         },
         {
-          "championName": "Kalista",
-          "role": "ADC"
+          "role": "ADC",
+          "championName": "Kalista"
         },
         {
-          "championName": "Nocturne",
-          "role": "Jungle"
+          "role": "Jungle",
+          "championName": "Nocturne"
         },
         {
-          "championName": "Renata Glasc",
-          "role": "Support"
+          "role": "Support",
+          "championName": "Renata Glasc"
         }
       ],
       "redPicks": [
         {
-          "championName": "Milio",
-          "role": "Support"
+          "role": "Support",
+          "championName": "Milio"
         },
         {
-          "championName": "Jarvan IV",
-          "role": "Jungle"
+          "role": "Jungle",
+          "championName": "Jarvan IV"
         },
         {
-          "championName": "Rumble",
-          "role": "Top"
+          "role": "Top",
+          "championName": "Rumble"
         },
         {
-          "championName": "Orianna",
-          "role": "Mid"
+          "role": "Mid",
+          "championName": "Orianna"
         },
         {
-          "championName": "Lucian",
-          "role": "ADC"
+          "role": "ADC",
+          "championName": "Lucian"
         }
       ],
       "blueBans": [],
@@ -59,7 +119,7 @@
       "draftComplete": true,
       "status": "inprogress",
       "scheduledAt": "2026-10-24T17:00:00+00:00",
-      "fetchedAt": "2026-10-24T17:18:25.949Z"
+      "fetchedAt": "2026-10-24T17:18:25.949+00:00"
     }
   ]
 }
