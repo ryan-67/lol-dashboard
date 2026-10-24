@@ -1,4 +1,65 @@
 {
-  "generatedAt": "2026-10-24T13:53:43.755Z",
-  "drafts": []
+  "generatedAt": "2026-10-24T17:18:29.113Z",
+  "drafts": [
+    {
+      "matchId": "lol-match-115660540726095029",
+      "gameId": "lol-game-115660540726095030",
+      "gameNumber": 1,
+      "league": "Worlds",
+      "teamA": "Anyone's Legend",
+      "teamB": "TOP ESPORTS",
+      "blueTeam": "tes",
+      "redTeam": "al",
+      "bluePicks": [
+        {
+          "championName": "Ambessa",
+          "role": "Top"
+        },
+        {
+          "championName": "Locke",
+          "role": "Mid"
+        },
+        {
+          "championName": "Kalista",
+          "role": "ADC"
+        },
+        {
+          "championName": "Nocturne",
+          "role": "Jungle"
+        },
+        {
+          "championName": "Renata Glasc",
+          "role": "Support"
+        }
+      ],
+      "redPicks": [
+        {
+          "championName": "Milio",
+          "role": "Support"
+        },
+        {
+          "championName": "Jarvan IV",
+          "role": "Jungle"
+        },
+        {
+          "championName": "Rumble",
+          "role": "Top"
+        },
+        {
+          "championName": "Orianna",
+          "role": "Mid"
+        },
+        {
+          "championName": "Lucian",
+          "role": "ADC"
+        }
+      ],
+      "blueBans": [],
+      "redBans": [],
+      "draftComplete": true,
+      "status": "inprogress",
+      "scheduledAt": "2026-10-24T17:00:00+00:00",
+      "fetchedAt": "2026-10-24T17:18:25.949Z"
+    }
+  ]
 }
