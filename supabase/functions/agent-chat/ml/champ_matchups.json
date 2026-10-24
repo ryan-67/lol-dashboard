@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-24T04:12:34.360924+00:00",
+  "generatedAt": "2026-10-24T09:19:20.574224+00:00",
   "methodology": "Same-role matrix: direct-lane champ-vs-champ win rate + avg GD@15 delta, min 6 meetings. Draft-order reconstruction uses OE's firstPick flag + the standard competitive ban/pick slot pattern to recover true reveal order (not column order) for the counter-pick validation. Cross-role lift validates hand-curated archetype tag interactions against realized win rates, not assumed.",
   "sameRoleMatchups": {
     "top": {
@@ -10,9 +10,9 @@
           "avgGd15Delta": -973.7
         },
         "Rumble": {
-          "games": 189,
-          "winrate": 42.3,
-          "avgGd15Delta": -187.7
+          "games": 190,
+          "winrate": 42.6,
+          "avgGd15Delta": -184.4
         },
         "Jax": {
           "games": 20,
@@ -219,9 +219,9 @@
           "avgGd15Delta": -693.2
         },
         "K'Sante": {
-          "games": 189,
-          "winrate": 57.7,
-          "avgGd15Delta": 187.7
+          "games": 190,
+          "winrate": 57.4,
+          "avgGd15Delta": 184.4
         },
         "Galio": {
           "games": 96,
@@ -1468,9 +1468,9 @@
           "avgGd15Delta": 621.4
         },
         "Lee Sin": {
-          "games": 28,
-          "winrate": 35.7,
-          "avgGd15Delta": -380.6
+          "games": 29,
+          "winrate": 37.9,
+          "avgGd15Delta": -322.6
         },
         "Sejuani": {
           "games": 9,
@@ -2002,9 +2002,9 @@
           "avgGd15Delta": 530.6
         },
         "Nocturne": {
-          "games": 28,
-          "winrate": 64.3,
-          "avgGd15Delta": 380.6
+          "games": 29,
+          "winrate": 62.1,
+          "avgGd15Delta": 322.6
         },
         "Sejuani": {
           "games": 10,
@@ -3852,9 +3852,9 @@
           "avgGd15Delta": -200.8
         },
         "Anivia": {
-          "games": 102,
-          "winrate": 52.9,
-          "avgGd15Delta": -52.6
+          "games": 103,
+          "winrate": 52.4,
+          "avgGd15Delta": -33.6
         },
         "Malzahar": {
           "games": 6,
@@ -4263,9 +4263,9 @@
       },
       "Anivia": {
         "Ryze": {
-          "games": 102,
-          "winrate": 47.1,
-          "avgGd15Delta": 52.6
+          "games": 103,
+          "winrate": 47.6,
+          "avgGd15Delta": 33.6
         },
         "Cassiopeia": {
           "games": 25,
@@ -4755,9 +4755,9 @@
           "avgGd15Delta": 51.0
         },
         "Kai'Sa": {
-          "games": 102,
-          "winrate": 39.2,
-          "avgGd15Delta": -507.8
+          "games": 103,
+          "winrate": 39.8,
+          "avgGd15Delta": -499.6
         },
         "Varus": {
           "games": 131,
@@ -4832,9 +4832,9 @@
           "avgGd15Delta": -885.3
         },
         "Ezreal": {
-          "games": 102,
-          "winrate": 60.8,
-          "avgGd15Delta": 507.8
+          "games": 103,
+          "winrate": 60.2,
+          "avgGd15Delta": 499.6
         },
         "Varus": {
           "games": 38,
@@ -6363,9 +6363,9 @@
           "avgGd15Delta": -79.0
         },
         "Alistar": {
-          "games": 112,
-          "winrate": 44.6,
-          "avgGd15Delta": 100.3
+          "games": 113,
+          "winrate": 44.2,
+          "avgGd15Delta": 97.0
         },
         "Braum": {
           "games": 62,
@@ -6465,9 +6465,9 @@
           "avgGd15Delta": -803.0
         },
         "Nautilus": {
-          "games": 112,
-          "winrate": 55.4,
-          "avgGd15Delta": -100.3
+          "games": 113,
+          "winrate": 55.8,
+          "avgGd15Delta": -97.0
         },
         "Renata Glasc": {
           "games": 27,
@@ -7098,11 +7098,11 @@
     }
   },
   "counterPickSignal": {
-    "sampleGames": 8790,
-    "gamesWithAnyCounterPick": 2654,
-    "gamesWithZeroCounterPicks": 6136,
+    "sampleGames": 8792,
+    "gamesWithAnyCounterPick": 2655,
+    "gamesWithZeroCounterPicks": 6137,
     "winrateWithAnyCounterPick": 54.5,
-    "winrateWithZeroCounterPicks": 48.0,
+    "winrateWithZeroCounterPicks": 48.1,
     "note": "counterRate = share of a team's picks that matched the same-role matrix's definition of a favorable (>=55% WR, min sample) response to the enemy's most recently revealed champion at pick time (true reconstructed draft order, not column order). Zero-inflated distribution (landing >=1 matrix-defined counter is uncommon), so split is 'any counter-pick' vs 'none', gated at 40 games minimum before trusting the split. This is a retrospective correlation, NOT yet wired into the trained model as a feature \u2014 doing so safely requires a walk-forward (prior-games-only) version of the matchup matrix to avoid leakage, same discipline as region_elo.py's Elo lookups.",
     "pointBiserialCorr": 0.069
   },
@@ -7112,7 +7112,7 @@
       "defenderTag": "cc_heavy",
       "label": "Mobility escapes hard-CC/engage",
       "status": "validated",
-      "gamesWithCondition": 6513,
+      "gamesWithCondition": 6515,
       "winrateWithCondition": 50.0,
       "gamesWithout": 191,
       "winrateWithout": 53.4,
@@ -7123,7 +7123,7 @@
       "defenderTag": "engage",
       "label": "Mobility escapes engage comps",
       "status": "validated",
-      "gamesWithCondition": 6306,
+      "gamesWithCondition": 6308,
       "winrateWithCondition": 50.2,
       "gamesWithout": 398,
       "winrateWithout": 48.0,
@@ -7134,9 +7134,9 @@
       "defenderTag": "burst",
       "label": "Tanks blunt burst-heavy comps",
       "status": "validated",
-      "gamesWithCondition": 4304,
+      "gamesWithCondition": 4305,
       "winrateWithCondition": 49.7,
-      "gamesWithout": 1788,
+      "gamesWithout": 1789,
       "winrateWithout": 48.1,
       "liftPp": 1.6
     },
@@ -7145,7 +7145,7 @@
       "defenderTag": "dive",
       "label": "Poke checks dive comps before they close",
       "status": "validated",
-      "gamesWithCondition": 6677,
+      "gamesWithCondition": 6679,
       "winrateWithCondition": 49.6,
       "gamesWithout": 439,
       "winrateWithout": 50.6,
@@ -7167,7 +7167,7 @@
       "defenderTag": "dive",
       "label": "Peel/anti-dive protects into dive comps",
       "status": "validated",
-      "gamesWithCondition": 4776,
+      "gamesWithCondition": 4777,
       "winrateWithCondition": 50.8,
       "gamesWithout": 330,
       "winrateWithout": 48.8,
