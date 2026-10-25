@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-25T00:03:54.289Z",
+  "generatedAt": "2026-10-25T07:21:42.478Z",
   "drafts": [
     {
       "matchId": "lol-match-115660540726095027",
@@ -12,46 +12,46 @@
       "redTeam": "t1",
       "bluePicks": [
         {
-          "championName": "Viktor",
-          "role": "Mid"
+          "role": "Mid",
+          "championName": "Viktor"
         },
         {
-          "championName": "K'Sante",
-          "role": "Top"
+          "role": "Top",
+          "championName": "K'Sante"
         },
         {
-          "championName": "Renata Glasc",
-          "role": "Support"
+          "role": "Support",
+          "championName": "Renata Glasc"
         },
         {
-          "championName": "Kalista",
-          "role": "ADC"
+          "role": "ADC",
+          "championName": "Kalista"
         },
         {
-          "championName": "Jarvan IV",
-          "role": "Jungle"
+          "role": "Jungle",
+          "championName": "Jarvan IV"
         }
       ],
       "redPicks": [
         {
-          "championName": "Vi",
-          "role": "Jungle"
+          "role": "Jungle",
+          "championName": "Vi"
         },
         {
-          "championName": "Caitlyn",
-          "role": "ADC"
+          "role": "ADC",
+          "championName": "Caitlyn"
         },
         {
-          "championName": "Jayce",
-          "role": "Top"
+          "role": "Top",
+          "championName": "Jayce"
         },
         {
-          "championName": "Anivia",
-          "role": "Mid"
+          "role": "Mid",
+          "championName": "Anivia"
         },
         {
-          "championName": "Neeko",
-          "role": "Support"
+          "role": "Support",
+          "championName": "Neeko"
         }
       ],
       "blueBans": [],
@@ -59,7 +59,7 @@
       "draftComplete": true,
       "status": "inprogress",
       "scheduledAt": "2026-10-24T23:00:00+00:00",
-      "fetchedAt": "2026-10-25T00:03:53.801Z"
+      "fetchedAt": "2026-10-25T00:03:53.801+00:00"
     },
     {
       "matchId": "lol-match-115660540726095023",
@@ -120,66 +120,6 @@
       "status": "inprogress",
       "scheduledAt": "2026-10-24T20:00:00+00:00",
       "fetchedAt": "2026-10-24T20:22:47.217+00:00"
-    },
-    {
-      "matchId": "lol-match-115660540726095029",
-      "gameId": "lol-game-115660540726095030",
-      "gameNumber": 1,
-      "league": "Worlds",
-      "teamA": "Anyone's Legend",
-      "teamB": "TOP ESPORTS",
-      "blueTeam": "tes",
-      "redTeam": "al",
-      "bluePicks": [
-        {
-          "role": "Top",
-          "championName": "Ambessa"
-        },
-        {
-          "role": "Mid",
-          "championName": "Locke"
-        },
-        {
-          "role": "ADC",
-          "championName": "Kalista"
-        },
-        {
-          "role": "Jungle",
-          "championName": "Nocturne"
-        },
-        {
-          "role": "Support",
-          "championName": "Renata Glasc"
-        }
-      ],
-      "redPicks": [
-        {
-          "role": "Support",
-          "championName": "Milio"
-        },
-        {
-          "role": "Jungle",
-          "championName": "Jarvan IV"
-        },
-        {
-          "role": "Top",
-          "championName": "Rumble"
-        },
-        {
-          "role": "Mid",
-          "championName": "Orianna"
-        },
-        {
-          "role": "ADC",
-          "championName": "Lucian"
-        }
-      ],
-      "blueBans": [],
-      "redBans": [],
-      "draftComplete": true,
-      "status": "inprogress",
-      "scheduledAt": "2026-10-24T17:00:00+00:00",
-      "fetchedAt": "2026-10-24T17:18:25.949+00:00"
     }
   ]
 }
