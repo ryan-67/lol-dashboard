@@ -1,4 +1,65 @@
 {
-  "generatedAt": "2026-10-25T13:01:33.413Z",
-  "drafts": []
+  "generatedAt": "2026-10-25T17:38:28.734Z",
+  "drafts": [
+    {
+      "matchId": "lol-match-115660540726095045",
+      "gameId": "lol-game-115660540726095046",
+      "gameNumber": 1,
+      "league": "Worlds",
+      "teamA": "Hanwha Life Esports",
+      "teamB": "Invictus Gaming",
+      "blueTeam": "ig",
+      "redTeam": "hle",
+      "bluePicks": [
+        {
+          "championName": "Annie",
+          "role": "Mid"
+        },
+        {
+          "championName": "Kled",
+          "role": "Top"
+        },
+        {
+          "championName": "Nocturne",
+          "role": "Jungle"
+        },
+        {
+          "championName": "Lulu",
+          "role": "Support"
+        },
+        {
+          "championName": "Yunara",
+          "role": "ADC"
+        }
+      ],
+      "redPicks": [
+        {
+          "championName": "Olaf",
+          "role": "Top"
+        },
+        {
+          "championName": "Lissandra",
+          "role": "Mid"
+        },
+        {
+          "championName": "Renata Glasc",
+          "role": "Support"
+        },
+        {
+          "championName": "Qiyana",
+          "role": "Jungle"
+        },
+        {
+          "championName": "Kalista",
+          "role": "ADC"
+        }
+      ],
+      "blueBans": [],
+      "redBans": [],
+      "draftComplete": true,
+      "status": "inprogress",
+      "scheduledAt": "2026-10-25T17:00:00+00:00",
+      "fetchedAt": "2026-10-25T17:38:16.780Z"
+    }
+  ]
 }
