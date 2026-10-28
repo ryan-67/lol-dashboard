@@ -1,5 +1,5 @@
 {
-  "exported_at": "2026-10-28T08:30:43.355695+00:00",
+  "exported_at": "2026-10-28T15:46:55.187843+00:00",
   "algo": "xgboost",
   "inference_mode": "logistic_linear_v1",
   "model_file": "series_model.json",
@@ -17,7 +17,7 @@
       "accuracy": 0.6752325971123747
     },
     "baseline_aggregate": {
-      "log_loss": 0.7112145712875849,
+      "log_loss": 0.711214571287585,
       "brier": 0.24641366223015862,
       "accuracy": 0.6140108142922828
     },
