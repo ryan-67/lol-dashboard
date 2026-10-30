@@ -1,4 +1,65 @@
 {
-  "generatedAt": "2026-10-30T19:02:29.610Z",
-  "drafts": []
+  "generatedAt": "2026-10-30T23:31:27.395Z",
+  "drafts": [
+    {
+      "matchId": "lol-match-115660540726095081",
+      "gameId": "lol-game-115660540726095082",
+      "gameNumber": 1,
+      "league": "Worlds",
+      "teamA": "G2 Esports",
+      "teamB": "Hanwha Life Esports",
+      "blueTeam": "g2",
+      "redTeam": "hle",
+      "bluePicks": [
+        {
+          "championName": "Nautilus",
+          "role": "Support"
+        },
+        {
+          "championName": "Jhin",
+          "role": "ADC"
+        },
+        {
+          "championName": "Olaf",
+          "role": "Top"
+        },
+        {
+          "championName": "Pantheon",
+          "role": "Jungle"
+        },
+        {
+          "championName": "Cassiopeia",
+          "role": "Mid"
+        }
+      ],
+      "redPicks": [
+        {
+          "championName": "K'Sante",
+          "role": "Top"
+        },
+        {
+          "championName": "Lee Sin",
+          "role": "Jungle"
+        },
+        {
+          "championName": "Syndra",
+          "role": "Mid"
+        },
+        {
+          "championName": "Alistar",
+          "role": "Support"
+        },
+        {
+          "championName": "Corki",
+          "role": "ADC"
+        }
+      ],
+      "blueBans": [],
+      "redBans": [],
+      "draftComplete": true,
+      "status": "inprogress",
+      "scheduledAt": "2026-10-30T23:00:00+00:00",
+      "fetchedAt": "2026-10-30T23:31:27.102Z"
+    }
+  ]
 }
