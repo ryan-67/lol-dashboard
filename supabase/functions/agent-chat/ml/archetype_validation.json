@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-31T17:23:29.772333+00:00",
+  "generatedAt": "2026-10-31T21:39:00.409970+00:00",
   "championsCurated": 172,
   "primaryRoleValidation": {
     "checked": 123,
@@ -200,15 +200,15 @@
           "champion": "Camille",
           "curatedLaneBully": true,
           "empiricalLaneBully": false,
-          "vsRoleMedianGd15": 63.1,
-          "games": 234
+          "vsRoleMedianGd15": 57.7,
+          "games": 235
         },
         {
           "champion": "Cassiopeia",
           "curatedLaneBully": true,
           "empiricalLaneBully": false,
-          "vsRoleMedianGd15": 140.3,
-          "games": 338
+          "vsRoleMedianGd15": 140.1,
+          "games": 339
         },
         {
           "champion": "Corki",
@@ -341,7 +341,7 @@
           "curatedLate": true,
           "empiricalLateGameScaler": false,
           "scalingCurve": "late",
-          "games": 338
+          "games": 339
         },
         {
           "champion": "Cho'Gath",
@@ -495,7 +495,7 @@
           "curatedEarly": false,
           "empiricalFrontLoaded": true,
           "scalingCurve": "mid",
-          "games": 527
+          "games": 528
         },
         {
           "champion": "Bard",
@@ -523,7 +523,7 @@
           "curatedEarly": false,
           "empiricalFrontLoaded": true,
           "scalingCurve": "mid",
-          "games": 234
+          "games": 235
         },
         {
           "champion": "Draven",
@@ -623,7 +623,7 @@
         "defenderTag": "cc_heavy",
         "label": "Mobility escapes hard-CC/engage",
         "status": "validated",
-        "gamesWithCondition": 6575,
+        "gamesWithCondition": 6576,
         "winrateWithCondition": 50.0,
         "gamesWithout": 194,
         "winrateWithout": 54.1,
@@ -634,7 +634,7 @@
         "defenderTag": "engage",
         "label": "Mobility escapes engage comps",
         "status": "validated",
-        "gamesWithCondition": 6366,
+        "gamesWithCondition": 6367,
         "winrateWithCondition": 50.2,
         "gamesWithout": 403,
         "winrateWithout": 47.9,
@@ -645,7 +645,7 @@
         "defenderTag": "burst",
         "label": "Tanks blunt burst-heavy comps",
         "status": "validated",
-        "gamesWithCondition": 4342,
+        "gamesWithCondition": 4343,
         "winrateWithCondition": 49.6,
         "gamesWithout": 1798,
         "winrateWithout": 48.2,
@@ -656,7 +656,7 @@
         "defenderTag": "dive",
         "label": "Poke checks dive comps before they close",
         "status": "validated",
-        "gamesWithCondition": 6725,
+        "gamesWithCondition": 6726,
         "winrateWithCondition": 49.6,
         "gamesWithout": 442,
         "winrateWithout": 50.5,
