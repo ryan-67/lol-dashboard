@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-30T23:31:27.395Z",
+  "generatedAt": "2026-10-31T04:25:53.666Z",
   "drafts": [
     {
       "matchId": "lol-match-115660540726095081",
@@ -12,46 +12,46 @@
       "redTeam": "hle",
       "bluePicks": [
         {
-          "championName": "Nautilus",
-          "role": "Support"
+          "role": "Support",
+          "championName": "Nautilus"
         },
         {
-          "championName": "Jhin",
-          "role": "ADC"
+          "role": "ADC",
+          "championName": "Jhin"
         },
         {
-          "championName": "Olaf",
-          "role": "Top"
+          "role": "Top",
+          "championName": "Olaf"
         },
         {
-          "championName": "Pantheon",
-          "role": "Jungle"
+          "role": "Jungle",
+          "championName": "Pantheon"
         },
         {
-          "championName": "Cassiopeia",
-          "role": "Mid"
+          "role": "Mid",
+          "championName": "Cassiopeia"
         }
       ],
       "redPicks": [
         {
-          "championName": "K'Sante",
-          "role": "Top"
+          "role": "Top",
+          "championName": "K'Sante"
         },
         {
-          "championName": "Lee Sin",
-          "role": "Jungle"
+          "role": "Jungle",
+          "championName": "Lee Sin"
         },
         {
-          "championName": "Syndra",
-          "role": "Mid"
+          "role": "Mid",
+          "championName": "Syndra"
         },
         {
-          "championName": "Alistar",
-          "role": "Support"
+          "role": "Support",
+          "championName": "Alistar"
         },
         {
-          "championName": "Corki",
-          "role": "ADC"
+          "role": "ADC",
+          "championName": "Corki"
         }
       ],
       "blueBans": [],
@@ -59,7 +59,7 @@
       "draftComplete": true,
       "status": "inprogress",
       "scheduledAt": "2026-10-30T23:00:00+00:00",
-      "fetchedAt": "2026-10-30T23:31:27.102Z"
+      "fetchedAt": "2026-10-30T23:31:27.102+00:00"
     }
   ]
 }
