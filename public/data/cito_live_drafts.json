@@ -1,4 +1,65 @@
 {
-  "generatedAt": "2026-11-04T17:49:41.087Z",
-  "drafts": []
+  "generatedAt": "2026-11-04T23:18:49.652Z",
+  "drafts": [
+    {
+      "matchId": "lol-match-115660540726095115",
+      "gameId": "lol-game-115660540726095116",
+      "gameNumber": 1,
+      "league": "Worlds",
+      "teamA": "Gen.G Esports",
+      "teamB": "LYON",
+      "blueTeam": "gen",
+      "redTeam": "lyon-gaming",
+      "bluePicks": [
+        {
+          "championName": "Qiyana",
+          "role": "Jungle"
+        },
+        {
+          "championName": "Jhin",
+          "role": "ADC"
+        },
+        {
+          "championName": "Olaf",
+          "role": "Top"
+        },
+        {
+          "championName": "Leona",
+          "role": "Support"
+        },
+        {
+          "championName": "Galio",
+          "role": "Mid"
+        }
+      ],
+      "redPicks": [
+        {
+          "championName": "Lee Sin",
+          "role": "Jungle"
+        },
+        {
+          "championName": "Ezreal",
+          "role": "ADC"
+        },
+        {
+          "championName": "Nautilus",
+          "role": "Support"
+        },
+        {
+          "championName": "Orianna",
+          "role": "Mid"
+        },
+        {
+          "championName": "Jax",
+          "role": "Top"
+        }
+      ],
+      "blueBans": [],
+      "redBans": [],
+      "draftComplete": true,
+      "status": "inprogress",
+      "scheduledAt": "2026-11-04T22:00:00+00:00",
+      "fetchedAt": "2026-11-04T23:18:49.506Z"
+    }
+  ]
 }
