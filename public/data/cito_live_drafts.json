@@ -1,4 +1,65 @@
 {
-  "generatedAt": "2026-11-03T19:11:30.413Z",
-  "drafts": []
+  "generatedAt": "2026-11-04T00:26:46.719Z",
+  "drafts": [
+    {
+      "matchId": "lol-match-115660540726095109",
+      "gameId": "lol-game-115660540726095110",
+      "gameNumber": 1,
+      "league": "Worlds",
+      "teamA": "TOP ESPORTS",
+      "teamB": "Invictus Gaming",
+      "blueTeam": "ig",
+      "redTeam": "tes",
+      "bluePicks": [
+        {
+          "championName": "Gnar",
+          "role": "Top"
+        },
+        {
+          "championName": "Qiyana",
+          "role": "Jungle"
+        },
+        {
+          "championName": "Syndra",
+          "role": "Mid"
+        },
+        {
+          "championName": "Kai'Sa",
+          "role": "ADC"
+        },
+        {
+          "championName": "Nautilus",
+          "role": "Support"
+        }
+      ],
+      "redPicks": [
+        {
+          "championName": "Ambessa",
+          "role": "Top"
+        },
+        {
+          "championName": "Vi",
+          "role": "Jungle"
+        },
+        {
+          "championName": "Cassiopeia",
+          "role": "Mid"
+        },
+        {
+          "championName": "Ezreal",
+          "role": "ADC"
+        },
+        {
+          "championName": "Rell",
+          "role": "Support"
+        }
+      ],
+      "blueBans": [],
+      "redBans": [],
+      "draftComplete": true,
+      "status": "inprogress",
+      "scheduledAt": "2026-11-03T22:00:00+00:00",
+      "fetchedAt": "2026-11-04T00:26:46.381Z"
+    }
+  ]
 }
