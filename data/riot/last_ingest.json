@@ -1,7 +1,7 @@
 {
-  "ran_at": "2026-11-05T21:48:54.301460+00:00",
+  "ran_at": "2026-11-05T21:54:09.575885+00:00",
   "lookback_days": 14,
-  "schedule_rows": 488,
+  "schedule_rows": 489,
   "new_games": 0,
   "fetch_failures": 0,
   "gap_fill_games": 0,
