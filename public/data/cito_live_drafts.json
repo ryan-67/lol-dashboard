@@ -1,4 +1,65 @@
 {
-  "generatedAt": "2026-11-06T17:14:41.560Z",
-  "drafts": []
+  "generatedAt": "2026-11-06T22:47:52.557Z",
+  "drafts": [
+    {
+      "matchId": "lol-match-115660540726095103",
+      "gameId": "lol-game-115660540726095104",
+      "gameNumber": 1,
+      "league": "Worlds",
+      "teamA": "T1",
+      "teamB": "Karmine Corp",
+      "blueTeam": "t1",
+      "redTeam": "kc",
+      "bluePicks": [
+        {
+          "championName": "Jarvan IV",
+          "role": "Jungle"
+        },
+        {
+          "championName": "Yunara",
+          "role": "ADC"
+        },
+        {
+          "championName": "Ornn",
+          "role": "Top"
+        },
+        {
+          "championName": "Viktor",
+          "role": "Mid"
+        },
+        {
+          "championName": "Lulu",
+          "role": "Support"
+        }
+      ],
+      "redPicks": [
+        {
+          "championName": "Syndra",
+          "role": "Mid"
+        },
+        {
+          "championName": "Leona",
+          "role": "Support"
+        },
+        {
+          "championName": "Lee Sin",
+          "role": "Jungle"
+        },
+        {
+          "championName": "Rumble",
+          "role": "Top"
+        },
+        {
+          "championName": "Ezreal",
+          "role": "ADC"
+        }
+      ],
+      "blueBans": [],
+      "redBans": [],
+      "draftComplete": true,
+      "status": "inprogress",
+      "scheduledAt": "2026-11-06T22:00:00+00:00",
+      "fetchedAt": "2026-11-06T22:47:52.265Z"
+    }
+  ]
 }
