@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-06T22:47:52.557Z",
+  "generatedAt": "2026-11-07T04:56:22.461Z",
   "drafts": [
     {
       "matchId": "lol-match-115660540726095103",
@@ -12,46 +12,46 @@
       "redTeam": "kc",
       "bluePicks": [
         {
-          "championName": "Jarvan IV",
-          "role": "Jungle"
+          "role": "Jungle",
+          "championName": "Jarvan IV"
         },
         {
-          "championName": "Yunara",
-          "role": "ADC"
+          "role": "ADC",
+          "championName": "Yunara"
         },
         {
-          "championName": "Ornn",
-          "role": "Top"
+          "role": "Top",
+          "championName": "Ornn"
         },
         {
-          "championName": "Viktor",
-          "role": "Mid"
+          "role": "Mid",
+          "championName": "Viktor"
         },
         {
-          "championName": "Lulu",
-          "role": "Support"
+          "role": "Support",
+          "championName": "Lulu"
         }
       ],
       "redPicks": [
         {
-          "championName": "Syndra",
-          "role": "Mid"
+          "role": "Mid",
+          "championName": "Syndra"
         },
         {
-          "championName": "Leona",
-          "role": "Support"
+          "role": "Support",
+          "championName": "Leona"
         },
         {
-          "championName": "Lee Sin",
-          "role": "Jungle"
+          "role": "Jungle",
+          "championName": "Lee Sin"
         },
         {
-          "championName": "Rumble",
-          "role": "Top"
+          "role": "Top",
+          "championName": "Rumble"
         },
         {
-          "championName": "Ezreal",
-          "role": "ADC"
+          "role": "ADC",
+          "championName": "Ezreal"
         }
       ],
       "blueBans": [],
@@ -59,7 +59,7 @@
       "draftComplete": true,
       "status": "inprogress",
       "scheduledAt": "2026-11-06T22:00:00+00:00",
-      "fetchedAt": "2026-11-06T22:47:52.265Z"
+      "fetchedAt": "2026-11-06T22:47:52.265+00:00"
     }
   ]
 }
