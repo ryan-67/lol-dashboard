@@ -1,4 +1,65 @@
 {
-  "generatedAt": "2026-11-08T18:42:41.700Z",
-  "drafts": []
+  "generatedAt": "2026-11-08T23:29:10.962Z",
+  "drafts": [
+    {
+      "matchId": "lol-match-115660540726095121",
+      "gameId": "lol-game-115660540726095122",
+      "gameNumber": 1,
+      "league": "Worlds",
+      "teamA": "T1",
+      "teamB": "BILIBILI GAMING",
+      "blueTeam": "blg",
+      "redTeam": "t1",
+      "bluePicks": [
+        {
+          "championName": "Corki",
+          "role": "ADC"
+        },
+        {
+          "championName": "Naafiri",
+          "role": "Jungle"
+        },
+        {
+          "championName": "Nautilus",
+          "role": "Support"
+        },
+        {
+          "championName": "K'Sante",
+          "role": "Top"
+        },
+        {
+          "championName": "Orianna",
+          "role": "Mid"
+        }
+      ],
+      "redPicks": [
+        {
+          "championName": "Nocturne",
+          "role": "Jungle"
+        },
+        {
+          "championName": "Xayah",
+          "role": "ADC"
+        },
+        {
+          "championName": "Rumble",
+          "role": "Top"
+        },
+        {
+          "championName": "Locke",
+          "role": "Mid"
+        },
+        {
+          "championName": "Rakan",
+          "role": "Support"
+        }
+      ],
+      "blueBans": [],
+      "redBans": [],
+      "draftComplete": true,
+      "status": "inprogress",
+      "scheduledAt": "2026-11-08T22:00:00+00:00",
+      "fetchedAt": "2026-11-08T23:29:10.759Z"
+    }
+  ]
 }
