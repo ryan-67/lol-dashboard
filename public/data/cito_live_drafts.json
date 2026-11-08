@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-07T23:29:54.813Z",
+  "generatedAt": "2026-11-08T04:48:05.294Z",
   "drafts": [
     {
       "matchId": "lol-match-115660540726095127",
@@ -12,46 +12,46 @@
       "redTeam": "ig",
       "bluePicks": [
         {
-          "championName": "Olaf",
-          "role": "Top"
+          "role": "Top",
+          "championName": "Olaf"
         },
         {
-          "championName": "Qiyana",
-          "role": "Jungle"
+          "role": "Jungle",
+          "championName": "Qiyana"
         },
         {
-          "championName": "Cassiopeia",
-          "role": "Mid"
+          "role": "Mid",
+          "championName": "Cassiopeia"
         },
         {
-          "championName": "Jhin",
-          "role": "ADC"
+          "role": "ADC",
+          "championName": "Jhin"
         },
         {
-          "championName": "Leona",
-          "role": "Support"
+          "role": "Support",
+          "championName": "Leona"
         }
       ],
       "redPicks": [
         {
-          "championName": "Kled",
-          "role": "Top"
+          "role": "Top",
+          "championName": "Kled"
         },
         {
-          "championName": "Vi",
-          "role": "Jungle"
+          "role": "Jungle",
+          "championName": "Vi"
         },
         {
-          "championName": "Syndra",
-          "role": "Mid"
+          "role": "Mid",
+          "championName": "Syndra"
         },
         {
-          "championName": "Xayah",
-          "role": "ADC"
+          "role": "ADC",
+          "championName": "Xayah"
         },
         {
-          "championName": "Rakan",
-          "role": "Support"
+          "role": "Support",
+          "championName": "Rakan"
         }
       ],
       "blueBans": [],
@@ -59,7 +59,7 @@
       "draftComplete": true,
       "status": "inprogress",
       "scheduledAt": "2026-11-07T22:00:00+00:00",
-      "fetchedAt": "2026-11-07T23:29:54.503Z"
+      "fetchedAt": "2026-11-07T23:29:54.503+00:00"
     }
   ]
 }
