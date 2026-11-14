@@ -1,4 +1,65 @@
 {
-  "generatedAt": "2026-11-14T16:25:45.170Z",
-  "drafts": []
+  "generatedAt": "2026-11-14T22:02:50.294Z",
+  "drafts": [
+    {
+      "matchId": "lol-match-115660540726095133",
+      "gameId": "lol-game-115660540726095134",
+      "gameNumber": 1,
+      "league": "Worlds",
+      "teamA": "Gen.G Esports",
+      "teamB": "BILIBILI GAMING",
+      "blueTeam": "gen",
+      "redTeam": "blg",
+      "bluePicks": [
+        {
+          "championName": "Lee Sin",
+          "role": "Jungle"
+        },
+        {
+          "championName": "Nami",
+          "role": "Support"
+        },
+        {
+          "championName": "Corki",
+          "role": "ADC"
+        },
+        {
+          "championName": "Olaf",
+          "role": "Top"
+        },
+        {
+          "championName": "Syndra",
+          "role": "Mid"
+        }
+      ],
+      "redPicks": [
+        {
+          "championName": "Locke",
+          "role": "Mid"
+        },
+        {
+          "championName": "Jarvan IV",
+          "role": "Jungle"
+        },
+        {
+          "championName": "K'Sante",
+          "role": "Top"
+        },
+        {
+          "championName": "Renata Glasc",
+          "role": "Support"
+        },
+        {
+          "championName": "Kalista",
+          "role": "ADC"
+        }
+      ],
+      "blueBans": [],
+      "redBans": [],
+      "draftComplete": true,
+      "status": "inprogress",
+      "scheduledAt": "2026-11-14T20:00:00+00:00",
+      "fetchedAt": "2026-11-14T22:02:49.855Z"
+    }
+  ]
 }
