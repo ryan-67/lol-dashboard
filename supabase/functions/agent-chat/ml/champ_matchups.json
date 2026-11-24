@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-23T14:41:49.118871+00:00",
+  "generatedAt": "2026-11-24T03:18:48.906669+00:00",
   "methodology": "Same-role matrix: direct-lane champ-vs-champ win rate + avg GD@15 delta, min 6 meetings. Draft-order reconstruction uses OE's firstPick flag + the standard competitive ban/pick slot pattern to recover true reveal order (not column order) for the counter-pick validation. Cross-role lift validates hand-curated archetype tag interactions against realized win rates, not assumed.",
   "sameRoleMatchups": {
     "top": {
@@ -1100,6 +1100,11 @@
           "games": 38,
           "winrate": 47.4,
           "avgGd15Delta": 151.3
+        },
+        "Varus": {
+          "games": 6,
+          "winrate": 66.7,
+          "avgGd15Delta": -1738.4
         }
       },
       "Shen": {
@@ -1214,6 +1219,11 @@
           "games": 8,
           "winrate": 62.5,
           "avgGd15Delta": 1295.2
+        },
+        "Yorick": {
+          "games": 6,
+          "winrate": 33.3,
+          "avgGd15Delta": 1738.4
         },
         "Gnar": {
           "games": 9,
@@ -4521,8 +4531,8 @@
           "avgGd15Delta": 1029.4
         },
         "Lucian": {
-          "games": 27,
-          "winrate": 51.9,
+          "games": 26,
+          "winrate": 53.8,
           "avgGd15Delta": -110.7
         },
         "Senna": {
@@ -5514,8 +5524,8 @@
           "avgGd15Delta": 479.5
         },
         "Varus": {
-          "games": 27,
-          "winrate": 48.1,
+          "games": 26,
+          "winrate": 46.2,
           "avgGd15Delta": 110.7
         },
         "Caitlyn": {
@@ -5579,8 +5589,8 @@
           "avgGd15Delta": 395.3
         },
         "Kog'Maw": {
-          "games": 11,
-          "winrate": 36.4,
+          "games": 12,
+          "winrate": 41.7,
           "avgGd15Delta": -399.3
         }
       },
@@ -5766,8 +5776,8 @@
       },
       "Kog'Maw": {
         "Lucian": {
-          "games": 11,
-          "winrate": 63.6,
+          "games": 12,
+          "winrate": 58.3,
           "avgGd15Delta": 399.3
         }
       },
@@ -7165,10 +7175,10 @@
   },
   "counterPickSignal": {
     "sampleGames": 8928,
-    "gamesWithAnyCounterPick": 2645,
-    "gamesWithZeroCounterPicks": 6283,
+    "gamesWithAnyCounterPick": 2658,
+    "gamesWithZeroCounterPicks": 6270,
     "winrateWithAnyCounterPick": 54.6,
-    "winrateWithZeroCounterPicks": 48.1,
+    "winrateWithZeroCounterPicks": 48.0,
     "note": "counterRate = share of a team's picks that matched the same-role matrix's definition of a favorable (>=55% WR, min sample) response to the enemy's most recently revealed champion at pick time (true reconstructed draft order, not column order). Zero-inflated distribution (landing >=1 matrix-defined counter is uncommon), so split is 'any counter-pick' vs 'none', gated at 40 games minimum before trusting the split. This is a retrospective correlation, NOT yet wired into the trained model as a feature \u2014 doing so safely requires a walk-forward (prior-games-only) version of the matchup matrix to avoid leakage, same discipline as region_elo.py's Elo lookups.",
     "pointBiserialCorr": 0.069
   },
