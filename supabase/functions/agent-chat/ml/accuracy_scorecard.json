@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-27T07:38:45.516282+00:00",
+  "generatedAt": "2026-11-27T18:29:18.460930+00:00",
   "algo": "xgboost",
   "featureCount": 856,
   "holdoutRows": 786,
